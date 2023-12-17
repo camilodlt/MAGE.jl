@@ -4,6 +4,7 @@ authors = ["Camilo De La Torre <camilo.de-la-torre@ut-capitole.fr> and contribut
 version = "1.0.1-DEV"
 
 [deps]
+Coverage = "a2441757-f6aa-5fb2-8edb-039e3f45d037"
 Debugger = "31a5f54b-26ea-5ae9-a837-f05ce5417438"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
