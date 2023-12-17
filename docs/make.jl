@@ -28,7 +28,4 @@ makedocs(;
     ],
 )
 
-# deploydocs(;
-#     repo="github.com/camilo/UTCGP.jl",
-#     devbranch="main",
-# )
+deploydocs(; repo = "github.com/camilo/UTCGP.jl", devbranch = "main")
