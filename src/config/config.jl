@@ -40,14 +40,14 @@ case is rare
     modelArchitecture(
         inputs_types::Vector
         inputs_types_idx::Vector{Int}
-        chromosomes_types::Vector
+        chromosomes_types::Vector{<:DataType}
         outputs_types::Vector
         outputs_types_idx::Vector{Int})
 """
 struct modelArchitecture
     inputs_types::Vector
     inputs_types_idx::Vector{Int}
-    chromosomes_types::Vector
+    chromosomes_types::Vector{<:DataType}
     outputs_types::Vector
     outputs_types_idx::Vector{Int}
 end

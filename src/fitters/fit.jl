@@ -19,7 +19,7 @@ function fit(
     output_mutation_callbacks::Vector{Symbol},
     decoding_callbacks::Vector{Symbol},
     # Callbacks per step (while looping through data)
-    endpoint_callback::Any,
+    endpoint_callback::Type{<:BatchEndpoint},
     final_step_callbacks::Union{Nothing,Vector{Function}},
     # Callbacks after step ::
     elite_selection_callbacks::Vector{Symbol},
@@ -90,6 +90,7 @@ function fit(
             model_architecture,
             node_config,
             meta_library,
+            shared_inputs,
             decoding_callbacks,
         )
 
@@ -101,9 +102,7 @@ function fit(
                 (pos, value) in enumerate(x)
             ]
             # append input nodes to pop
-            shared_inputs = SharedInput(input_nodes)
-
-
+            replace_shared_inputs!(shared_inputs, input_nodes) # update 
             # Eval pop wrt training data
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
@@ -112,7 +111,8 @@ function fit(
             )
             # Endpoint results
 
-            fitness_values = endpoint_callback(outputs, y)
+            fitness = endpoint_callback(outputs, y)
+            fitness_values = get_endpoint_results(fitness)
 
             add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 

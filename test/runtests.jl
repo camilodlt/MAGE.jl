@@ -40,8 +40,19 @@ using Test
             include("mutations/test_standard_mutation.jl")
         end
     end
-
     @testset "Fitters" begin
         include("fitters/test_default_mutation.jl")
+    end
+    @testset "Endpoints" begin
+        include("endpoints/test_levenshtein.jl")
+    end
+
+    # LIBS 
+    @testset "String" begin
+        include("libraries/string/grep.jl")
+        include("libraries/string/paste.jl")
+        include("libraries/string/test_conditional.jl")
+        include("libraries/string/test_caps.jl")
+        include("libraries/string/test_basic.jl")
     end
 end

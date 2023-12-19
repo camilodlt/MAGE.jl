@@ -20,14 +20,17 @@ To make the graph, connections the which function is used.
 
 struct FunctionBundle <: AbstractFunctionBundle
     functions::Vector{FunctionWrapper}
-    caster::Function
+    caster::Union{Function,Nothing}
     fallback::Function
-    last_fallback::Function
+    last_fallback::Function # deprecate it TODO
     function FunctionBundle(caster::Function, fallback::Function, last_fallback::Function)
         return new(Vector{FunctionWrapper}(), caster, fallback, last_fallback)
     end
     function FunctionBundle(caster::Function, fallback::Function)
         return new(Vector{FunctionWrapper}(), caster, fallback, fallback)
+    end
+    function FunctionBundle(fallback::Function)
+        return new(Vector{FunctionWrapper}(), nothing, fallback, fallback)
     end
 end
 Base.size(bundle::FunctionBundle) = length(bundle.functions)
@@ -36,5 +39,13 @@ Base.getindex(bundle::FunctionBundle, i::Int) = bundle.functions[i]
 Base.iterate(bundle::FunctionBundle, state = 1) =
     state > length(bundle.functions) ? nothing : (bundle.functions[state], state + 1)
 
-append_method!(bundle::FunctionBundle, fn_wrapped::FunctionWrapper) =
+function append_method!(bundle::FunctionBundle, fn::Function)
+    fn_wrapped = FunctionWrapper(fn, bundle.caster, bundle.fallback)
     push!(bundle.functions, fn_wrapped)
+end
+
+
+function _unique_names_in_bundle(b::FunctionBundle)::Bool
+    n = [fw.name for fw in b.functions]
+    return length(n) == length(Set(n))
+end

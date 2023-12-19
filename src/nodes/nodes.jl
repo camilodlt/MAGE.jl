@@ -26,6 +26,8 @@ Base.setindex!(node_elements::NodeMaterial, value, i::Int) =
 ################
 
 abstract type AbstractNode end
+abstract type AbstractEvolvableNode <: AbstractNode end
+abstract type AbstractNonEvolvableNode <: AbstractNode end
 
 # Must Override Methods "class methods"
 function initialize(::AbstractNode)
@@ -46,7 +48,7 @@ end
 ###############################################################
 
 
-function initialize_node!(node::AbstractNode)
+function initialize_node!(node::AbstractEvolvableNode)
     for node_element in node
         initialize_node_element!(node_element)
     end
@@ -63,7 +65,7 @@ function get_node_value(node::AbstractNode)::Any
     return node.value
 end
 
-function extract_connexions_from_node(node::AbstractNode)::Vector{CGPElement}
+function extract_connexions_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     connexions = [
         element for
         element in node.node_material.material if element.element_type == CONNEXION
@@ -72,14 +74,14 @@ function extract_connexions_from_node(node::AbstractNode)::Vector{CGPElement}
 end
 
 
-function extract_connexions_types_from_node(node::AbstractNode)::Vector{CGPElement}
+function extract_connexions_types_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     connexions_types =
         [element for element in node.node_material.material if element.element_type == TYPE]
     return connexions_types
 end
 
 
-function extract_function_from_node(node::AbstractNode)::CGPElement
+function extract_function_from_node(node::AbstractEvolvableNode)::CGPElement
     function_element = [
         element for
         element in node.node_material.material if element.element_type == FUNCTION
@@ -91,7 +93,7 @@ end
 """
 """
 function node_to_vector(node::AbstractNode)::Vector{<:Number}
-    vec_repr = Number[]
+    vec_repr = Float64[]
     for node_element in node
         v = node_element.value
         v = !isnothing(v) ? v : NaN
@@ -118,7 +120,7 @@ Base.iterate(n::AbstractNode, state = 1) =
 ###############
 
 
-mutable struct InputNode <: AbstractNode
+mutable struct InputNode <: AbstractNonEvolvableNode
     node_material::NodeMaterial
     value::Any
     x_postion::Int
@@ -139,7 +141,7 @@ mutable struct InputNode <: AbstractNode
     end
 end
 
-mutable struct CGPNode <: AbstractNode
+mutable struct CGPNode <: AbstractEvolvableNode
     node_material::NodeMaterial
     value::Any
     x_position::Int
@@ -171,7 +173,7 @@ mutable struct CGPNode <: AbstractNode
     end
 end
 
-mutable struct OutputNode <: AbstractNode
+mutable struct OutputNode <: AbstractEvolvableNode
     node_material::NodeMaterial
     value::Any
     x_postion::Int

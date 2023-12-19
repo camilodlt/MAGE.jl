@@ -45,7 +45,7 @@ end
 
 struct Operation <: AbstractOperation
     fn::FunctionWrapper
-    calling_node::CGPNode
+    calling_node::AbstractEvolvableNode
     inputs::Vector{OperationInput}
 end
 

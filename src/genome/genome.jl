@@ -44,12 +44,21 @@ Gets multiple inputs at several indices.
 Base.getindex(shared_inputs::AbstractGenomeInputs, i::Vector{<:Int}) =
     shared_inputs.inputs[i]
 
+"""
+
+"""
+function replace_shared_inputs!(si::SharedInput, new_inputs::Vector{InputNode})
+    @assert length(si) == length(new_inputs) "There must be the same number of inputs it order to replace them. $(length(si)) vs $(length(new_inputs)) "
+    empty!(si.inputs)
+    push!(si.inputs, new_inputs...)
+end
+
 ################
 # SINGLE GENOME 
 ################
 
 """
-    SingleGenome(starting_point::Int, chromosome::Vector{<:AbstractNode})
+    SingleGenome(starting_point::Int, chromosome::Vector{<:AbstractEvolvableNode})
 
 A SingleGenome is like an standard CGP vector representation. It holds a vector of nodes.
 
@@ -60,7 +69,7 @@ It is supposed to reference functions that return only one defined type.
 """
 struct SingleGenome <: AbstractGenome
     starting_point::Int
-    chromosome::Vector{<:AbstractNode}
+    chromosome::Vector{<:AbstractEvolvableNode}
 end
 
 """

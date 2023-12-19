@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 function extract_fn_connexions_types_from_node(
-    node::AbstractNode,
+    node::AbstractEvolvableNode,
     library::Library,
 )::Tuple{FunctionWrapper,Vector{CGPElement},Vector{CGPElement}}
 
@@ -153,9 +153,9 @@ function recursive_decode_node!(
     fn_name = fn.name
     arg_types = tuple([op.type for op in inputs]...)
     # check will function will be called 
-    local m::Method = nothing
+    local m = nothing
     try
-        m = which(fn, arg_types)
+        m = which(fn.fn, arg_types)
     catch
         @error "No method for fn $fn_name with types : $arg_types"
         throw(MethodError(fn, arg_types))
@@ -227,6 +227,8 @@ function decode_with_output_nodes(
     model_architecture::modelArchitecture,
     shared_inputs::SharedInput,
 )::IndividualPrograms
+
+    # @bp
     output_nodes = ut_genome.output_nodes
     ind_progs = Program[]
     for output_node in output_nodes

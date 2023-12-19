@@ -25,6 +25,7 @@ makedocs(;
         "Model Config" => "config.md",
         "Libraries" => "libraries.md",
         "Mutations" => "mutations.md",
+        "String Lib" => "libraries/string.md",
     ],
 )
 

@@ -57,4 +57,4 @@ function list_concat(list_a::Vector{T}, list_b::Vector{T}, args...)::Vector{T} w
     return list_c
 end
 
-append_method!(bundle_concat_list_generic, FunctionWrapper(list_concat))
+append_method!(bundle_concat_list_generic, list_concat)

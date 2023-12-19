@@ -202,10 +202,10 @@ function pick_until_exclusive_generic(
     # if until_i is 1: the range is 1:0 the result is []
 end
 
-append_method!(bundle_subset_list_generic, FunctionWrapper(pick_from_inclusive_generic))
-append_method!(bundle_subset_list_generic, FunctionWrapper(pick_from_exclusive_generic))
-append_method!(bundle_subset_list_generic, FunctionWrapper(pick_until_inclusive_generic))
-append_method!(bundle_subset_list_generic, FunctionWrapper(pick_until_exclusive_generic))
+append_method!(bundle_subset_list_generic, pick_from_inclusive_generic)
+append_method!(bundle_subset_list_generic, pick_from_exclusive_generic)
+append_method!(bundle_subset_list_generic, pick_until_inclusive_generic)
+append_method!(bundle_subset_list_generic, pick_until_exclusive_generic)
 
 export bundle_subset_list_generic
 

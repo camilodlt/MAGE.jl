@@ -38,8 +38,8 @@ end
 
 
 bundle_basic_generic_list = FunctionBundle(identity_list, new_list, new_list)
-append_method!(bundle_basic_generic_list, FunctionWrapper(identity_list))
-append_method!(bundle_basic_generic_list, FunctionWrapper(new_list))
+append_method!(bundle_basic_generic_list, identity_list)
+append_method!(bundle_basic_generic_list, new_list)
 
 # export new_list
 export identity_list

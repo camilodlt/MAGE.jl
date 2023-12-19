@@ -2,7 +2,7 @@
 
 function evaluate_program(
     program::Program,
-    chromosomes_types::Vector{Type},
+    chromosomes_types::Vector{<:DataType},
     metalibrary::MetaLibrary,
 )::Any
     local output = nothing
@@ -10,10 +10,6 @@ function evaluate_program(
     @assert length(program) > 0
     for (ith_operation, operation) in enumerate(program)
         fn, calling_node, inputs = (operation.fn, operation.calling_node, operation.inputs)
-        # calling_node._functionning_node(
-        #     chromosomes_types=chromosomes_types,
-        #     library=metalibrary.libraries[calling_node.type_position],
-        # )
         if calling_node.value === nothing
             # Only calc if the node is nothing. If not it means that
             # the value was already computed. No need to recompute twice.
@@ -22,18 +18,18 @@ function evaluate_program(
                 node = extract_input_node_from_operationInput(operationInput)
                 push!(inputs_values, get_node_value(node))
             end
-            res = fn(inputs_values...)  # TODO add possible node params? besides inputs
-            calling_node.value = res
+            # @bp
+            res = evaluate_fn_wrapper(fn, inputs_values)
+            set_node_value!(calling_node, res)
         end
     end
-
-    @assert calling_node isa OutputNode
+    @assert calling_node isa OutputNode "Last node is not Output Node?"
     return output
 end
 
 function evaluate_individual_programs(
     individual_programs::IndividualPrograms,
-    chromosomes_types::Vector{Type},
+    chromosomes_types::Vector{<:DataType},
     metalibrary::MetaLibrary,
 )::Vector{<:Any}
     outputs = []
@@ -48,8 +44,7 @@ function evaluate_population_programs(
     population_programs::PopulationPrograms,
     model_architecture::modelArchitecture,
     metalibrary::MetaLibrary,
-)
-    Vector{Vector{<:Any}}
+)::Vector{Vector{<:Any}}
     n_individuals = length(population_programs)
     @assert n_individuals > 0 "No individuals to evaluate"
     pop_outputs = [Vector() for _ = 1:n_individuals]

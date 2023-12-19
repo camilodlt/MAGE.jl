@@ -113,7 +113,7 @@ function _make_decoding(
     shared_inputs::SharedInput,
     decoding_callbacks::Vector{Symbol},
     args...,
-)::Tuple[PopulationPrograms, Float64]
+)::Tuple{PopulationPrograms,Float64}
     """
     Decode the graph of ALL the POP.
 

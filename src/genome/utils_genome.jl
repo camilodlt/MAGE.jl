@@ -37,12 +37,6 @@ function initialize_genome!(meta_genome::AbstractMetaGenome)
     end
 end
 
-
-
-function node_to_vector(node::CGPNode)::Vector{Int}
-    return Int[node_element.value for node_element in node]
-end
-
 # @overload
 # def genome_to_matrix(genome: SingleGenome):
 #     row = []

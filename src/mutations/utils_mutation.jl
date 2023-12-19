@@ -117,7 +117,7 @@ function mutate_per_allele!(node::OutputNode, run_config::runConf)::Int
 end
 
 """
-    mutate_per_allele!(node::AbstractNode, run_config::runConf)
+    mutate_per_allele!(node::AbstractEvolvableNode, run_config::runConf)
 
 Uses the `runConf.mutation_rate` to decide whether to mutate each 
 allele (element) of a node. An allele is mutated if a random float between 0 and 1 is inferior
@@ -128,7 +128,7 @@ Hence, a uniform mutation across min-max bounds.
 
 Returns the number of elements submitted to mutation.
 """
-function mutate_per_allele!(node::AbstractNode, run_config::runConf)::Int
+function mutate_per_allele!(node::AbstractEvolvableNode, run_config::runConf)::Int
     allele_decisions = where_to_mutate(length(node), run_config.mutation_rate, nothing)
     allele_idx = _bool_vector_to_idx_vector(allele_decisions)
     material_to_mutate = node[allele_idx]
@@ -156,7 +156,6 @@ function mutate_one_element_from_node!(node::Union{OutputNode,CGPNode})
     return length(material_to_mutate)
 end
 
-using Debugger
 ###################
 # NODE CORRECTIONS
 ###################
@@ -180,7 +179,6 @@ function check_functionning_node(
             shared_inputs,
             model_architecture,
         )
-        @bp
         arg_types = tuple([op.type for op in inputs]...)
         # Get types from input
         return Base.hasmethod(fn.fn, arg_types)
@@ -189,5 +187,4 @@ function check_functionning_node(
         return false
     end
 end
-
 

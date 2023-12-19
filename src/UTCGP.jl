@@ -74,17 +74,6 @@ include("programs/programs.jl")
 include("programs/decode.jl")
 include("programs/evaluate.jl")
 
-# DEFAULT CALLBAKCS 
-include("fitters/default_callbacks.jl")
-export default_population_callback
-export default_mutation_callback
-export default_ouptut_mutation_callback
-export default_decoding_callback
-export default_elite_selection_callback
-export default_early_stop_callback
-
-
-
 # MUTATIONS
 include("mutations/utils_mutation.jl")
 export where_to_mutate
@@ -93,13 +82,38 @@ export mutate_one_element_from_node!
 include("mutations/standard_mutation.jl")
 export standard_mutate!
 include("mutations/decreasing_mutation.jl")
-
 # FUNCTIONS
 
 include("libraries/list_generic/basic.jl")
 import .list_generic_basic: bundle_basic_generic_list
 export bundle_basic_generic_list
 
+# Libraries
+
+# -- String
+include("libraries/string/grep.jl")
+import .str_grep: bundle_string_grep
+export bundle_string_grep
+
+include("libraries/string/paste.jl")
+import .str_paste: bundle_string_paste
+export bundle_string_paste
+import .str_paste: bundle_string_concat_list_string
+export bundle_string_concat_list_string
+
+include("libraries/string/conditional.jl")
+import .str_conditional: bundle_string_conditional
+export bundle_string_conditional
+
+include("libraries/string/caps.jl")
+import .str_caps: bundle_string_caps
+export bundle_string_caps
+
+include("libraries/string/basic.jl")
+import .str_basic: bundle_string_basic
+export bundle_string_basic
+
+# -- List Generic 
 include("libraries/list_generic/list_concat.jl")
 include("libraries/list_generic/subset.jl")
 import .list_generic_subset: bundle_subset_list_generic
@@ -109,12 +123,28 @@ export list_generic_subset
 # export bundle_subset_list_generic
 
 
+# DEFAULT CALLBAKCS 
+include("fitters/default_callbacks.jl")
+export default_population_callback
+export default_mutation_callback
+export default_ouptut_mutation_callback
+export default_decoding_callback
+export default_elite_selection_callback
+export default_early_stop_callback
+
+# ENDPOINTS
+include("endpoints/endpoint_structs.jl")
+export get_endpoint_results
+include("endpoints/psb2_metrics.jl")
+export EndpointBatchLevensthein
+
 # FIT
 include("fitters/fit_utils.jl")
 include("fitters/callbacks_callers.jl")
 include("fitters/fit.jl")
-
 export fit
+
+
 
 end # 
 

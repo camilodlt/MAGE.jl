@@ -67,12 +67,11 @@ function default_ouptut_mutation_callback(
     model_architecture::modelArchitecture,
     node_config::nodeConfig,
     meta_library::MetaLibrary,
-    output_mutation_callbacks::Vector{Symbol},
     args...,
 )
     for individual in population
         for output_node in individual.output_nodes
-            mutate!(output_node, run_config)
+            mutate_one_element_from_node!(output_node)
         end
     end
     return population
@@ -81,7 +80,6 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Decoding Callbacks
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
 
 # Normal Decoding Callback
 function default_decoding_callback(
@@ -92,7 +90,6 @@ function default_decoding_callback(
     node_config::nodeConfig,
     meta_library::MetaLibrary,
     shared_inputs::SharedInput,
-    output_mutation_callbacks::Vector{Symbol},
 )::PopulationPrograms
     # Decoding all programs
     population_programs = [
@@ -107,11 +104,10 @@ function default_decoding_callback(
     # Reverse the phenotype
     for ind_programs in population_programs
         for program in ind_programs
-            reversed!(program.program)
+            reverse!(program.program)
         end
     end
-    # reverse the phenotype
-    return population_programs
+    return PopulationPrograms(population_programs)
 end
 
 # # Remove Duplicates callback --- [OPTIONAL]
