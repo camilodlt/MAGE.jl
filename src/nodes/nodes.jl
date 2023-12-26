@@ -25,9 +25,12 @@ Base.setindex!(node_elements::NodeMaterial, value, i::Int) =
 # ABSTRACT NODE 
 ################
 
-abstract type AbstractNode end
-abstract type AbstractEvolvableNode <: AbstractNode end
-abstract type AbstractNonEvolvableNode <: AbstractNode end
+abstract type AbstractNode end #All nodes
+abstract type AbstractEvolvableNode <: AbstractNode end # Everything that evolves
+abstract type AbstractNonEvolvableNode <: AbstractNode end # what doesn't evolves
+abstract type AbstractGenomeNode <: AbstractEvolvableNode end # Genome nodes
+abstract type AbstractOutputNode <: AbstractEvolvableNode end # Output Nodes
+
 
 # Must Override Methods "class methods"
 function initialize(::AbstractNode)
@@ -141,7 +144,7 @@ mutable struct InputNode <: AbstractNonEvolvableNode
     end
 end
 
-mutable struct CGPNode <: AbstractEvolvableNode
+mutable struct CGPNode <: AbstractGenomeNode
     node_material::NodeMaterial
     value::Any
     x_position::Int
@@ -173,7 +176,7 @@ mutable struct CGPNode <: AbstractEvolvableNode
     end
 end
 
-mutable struct OutputNode <: AbstractEvolvableNode
+mutable struct OutputNode <: AbstractOutputNode
     node_material::NodeMaterial
     value::Any
     x_postion::Int

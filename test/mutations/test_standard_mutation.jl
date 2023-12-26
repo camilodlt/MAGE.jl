@@ -1,7 +1,6 @@
 using Test
 using UTCGP
 using Random
-using Debugger
 rng = Random.seed!(123)
 
 

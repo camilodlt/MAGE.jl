@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+using Statistics
 
 ### FIT API ###
 
@@ -23,7 +24,7 @@ function fit(
     final_step_callbacks::Union{Nothing,Vector{Function}},
     # Callbacks after step ::
     elite_selection_callbacks::Vector{Symbol},
-    epoch_callbacks::Union{Nothing,Vector{Symbol}},
+    epoch_callbacks::Union{Nothing,Vector{<:Union{Symbol,AbstractCallable}}},
     early_stop_callback::Union{Nothing,Symbol} = nothing,
 ) # Tuple{UTGenome, IndividualPrograms, GenerationLossTracker}::
 
@@ -56,6 +57,7 @@ function fit(
             meta_library,
             population_callbacks,
         )
+        print(size(population))
 
         population, time_mut = _make_mutations(
             population,
@@ -110,7 +112,6 @@ function fit(
                 meta_library,
             )
             # Endpoint results
-
             fitness = endpoint_callback(outputs, y)
             fitness_values = get_endpoint_results(fitness)
 
@@ -147,8 +148,9 @@ function fit(
         )
 
         best_loss = ind_performances[elite_idx]
+        std_ = std(ind_performances)
         best_program = population_programs[elite_idx]
-        genome = copy(population[elite_idx])
+        genome = deepcopy(population[elite_idx])
 
         # EPOCH CALLBACK
         if !isnothing(epoch_callbacks)
@@ -176,11 +178,11 @@ function fit(
         # store iteration loss/fitness
         affect_fitness_to_loss_tracker!(M_gen_loss_tracker, iteration, best_loss)
 
-        println(" Iteration loss: $best_loss at index $elite_idx ")
+        println(" Iteration loss: $best_loss at index $elite_idx. Std: $(round(std_))")
 
         # EARLY STOP CALLBACK # TODO
         if !isnothing(early_stop_callback)
-            get_fn_from_symbol(early_stop_callback)(
+            early_stop = get_fn_from_symbol(early_stop_callback)(
                 M_gen_loss_tracker,
                 iteration,
                 run_config.generations,

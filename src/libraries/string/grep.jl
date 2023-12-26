@@ -7,7 +7,7 @@ Exports :
 - **bundle\\_string\\_grep** :
     - replace_pattern
     - replace\\_first\\_pattern`
-    - remove_str 
+    - remove_pattern
 
 """
 module str_grep

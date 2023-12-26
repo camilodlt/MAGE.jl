@@ -22,7 +22,15 @@ function make_output_node(
     # Make node material 
     fn_el = CGPElement(fixed_fn_idx, fixed_fn_idx, pos[1], pos[2], pos[3], true, FUNCTION)
     con = CGPElement(min_connexion, max_connexion, pos[1], pos[2], pos[3], false, CONNEXION) # con type
-    con_type = CGPElement(fixed_con_type_idx, fixed_con_type_idx, pos[1], pos[2], pos[3], true, TYPE) # con type 
+    con_type = CGPElement(
+        fixed_con_type_idx,
+        fixed_con_type_idx,
+        pos[1],
+        pos[2],
+        pos[3],
+        true,
+        TYPE,
+    ) # con type 
     nm = NodeMaterial([fn_el, con, con_type])
     output_node = OutputNode(nm, nothing, pos[1], pos[2], pos[3])
     return output_node
@@ -62,9 +70,17 @@ function make_evolvable_node(
     push!(mat, fn_el)
 
     # - cons, types 
-    for _ in 1:arity
-        con = CGPElement(min_connexion, max_connexion, x_pos, x_real_pos, y_pos, false, CONNEXION) # con type
-        con_type = CGPElement(min_type, min_type, x_pos, x_real_pos, y_pos, false, TYPE) # con type 
+    for _ = 1:arity
+        con = CGPElement(
+            min_connexion,
+            max_connexion,
+            x_pos,
+            x_real_pos,
+            y_pos,
+            false,
+            CONNEXION,
+        ) # con type
+        con_type = CGPElement(min_type, max_type, x_pos, x_real_pos, y_pos, false, TYPE) # con type 
         push!(mat, con, con_type)
     end
     nm = NodeMaterial(mat)

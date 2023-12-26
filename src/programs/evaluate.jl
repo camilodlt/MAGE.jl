@@ -5,8 +5,7 @@ function evaluate_program(
     chromosomes_types::Vector{<:DataType},
     metalibrary::MetaLibrary,
 )::Any
-    local output = nothing
-    local calling_node = nothing
+    calling_node = nothing
     @assert length(program) > 0
     for (ith_operation, operation) in enumerate(program)
         fn, calling_node, inputs = (operation.fn, operation.calling_node, operation.inputs)
@@ -18,13 +17,12 @@ function evaluate_program(
                 node = extract_input_node_from_operationInput(operationInput)
                 push!(inputs_values, get_node_value(node))
             end
-            # @bp
             res = evaluate_fn_wrapper(fn, inputs_values)
             set_node_value!(calling_node, res)
         end
     end
     @assert calling_node isa OutputNode "Last node is not Output Node?"
-    return output
+    return calling_node.value
 end
 
 function evaluate_individual_programs(
@@ -44,13 +42,13 @@ function evaluate_population_programs(
     population_programs::PopulationPrograms,
     model_architecture::modelArchitecture,
     metalibrary::MetaLibrary,
-)::Vector{Vector{<:Any}}
+)#::Vector{Vector{<:Any}}
     n_individuals = length(population_programs)
     @assert n_individuals > 0 "No individuals to evaluate"
-    pop_outputs = [Vector() for _ = 1:n_individuals]
+    pop_outputs = []
     for (ith_individual, individual_programs) in enumerate(population_programs)
         push!(
-            pop_outputs[ith_individual],
+            pop_outputs,
             evaluate_individual_programs(
                 individual_programs,
                 model_architecture.chromosomes_types,
@@ -58,5 +56,10 @@ function evaluate_population_programs(
             ),
         )
     end
+    # Specify the types 
+    for i in eachindex(pop_outputs)
+        pop_outputs[i] = identity.(pop_outputs[i])
+    end
+    pop_outputs = identity.(pop_outputs)
     return pop_outputs
 end

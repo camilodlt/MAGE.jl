@@ -1,4 +1,3 @@
-
 ##################################
 # FILL GENOME WITH EVOLVABLE NODES
 ##################################
@@ -102,7 +101,6 @@ function make_evolvable_utgenome(
 
     # BUILD GENOME
     ut_genome = UTGenome(chromosomes, output_nodes)
-
     # MAKE THE INPUTS
     inputs = [
         InputNode(nothing, x_ith, x_ith, y_ith) for

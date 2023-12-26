@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 
-module list_generic_subset
 
 """
 Exports :
 
-- **bundle_suset_list_generic** :
-    - pick_from_exclusive_generic
-    - pick_from_inclusive_generic
-    - pick_until_exclusive_generic
-    - pick_until_inclusive_generic
+- **bundle_subset_list_generic** :
+    - `pick_from_exclusive_generic`
+    - `pick_from_inclusive_generic`
+    - `pick_until_exclusive_generic`
+    - `pick_until_inclusive_generic`
+
 """
+module list_generic_subset
 
 using ..UTCGP: list_generic_basic, FunctionBundle, FunctionWrapper, append_method!
 import .list_generic_basic
@@ -63,9 +64,6 @@ function pick_from_inclusive_generic(
 )::Vector{T} where {T}
     mx_legnth = length(list_gen)
     from_i = max(from_i, 1)
-    if from_i > mx_legnth
-        return T[]
-    end
     return list_gen[from_i:mx_legnth]
 end
 

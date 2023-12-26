@@ -56,6 +56,89 @@ function default_mutation_callback(population::Population, args...)
 end
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Default Mutation Callback (Numbered)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+function default_numbered_mutation_callback(population::Population, args...)
+    run_config = args[2]
+    model_architecture = args[3]
+    meta_library = args[5]
+    shared_inputs = args[6]
+    @assert run_config isa runConf
+    @assert shared_inputs isa SharedInput
+    @assert meta_library isa MetaLibrary
+    @assert model_architecture isa modelArchitecture
+
+    # chromosomes_types = model_architecture.chromosomes_types
+    # input_types = model_architecture.inputs_type_idx
+    for individual in population
+        numbered_mutation!(
+            individual,
+            run_config,
+            model_architecture,
+            meta_library,
+            shared_inputs,
+        )
+    end
+    return population
+end
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Default Mutation Callback
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+function default_free_mutation_callback(population::Population, args...)
+    run_config = args[2]
+    model_architecture = args[3]
+    meta_library = args[5]
+    shared_inputs = args[6]
+    @assert run_config isa runConf
+    @assert shared_inputs isa SharedInput
+    @assert meta_library isa MetaLibrary
+    @assert model_architecture isa modelArchitecture
+
+    # chromosomes_types = model_architecture.chromosomes_types
+    # input_types = model_architecture.inputs_type_idx
+    for individual in population
+        free_mutate!(
+            individual,
+            run_config,
+            model_architecture,
+            meta_library,
+            shared_inputs,
+        )
+    end
+    return population
+end
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Default Mutation Callback
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+function default_free_numbered_mutation_callback(population::Population, args...)
+    run_config = args[2]
+    model_architecture = args[3]
+    meta_library = args[5]
+    shared_inputs = args[6]
+    @assert run_config isa runConf
+    @assert shared_inputs isa SharedInput
+    @assert meta_library isa MetaLibrary
+    @assert model_architecture isa modelArchitecture
+
+    # chromosomes_types = model_architecture.chromosomes_types
+    # input_types = model_architecture.inputs_type_idx
+    for individual in population
+        free_numbered_mutation!(
+            individual,
+            run_config,
+            model_architecture,
+            meta_library,
+            shared_inputs,
+        )
+    end
+    return population
+end
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Output Mutation Callback
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
@@ -71,7 +154,9 @@ function default_ouptut_mutation_callback(
 )
     for individual in population
         for output_node in individual.output_nodes
-            mutate_one_element_from_node!(output_node)
+            if rand() < run_config.output_mutation_rate
+                mutate_one_element_from_node!(output_node)
+            end
         end
     end
     return population
@@ -94,6 +179,39 @@ function default_decoding_callback(
     # Decoding all programs
     population_programs = [
         decode_with_output_nodes(
+            individual,
+            meta_library,
+            model_architecture,
+            shared_inputs,
+        ) for individual in population
+    ]
+
+    # Reverse the phenotype
+    for ind_programs in population_programs
+        for program in ind_programs
+            reverse!(program.program)
+        end
+    end
+    return PopulationPrograms(population_programs)
+end
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Default FREE decoding
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+# Normal Decoding Callback
+function default_free_decoding_callback(
+    population::Population,
+    generation::Int,
+    run_config::runConf,
+    model_architecture::modelArchitecture,
+    node_config::nodeConfig,
+    meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
+)::PopulationPrograms
+    # Decoding all programs
+    population_programs = [
+        free_decode_with_output_nodes(
             individual,
             meta_library,
             model_architecture,
@@ -199,7 +317,6 @@ function default_elite_selection_callback(
     node_config::nodeConfig,
     meta_library::MetaLibrary,
     programs::PopulationPrograms,
-    elite_selection_callbacks::Vector{Symbol},
     args...,
 )::Int
     if ind_performances[1] isa Vector
@@ -221,5 +338,5 @@ function default_early_stop_callback(
     model_architecture::modelArchitecture,
     node_config::nodeConfig,
 )::Bool
-    return generation_loss_tracker[iteration] == 0.0
+    return generation_loss_tracker[iteration][1] ≈ 0.0
 end

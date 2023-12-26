@@ -1,5 +1,7 @@
 module UTCGP
 
+abstract type AbstractCallable end
+
 include("element_nodes/element_nodes.jl")
 
 export CGPElement, AbstractElement
@@ -39,6 +41,8 @@ export FunctionBundle
 export add_bundle_to_library!
 export unpack_bundles_in_library!
 export list_functions_names
+export update_caster!
+export update_fallback!
 
 export Library
 export MetaLibrary
@@ -72,6 +76,7 @@ include("metrics_trackers/individual_loss_tracker.jl")
 # PROGRAMS 
 include("programs/programs.jl")
 include("programs/decode.jl")
+include("programs/free_decode.jl")
 include("programs/evaluate.jl")
 
 # MUTATIONS
@@ -79,8 +84,15 @@ include("mutations/utils_mutation.jl")
 export where_to_mutate
 export mutate_per_allele!
 export mutate_one_element_from_node!
+export get_active_nodes
+include("mutations/correct_all_nodes.jl")
+export correct_all_nodes!
 include("mutations/standard_mutation.jl")
 export standard_mutate!
+include("mutations/mt_mutation.jl")
+export free_mutate!
+include("mutations/numbered_mutation.jl")
+export numbered_mutation!
 include("mutations/decreasing_mutation.jl")
 # FUNCTIONS
 
@@ -119,25 +131,50 @@ include("libraries/list_generic/subset.jl")
 import .list_generic_subset: bundle_subset_list_generic
 export list_generic_subset
 
+# -- List Integer
+include("libraries/list_integer/is_conditions.jl")
+import .listinteger_iscond: bundle_listinteger_iscond
+export bundle_listinteger_iscond
+
+# -- List String 
+include("libraries/list_string/split.jl")
+import .list_string_split: bundle_list_string_split
+export bundle_list_string_split
 # using .list_generic_subset
 # export bundle_subset_list_generic
 
+# -- Number
+include("libraries/number/reduce.jl")
+import .number_reduce: bundle_number_reduce
+export bundle_number_reduce
+
+# -- INTEGER
+
+include("libraries/integer/find.jl")
+import .integer_find: bundle_integer_find
+export bundle_integer_find
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")
 export default_population_callback
 export default_mutation_callback
+export default_numbered_mutation_callback
+export default_free_numbered_mutation_callback
+
 export default_ouptut_mutation_callback
 export default_decoding_callback
 export default_elite_selection_callback
 export default_early_stop_callback
+export default_free_mutation_callback
+export default_free_decoding_callback
 
 # ENDPOINTS
 include("endpoints/endpoint_structs.jl")
 export get_endpoint_results
 include("endpoints/psb2_metrics.jl")
 export EndpointBatchLevensthein
-
+include("metrics_trackers/aim_callback.jl")
+export AIM_LossEpoch
 # FIT
 include("fitters/fit_utils.jl")
 include("fitters/callbacks_callers.jl")

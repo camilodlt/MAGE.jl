@@ -108,3 +108,32 @@ struct UTGenome <: AbstractMetaGenome
     genomes::Vector{<:AbstractGenome}
     output_nodes::Vector{OutputNode}
 end
+"""
+    size(genome::AbstractMetaGenome)
+
+Returns the size of the internal chromosome (a vector of nodes) 
+"""
+Base.size(genome::AbstractMetaGenome) = length(genome.genomes)
+
+"""
+    length(genome::AbstractMetaGenome)
+
+Returns the size of the internal chromosome (a vector of nodes) 
+"""
+Base.length(genome::AbstractMetaGenome) = size(genome)
+
+"""
+Iterates the internal chromosome (a vector of nodes) .
+"""
+Base.iterate(genome::AbstractMetaGenome, state = 1) =
+    state > length(genome.genomes) ? nothing : (genome.genomes[state], state + 1)
+
+"""
+Indexes the internal vector of nodes at a given index.
+"""
+Base.getindex(genome::AbstractMetaGenome, i::Int) = genome.genomes[i]
+"""
+Indexes the internal vector of nodes at multiple indices.
+"""
+Base.getindex(genome::AbstractMetaGenome, i::Vector{<:Int}) = genome.genomes[i]
+

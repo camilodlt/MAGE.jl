@@ -183,11 +183,10 @@ function _make_elite_selection(
     """
 
     t = []
-    elite_idx::Int = nothing
     first_callback = elite_selection_callbacks[1]
     # FIRST CALL TO CREATE PROGRAMS 
     fn = get_fn_from_symbol(first_callback)
-    t_e = @elapsed programs = fn(
+    t_e = @elapsed elite_idx = fn(
         ind_performances,
         population,
         generation,
@@ -233,12 +232,12 @@ function _make_epoch_callbalcks_calls(
     best_loss::Float64,
     best_program::IndividualPrograms,
     elite_idx::Int,
-    epoch_callbacks::Vector{Symbol},
+    epoch_callbacks::Vector{<:Union{Symbol,AbstractCallable}},
 )::Float64
 
     t = []
     for epoch_callback in epoch_callbacks
-        fn = get_fn_from_symbol(epoch_callback)
+        fn = epoch_callback isa Symbol ? get_fn_from_symbol(epoch_callback) : epoch_callback
         t_e = @elapsed fn(
             ind_performances,
             population,

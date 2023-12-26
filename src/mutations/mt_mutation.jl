@@ -1,6 +1,6 @@
 # -*- coding:: utf-8 -*-
 
-function standard_mutate!(
+function free_mutate!(
     node::CGPNode,
     model_architecture::modelArchitecture,
     library::Library,
@@ -10,13 +10,7 @@ function standard_mutate!(
     max_calls = 1000
     call_nb = 0
     prev = node_to_vector(node)
-    while !check_functionning_node(
-        node,
-        library,
-        ut_genome,
-        shared_inputs,
-        model_architecture,
-    ) || node_to_vector(node) == prev
+    while node_to_vector(node) == prev
         mutate_one_element_from_node!(node)
         if call_nb > max_calls
             @warn "Can't find a correct mutation after $call_nb"
@@ -29,7 +23,7 @@ function standard_mutate!(
     end
 end
 
-function standard_mutate!(
+function free_mutate!(
     genome::SingleGenome,
     run_config::runConf,
     model_architecture::modelArchitecture,
@@ -45,7 +39,7 @@ function standard_mutate!(
 
     # mutate them
     for node in nodes
-        standard_mutate!(node, model_architecture, library, ut_genome, shared_inputs)
+        free_mutate!(node, model_architecture, library, ut_genome, shared_inputs)
     end
 
 end
@@ -67,7 +61,7 @@ Inside each allele, higher numbers have higher probs to be sampled.
 [index_of_array, index_of_array]
 ::type input_types:: Vector[Int]
 """
-function standard_mutate!(
+function free_mutate!(
     genome::UTGenome,
     run_config::runConf,
     model_architecture::modelArchitecture,
@@ -79,7 +73,7 @@ function standard_mutate!(
     @assert length(model_architecture.chromosomes_types) == length(genome.genomes) "Need to give all chromosome types (Int, Float64, ...) in order so we check that nodes function with available signatures"  # noqa :: 3501
 
     for (ith_chromosome, chromosome) in enumerate(genome.genomes)
-        standard_mutate!(
+        free_mutate!(
             chromosome,
             run_config,
             model_architecture,

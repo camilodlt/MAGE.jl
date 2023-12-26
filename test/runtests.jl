@@ -30,6 +30,7 @@ using Test
     @testset "Functions" begin
         @testset begin
             include("libraries/list_generic/test_basic.jl")
+            include("libraries/clone_bundle.jl")
         end
     end
     @testset "Mutations" begin
@@ -39,6 +40,11 @@ using Test
         @testset "Standard Mutation" begin
             include("mutations/test_standard_mutation.jl")
         end
+        @testset "Numbered Mutation" begin
+            include("mutations/test_numbered_mutation.jl")
+        end
+
+
     end
     @testset "Fitters" begin
         include("fitters/test_default_mutation.jl")
@@ -54,5 +60,19 @@ using Test
         include("libraries/string/test_conditional.jl")
         include("libraries/string/test_caps.jl")
         include("libraries/string/test_basic.jl")
+    end
+
+    @testset "List Integer" begin
+        include("libraries/list_integer/test_iscond.jl")
+    end
+    @testset "List String" begin
+        include("libraries/list_string/test_split.jl")
+    end
+
+    @testset "Numbers" begin
+        include("libraries/number/test_reduce.jl")
+    end
+    @testset "Integers" begin
+        include("libraries/integer/test_find.jl")
     end
 end

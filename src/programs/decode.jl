@@ -157,8 +157,11 @@ function recursive_decode_node!(
     try
         m = which(fn.fn, arg_types)
     catch
-        @error "No method for fn $fn_name with types : $arg_types"
-        throw(MethodError(fn, arg_types))
+        @info "No method for fn $fn_name with types : $arg_types"
+        # anonymous struct
+        m = (nargs = 2,) # so that the graph is cut there
+        # n_inputs will be 0
+        #throw(MethodError(fn, arg_types))
     end
 
     n_used_inputs = m.nargs - 2 # - the fn - the varargs
@@ -228,7 +231,6 @@ function decode_with_output_nodes(
     shared_inputs::SharedInput,
 )::IndividualPrograms
 
-    # @bp
     output_nodes = ut_genome.output_nodes
     ind_progs = Program[]
     for output_node in output_nodes

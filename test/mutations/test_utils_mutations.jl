@@ -198,3 +198,22 @@ end
     end
 
 end
+
+
+@testset "Sample n" begin
+    # SAMPLABLE NBS 
+    @test begin
+        sampled = UTCGP.sample_n(3, 3)
+        sort!(sampled)
+        sampled == [1, 2, 3]
+    end
+    @test_throws AssertionError begin
+        UTCGP.sample_n(1, 0)
+    end
+    @test_throws AssertionError begin
+        UTCGP.sample_n(1, 2)
+    end
+    @test_throws AssertionError begin
+        UTCGP.sample_n(-1, -2)
+    end
+end

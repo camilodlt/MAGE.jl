@@ -24,6 +24,15 @@ bundle_string_basic = FunctionBundle(fallback)
 
 # FUNCTIONS ---
 """
+    identity_str(s::String, args...)
+
+Returns the same string.
+"""
+function identity_str(s::String, args...)
+    return s
+end
+
+"""
     number_to_string(num::Number, args...)
 
 Returns the number as a string.
@@ -32,5 +41,6 @@ function number_to_string(num::Number, args...)
     return string(num)
 end
 
+append_method!(bundle_string_basic, identity_str)
 append_method!(bundle_string_basic, number_to_string)
 end

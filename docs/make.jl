@@ -25,7 +25,12 @@ makedocs(;
         "Model Config" => "config.md",
         "Libraries" => "libraries.md",
         "Mutations" => "mutations.md",
+        "Vector Generic Lib" => "libraries/list_generic.md",
+        "Vector Integer Lib" => "libraries/list_integer.md",
+        "Vector String Lib" => "libraries/list_string.md",
         "String Lib" => "libraries/string.md",
+        "Number Lib" => "libraries/number.md",
+        "Integer Lib" => "libraries/integer.md",
     ],
 )
 

@@ -1,6 +1,6 @@
 abstract type AbstractFunction end
 
-struct FunctionWrapper <: AbstractFunction
+mutable struct FunctionWrapper <: AbstractFunction
     name::Symbol
     parent_module::Symbol
     fn::Function

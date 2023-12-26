@@ -188,3 +188,55 @@ function check_functionning_node(
     end
 end
 
+
+
+##############################################
+# Get Active Nodes from a Individual Programs
+#############################################
+
+function get_active_nodes(ind_programs::IndividualPrograms)::Vector{<:AbstractGenomeNode}
+    active_nodes = AbstractGenomeNode[]
+    for program in ind_programs
+        prog_nodes = get_active_nodes(program)
+        push!(active_nodes, prog_nodes...)
+    end
+    active_nodes_with_type = identity.(active_nodes)
+    return unique(active_nodes_with_type)
+    # return active_nodes
+end
+
+
+function get_active_nodes(program::Program)
+    active_nodes = []
+    for operation in program
+        active_node = get_active_node(operation)
+        if !isnothing(active_node)
+            push!(active_nodes, active_node)
+        end
+    end
+    return active_nodes
+end
+
+
+function get_active_node(op::Operation)
+    if typeof(op.calling_node) <: AbstractGenomeNode
+        return op.calling_node
+    end
+    return nothing
+end
+
+
+############
+# SAMPLE N 
+############
+
+function sample_n(max_nb::Int, n::Int)
+    @assert max_nb > 0 "max_nb should be at least 1"
+    @assert n > 0 "n to sample should be at least 1"
+    @assert n <= max_nb "At most, we can sample $max_nb from $max_nb. Asked: $n"
+    rng = Random.default_rng()
+    idx = collect(1:max_nb)
+    w = Weights(ones(length(idx)))
+    samples = sample(rng, idx, w, n, replace = false)
+    return samples
+end

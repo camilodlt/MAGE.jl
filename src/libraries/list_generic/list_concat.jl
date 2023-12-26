@@ -52,9 +52,9 @@ Examples
 >>> pick_from_inclusive_generic([], [])
 []
 """
-function list_concat(list_a::Vector{T}, list_b::Vector{T}, args...)::Vector{T} where {T}
+function list_concat(list_a::Vector{T}, list_b::Vector{T}, args...) where {T}
     list_c = [copy(list_a); copy(list_b)]
-    return list_c
+    return identity.(list_c)
 end
 
 append_method!(bundle_concat_list_generic, list_concat)

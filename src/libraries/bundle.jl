@@ -49,3 +49,20 @@ function _unique_names_in_bundle(b::FunctionBundle)::Bool
     n = [fw.name for fw in b.functions]
     return length(n) == length(Set(n))
 end
+
+function update_caster!(b::FunctionBundle, new_caster::Function)
+    _validate_bundle(b)
+    for fn in b.functions
+        fn.caster = new_caster
+    end
+end
+function update_fallback!(b::FunctionBundle, new_fallback::Function)
+    _validate_bundle(b)
+    for fn in b.functions
+        fn.fallback = new_fallback
+    end
+end
+
+function _validate_bundle(b::FunctionBundle)
+    @assert length(b) > 0 "Bundle is empty!"
+end
