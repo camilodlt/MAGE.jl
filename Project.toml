@@ -1,7 +1,7 @@
 name = "UTCGP"
 uuid = "956831e1-0a7a-492a-ae16-058c6128a9f2"
 authors = ["Camilo De La Torre <camilo.de-la-torre@ut-capitole.fr> and contributors"]
-version = "1.0.1-DEV"
+version = "1.0.2-DEV"
 
 [deps]
 Aim = "1a640e11-8466-471e-8a89-6fa66644843b"
