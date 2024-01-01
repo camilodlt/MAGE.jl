@@ -61,10 +61,6 @@ jobs:
         run: |
           using Pkg
           Pkg.add(url="https://github.com/aimhubio/Aim.jl", rev="main")
-        shell: julia --project=docs --color=yes {0}
-        run: |
-          using Pkg
-          Pkg.add(url="https://github.com/aimhubio/Aim.jl", rev="main")
       - name: Configure doc environment
         shell: julia --project=docs --color=yes {0}
         run: |
