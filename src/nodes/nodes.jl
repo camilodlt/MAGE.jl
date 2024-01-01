@@ -41,10 +41,6 @@ function get_node_id(::AbstractNode)
     throw(ErrorException("Not Implemented"))
 end
 
-# function check_functionning_node(<:AbstractNode)
-#     throw(ErrorException("Not Implemented"))
-# end
-
 
 ###############################################################
 # METHODS OVER ABSTRACTNODE : EXTRACT CONNEXTIONS, TYPES & FN
@@ -74,6 +70,14 @@ function extract_connexions_from_node(node::AbstractEvolvableNode)::Vector{CGPEl
         element in node.node_material.material if element.element_type == CONNEXION
     ]
     return connexions
+end
+
+function extract_parameters_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
+    params = [
+        element for
+        element in node.node_material.material if element.element_type == PARAMETER
+    ]
+    return params
 end
 
 
@@ -206,49 +210,3 @@ mutable struct OutputNode <: AbstractOutputNode
         return new(nm, value, x_pos, x_real_pos, y_pos, id)
     end
 end
-
-
-
-# # def extract_function_from_node # TODO
-#     @abstractmethod
-#     def check_functionning_node(self, library=List[BaseFunction]) -> bool:
-#         ...
-
-
-#     def __str__(self):
-#         readable_name = "-".join(
-#             ["inp", str(self.position), "x " + type(self.value)]
-#         )
-#         return readable_name
-
-
-#     def check_functionning_node(
-#         self,
-#         library: Library,
-#         chromosomes_types: Sequence[type | TypeAlias | Any],
-#     ):
-#         fn_idx = self.get_function_id().value
-#         fn = library[fn_idx]
-#         available_signatures = fn.available_signatures
-#         if len(available_signatures) == 0:
-#             return True  # handle fn that is independent from input params
-#         # 2 normally # DEPRECATED n_params # TODO
-#         # n_params = len(available_signatures[0])
-
-#         # connections = extract_connexions_from_node(self)
-#         # connections = [connection.value for connection in connections]
-#         connections_types = extract_connexion_types_from_node(self)
-#         connections_types = [con_type.value for con_type in connections_types]
-#         tested_signatures = [
-#             tuple(
-#                 chromosomes_types[type_idx]
-#                 for i, type_idx in enumerate(connections_types)
-#                 if i <= ith_signature
-#             )
-#             for ith_signature in range(len(connections_types))
-#         ]  # example [(int,), (int,float)]
-
-#         return (
-#             len(set(available_signatures).intersection(set(tested_signatures)))
-#             > 0
-#         )

@@ -32,6 +32,7 @@ export reset_node_value!, set_node_value!, get_node_value
 export extract_connexions_types_from_node,
     extract_connexions_from_node, extract_function_from_node
 export set_node_element_value!
+export extract_parameters_from_node
 
 # FN RELATED
 include("libraries/function.jl")
@@ -85,6 +86,8 @@ export where_to_mutate
 export mutate_per_allele!
 export mutate_one_element_from_node!
 export get_active_nodes
+export get_active_node_material
+
 include("mutations/correct_all_nodes.jl")
 export correct_all_nodes!
 include("mutations/standard_mutation.jl")
@@ -94,11 +97,13 @@ export free_mutate!
 include("mutations/numbered_mutation.jl")
 export numbered_mutation!
 include("mutations/decreasing_mutation.jl")
+include("mutations/new_material_mutation.jl")
+export new_material_mutation!
 # FUNCTIONS
 
 include("libraries/list_generic/basic.jl")
-import .list_generic_basic: bundle_basic_generic_list
-export bundle_basic_generic_list
+import .listgeneric_basic: bundle_listgeneric_basic
+export bundle_listgeneric_basic
 
 # Libraries
 
@@ -130,6 +135,19 @@ include("libraries/list_generic/list_concat.jl")
 include("libraries/list_generic/subset.jl")
 import .list_generic_subset: bundle_subset_list_generic
 export list_generic_subset
+# -- List Number
+
+include("libraries/list_number/arithmetic.jl")
+import .listnumber_arithmetic: bundle_listnumber_arithmetic
+export bundle_listnumber_arithmetic
+
+include("libraries/list_number/algebraic.jl")
+import .listnumber_algebraic: bundle_listnumber_algebraic
+export bundle_listnumber_algebraic
+
+include("libraries/list_number/recursive.jl")
+import .listnumber_recursive: bundle_listnumber_recursive
+export bundle_listnumber_recursive
 
 # -- List Integer
 include("libraries/list_integer/is_conditions.jl")
@@ -144,15 +162,28 @@ export bundle_list_string_split
 # export bundle_subset_list_generic
 
 # -- Number
+
+include("libraries/number/arithmetic.jl")
+import .number_arithmetic: bundle_number_arithmetic
+export bundle_number_arithmetic
+
 include("libraries/number/reduce.jl")
 import .number_reduce: bundle_number_reduce
 export bundle_number_reduce
 
 # -- INTEGER
 
+include("libraries/integer/basic_integer.jl")
+import .integer_basic: bundle_integer_basic
+export bundle_integer_basic
+
 include("libraries/integer/find.jl")
 import .integer_find: bundle_integer_find
 export bundle_integer_find
+
+include("libraries/integer/modulo.jl")
+import .integer_modulo: bundle_integer_modulo
+export bundle_integer_modulo
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")
@@ -160,6 +191,8 @@ export default_population_callback
 export default_mutation_callback
 export default_numbered_mutation_callback
 export default_free_numbered_mutation_callback
+export correct_all_nodes_callback
+export default_numbered_new_material_mutation_callback
 
 export default_ouptut_mutation_callback
 export default_decoding_callback
@@ -173,6 +206,7 @@ include("endpoints/endpoint_structs.jl")
 export get_endpoint_results
 include("endpoints/psb2_metrics.jl")
 export EndpointBatchLevensthein
+export EndpointBatchAbsDifference
 include("metrics_trackers/aim_callback.jl")
 export AIM_LossEpoch
 # FIT
@@ -181,8 +215,8 @@ include("fitters/callbacks_callers.jl")
 include("fitters/fit.jl")
 export fit
 
-
-
+# Test utils
+include("test_utils.jl")
 end # 
 
 

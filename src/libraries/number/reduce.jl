@@ -11,7 +11,6 @@ Exports :
     - `reduce_max`
     - `reduce_argmin`
     - `reduce_argmax`
-    - `reduce_recsum`
 
 """
 module number_reduce
@@ -77,24 +76,9 @@ function reduce_argmax(from::Vector{<:Number}, args...)
     return argmax(from)
 end
 
-## reduce recsum
-
-"""
-    reduce_recsum(from::Vector{<:Number}, args...)
-
-Returns the recursive sum of the elements in the vector. The size of the return is the same as 
-the size of the input.
-"""
-function reduce_recsum(from::Vector{<:Number}, args...)
-    s = 0 # it will get promoted to the type of the other numbers
-    rec_sum = [((i) -> (s += i; s))(i) for i in from]
-    return rec_sum
-end
-
 append_method!(bundle_number_reduce, reduce_sum)
 append_method!(bundle_number_reduce, reduce_min)
 append_method!(bundle_number_reduce, reduce_max)
 append_method!(bundle_number_reduce, reduce_argmin)
 append_method!(bundle_number_reduce, reduce_argmax)
-append_method!(bundle_number_reduce, reduce_recsum)
 end

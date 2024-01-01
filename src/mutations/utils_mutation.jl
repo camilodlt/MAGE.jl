@@ -240,3 +240,59 @@ function sample_n(max_nb::Int, n::Int)
     samples = sample(rng, idx, w, n, replace = false)
     return samples
 end
+
+#################################
+# GET ONLY ACTIVE NODE MATERIAL #
+#################################
+
+"""
+    get_active_node_material(
+        node::AbstractEvolvableNode,
+        library::Library,
+        ut_genome::UTGenome,
+        shared_inputs::SharedInput,
+        model_architecture::modelArchitecture,
+    )
+
+Returns a vector of integers of the actual used pointers in the node. 
+
+A function is always used, so the first element in the vector will be the index of the function. 
+Then, for each input that the function uses, the index (horizontal) of the input and the type index (vertical) are appended to the vector. 
+
+One exception concerns the direct connexion to an input node (on in `shared_inputs`), in that case, only the index (horizontal) is appended since
+its type index is resolved dynamically. 
+
+This fn will raise an error if the node does not work, so it's better to use it after an if shorcircuit.
+
+"""
+function get_active_node_material(
+    node::AbstractEvolvableNode,
+    library::Library,
+    ut_genome::UTGenome,
+    shared_inputs::SharedInput,
+    model_architecture::modelArchitecture,
+)
+    fn, connexions, connexions_types = extract_fn_connexions_types_from_node(node, library)
+    inputs = inputs_for_node(
+        connexions,
+        connexions_types,
+        ut_genome,
+        shared_inputs,
+        model_architecture,
+    )
+    arg_types = tuple([op.type for op in inputs]...)
+    m = which(fn.fn, arg_types)
+    fn_arity = m.nargs - 2 # - fn, - args...
+    material = [node[1].value] # the fn
+    for (con_pos, i) in enumerate(1:fn_arity)
+        push!(material, connexions[con_pos].value) # always add the horizontal pos
+        if typeof(inputs[con_pos].input) <: AbstractEvolvableNode
+            push!(material, connexions_types[con_pos].value) # only add the vertical pos in case of CGPNode
+        end
+    end
+    params = extract_parameters_from_node(node)
+    if length(params) > 0
+        throw(ErrorException("No test for params in active material"))
+    end
+    return material
+end

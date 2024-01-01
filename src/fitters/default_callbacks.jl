@@ -84,6 +84,34 @@ function default_numbered_mutation_callback(population::Population, args...)
 end
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Default Mutation Callback (Numbered)
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+function default_numbered_new_material_mutation_callback(population::Population, args...)
+    run_config = args[2]
+    model_architecture = args[3]
+    meta_library = args[5]
+    shared_inputs = args[6]
+    @assert run_config isa runConf
+    @assert shared_inputs isa SharedInput
+    @assert meta_library isa MetaLibrary
+    @assert model_architecture isa modelArchitecture
+
+    # chromosomes_types = model_architecture.chromosomes_types
+    # input_types = model_architecture.inputs_type_idx
+    for individual in population
+        new_material_mutation!(
+            individual,
+            run_config,
+            model_architecture,
+            meta_library,
+            shared_inputs,
+        )
+    end
+    return population
+end
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Mutation Callback
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 function default_free_mutation_callback(population::Population, args...)
@@ -137,6 +165,24 @@ function default_free_numbered_mutation_callback(population::Population, args...
     end
     return population
 end
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# Default Mutation Callback
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+function correct_all_nodes_callback(population::Population, args...)
+    model_architecture = args[3]
+    meta_library = args[5]
+    shared_inputs = args[6]
+    @assert shared_inputs isa SharedInput
+    @assert meta_library isa MetaLibrary
+    @assert model_architecture isa modelArchitecture
+
+    for individual in population
+        correct_all_nodes!(individual, model_architecture, meta_library, shared_inputs)
+    end
+    return population
+end
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Output Mutation Callback

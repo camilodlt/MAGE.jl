@@ -3,6 +3,9 @@
 CurrentModule = UTCGP
 DocTestSetup = quote
 
+  # INTEGER Basic
+  using UTCGP.integer_basic:identity_int
+
   # INTEGER FIND
   using UTCGP.integer_find:find_first
 end
@@ -18,8 +21,19 @@ Pages = ["integer.md"]
 
 ### Module 
 
+```@docs
+UTCGP.integer_basic
+```
 ### Functions 
 
+
+```@docs
+UTCGP.integer_basic.identity_int
+```
+```jldoctest
+julia> identity_int(3)
+3
+```
 
 ## Find First in vector
 

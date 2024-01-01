@@ -7,9 +7,11 @@ Exports :
     - list_concat
 
 """
+module listgeneric_concat
 
-using ..UTCGP: list_generic_basic
-using .list_generic_basic
+using ..UTCGP: listgeneric_basic
+using .listgeneric_basic: identity_list, new_list
+import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
 
 # ########### #
 # CONCAT LIST #
@@ -58,3 +60,4 @@ function list_concat(list_a::Vector{T}, list_b::Vector{T}, args...) where {T}
 end
 
 append_method!(bundle_concat_list_generic, list_concat)
+end

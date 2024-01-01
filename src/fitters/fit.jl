@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 using Statistics
-
+using Debugger
 ### FIT API ###
 
 function fit(
@@ -18,7 +18,7 @@ function fit(
     population_callbacks::Vector{Symbol},
     mutation_callbacks::Vector{Symbol},
     output_mutation_callbacks::Vector{Symbol},
-    decoding_callbacks::Vector{Symbol},
+    decoding_callbacks::Vector{<:Union{Symbol,AbstractCallable}},
     # Callbacks per step (while looping through data)
     endpoint_callback::Type{<:BatchEndpoint},
     final_step_callbacks::Union{Nothing,Vector{Function}},
@@ -57,7 +57,6 @@ function fit(
             meta_library,
             population_callbacks,
         )
-        print(size(population))
 
         population, time_mut = _make_mutations(
             population,
@@ -106,12 +105,16 @@ function fit(
             # append input nodes to pop
             replace_shared_inputs!(shared_inputs, input_nodes) # update 
             # Eval pop wrt training data
+            # if iteration > 10
+            #     @bp
+            # end
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
                 model_architecture,
                 meta_library,
             )
             # Endpoint results
+            # @bp
             fitness = endpoint_callback(outputs, y)
             fitness_values = get_endpoint_results(fitness)
 
@@ -132,8 +135,7 @@ function fit(
 
         # Selection
         ind_performances = resolve_ind_loss_tracker(M_individual_loss_tracker)
-
-        # pdb.set_trace()
+        # @bp
         # Elite selection callbacks
         elite_idx, time_elite = _make_elite_selection(
             ind_performances,

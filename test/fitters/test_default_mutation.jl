@@ -22,7 +22,7 @@
         rc = runConf(10, 10, 0.99, 0.99) # almost sure that everything is mutated
         ma = modelArchitecture([Vector{String}], [1], [Vector{String}], [String], [1])
         bundles_list_string = [
-            bundle_basic_generic_list,# identity_list, new_list
+            bundle_listgeneric_basic,# identity_list, new_list
         ]
         # Libraries
         lib_list_str = Library(bundles_list_string)

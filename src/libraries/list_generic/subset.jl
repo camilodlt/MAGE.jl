@@ -13,15 +13,14 @@ Exports :
 """
 module list_generic_subset
 
-using ..UTCGP: list_generic_basic, FunctionBundle, FunctionWrapper, append_method!
-import .list_generic_basic
+using ..UTCGP: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
+import .listgeneric_basic: new_list, identity_list
 
 # ########### #
 # SUBSET LIST #
 # ########### #
 
-bundle_subset_list_generic =
-    FunctionBundle(list_generic_basic.identity_list, list_generic_basic.new_list)
+bundle_subset_list_generic = FunctionBundle(identity_list, new_list)
 
 # FUNCTIONS ---
 
@@ -101,12 +100,12 @@ function pick_from_exclusive_generic(
     from_i::Int,
     args...,
 )::Vector{T} where {T}
-    mx_legnth = length(list_gen)
+    # mx_legnth = length(list_gen)
     from_i = max(from_i, 1)
-    if from_i >= mx_legnth
-        return T[]
-    end
-    return list_gen[from_i+1:mx_legnth]
+    # if from_i >= mx_legnth
+    #     return T[]
+    # end
+    return list_gen[from_i+1:end]
 end
 
 
@@ -146,8 +145,8 @@ function pick_until_inclusive_generic(
     until_i::Int,
     args...,
 )::Vector{T} where {T}
-    until_i = min(length(list_gen)until_i)
-    return list_gen[1:until_i]
+    until_i = min(length(list_gen), until_i)
+    return list_gen[begin:until_i]
 end
 
 

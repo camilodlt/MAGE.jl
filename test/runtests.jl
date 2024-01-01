@@ -29,7 +29,6 @@ using Test
     end
     @testset "Functions" begin
         @testset begin
-            include("libraries/list_generic/test_basic.jl")
             include("libraries/clone_bundle.jl")
         end
     end
@@ -43,8 +42,6 @@ using Test
         @testset "Numbered Mutation" begin
             include("mutations/test_numbered_mutation.jl")
         end
-
-
     end
     @testset "Fitters" begin
         include("fitters/test_default_mutation.jl")
@@ -62,6 +59,16 @@ using Test
         include("libraries/string/test_basic.jl")
     end
 
+    # Vector Generic
+    @testset "List Generic" begin
+        include("libraries/list_generic/test_basic.jl")
+    end
+
+    @testset "List number" begin
+        include("libraries/list_number/test_arithmetic.jl")
+        include("libraries/list_number/test_algebraic.jl")
+        include("libraries/list_number/test_recursive.jl")
+    end
     @testset "List Integer" begin
         include("libraries/list_integer/test_iscond.jl")
     end
@@ -70,9 +77,16 @@ using Test
     end
 
     @testset "Numbers" begin
+        include("libraries/number/test_arithmetic.jl")
         include("libraries/number/test_reduce.jl")
     end
     @testset "Integers" begin
+        include("libraries/integer/test_basic.jl")
         include("libraries/integer/test_find.jl")
+        include("libraries/integer/test_modulo.jl")
+    end
+    @testset "PSB2" begin
+        include("problem_specific/test_basement.jl")
+        include("problem_specific/test_cut_vector.jl")
     end
 end

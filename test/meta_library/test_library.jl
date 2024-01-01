@@ -3,7 +3,7 @@ using UTCGP
 using Test
 
 
-bundles_generic = [bundle_basic_generic_list]
+bundles_generic = [bundle_listgeneric_basic]
 @testset "Basic list generic Bundle" begin
 
     @test_throws MethodError begin
@@ -32,17 +32,15 @@ bundles_generic = [bundle_basic_generic_list]
 
     # add bundle to lib
     @test begin
-        # bundles_generic = [bundle_basic_generic_list]
         l = Library(bundles_generic)
-        add_bundle_to_library!(l, bundle_basic_generic_list)
+        add_bundle_to_library!(l, bundle_listgeneric_basic)
         length(l.bundles) == 2
     end
 
     @test begin
         println(length(bundles_generic))
-        # bundles_generic = [bundle_basic_generic_list]
         l = Library(bundles_generic)
-        feedback = add_bundle_to_library!(l, bundle_basic_generic_list)
+        feedback = add_bundle_to_library!(l, bundle_listgeneric_basic)
         feedback == 2
     end
 
@@ -53,34 +51,34 @@ bundles_generic = [bundle_basic_generic_list]
     @test begin
         l = Library(bundles_generic)
         unpack_bundles_in_library!(l)
-        length(l) == 2 # identity and new_list
+        length(l) == 3 # identity and new_list, reverse
     end
     @test begin
-        bundles_generic = [bundle_basic_generic_list, bundle_basic_generic_list]
+        bundles_generic = [bundle_listgeneric_basic, bundle_listgeneric_basic]
         l = Library(bundles_generic)
         unpack_bundles_in_library!(l)
-        length(l) == 4 # identity and new_list x 2
+        length(l) == 6 # identity, new_list, reverse_list x 2
     end
     @test begin
-        bundles_generic = [bundle_basic_generic_list]
+        bundles_generic = [bundle_listgeneric_basic]
         l = Library(bundles_generic)
         unpack_bundles_in_library!(l)
         names_fns = [fn_w.name for fn_w in l]
-        names_fns == [:identity_list, :new_list]
+        names_fns == [:identity_list, :new_list, :reverse_list]
     end
     @test begin
-        bundles_generic = [bundle_basic_generic_list]
+        bundles_generic = [bundle_listgeneric_basic]
         l = Library(bundles_generic)
         unpack_bundles_in_library!(l)
         names_fns = list_functions_names(l)
-        names_fns == ["identity_list", "new_list"]
+        names_fns == ["identity_list", "new_list", "reverse_list"]
     end
     @test begin
-        bundles_generic = [bundle_basic_generic_list]
+        bundles_generic = [bundle_listgeneric_basic]
         l = Library(bundles_generic)
         unpack_bundles_in_library!(l)
         names_fns = list_functions_names(l; symbol = true)
-        names_fns == [:identity_list, :new_list]
+        names_fns == [:identity_list, :new_list, :reverse_list]
     end
     # Abnormal
     @test_logs (:warn, r"Library had functions in the library.*") match_mode = :any begin

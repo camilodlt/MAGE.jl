@@ -2,7 +2,6 @@ using UTCGP
 using Random
 using Statistics
 
-
 @testset "Where to mutate" begin
 
     @test begin
@@ -215,5 +214,115 @@ end
     end
     @test_throws AssertionError begin
         UTCGP.sample_n(-1, -2)
+    end
+end
+
+@testset "New Material" begin
+    @test begin # A node who calls only another node, so 
+        # its active material is just one allele and not the whole node
+        ma = modelArchitecture([Int, Vector{Int}], [1, 2], [Int, Vector{Int}], [Int], [1])
+        bundles_int = [bundle_number_reduce]
+        bundles_vec = [bundle_listinteger_iscond]
+        # Libraries
+        lib_int = Library(bundles_int)
+        lib_list_int = Library(bundles_vec)
+        ml = MetaLibrary([lib_int, lib_list_int])
+        nc = nodeConfig(3, 1, 5, 2)
+        shared_inputs, ut_genome = make_evolvable_utgenome(ma, ml, nc)
+        initialize_genome!(ut_genome)
+        shared_inputs.inputs[1].value = 0
+        shared_inputs.inputs[2].value = Int[1, 2, 3]
+
+        # Modify manually the genome
+        node = ut_genome[1][2] # int, node 2 
+        node[1].value = 1 # fn reduce_sum
+        node[2].value = 3 # node 3 (real pos 1)
+        node[3].value = 2 # type vec int
+        # the rest does not matter
+        # except it is a parameter allele
+        get_active_node_material(node, lib_int, ut_genome, shared_inputs, ma) == [1, 3, 2]
+    end
+    @test begin
+        # A vector where all the material is used, so the active material == 
+        # node_to_vector(node)
+        ma = modelArchitecture([Int, Vector{Int}], [1, 2], [Int, Vector{Int}], [Int], [1])
+        bundles_int = [bundle_integer_find]
+        bundles_vec = [bundle_listinteger_iscond]
+        # Libraries
+        lib_int = Library(bundles_int)
+        lib_list_int = Library(bundles_vec)
+        ml = MetaLibrary([lib_int, lib_list_int])
+        nc = nodeConfig(3, 1, 2, 2)
+        shared_inputs, ut_genome = make_evolvable_utgenome(ma, ml, nc)
+        initialize_genome!(ut_genome)
+        shared_inputs.inputs[1].value = 0
+        shared_inputs.inputs[2].value = Int[1, 2, 3]
+
+        # Modify manually the genome
+        node = ut_genome[1][2] # int, node 2.  Sig vec <:number, int 
+        node[1].value = 1 # fn reduce_sum
+        node[2].value = 3 # node 3 (real pos 1)
+        node[3].value = 2 # type vec int
+        node[4].value = 3 # node 3 (real pos 1)
+        node[5].value = 1 # type int
+        # the rest does not matter
+        # except it is a parameter allele
+        get_active_node_material(node, lib_int, ut_genome, shared_inputs, ma) ==
+        node_to_vector(node)
+    end
+
+    @test begin # Calling the input node does not return the type
+        ma = modelArchitecture([Int, Vector{Int}], [1, 2], [Int, Vector{Int}], [Int], [1])
+        bundles_int = [bundle_number_reduce]
+        bundles_vec = [bundle_listinteger_iscond]
+        # Libraries
+        lib_int = Library(bundles_int)
+        lib_list_int = Library(bundles_vec)
+        ml = MetaLibrary([lib_int, lib_list_int])
+        nc = nodeConfig(3, 1, 5, 2)
+        shared_inputs, ut_genome = make_evolvable_utgenome(ma, ml, nc)
+        initialize_genome!(ut_genome)
+        shared_inputs.inputs[1].value = 0
+        shared_inputs.inputs[2].value = Int[1, 2, 3]
+
+        # Modify manually the genome
+        node = ut_genome[1][2] # int, node 2 
+        node[1].value = 1 # fn reduce_sum
+        node[2].value = 2 # node 2 (real pos 2) => input node
+        node[3].value = 2 # type vec int
+        # the rest does not matter
+        # except it is a parameter allele
+        get_active_node_material(node, lib_int, ut_genome, shared_inputs, ma) == [1, 2]
+    end
+
+    @test begin
+        # A vector where all the material is used, so the active material should be == node_to_vector(node)
+        # but, one connexion is an inputnode, so the vector returned does not have the input type in it
+        ma = modelArchitecture([Int, Vector{Int}], [1, 2], [Int, Vector{Int}], [Int], [1])
+        bundles_int = [bundle_integer_find]
+        bundles_vec = [bundle_listinteger_iscond]
+        # Libraries
+        lib_int = Library(bundles_int)
+        lib_list_int = Library(bundles_vec)
+        ml = MetaLibrary([lib_int, lib_list_int])
+        nc = nodeConfig(3, 1, 2, 2)
+        shared_inputs, ut_genome = make_evolvable_utgenome(ma, ml, nc)
+        initialize_genome!(ut_genome)
+        shared_inputs.inputs[1].value = 0
+        shared_inputs.inputs[2].value = Int[1, 2, 3]
+
+        # Modify manually the genome
+        node = ut_genome[1][2] # int, node 2.  Sig vec <:number, int 
+        node[1].value = 1 # fn reduce_sum
+        node[2].value = 2 # node 2 (real pos 2) => the input node
+        node[3].value = 2 # type vec int
+        node[4].value = 3 # node 3 (real pos 1)
+        node[5].value = 1 # type int
+        # the rest does not matter
+        # except it is a parameter allele
+        get_active_node_material(node, lib_int, ut_genome, shared_inputs, ma) !=
+        node_to_vector(node) &&
+            get_active_node_material(node, lib_int, ut_genome, shared_inputs, ma) ==
+            [1, 2, 3, 1] # instead of [1,2,2,3,1]
     end
 end

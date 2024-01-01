@@ -2,6 +2,14 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+
+  # NUMBER ARITHMETIC
+  using UTCGP.number_arithmetic:number_sum
+  using UTCGP.number_arithmetic:number_minus
+  using UTCGP.number_arithmetic:number_mult
+  using UTCGP.number_arithmetic:number_div
+  using UTCGP.number_arithmetic:safe_div
+
   # INTEGER REDUCE
 
   using UTCGP.number_reduce:reduce_sum
@@ -9,7 +17,6 @@ DocTestSetup = quote
   using UTCGP.number_reduce:reduce_max
   using UTCGP.number_reduce:reduce_argmin
   using UTCGP.number_reduce:reduce_argmax
-  using UTCGP.number_reduce:reduce_recsum
 end
 ```
 
@@ -25,6 +32,55 @@ Pages = ["number.md"]
 
 ### Functions 
 
+
+## Reduce functions
+
+### Module
+```@docs
+UTCGP.number_arithmetic
+```
+
+### Functions
+
+```@docs
+UTCGP.number_arithmetic.number_sum
+```
+```jldoctest
+julia> number_sum(0,1)
+1
+```
+
+```@docs
+UTCGP.number_arithmetic.number_minus
+```
+```jldoctest
+julia> number_minus(0,1)
+-1
+```
+
+```@docs
+UTCGP.number_arithmetic.number_mult
+```
+```jldoctest
+julia> number_mult(3,3)
+9
+```
+
+```@docs
+UTCGP.number_arithmetic.number_div
+```
+```jldoctest
+julia> number_div(3,3)
+1.0
+```
+
+```@docs
+UTCGP.number_arithmetic.safe_div
+```
+```jldoctest
+julia> safe_div(3,0)
+0
+```
 
 ## Reduce functions
 
@@ -73,15 +129,4 @@ UTCGP.number_reduce.reduce_argmax
 ```jldoctest
 julia> reduce_argmax([1,2,3])
 3
-```
-
-```@docs
-UTCGP.number_reduce.reduce_recsum
-```
-```jldoctest
-julia> reduce_recsum([1,2,3])
-3-element Vector{Int64}:
- 1
- 3
- 6
 ```

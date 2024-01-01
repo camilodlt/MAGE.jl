@@ -1,3 +1,5 @@
+using Debugger
+
 abstract type AbstractFunction end
 
 mutable struct FunctionWrapper <: AbstractFunction
@@ -18,7 +20,8 @@ mutable struct FunctionWrapper <: AbstractFunction
     end
 end
 
-function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs::Vector{<:Any})
+function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})
+    inputs = deepcopy(inputs_) # safety
     output = let output = nothing
         try
             output = fn_wrapper.fn(inputs...) # TODO add possible node params? besides inputs

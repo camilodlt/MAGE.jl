@@ -34,3 +34,20 @@ struct EndpointBatchLevensthein <: BatchEndpoint
     end
 end
 
+##################
+# ABS DIFFERENCE #
+##################
+
+struct EndpointBatchAbsDifference <: BatchEndpoint
+    fitness_results::Vector{Float64}
+    function EndpointBatchAbsDifference(preds::Vector{<:Vector{<:Number}}, y::Number)
+        res = Float64[]
+        for ind_outputs in preds
+            pred = ind_outputs[1]
+            dist = convert(Float64, abs(pred - y))
+            push!(res, dist)
+        end
+        return new(res)
+    end
+end
+
