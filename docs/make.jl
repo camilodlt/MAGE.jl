@@ -6,7 +6,7 @@ DocMeta.setdocmeta!(UTCGP, :DocTestSetup, :(using UTCGP); recursive = true)
 makedocs(;
     modules = [UTCGP],
     authors = "Camilo De La Torre <camilo.de-la-torre@ut-capitole.fr> and contributors",
-    repo = "https://github.com/camilodlt/UTCGP.jl/blob/{commit}{path}#{line}",
+    # repo = "https://github.com/camilodlt/UTCGP.jl/blob/{commit}{path}#{line}",
     sitename = "UTCGP.jl",
     checkdocs = :none, #:exports,
     format = Documenter.HTML(;
