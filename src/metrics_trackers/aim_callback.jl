@@ -17,12 +17,13 @@ function (aim_struct::AIM_LossEpoch)(
     best_program::IndividualPrograms,
     elite_idx::Int,
 )
-    aim_struct.run.track(best_loss, name="loss", step=generation)
+    l = convert(Float32, best_loss)
+    aim_struct.run.track(l, name = "loss", step = generation)
 end
 
 
 struct Wandb_LossEpoch <: AbstractCallable
-    wandb_log
+    wandb_log::Any
 end
 
 function (wandb_struct::Wandb_LossEpoch)(

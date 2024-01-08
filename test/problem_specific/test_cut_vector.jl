@@ -26,6 +26,7 @@ function cut_vector_algo(x, y)
     p2 = pick_from_exclusive_generic(x, cut_point)
     return (p1 == y[1] && p2 == y[2])
 end
+
 @testset "cut vector" begin
     xs = [
         [0],

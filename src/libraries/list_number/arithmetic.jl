@@ -121,6 +121,7 @@ function div_vector(v1::VECTORNUM, v2::VECTORNUM, args...)
     v1 ./ v2
 end
 
+
 # Broadcast
 append_method!(bundle_listnumber_arithmetic, sum_broadcast)
 append_method!(bundle_listnumber_arithmetic, subtract_broadcast)
@@ -132,4 +133,5 @@ append_method!(bundle_listnumber_arithmetic, sum_vector)
 append_method!(bundle_listnumber_arithmetic, subtract_vector)
 append_method!(bundle_listnumber_arithmetic, mult_vector)
 append_method!(bundle_listnumber_arithmetic, div_vector)
+
 end

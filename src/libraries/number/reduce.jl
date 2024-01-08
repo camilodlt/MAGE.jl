@@ -11,6 +11,7 @@ Exports :
     - `reduce_max`
     - `reduce_argmin`
     - `reduce_argmax`
+    - `reduce_length`
 
 """
 module number_reduce
@@ -76,9 +77,20 @@ function reduce_argmax(from::Vector{<:Number}, args...)
     return argmax(from)
 end
 
+## reduce length
+
+"""
+    reduce_length(from::Vector{<:Any}, args...)
+Returns the length of the vector
+"""
+function reduce_length(from::Vector{<:Any}, args...)
+    return length(from)
+end
+
 append_method!(bundle_number_reduce, reduce_sum)
 append_method!(bundle_number_reduce, reduce_min)
 append_method!(bundle_number_reduce, reduce_max)
 append_method!(bundle_number_reduce, reduce_argmin)
 append_method!(bundle_number_reduce, reduce_argmax)
+append_method!(bundle_number_reduce, reduce_length)
 end

@@ -38,7 +38,6 @@ DocTestSetup = quote
   using UTCGP.str_caps:lowercase_char_before  
   using UTCGP.str_caps:capitalize_first
   using UTCGP.str_caps:capitalize_all
-  using UTCGP.str_caps:capitalize_list_string
 
   # STR BASIC
   using UTCGP.str_basic: number_to_string  
@@ -434,15 +433,4 @@ julia> capitalize_all("julia julia")
 # The titlecase functions takes all non letters as separators
 julia> capitalize_all("julia-julia")
 "Julia-Julia"
-```
-
-```@docs 
-UTCGP.str_caps.capitalize_list_string
-```
-
-```jldoctest
-julia> capitalize_list_string(["julia", "julia"])
-2-element Vector{String}:
- "Julia"
- "Julia"
 ```

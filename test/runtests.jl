@@ -1,4 +1,11 @@
 using Test
+using Pkg
+using PyCall
+
+
+ENV["PYTHON"] = "/home/irit/Documents/Camilo/utcgp/utcgp_env/bin/python"
+Pkg.add("PyCall")
+Pkg.build("PyCall")
 
 @testset "UTCGP TEST" begin
 
@@ -62,6 +69,8 @@ using Test
     # Vector Generic
     @testset "List Generic" begin
         include("libraries/list_generic/test_basic.jl")
+        include("libraries/list_generic/test_make_lists.jl")
+        include("libraries/list_generic/test_concat.jl")
     end
 
     @testset "List number" begin
@@ -74,6 +83,15 @@ using Test
     end
     @testset "List String" begin
         include("libraries/list_string/test_split.jl")
+        include("libraries/list_string/test_caps.jl")
+    end
+
+    @testset "List Tuple()" begin
+        include("libraries/list_tuple/test_list_tuple_combinatorics.jl")
+    end
+
+    @testset "Element" begin
+        include("libraries/element/test_vector_interface.jl")
     end
 
     @testset "Numbers" begin
@@ -86,7 +104,30 @@ using Test
         include("libraries/integer/test_modulo.jl")
     end
     @testset "PSB2" begin
-        include("problem_specific/test_basement.jl")
-        include("problem_specific/test_cut_vector.jl")
+        include("problem_specific/test_basement.jl") #basement
+        include("problem_specific/test_bouncing_balls.jl") #bouncing balls
+        #bowling
+        include("problem_specific/test_camel_case.jl")#camel case 
+        include("problem_specific/test_coin_sums.jl")# coin sums 
+        include("problem_specific/test_cut_vector.jl") # cutvector
+        include("problem_specific/test_dice_game.jl")#dice game
+        include("problem_specific/test_find_pair.jl")#find pair
+        include("problem_specific/test_fizz_buzz.jl")#fizz buzz
+        include("problem_specific/test_fuel_cost.jl")#fuel cost
+        include("problem_specific/test_gcd.jl")#CGD
+        include("problem_specific/test_indices_of_substring.jl")#Indices of substring
+        include("problem_specific/test_leaders.jl")#leaders 
+        include("problem_specific/test_luhn.jl")#Luhn
+        include("problem_specific/test_mastermind.jl")#Mastermind
+        #MiddleCharacter
+        #PairedDigits
+        #Shopping list
+        #SnowDay
+        #solve boolean 
+        #spin worlds 
+        #squre digits 
+        #substitution cipher
+        #twitter 
+        #vector distance
     end
 end

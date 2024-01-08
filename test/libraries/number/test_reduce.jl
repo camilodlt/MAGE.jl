@@ -3,7 +3,7 @@
     @test begin
         # bundle import
         using UTCGP: bundle_number_reduce
-        length(bundle_number_reduce) == 5 && _unique_names_in_bundle(bundle_number_reduce)
+        length(bundle_number_reduce) == 6 && _unique_names_in_bundle(bundle_number_reduce)
     end
     @test begin
         # sum
@@ -29,5 +29,10 @@
         # argmax
         using UTCGP.number_reduce: reduce_argmax
         reduce_argmax([1, 2, 3]) === 3
+    end
+    @test begin
+        # length
+        using UTCGP.number_reduce: reduce_length
+        reduce_length([1, 2, 3]) === 3 && reduce_length([]) === 0
     end
 end

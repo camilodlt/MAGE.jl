@@ -107,6 +107,11 @@ export bundle_listgeneric_basic
 
 # Libraries
 
+# -- Element 
+include("libraries/element/pick_element.jl")
+import .element_pick: bundle_element_pick
+export bundle_element_pick
+
 # -- String
 include("libraries/string/grep.jl")
 import .str_grep: bundle_string_grep
@@ -131,10 +136,19 @@ import .str_basic: bundle_string_basic
 export bundle_string_basic
 
 # -- List Generic 
-include("libraries/list_generic/list_concat.jl")
+
 include("libraries/list_generic/subset.jl")
 import .list_generic_subset: bundle_subset_list_generic
 export list_generic_subset
+
+include("libraries/list_generic/make_lists.jl")
+import .listgeneric_makelist: bundle_listgeneric_makelist
+export bundle_listgeneric_makelist
+
+include("libraries/list_generic/list_concat.jl")
+import .listgeneric_concat: bundle_listgeneric_concat
+export bundle_listgeneric_concat
+
 # -- List Number
 
 include("libraries/list_number/arithmetic.jl")
@@ -158,8 +172,17 @@ export bundle_listinteger_iscond
 include("libraries/list_string/split.jl")
 import .list_string_split: bundle_list_string_split
 export bundle_list_string_split
+
+include("libraries/list_string/caps.jl")
+import .liststring_caps: bundle_liststring_caps
+export bundle_liststring_caps
 # using .list_generic_subset
 # export bundle_subset_list_generic
+
+# -- List Tuple
+include("libraries/list_tuple/combinatorics.jl")
+import .listtuple_combinatorics: bundle_listtuple_combinatorics
+export bundle_listtuple_combinatorics
 
 # -- Number
 

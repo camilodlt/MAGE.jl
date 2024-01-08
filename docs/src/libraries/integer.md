@@ -8,6 +8,9 @@ DocTestSetup = quote
 
   # INTEGER FIND
   using UTCGP.integer_find:find_first
+  
+  # INTEGER MODULO
+  using UTCGP.integer_modulo:modulo
 end
 ```
 
@@ -54,4 +57,25 @@ julia> find_first([1,2,3], 3)
 ```jldoctest
 julia> find_first([1,2,3], 10)
 0 
+```
+
+## Modulo Operations
+
+### Module 
+
+```@docs
+UTCGP.integer_modulo
+```
+### Functions 
+
+```@docs
+UTCGP.integer_modulo.modulo
+```
+```jldoctest
+julia> modulo(10,2)
+0
+```
+```jldoctest
+julia> modulo(11,2)
+1
 ```

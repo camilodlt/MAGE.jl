@@ -17,6 +17,7 @@ DocTestSetup = quote
   using UTCGP.number_reduce:reduce_max
   using UTCGP.number_reduce:reduce_argmin
   using UTCGP.number_reduce:reduce_argmax
+  using UTCGP.number_reduce:reduce_length
 end
 ```
 
@@ -129,4 +130,12 @@ UTCGP.number_reduce.reduce_argmax
 ```jldoctest
 julia> reduce_argmax([1,2,3])
 3
+```
+
+```@docs
+UTCGP.number_reduce.reduce_length
+```
+```jldoctest
+julia> reduce_length(collect(1:10))
+10
 ```

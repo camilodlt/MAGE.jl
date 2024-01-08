@@ -1,8 +1,11 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
-  # LIST GENERIC SUBSET
+
+  # LIST GENERIC RECURSIVE
   using UTCGP.listnumber_recursive:recsum
+  using UTCGP.listnumber_recursive:recmult
+  using UTCGP.listnumber_recursive:range_
 
   # LIST NUMBER ARITHMETIC
   using UTCGP.listnumber_arithmetic:sum_broadcast
@@ -190,4 +193,32 @@ julia> recsum([1.,2.,3.])
  6.0
 ```
 
+```@docs
+UTCGP.listnumber_recursive.recmult
+```
+```jldoctest
+julia> recmult(2,0.5,3)
+4-element Vector{Real}:
+ 2
+ 1.0
+ 0.5
+ 0.25
+```
 
+```@docs
+UTCGP.listnumber_recursive.range_
+```
+```jldoctest
+julia> range_(3)
+3-element Vector{Int64}:
+ 1
+ 2
+ 3
+```
+```jldoctest
+julia> range_(3.0)
+3-element Vector{Float64}:
+ 1.0
+ 2.0
+ 3.0
+```

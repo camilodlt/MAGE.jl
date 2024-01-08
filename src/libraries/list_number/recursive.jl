@@ -8,6 +8,8 @@ Exports :
 
 - **bundle\\_listnumber\\_recursive** :
     - `recsum`
+    - `recmult`
+    - `range_`
 
 """
 module listnumber_recursive
@@ -40,5 +42,34 @@ function recsum(from::Vector{<:Number}, args...)
     return identity.(rec_sum)
 end
 
+"""
+    recmult(init_number::Number, mult_by::Number, n_times::Int, args...)
+
+Multiplies recursively the `init_number` by `mult_by` `n_times`.
+
+Returns the vector holding all the results. 
+The first entry of the vector is returned as is. 
+"""
+function recmult(init_number::Number, mult_by::Number, n_times::Int, args...)
+    vec = []
+    for i = 1:(n_times+1)
+        push!(vec, init_number)
+        init_number = init_number * mult_by
+    end
+    vec = identity.(vec)
+    return vec
+end
+
+"""
+    range_(max_n::Number)
+
+Returns the range between 1 (inclusive) and max_n (inclusive).
+"""
+function range_(max_n::Number)
+    return collect(1:max_n)
+end
+
 append_method!(bundle_listnumber_recursive, recsum)
+append_method!(bundle_listnumber_recursive, recmult)
+append_method!(bundle_listnumber_recursive, range_)
 end

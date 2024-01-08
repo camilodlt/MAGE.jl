@@ -19,8 +19,6 @@ Exports :
     - `lowercase_char_before  `
     - `capitalize_first`
     - `capitalize_all`
-    - `capitalize_list_string`
-
 """
 module str_caps
 
@@ -301,16 +299,6 @@ function capitalize_all(s::String, args...)::String
     return titlecase(s)
 end
 
-"""
-    capitalize_list_string(strings::Vector{String}, args...)::Vector{String}
-
-Broadccasts the `Base.titlecase` function to every element in the vector. 
-"""
-function capitalize_list_string(strings::Vector{String}, args...)::Vector{String}
-    return titlecase.(strings)
-end
-
-
 append_method!(bundle_string_caps, uppercase_)
 append_method!(bundle_string_caps, uppercase_at)
 append_method!(bundle_string_caps, uppercase_after)
@@ -327,5 +315,4 @@ append_method!(bundle_string_caps, lowercase_char_before)
 
 append_method!(bundle_string_caps, capitalize_first)
 append_method!(bundle_string_caps, capitalize_all)
-append_method!(bundle_string_caps, capitalize_list_string)
 end

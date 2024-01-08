@@ -7,7 +7,7 @@
     @test begin
         # module is importable ... 
         using UTCGP: bundle_string_caps
-        length(bundle_string_caps) == 15
+        length(bundle_string_caps) == 14
     end
     @test begin
         # module is importable ... 
@@ -364,9 +364,5 @@
     @test begin
         using UTCGP.str_caps: capitalize_first
         capitalize_all("julia-julia") == "Julia-Julia"
-    end
-    @test begin
-        using UTCGP.str_caps: capitalize_list_string
-        capitalize_list_string(["julia", "julia"]) == ["Julia", "Julia"]
     end
 end

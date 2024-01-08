@@ -24,6 +24,8 @@ makedocs(;
         "Vector Number Lib" => "libraries/list_number.md",
         "Vector Integer Lib" => "libraries/list_integer.md",
         "Vector String Lib" => "libraries/list_string.md",
+        "Vector Tuple{T,T}" => "libraries/list_tuple.md",
+        "Element Lib" => "libraries/element.md",
         "String Lib" => "libraries/string.md",
         "Number Lib" => "libraries/number.md",
         "Integer Lib" => "libraries/integer.md",

@@ -2,6 +2,7 @@ using UTCGP.listnumber_recursive: recsum
 using UTCGP.listinteger_iscond: is_less_0
 using UTCGP.integer_find: find_first
 using UTCGP.number_arithmetic: number_sum
+
 function basement_algo(x)
     rs = recsum(x[1])
     sup_0 = is_less_0(rs)
@@ -9,6 +10,7 @@ function basement_algo(x)
     pred = number_sum(pred, x[2])
     return pred
 end
+
 @testset "Basement" begin
     @test begin
         x = [[20, -30, 0, 0, 0, 0, 0, 0, 0, 0, -30, 0, 0, 0, 0, 0, 0, 0, 0, -30], -1, 0, 1]
