@@ -11,7 +11,7 @@ function get_example_utgraph()
         modelArchitecture([String, String], [1, 1], [String, Vector{String}], [String], [1])
     bundles_string =
         [bundle_string_basic, bundle_string_paste, bundle_string_concat_list_string]
-    bundles_list_string = [bundle_listgeneric_basic, bundle_list_string_split]
+    bundles_list_string = [bundle_listgeneric_basic, bundle_liststring_split]
 
     # Libraries
     lib_str = Library(bundles_string)
@@ -75,7 +75,7 @@ function get_example_utgraph_2out()
     )
     bundles_string =
         [bundle_string_basic, bundle_string_paste, bundle_string_concat_list_string]
-    bundles_list_string = [bundle_listgeneric_basic, bundle_list_string_split]
+    bundles_list_string = [bundle_listgeneric_basic, bundle_liststring_split]
 
     # Libraries
     lib_str = Library(bundles_string)
@@ -88,7 +88,7 @@ function get_example_utgraph_2out()
     shared_inputs.inputs[2].value = "."
     print(list_functions_names(ml))
 
-    # Modify manually the genomebundle_list_string_split]
+    # Modify manually the genomebundle_liststring_split
     # Node 3 calls with `paste` inputs 1,2 => >String
     ut_genome[1][1][1].value = 4 # Function paste0
     ut_genome[1][1][2].value = 1 # con 1

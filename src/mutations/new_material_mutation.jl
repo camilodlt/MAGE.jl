@@ -13,7 +13,6 @@ function new_material_mutation!(
     @assert run_config.mutation_rate > 1.0 "Mutation should be > 1."
     @assert length(model_architecture.inputs_types) > 0 "At least one input ? "
     @assert length(model_architecture.chromosomes_types) == length(ut_genome.genomes) "Need to give all chromosome types (Int, Float64, ...) in order so we check that nodes function with available signatures"  # noqa :: 3501
-    # @bp
     # n to sample 
     n = floor(Int, run_config.mutation_rate)
     # decode 
@@ -95,10 +94,11 @@ function new_material_mutation!(
         mutate_one_element_from_node!(node)
         if call_nb > max_calls
             @warn "Can't find a correct mutation after $call_nb"
-            # if force_fn
-            #     node.node_material[1].value = 1  # Convention for default fn
-            #     @warn "Node didn't find a functionning call after $max_calls iterations. Current call : $call_nb"
-            # end
+            @warn node_to_vector(node)
+            @warn node.id
+            node.node_material[1].value = 2 # CONVENTION BY DEFAULT
+            @warn "Node didn't find a functionning call after $max_calls iterations. Current call : $call_nb"
+            break
         end
         call_nb += 1
     end

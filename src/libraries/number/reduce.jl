@@ -87,10 +87,20 @@ function reduce_length(from::Vector{<:Any}, args...)
     return length(from)
 end
 
+"""
+    reduce_length(from::String, args...)
+
+Return the length of the string.
+"""
+function reduce_length(from::String, args...)
+    return length(from)
+end
+
 append_method!(bundle_number_reduce, reduce_sum)
 append_method!(bundle_number_reduce, reduce_min)
 append_method!(bundle_number_reduce, reduce_max)
 append_method!(bundle_number_reduce, reduce_argmin)
 append_method!(bundle_number_reduce, reduce_argmax)
 append_method!(bundle_number_reduce, reduce_length)
+
 end

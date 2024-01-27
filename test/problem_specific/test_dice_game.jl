@@ -74,7 +74,6 @@ function dice_game_example_algo(x, y)
     possible_combinations = vector_of_products(p_outcomes, c_outcomes)
 
     # compare a and b 
-    # odds = [a > b for (a, b) in possible_combinations]
     odds = compare_tuple_a_gr_b(possible_combinations)    # how many times p wins 
     win = reduce_sum(odds)
     l = reduce_length(odds)

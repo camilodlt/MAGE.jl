@@ -5,11 +5,11 @@
 
 Exports :
 
-- **bundle\\_list_string\\_split** :
-    - split_string_to_vector
+- **bundle\\_liststring\\_split** :
+    - `split_string_to_vector`
 
 """
-module list_string_split
+module liststring_split
 
 using ..UTCGP: FunctionBundle, append_method!
 
@@ -18,16 +18,16 @@ using ..UTCGP: FunctionBundle, append_method!
 # ########### #
 fallback(args...) = return String[]
 
-bundle_list_string_split = FunctionBundle(fallback)
+bundle_liststring_split = FunctionBundle(fallback)
 
 # FUNCTIONS ---
 """ 
 """
-function split_string_to_vector(s::String, by::String, args...)::Vector{String}
-    return split(s, by)
+function split_string_to_vector(s::String, by::String, args...)
+    return String.(split(s, by))
 end
 
 
-append_method!(bundle_list_string_split, split_string_to_vector)
+append_method!(bundle_liststring_split, split_string_to_vector)
 
 end

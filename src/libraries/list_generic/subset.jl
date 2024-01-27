@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-
-
 """
 Exports :
 
-- **bundle_subset_list_generic** :
+- **bundle\\_listgeneric\\_subset** :
     - `pick_from_exclusive_generic`
     - `pick_from_inclusive_generic`
     - `pick_until_exclusive_generic`
     - `pick_until_inclusive_generic`
+    - `subset_list_of_tuples`
+    - `subset_by_mask`
+    - `subset_by_indices`
 
 """
-module list_generic_subset
+module listgeneric_subset
 
 using ..UTCGP: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
 import .listgeneric_basic: new_list, identity_list
@@ -20,190 +21,231 @@ import .listgeneric_basic: new_list, identity_list
 # SUBSET LIST #
 # ########### #
 
-bundle_subset_list_generic = FunctionBundle(identity_list, new_list)
+bundle_listgeneric_subset = FunctionBundle(identity_list, new_list)
+bundle_listgeneric_subset_factory = FunctionBundle(identity_list, new_list)
 
 # FUNCTIONS ---
 
+# Pick From Inclusive ---
 
-"""Subsets a list from (inclusive) until the end of the list
-
-T is a generic type.
-
-In principle, `from_i` can also be negative
-
-Parameters
-----------
-list_gen : Vector{T}
-           A given list. In this case all elements are asumed
-           to be of the same type.
-from_i : int
-         The `from` index to use for subset
-
-Returns
--------
-Vector{T}
-        The subsetted list
-
-Examples
---------
->>> pick_from_inclusive_generic([1,2,3,4], 1)
-[2,3,4]
-
->>> pick_from_inclusive_generic([1,2,3,4], 3)
-[4]
-
-
->>> pick_from_inclusive_generic([1,2,3,4], 5)
-[]
-"""
-function pick_from_inclusive_generic(
-    list_gen::Vector{T},
-    from_i::Int,
-    args...,
-)::Vector{T} where {T}
-    mx_legnth = length(list_gen)
-    from_i = max(from_i, 1)
-    return list_gen[from_i:mx_legnth]
+function pick_from_inclusive_generic_factory(T::DataType)
+    return @eval ((list_gen::Vector{V}, from_i::Int, args...) where {V<:$T}) -> begin
+        mx_legnth = length(list_gen)
+        from_i = max(from_i, 1)
+        return list_gen[from_i:mx_legnth]
+    end
 end
 
+"""
+    pick_from_inclusive_generic(
+        list_gen::Vector{T},
+        from_i::Int,
+        args...,
+    )
+
+Subsets a list from (inclusive) until the end of the list
+
+In principle, `from_i` can also be negative, it will return the vector from the first index.
+"""
+pick_from_inclusive_generic = pick_from_inclusive_generic_factory(Any)
 
 
-"""Subsets a list from (exclusive) until the end of the list
+# Pick From Exclusive ---
 
-T is a generic type.
-This function adds 1 to `from_i` to exclude the `from_i` element.
+function pick_from_exclusive_generic_factory(T::DataType)
+    return @eval ((list_gen::Vector{V}, from_i::Int, args...) where {V<:$T}) -> begin
+        from_i = max(from_i, 1)
+        return list_gen[from_i+1:end]
+    end
+end
+"""
+    pick_from_exclusive_generic(
+        list_gen::Vector{T},
+        from_i::Int,
+        args...,
+    )
+
+Subsets a list from (exclusive) until the end of the list
+
 In principle, `from_i` can also be negative.
-
-Parameters
-----------
-list_gen : Vector{T}
-           A given list. In this case all elements are asumed
-           to be of the same type.
-from_i : int
-         The `from` index to use for subset
-
-Returns
--------
-Vector{T}
-        The subsetted list
-
-Examples
---------
->>> pick_from_exclusive_generic([1,2,3,4], 1)
-[3,4]
-
->>> pick_from_exclusive_generic([1,2,3,4], 3)
-[]
 """
-function pick_from_exclusive_generic(
-    list_gen::Vector{T},
-    from_i::Int,
-    args...,
-)::Vector{T} where {T}
-    # mx_legnth = length(list_gen)
-    from_i = max(from_i, 1)
-    # if from_i >= mx_legnth
-    #     return T[]
-    # end
-    return list_gen[from_i+1:end]
+pick_from_exclusive_generic = pick_from_exclusive_generic_factory(Any)
+
+
+# Pick Until Inclusive --- 
+
+function pick_until_inclusive_generic_factory(T::DataType)
+    return @eval ((list_gen::Vector{V}, until_i::Int, args...) where {V<:$T}) -> begin
+        until_i = min(length(list_gen), until_i)
+        return list_gen[begin:until_i]
+    end
 end
 
+"""
 
-"""Subsets a list from the beginning until (inclusive) a given index
+    pick_until_inclusive_generic(
+        list_gen::Vector{T},
+        until_i::Int,
+        args...,
+    )
 
-T is a generic type.
+Subsets a list from the beginning until (inclusive) a given index
 
 In principle, `until_i` can also be negative
 
-Parameters
-----------
-list_gen : Vector{T}
-           A given list. In this case all elements are asumed
-           to be of the same type.
-until_i : int
-         The **until** index to use for subset
-
-Returns
--------
-Vector{T}
-        The subsetted list
-
-Examples
---------
->>> pick_until_inclusive_generic([1,2,3,4], 1)
-[1,2]
-
->>> pick_until_inclusive_generic([1,2,3,4], 0)
-[1]
-
-
->>> pick_until_inclusive_generic([1,2,3,4], 10)
-[1,2,3,4]
 """
-function pick_until_inclusive_generic(
-    list_gen::Vector{T},
-    until_i::Int,
-    args...,
-)::Vector{T} where {T}
-    until_i = min(length(list_gen), until_i)
-    return list_gen[begin:until_i]
+pick_until_inclusive_generic = pick_until_inclusive_generic_factory(Any)
+
+# Pick Until Exclusive --- 
+
+function pick_until_exclusive_generic_factory(T::DataType)
+    return @eval ((list_gen::Vector{V}, until_i::Int, args...) where {V<:$T}) -> begin
+        mx = length(list_gen)
+        until = until_i - 1
+        until = min(mx, until)
+        return list_gen[begin:until]
+    end
 end
 
+# Pick Until Exclusive ---
 
-"""Subsets a list from the beginning until (exclusive) a given index
-
-T is a generic type.
+"""
+    pick_until_exclusive_generic(
+        list_gen::Vector{T},
+        until_i::Int,
+        args...,
+    )
+Subsets a list from the beginning until (exclusive) a given index
 
 In principle, `until_i` can also be negative
-
-Parameters
-----------
-list_gen : list[T]
-           A given list. In this case all elements are asumed
-           to be of the same type.
-until_i : int
-         The **until** index to use for subset
-
-Returns
--------
-list[T]
-        The subsetted list
-
-Examples
---------
->>> pick_until_exclusive_generic([1,2,3,4], 1)
-[1]
-
->>> pick_until_exclusive_generic([1,2,3,4], 2)
-[1,2]
-
->>> pick_until_exclusive_generic([1,2,3,4], 0)
-[]
-
->>> pick_until_exclusive_generic([1,2,3,4], 10)
-[1,2,3,4]
 """
-function pick_until_exclusive_generic(
-    list_gen::Vector{T},
-    until_i::Int,
-    args...,
-)::Vector{T} where {T}
-    if until_i < 1
-        return T[] # [1,2,3] , 0 => []
+pick_until_exclusive_generic = pick_until_exclusive_generic_factory(Any)
+
+
+#####################
+# SUBSET VEC TUPLES 
+#####################
+
+# Subset list of Tuples --- 
+function subset_list_of_tuples_factory(T::DataType)
+    return @eval ((v::Vector{Tuple{V,V}}, at::Int, args...) where {V<:$T}) -> begin
+        t = v[at]
+        return identity.([el for el in t])
     end
-    mx = length(list_gen)
-    if until_i > mx
-        return list_gen[1:mx] # [1,2,3] , 4 => [1,2,3]
-    end
-    return list_gen[1:until_i-1] # [1,2,3] , 3  => [1,2]
-    # if until_i is 1: the range is 1:0 the result is []
 end
 
-append_method!(bundle_subset_list_generic, pick_from_inclusive_generic)
-append_method!(bundle_subset_list_generic, pick_from_exclusive_generic)
-append_method!(bundle_subset_list_generic, pick_until_inclusive_generic)
-append_method!(bundle_subset_list_generic, pick_until_exclusive_generic)
+"""
 
-export bundle_subset_list_generic
+    subset_list_of_tuples(v::Vector{Tuple{T,T}}, at::Int, args...)
+
+Subsets the vector at the given index and return a vector with the two elements.
+
+Can raise BoundsError if the index is wrong.
+"""
+subset_list_of_tuples = subset_list_of_tuples_factory(Any)
+
+
+# Subset Vector By Mask--- 
+
+function subset_by_mask_factory(T::DataType)
+    return @eval ((v::Vector{V}, m::Vector{<:Number}) where {V<:$T}) -> begin
+        mask = m .> 0.0
+        return v[mask]
+    end
+end
+
+"""
+    subset_by_mask(v::Vector{<:Any}, m::Vector{<:Number})
+
+The mask is transformed to a boolean mask, where an element is 1
+if the orginal element is > than 0.0.
+
+Then the mask is used to subset the vector `v`.
+"""
+subset_by_mask = subset_by_mask_factory(Any)
+
+# Subset By Indices --- 
+
+function subset_by_indices_factory(T::DataType)
+    return @eval ((v::Vector{V}, m::Vector{Int}) where {V<:$T}) -> begin
+        v_ = deepcopy(v)
+        return v_[m]
+    end
+end
+"""
+    subset_by_mask(v::Vector{<:Any}, m::Vector{Int})
+
+Returns the elements of vector `v` at the indices in `m`.
+"""
+subset_by_indices = subset_by_indices_factory(Any)
+
+
+#########
+# APPEND #
+#########
+
+# GENERIC BUNDLE 
+# Pick
+append_method!(
+    bundle_listgeneric_subset,
+    pick_from_inclusive_generic,
+    :pick_from_inclusive_generic,
+)
+append_method!(
+    bundle_listgeneric_subset,
+    pick_from_exclusive_generic,
+    :pick_from_exclusive_generic,
+)
+append_method!(
+    bundle_listgeneric_subset,
+    pick_until_inclusive_generic,
+    :pick_until_inclusive_generic,
+)
+append_method!(
+    bundle_listgeneric_subset,
+    pick_until_exclusive_generic,
+    :pick_until_exclusive_generic,
+)
+# Subset Tuples
+append_method!(bundle_listgeneric_subset, subset_list_of_tuples, :subset_list_of_tuples)
+# Subset mask & Indices
+append_method!(bundle_listgeneric_subset, subset_by_mask, :subset_by_mask)
+append_method!(bundle_listgeneric_subset, subset_by_indices, :subset_by_indices)
+
+# FACTORY
+# Pick
+append_method!(
+    bundle_listgeneric_subset_factory,
+    pick_from_inclusive_generic_factory,
+    :pick_from_inclusive_generic,
+)
+append_method!(
+    bundle_listgeneric_subset_factory,
+    pick_from_exclusive_generic_factory,
+    :pick_from_exclusive_generic,
+)
+append_method!(
+    bundle_listgeneric_subset_factory,
+    pick_until_inclusive_generic_factory,
+    :pick_until_inclusive_generic,
+)
+append_method!(
+    bundle_listgeneric_subset_factory,
+    pick_until_exclusive_generic_factory,
+    :pick_until_exclusive_generic,
+)
+# Subset Tuples
+append_method!(
+    bundle_listgeneric_subset_factory,
+    subset_list_of_tuples_factory,
+    :subset_list_of_tuples,
+)
+# Subset mask & Indices
+append_method!(bundle_listgeneric_subset_factory, subset_by_mask_factory, :subset_by_mask)
+append_method!(
+    bundle_listgeneric_subset_factory,
+    subset_by_indices_factory,
+    :subset_by_indices,
+)
 
 end

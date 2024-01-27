@@ -1,4 +1,8 @@
 using Combinatorics
+using UTCGP.listnumber_vectuples: sum_tuples_in_vector
+using UTCGP.listinteger_iscond: is_eq_to
+using UTCGP.integer_find: index_of_first_true
+using UTCGP.listgeneric_subset: subset_list_of_tuples
 
 train_data = [
     [[[5, 7], 12], [5, 7]],
@@ -185,21 +189,21 @@ train_data = [
         [-1773, -5920],
     ],
 ]
+
+using UTCGP.listtuple_combinatorics: vector_of_combinations
+
 function algo_find_pair(x, y)
     vec, wanted = x
     # combinations
-    all_comb = collect(combinations(vec, 2))
+    all_comb = vector_of_combinations(vec)
     # sums combinations
-    sums = [sum(t) for t in all_comb]
+    sums = sum_tuples_in_vector(all_comb)
 
     # eq vec to number
-    eq_per_candidate = [Int(summation == wanted) for summation in sums]
-    # first true,  
-    first_true =
-        [ith for (ith, int_bool) in enumerate(eq_per_candidate) if int_bool == 1][1]
-
+    eq_per_candidate = is_eq_to(sums, wanted)
+    first_true = index_of_first_true(eq_per_candidate)
     # index at 
-    pred = all_comb[first_true]
+    pred = subset_list_of_tuples(all_comb, first_true)
     return pred == y
 
 end

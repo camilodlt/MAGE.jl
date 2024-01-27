@@ -1,6 +1,8 @@
-
+using UTCGP.listinteger_iscond: is_more_eq_than_right
+using UTCGP.listgeneric_subset: subset_by_mask
+using UTCGP: listinteger_caster
 train_data = [
-    [[[]], [[]]],
+    [[Int[]], [[]]],
     [[[0]], [[0]]],
     [[[451]], [[451]]],
     [[[1000, 0]], [[1000, 0]]],
@@ -302,16 +304,12 @@ train_data = [
 
 function algo_leaders(x, y)
     # more than right
-    x = x[1]
+    x = listinteger_caster(x[1])
     y = y[1]
-    l = []
-    for (ith, n) in enumerate(x)
-        is_l = Int(all(n .>= x[ith+1:end]))
-        push!(l, is_l)
-    end
-
+    #
+    is_m = is_more_eq_than_right(x)
     # subset
-    pred = x[Bool.(l)]
+    pred = subset_by_mask(x, is_m)
     return pred == y
 end
 

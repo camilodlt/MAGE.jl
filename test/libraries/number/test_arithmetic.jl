@@ -6,7 +6,7 @@ using Test
     @test begin
         # bundle import
         using UTCGP: bundle_number_arithmetic
-        length(bundle_number_arithmetic) == 5 &&
+        length(bundle_number_arithmetic) == 6 &&
             _unique_names_in_bundle(bundle_number_arithmetic)
     end
 
@@ -73,5 +73,10 @@ using Test
             UTCGP.evaluate_fn_wrapper(fn_wrapped, [1.0, 2]) === 0 &&
             UTCGP.evaluate_fn_wrapper(fn_wrapped, [1.0, 2.0]) === 0 &&
             UTCGP.evaluate_fn_wrapper(fn_wrapped, [1, 2.0]) === 0
+    end
+
+    @test begin
+        using UTCGP: number_arithmetic
+        number_arithmetic.power_of(2, 2) == 4 && number_arithmetic.power_of(25, 0.5) === 5.0
     end
 end

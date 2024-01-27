@@ -1,3 +1,6 @@
+using UTCGP.listgeneric_where: replace_vec_at
+using UTCGP.listinteger_iscond: inverse_mask, greater_than_broadcast
+using UTCGP.listinteger_iscond: odd_indices_mask
 
 train_data = [
     ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3], [80]),
@@ -25,31 +28,34 @@ train_data = [
 function algo_luhn(x, y)
     x_ = deepcopy(x)
     x__ = deepcopy(x)
-    # every other mask
-    # on numbers even_mask = [(i % 2 == 0) ? 1 : 0 for i in a]
-    # on indices
-    even_index_mask = [(i % 2 != 0) ? 1 : 0 for (i, _) in enumerate(x)]
+    # MULTIPLY EVEN NUMBERS BY 2
+    even_index_mask = odd_indices_mask(x)
+    ev = subset_by_mask(x__, even_index_mask)
+    ev = mult_broadcast(ev, 2)
+    x__ = replace_vec_at(x__, ev, even_index_mask) # diff than where
+    # TURN NON EVEN TO 0
+    inv_mask = inverse_mask(even_index_mask)
+    n = reduce_sum(even_index_mask)
+    zeros = zeros_(n)
+    zeros = listinteger_caster(zeros) # caster
+    x__ = replace_vec_at(x__, zeros, inv_mask)
 
-    # mult at  by broadcast 
-    x__[Bool.(even_index_mask)] *= 2
+    # GR THAN 9 - 9
+    more_than_9 = greater_than_broadcast(x__, 9)
+    m = subset_by_mask(x__, more_than_9)
+    m = subtract_broadcast(m, 9)
+    x__ = replace_vec_at(x__, m, more_than_9) # diff than where
 
-    # mask the vector 
-    x__ = [mask ? i : 0 for (i, mask) in zip(x__, Bool.(even_index_mask))]
+    # 
+    n = reduce_sum(even_index_mask)
+    zeros = zeros_(n)
+    zeros = listinteger_caster(zeros) # caster
+    x_ = replace_vec_at(x_, zeros, even_index_mask)
 
-    # greater than mask  
-    more_than_9 = 9 .< x__
-
-    # substract at 
-    x__[Bool.(more_than_9)] .-= 9
-
-    # inverse mask 
-    non_even = (!).(Bool.(even_index_mask))
-    # mask vector 
-    x_ = [mask ? i : 0 for (i, mask) in zip(x_, non_even)]
     # sum vector 
-    pred = x_ + x__
+    pred = sum_vector(x_, x__)
     # sum 
-    pred = sum(pred)
+    pred = reduce_sum(pred)
     pred == y[1]
 
 end

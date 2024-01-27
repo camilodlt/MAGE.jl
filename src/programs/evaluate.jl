@@ -37,7 +37,7 @@ function evaluate_individual_programs(
         output = evaluate_program(program, chromosomes_types, metalibrary)
         push!(outputs, output)
     end
-    return outputs
+    return identity.(outputs)
 end
 
 function evaluate_population_programs(

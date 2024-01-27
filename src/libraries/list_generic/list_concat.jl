@@ -17,8 +17,20 @@ import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
 
 fallback() = []
 bundle_listgeneric_concat = FunctionBundle(fallback)
+bundle_listgeneric_concat_factory = FunctionBundle(fallback)
 
-# FUNCTIONS ---
+#############
+# Functions #
+#############
+
+# Concat Two lists Of The Same Type
+
+function concat_two_lists_factory(T::DataType)
+    return @eval ((list_a::Vector{V}, list_b::Vector{V}, args...) where {V<:$T}) -> begin
+        list_c = [deepcopy(list_a); deepcopy(list_b)]
+        return identity.(list_c)
+    end
+end
 
 """
     list_concat(list_a::Vector{T}, list_b::Vector{T}, args...)
@@ -29,10 +41,15 @@ Although the types of the lists elements are not enforced.
 
 T is a generic type.
 """
-function concat_two_lists(list_a::Vector{T}, list_b::Vector{T}, args...) where {T}
-    list_c = [deepcopy(list_a); deepcopy(list_b)]
-    return identity.(list_c)
-end
+concat_two_lists = concat_two_lists_factory(Any)
 
-append_method!(bundle_listgeneric_concat, concat_two_lists)
+##########
+# Append #
+##########
+append_method!(bundle_listgeneric_concat, concat_two_lists, :concat_two_lists)
+append_method!(
+    bundle_listgeneric_concat_factory,
+    concat_two_lists_factory,
+    :concat_two_lists,
+)
 end

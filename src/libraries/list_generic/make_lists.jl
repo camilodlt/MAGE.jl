@@ -16,18 +16,35 @@ import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
 
 # FALLBACK
 fallback() = []
-
 bundle_listgeneric_makelist = FunctionBundle(fallback)
+bundle_listgeneric_makelist_factory = FunctionBundle(fallback)
 
+#####################
+# Make list from ... #
+#####################
+
+# Make List From One Element ---
+function make_list_from_one_element_factory(T::DataType)
+    return @eval ((e1::T, args...) where {T}) -> begin
+        v = [e1]
+        return identity.(v)
+    end
+end
 
 """
     make_list_from_one_element(e1::T, args...) 
 
 Makes [e1]
 """
-function make_list_from_one_element(e1::T, args...) where {T}
-    v = [e1]
-    return identity.(v)
+make_list_from_one_element = make_list_from_one_element_factory(Any)
+
+# Make List From 2 Element ---
+
+function make_list_from_two_elements_factory(T::DataType)
+    return @eval ((e1::T, e2::T, args...) where {T}) -> begin
+        v = [e1, e2]
+        return identity.(v)
+    end
 end
 
 """
@@ -35,23 +52,57 @@ end
 
 Makes [e1,e2]
 """
-function make_list_from_two_elements(e1::T, e2::T, args...) where {T}
-    v = [e1, e2]
-    return identity.(v)
+make_list_from_two_elements = make_list_from_two_elements_factory(Any)
+
+# Make List From Three Elements --- 
+
+function make_list_from_three_elements_factory(T::DataType)
+    return @eval ((e1::T, e2::T, e3::T, args...) where {T}) -> begin
+        v = [e1, e2, e3]
+        return identity.(v)
+    end
 end
+
 """
     make_list_from_three_elements(e1::T, e2::T, e3::T, args...)
 
 Makes [e1,e2,e3]
 """
-function make_list_from_three_elements(e1::T, e2::T, e3::T, args...) where {T}
-    v = [e1, e2, e3]
-    return identity.(v)
-end
+make_list_from_three_elements = make_list_from_three_elements_factory(Any)
 
 
-append_method!(bundle_listgeneric_makelist, make_list_from_one_element)
-append_method!(bundle_listgeneric_makelist, make_list_from_two_elements)
-append_method!(bundle_listgeneric_makelist, make_list_from_three_elements)
+##########
+# APPEND #
+##########
+append_method!(
+    bundle_listgeneric_makelist,
+    make_list_from_one_element,
+    :make_list_from_one_element,
+)
+append_method!(
+    bundle_listgeneric_makelist,
+    make_list_from_two_elements,
+    :make_list_from_two_elements,
+)
+append_method!(
+    bundle_listgeneric_makelist,
+    make_list_from_three_elements,
+    :make_list_from_three_elements,
+)
 
+append_method!(
+    bundle_listgeneric_makelist_factory,
+    make_list_from_one_element_factory,
+    :make_list_from_one_element,
+)
+append_method!(
+    bundle_listgeneric_makelist_factory,
+    make_list_from_two_elements_factory,
+    :make_list_from_two_elements,
+)
+append_method!(
+    bundle_listgeneric_makelist_factory,
+    make_list_from_three_elements_factory,
+    :make_list_from_three_elements,
+)
 end

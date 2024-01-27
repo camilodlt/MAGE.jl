@@ -41,7 +41,7 @@ function correct_node!(
     ut_genome::UTGenome,
     shared_inputs::SharedInput,
 )
-    max_calls = 1000
+    max_calls = 100
     call_nb = 0
     while !check_functionning_node(
         node,
@@ -53,11 +53,12 @@ function correct_node!(
         mutate_one_element_from_node!(node)
         if call_nb > max_calls
             @warn "Can't find a correct mutation after $call_nb"
-            # if force_fn
-            #     node.node_material[1].value = 1  # Convention for default fn
-            #     @warn "Node didn't find a functionning call after $max_calls iterations. Current call : $call_nb"
-            # end
+            @warn node_to_vector(node)
+            @warn node.id
+            node.node_material[1].value = 2 # CONVENTION BY DEFAULT
+            @warn "Node didn't find a functionning call after $max_calls iterations. Current call : $call_nb"
         end
+        call_nb += 1
     end
 end
 

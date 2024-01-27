@@ -25,11 +25,14 @@ function fit(
     # Callbacks after step ::
     elite_selection_callbacks::Vector{Symbol},
     epoch_callbacks::Union{Nothing,Vector{<:Union{Symbol,AbstractCallable}}},
-    early_stop_callback::Union{Nothing,Symbol} = nothing,
+    early_stop_callback::Union{Nothing,Symbol},
+    last_callback::Union{Nothing,AbstractCallable},
 ) # Tuple{UTGenome, IndividualPrograms, GenerationLossTracker}::
 
     local early_stop = false
     local best_program = nothing
+    local population = nothing
+    local elite_idx
 
     # CALL PRE CALLBACKS
     if !isnothing(pre_callbacks) && length(pre_callbacks) > 1
@@ -150,13 +153,13 @@ function fit(
         )
 
         best_loss = ind_performances[elite_idx]
-        std_ = std(ind_performances)
+        std_ = std(filter(!isnan, ind_performances))
         best_program = population_programs[elite_idx]
         genome = deepcopy(population[elite_idx])
 
         # EPOCH CALLBACK
         if !isnothing(epoch_callbacks)
-            _make_epoch_callbalcks_calls(
+            _make_epoch_callbacks_calls(
                 ind_performances,
                 population,
                 iteration,
@@ -164,6 +167,7 @@ function fit(
                 model_architecture,
                 node_config,
                 meta_library,
+                shared_inputs,
                 population_programs,
                 best_loss,
                 best_program,
@@ -193,12 +197,75 @@ function fit(
             )
         end
 
-        # LAST CALLBACK # TODO
-
         if early_stop
             g = run_config.generations
             @warn "Early returning at iteration : $iteration from $g total iterations"
+            if !isnothing(last_callback)
+                last_callback(
+                    ind_performances,
+                    population,
+                    iteration,
+                    run_config,
+                    model_architecture,
+                    node_config,
+                    meta_library,
+                    population_programs,
+                    best_loss,
+                    best_program,
+                    elite_idx,
+                )
+            end
             return tuple(genome, best_program, M_gen_loss_tracker)
+        end
+
+    end
+    # LAST CALLBACK 
+    # if !isnothing(last_callback)
+    #     last_callback(
+    #         ind_performances,
+    #         population,
+    #         iteration,
+    #         run_config,
+    #         model_architecture,
+    #         node_config,
+    #         meta_library,
+    #         population_programs,
+    #         best_loss,
+    #         best_program,
+    #         elite_idx,
+    #     )
+    # end
+    # LAST PRINT 
+    println("LAST OUTPUTS")
+    for ith_x = 1:length(X)
+        reset_genome!(population[elite_idx])
+
+        # unpack input nodes
+        x, y = X[ith_x], Y[ith_x]
+        input_nodes = [
+            InputNode(value, pos, pos, model_architecture.inputs_types_idx[pos]) for
+            (pos, value) in enumerate(x)
+        ]
+        # append input nodes to pop
+        replace_shared_inputs!(shared_inputs, input_nodes) # update 
+        outputs = evaluate_individual_programs(
+            best_program,
+            model_architecture.chromosomes_types,
+            meta_library,
+        )
+        # Endpoint results
+        @show ith_x x y outputs
+        fitness = endpoint_callback([outputs], y) # batch of 1 ind
+        @show fitness
+    end
+
+    println("### BEST PROG ###")
+    for (i, prog) in enumerate(best_program)
+        println("Program n ", i)
+        for op in prog
+            println(op.fn.name)
+            println("--- ", op.calling_node.id)
+            println("------ ", node_to_vector(op.calling_node))
         end
     end
     return (genome, best_program, M_gen_loss_tracker)

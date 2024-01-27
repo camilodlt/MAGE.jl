@@ -179,6 +179,9 @@ function check_functionning_node(
             shared_inputs,
             model_architecture,
         )
+        # if fn.name == :compare_tuple_a_eq_b
+        #     @bp
+        # end
         arg_types = tuple([op.type for op in inputs]...)
         # Get types from input
         return Base.hasmethod(fn.fn, arg_types)

@@ -3,7 +3,7 @@ using UTCGP.listgeneric_basic: reverse_list
 using UTCGP.listnumber_arithmetic: subtract_vector
 using UTCGP.listnumber_algebraic: abs_vector
 using UTCGP.number_reduce: reduce_argmin
-using UTCGP.list_generic_subset: pick_until_inclusive_generic, pick_from_exclusive_generic
+using UTCGP.listgeneric_subset: pick_until_inclusive_generic, pick_from_exclusive_generic
 
 function cut_vector_algo(x, y)
     y = [Int.(sub) for sub in y]

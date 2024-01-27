@@ -12,6 +12,7 @@ Exports :
     - `number_mult`
     - `number_div`
     - `safe_div`
+    - `power_of`
 
 """
 module number_arithmetic
@@ -86,10 +87,22 @@ function safe_div(a::Number, b::Number, args...)
     return a / b
 end
 
+
+## Power of
+"""
+    power_of(a::Number, b::Number, args...)
+
+`a` ^ `b`.
+"""
+function power_of(a::Number, b::Number, args...)
+    return a^b
+end
+
 append_method!(bundle_number_arithmetic, number_sum)
 append_method!(bundle_number_arithmetic, number_minus)
 append_method!(bundle_number_arithmetic, number_mult)
 append_method!(bundle_number_arithmetic, number_div)
 append_method!(bundle_number_arithmetic, safe_div)
+append_method!(bundle_number_arithmetic, power_of)
 
 end

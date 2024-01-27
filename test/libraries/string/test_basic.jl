@@ -8,7 +8,7 @@
     @test begin
         # module is importable ... 
         using UTCGP: bundle_string_basic
-        length(bundle_string_basic) == 2
+        length(bundle_string_basic) == 3
     end
     @test begin
         # module is importable ... 
@@ -20,6 +20,10 @@
     @test begin
         using UTCGP.str_basic: identity_str
         identity_str("str") == "str"
+    end
+    @test begin
+        import UTCGP.str_basic
+        str_basic.empty_string("", 12, "") == ""
     end
     @test begin
         using UTCGP.str_basic: number_to_string

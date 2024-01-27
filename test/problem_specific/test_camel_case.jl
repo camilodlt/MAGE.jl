@@ -1,6 +1,6 @@
 using UTCGP.str_caps: capitalize_all
 using UTCGP.str_grep: remove_pattern
-using UTCGP.list_string_split: split_string_to_vector
+using UTCGP.liststring_split: split_string_to_vector
 using UTCGP.liststring_caps: uppercasefirst_list_string
 using UTCGP.str_paste: paste_list_string
 using UTCGP.str_caps: lowercase_at

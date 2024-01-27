@@ -365,10 +365,14 @@ function default_elite_selection_callback(
     programs::PopulationPrograms,
     args...,
 )::Int
+
     if ind_performances[1] isa Vector
         throw(ErrorException("Pareto Front not implemented yet"))
     else
-        return argmin(ind_performances)
+        ind_performances_ = deepcopy(ind_performances)
+        m = findall(isnan.(ind_performances_))
+        ind_performances_[m] .= Inf # so Nan are the worst solutions
+        return argmin(ind_performances_)
     end
 end
 

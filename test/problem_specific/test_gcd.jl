@@ -1,23 +1,4 @@
-using Primes
-
-function divisors2(n)
-    f = factor(n)
-    m = prod(e + 1 for (p, e) in f)
-    d = Vector{Int64}(undef, m)
-    k = 1
-    d[k] = 1
-    for (p, e) in f
-        r = 1
-        l = k
-        for i = 1:e
-            r *= p
-            for j = 1:l
-                d[k+=1] = d[j] * r
-            end
-        end
-    end
-    return sort(d) # not strictly required
-end
+using UTCGP.listinteger_primes: int_divisors
 
 train_data = [
     [[1, 1], [1]],
@@ -76,15 +57,11 @@ function algo_divisors(x, y)
     int_1 = x[1]
     int_2 = x[2]
 
-    # divisors
-    divisors_1 = divisors2(int_1)
-    divisors_2 = divisors2(int_2)
-
-    # intersect
-    divisors_1 = Set(divisors_1)
-    divisors_2 = Set(divisors_2)
-    pred = intersect(divisors_1, divisors_2)
-    pred = collect(pred)
-    pred = max(pred)
+    divisors_1 = int_divisors(int_1)
+    divisors_2 = int_divisors(int_2)
+    intersect_(divisors_1, divisors_2)
+    # reduce max
+    pred = reduce_max(pred)
     return pred == y
 end
+

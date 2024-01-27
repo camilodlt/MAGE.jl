@@ -43,6 +43,10 @@ function append_method!(bundle::FunctionBundle, fn::Function)
     fn_wrapped = FunctionWrapper(fn, bundle.caster, bundle.fallback)
     push!(bundle.functions, fn_wrapped)
 end
+function append_method!(bundle::FunctionBundle, fn::Function, name::Symbol)
+    fn_wrapped = FunctionWrapper(fn, name, bundle.caster, bundle.fallback)
+    push!(bundle.functions, fn_wrapped)
+end
 
 
 function _unique_names_in_bundle(b::FunctionBundle)::Bool

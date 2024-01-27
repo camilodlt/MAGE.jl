@@ -1,3 +1,8 @@
+using UTCGP.listinteger_iscond: compare_two_vectors
+using UTCGP.listgeneric_utils: sort_list
+using UTCGP.listgeneric_set: left_join
+using UTCGP.number_reduce: reduce_length
+using UTCGP.listgeneric_makelist: make_list_from_two_elements
 
 train_data = [
     [["RRRR", "RRRR"], [0, 4]],
@@ -57,50 +62,43 @@ function algo_mastermind(x, y)
     guess = x[2]
 
     # split string to list of str 
-    mastermind_code = String.(split(mastermind_code, ""))
-    guess = String.(split(guess, ""))
+    mastermind_code = split_string_to_vector(mastermind_code, "") #String.(split(mastermind_code, ""))
+    guess = split_string_to_vector(guess, "") #String.(split(guess, ""))
 
     # equal between 2 str lists
-    eq = [a == b ? 1 : 0 for (a, b) in zip(mastermind_code, guess)]
+    eq = compare_two_vectors(mastermind_code, guess)
+    # eq = [a == b ? 1 : 0 for (a, b) in zip(mastermind_code, guess)]
 
     # inverse indicator
 
-    neq = [a != b ? 1 : 0 for (a, b) in zip(mastermind_code, guess)]
+    neq = inverse_mask(eq) #[a != b ? 1 : 0 for (a, b) in zip(mastermind_code, guess)]
 
     # black pegs 
-    bp = sum(eq)
+    bp = reduce_sum(eq)
 
     # subet at 
-    remaining_code = mastermind_code[Bool.(neq)]
-    remaining_guess = guess[Bool.(neq)]
+    remaining_code = subset_by_mask(mastermind_code, neq) #mastermind_code[Bool.(neq)]
+    remaining_guess = subset_by_mask(guess, neq) #guess[Bool.(neq)]
 
     # sort 
-    sort!(remaining_code)
-    sort!(remaining_guess)
+    remaining_code = sort_list(remaining_code)
+    remaining_guess = sort_list(remaining_guess)
 
     # extend
-    # push!(remaining_code, remaining_guess...)
-
-    # Intersect
-    remaining_code_set = Set(remaining_code)
-    remaining_guess_set = Set(remaining_guess)
-
-    # good_letters = collect(intersect(remaining_code_set, remaining_guess_set))
-
-    # in 
-    valid_code = [letter for letter in remaining_code if letter in remaining_guess]
-    # Intersect with duplicated
-    valid_guess = [letter for letter in remaining_guess if letter in remaining_code]
-
-
+    valid_code = left_join(remaining_code, remaining_guess)
+    valid_guess = left_join(remaining_guess, remaining_code)
     # eq
-    l_1 = length(valid_code)
-    l_2 = length(valid_guess)
-    white_pegs = min(l_1, l_2)
+    l_1 = reduce_length(valid_code)
+    l_2 = reduce_length(valid_guess)
 
+
+    l = make_list_from_two_elements(l_1, l_2)
+
+    white_pegs = reduce_min(l)
 
     # make list from two numbers
-    pred = [white_pegs, bp]
+    pred = make_list_from_two_elements(white_pegs, bp)
+    # pred = [white_pegs, bp]
     pred == y
 end
 

@@ -5,14 +5,12 @@
 Exports :
 
 - **bundle\\_string\\_grep** :
-    - replace_pattern
-    - replace\\_first\\_pattern`
-    - remove_pattern
+    - `replace_pattern`
+    - `replace\\_first\\_pattern`
+    - `remove_pattern`
 
 """
 module str_grep
-
-
 
 using ..UTCGP: FunctionBundle, append_method!
 
@@ -42,7 +40,6 @@ end # CANDIDATE FOR PARAMETRIZATION
 function remove_pattern(s::String, pattern::String, args...)::String
     return replace(s, pattern => "")
 end
-
 
 append_method!(bundle_string_grep, replace_pattern)
 append_method!(bundle_string_grep, replace_first_pattern)

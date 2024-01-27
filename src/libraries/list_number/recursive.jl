@@ -51,6 +51,7 @@ Returns the vector holding all the results.
 The first entry of the vector is returned as is. 
 """
 function recmult(init_number::Number, mult_by::Number, n_times::Int, args...)
+    @assert n_times < 10_000
     vec = []
     for i = 1:(n_times+1)
         push!(vec, init_number)
@@ -66,6 +67,7 @@ end
 Returns the range between 1 (inclusive) and max_n (inclusive).
 """
 function range_(max_n::Number)
+    @assert max_n < 10_000
     return collect(1:max_n)
 end
 

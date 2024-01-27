@@ -1,4 +1,5 @@
-
+using UTCGP.listinteger_string: match_with_overlap
+using UTCGP.listnumber_arithmetic: subtract_broadcast
 
 train_data = [
     [["a", "5"], [[]]],
@@ -61,26 +62,12 @@ train_data = [
     [["IO.", "O."], [[1]]],
     [["\',BwY~N\\wYwYm", "wY"], [[3, 8, 10]]],
 ]
-function find_iter_overlap(string::String, pattern::String)
-    cond = true
-    starts = []
-    start = 1
-    while cond
-        f = findnext(pattern, string, start)
-        if isnothing(f)
-            cond = false
-        else
-            push!(starts, f.start)
-            start = f.start + 1
-        end
-    end
-    return starts
-end
+
 
 function algo_indices_subtring(x, y)
     s, p = x
-    indices = find_iter_overlap(s, p)
-    indices = indices .- 1
+    indices = match_with_overlap(s, p)
+    indices = subtract_broadcast(indices, 1)
     y[1] == indices
 end
 

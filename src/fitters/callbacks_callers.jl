@@ -219,8 +219,7 @@ function _make_elite_selection(
 end
 
 
-
-function _make_epoch_callbalcks_calls(
+function _make_epoch_callbacks_calls(
     ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
     population::Population,
     generation::Int,
@@ -228,13 +227,13 @@ function _make_epoch_callbalcks_calls(
     model_architecture::modelArchitecture,
     node_config::nodeConfig,
     meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
     programs::PopulationPrograms,
     best_loss::Float64,
     best_program::IndividualPrograms,
     elite_idx::Int,
     epoch_callbacks::Vector{<:Union{Symbol,AbstractCallable}},
 )::Float64
-
     t = []
     for epoch_callback in epoch_callbacks
         fn = epoch_callback isa Symbol ? get_fn_from_symbol(epoch_callback) : epoch_callback
@@ -246,6 +245,7 @@ function _make_epoch_callbalcks_calls(
             model_architecture,
             node_config,
             meta_library,
+            shared_inputs,
             programs,
             best_loss,
             best_program,

@@ -8,10 +8,10 @@ DocTestSetup = quote
   using UTCGP.listgeneric_basic:reverse_list
   
   # LIST GENERIC SUBSET
-  using UTCGP.list_generic_subset:pick_from_exclusive_generic
-  using UTCGP.list_generic_subset:pick_from_inclusive_generic
-  using UTCGP.list_generic_subset:pick_until_exclusive_generic
-  using UTCGP.list_generic_subset:pick_until_inclusive_generic
+  using UTCGP.listgeneric_subset:pick_from_exclusive_generic
+  using UTCGP.listgeneric_subset:pick_from_inclusive_generic
+  using UTCGP.listgeneric_subset:pick_until_exclusive_generic
+  using UTCGP.listgeneric_subset:pick_until_inclusive_generic
 
   # MAKE LIST 
   using UTCGP.listgeneric_makelist:make_list_from_one_element
@@ -72,18 +72,18 @@ julia> reverse_list([1,2])
 
 ### Module
 ```@docs
-UTCGP.list_generic_subset
+UTCGP.listgeneric_subset
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.list_generic_subset.pick_from_exclusive_generic
+UTCGP.listgeneric_subset.pick_from_exclusive_generic
 ```
 
 
 ```@docs
-UTCGP.list_generic_subset.pick_from_inclusive_generic
+UTCGP.listgeneric_subset.pick_from_inclusive_generic
 ```
 ```jldoctest
 julia> pick_from_inclusive_generic([1,2,3,4], -1)
@@ -106,10 +106,10 @@ Int64[]
 ```
 
 ```@docs
-UTCGP.list_generic_subset.pick_until_exclusive_generic
+UTCGP.listgeneric_subset.pick_until_exclusive_generic
 ```
 ```@docs
-UTCGP.list_generic_subset.pick_until_inclusive_generic
+UTCGP.listgeneric_subset.pick_until_inclusive_generic
 ```
 
 

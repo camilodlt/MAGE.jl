@@ -51,8 +51,6 @@ function pick_last_element(vec::Vector{<:Any}, args...)
 end
 
 append_method!(bundle_element_pick, pick_element_from_vector)
-# append_method!(bundle_element_pick, pick_element_from_vector)
-# append_method!(bundle_element_pick, pick_element_from_vector)
 append_method!(bundle_element_pick, pick_last_element)
 
 end

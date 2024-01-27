@@ -9,13 +9,14 @@ using UTCGP.number_reduce: reduce_sum
 using UTCGP.number_arithmetic: number_minus
 
 # Because of FP precision, we need to import data from psb2 directly
+psb2_path = ENV["UTCGP_PSB2_DATASET_PATH"]
 
 py"""
 import psb2 
 import numpy as np
 
 (train_data, test_data) = psb2.fetch_examples(
-    "/home/irit/.psb2_datasets/", "bouncing-balls", 50, 1, format="lists"
+    $psb2_path, "bouncing-balls", 50, 1, format="lists"
 )
 """
 train_data = py"train_data"
@@ -23,20 +24,6 @@ train_data = py"train_data"
 @testset "Bouncing Balls" begin
     for (x, y) in train_data
         @test begin
-            # h, h2, n_bounces = x # pick_from_list()
-            # b_index = h2 / h # float div
-            # recursive division 
-            # first_value = h
-            # vec = []
-            # for i = 1:(n_bounces+1)
-            #     push!(vec, first_value)
-            #     first_value = first_value * b_index
-            # end
-            # vec = identity.(vec)
-            # last = vec[end]
-            # vec = vec + vec
-            # s_v = s_v - h - last
-
             h = pick_element_from_vector(x, 1)
             h2 = pick_element_from_vector(x, 2)
             n_bounces = pick_element_from_vector(x, 3)

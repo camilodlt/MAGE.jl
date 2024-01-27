@@ -6,6 +6,7 @@ Exports :
 
 - **bundle\\_integer\\_find** :
     - `find_first`
+    - `index_of_first_true`
 
 """
 module integer_find
@@ -42,5 +43,22 @@ function find_first(from::Vector{<:Number}, what::Number, args...)
     return res
 end
 
+
+"""
+    index_of_first_true(from::Vector{<:Number}, args...)
+
+Returns the index of the first element >=1. 
+"""
+function index_of_first_true(from::Vector{<:Number}, args...)
+    conds = [ith for (ith, int_bool) in enumerate(from) if int_bool >= 1]
+    if isempty(conds)
+        return -1
+    else
+        return conds[1]
+    end
+
+end
+
 append_method!(bundle_integer_find, find_first)
+append_method!(bundle_integer_find, index_of_first_true)
 end

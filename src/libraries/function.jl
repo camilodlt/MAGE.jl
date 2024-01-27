@@ -18,6 +18,14 @@ mutable struct FunctionWrapper <: AbstractFunction
     function FunctionWrapper(fn::Function, fallback::Function)
         return new(Symbol(fn), Symbol(parentmodule(fn)), fn, nothing, fallback)
     end
+    function FunctionWrapper(
+        fn::Function,
+        name::Symbol,
+        caster::Union{Function,Nothing},
+        fallback::Function,
+    )
+        return new(name, Symbol(parentmodule(fn)), fn, caster, fallback)
+    end
 end
 
 function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})
@@ -28,8 +36,9 @@ function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any}
             if !isnothing(fn_wrapper.caster)
                 output = fn_wrapper.caster(output)
             end
-        catch
+        catch e
             @info "Exception during fn eval. fn : $(fn_wrapper.name). inputs : $(inputs)"
+            @debug e
             try
                 output = fn_wrapper.fallback()
             catch

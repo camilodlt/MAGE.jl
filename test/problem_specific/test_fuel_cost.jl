@@ -160,13 +160,17 @@ train_data = [
     [[[735, 6472]], [2398]],
     [[[9077]], [3023]],
 ]
+
+using UTCGP.listnumber_arithmetic: div_broadcast
+using UTCGP.listnumber_arithmetic: subtract_broadcast
+using UTCGP.number_reduce: reduce_sum
+
 function fuel_cost(x, y)
     x = x[1]
-    pred = [i / 3 for i in x]  # list div by 3
+    pred = div_broadcast(x, 3)
     pred = [floor(Int, i) for i in pred]  # list round int
-    # pred = [int(i) for i in pred]  # caster list int
-    pred = [i - 2 for i in pred]  # list substract 2
-    pred = sum(pred)  # list sum
+    pred = subtract_broadcast(pred, 2)
+    pred = reduce_sum(pred)
     return pred == y[1]
 end
 
