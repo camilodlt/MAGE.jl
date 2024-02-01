@@ -10,6 +10,7 @@ Exports :
 """
 module listtuple_mappings
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ######### #
 # MAPPINGS  #
@@ -26,8 +27,10 @@ bundle_listtuple_mappings_factory = FunctionBundle(fallback)
 # Mappings a=>b --- 
 function mappings_a_to_b_factory(T::DataType)
     return @eval ((from::Vector{V}, to::Vector{V}, args...) where {V<:$T}) -> begin
-        @assert length(from) <= 1_000_000
-        @assert length(to) <= 1_000_000
+        if CONSTRAINED
+            @assert length(from) <= SMALL_ARRAY
+            @assert length(to) <= SMALL_ARRAY
+        end
         tuples = [(a, b) for (a, b) in zip(from, to)]
         return tuples
     end

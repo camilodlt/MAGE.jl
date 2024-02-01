@@ -10,6 +10,7 @@ Exports : **bundle\\_listnumber\\_basic**:
 module listnumber_basic
 
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = Number[]
 
@@ -25,6 +26,10 @@ VECTORNUM = Vector{<:Number}
 "Ones_like"
 """
 function ones_(v::VECTORNUM, args...)
+    if CONSTRAINED
+        bound = min(length(v), SMALL_ARRAY)
+        return ones(length(v[begin:bound]))
+    end
     return ones(length(v))
 end
 
@@ -34,6 +39,10 @@ end
 `n` ones.
 """
 function ones_(n::Int, args...)
+    if CONSTRAINED
+        n_ = min(10000, n)
+        return ones(n_)
+    end
     return ones(n)
 end
 
@@ -46,6 +55,10 @@ end
 "zeros_like"
 """
 function zeros_(v::VECTORNUM, args...)
+    if CONSTRAINED
+        bound = min(length(v), SMALL_ARRAY)
+        return zeros(length(v[begin:bound]))
+    end
     return zeros(length(v))
 end
 
@@ -55,6 +68,10 @@ end
 `n` zeros.
 """
 function zeros_(n::Int, args...)
+    if CONSTRAINED
+        n_ = min(10000, n)
+        return zeros(n_)
+    end
     return zeros(n)
 end
 

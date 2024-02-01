@@ -62,24 +62,22 @@ function algo_mastermind(x, y)
     guess = x[2]
 
     # split string to list of str 
-    mastermind_code = split_string_to_vector(mastermind_code, "") #String.(split(mastermind_code, ""))
-    guess = split_string_to_vector(guess, "") #String.(split(guess, ""))
+    mastermind_code = split_string_to_vector(mastermind_code, "")
+    guess = split_string_to_vector(guess, "")
 
     # equal between 2 str lists
     eq = compare_two_vectors(mastermind_code, guess)
-    # eq = [a == b ? 1 : 0 for (a, b) in zip(mastermind_code, guess)]
 
     # inverse indicator
 
-    neq = inverse_mask(eq) #[a != b ? 1 : 0 for (a, b) in zip(mastermind_code, guess)]
+    neq = inverse_mask(eq)
 
     # black pegs 
     bp = reduce_sum(eq)
 
     # subet at 
-    remaining_code = subset_by_mask(mastermind_code, neq) #mastermind_code[Bool.(neq)]
-    remaining_guess = subset_by_mask(guess, neq) #guess[Bool.(neq)]
-
+    remaining_code = subset_by_mask(mastermind_code, neq)
+    remaining_guess = subset_by_mask(guess, neq)
     # sort 
     remaining_code = sort_list(remaining_code)
     remaining_guess = sort_list(remaining_guess)
@@ -90,7 +88,6 @@ function algo_mastermind(x, y)
     # eq
     l_1 = reduce_length(valid_code)
     l_2 = reduce_length(valid_guess)
-
 
     l = make_list_from_two_elements(l_1, l_2)
 

@@ -74,6 +74,16 @@ function add_bundle_to_library!(library::AbstractLibrary, bundle::FunctionBundle
     return length(library.bundles)
 end
 
+"""
+Index the library with the name of a function
+"""
+function Base.getindex(library::AbstractLibrary, name::Symbol)
+    for fn in library
+        if fn.name == name
+            return fn
+        end
+    end
+end
 
 """
 From all the bundles in the Library, it *unpacks* them and adds ALL

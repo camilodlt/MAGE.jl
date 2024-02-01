@@ -10,6 +10,7 @@ Exports :
 """
 module listgeneric_where
 using ..UTCGP: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ############################### #
 # REPLACE VECTOR WITH ANOTHER AT  #
@@ -24,6 +25,11 @@ bundle_listgeneric_where_factory = FunctionBundle(fallback)
 function replace_vec_at_factory(T::DataType)
     return @eval ((v1::Vector{V}, v2::Vector{V}, at::Vector{Int}, args...) where {V<:$T}) ->
         begin
+            if CONSTRAINED
+                @assert length(v1) <= SMALL_ARRAY
+                @assert length(v2) <= SMALL_ARRAY
+                @assert length(at) <= SMALL_ARRAY
+            end
             @assert length(at) == length(v1) "mask is not of the same size as vector"
             m = at .> 0.0
             @assert length(v2) == sum(m) "Replacing vector has incorrect size"

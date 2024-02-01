@@ -10,6 +10,7 @@ Exports :
 """
 module listgeneric_concat
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ########### #
 # CONCAT LIST #
@@ -27,7 +28,11 @@ bundle_listgeneric_concat_factory = FunctionBundle(fallback)
 
 function concat_two_lists_factory(T::DataType)
     return @eval ((list_a::Vector{V}, list_b::Vector{V}, args...) where {V<:$T}) -> begin
-        list_c = [deepcopy(list_a); deepcopy(list_b)]
+        list_c = [deepcopy(list_a)...; deepcopy(list_b)...]
+        if CONSTRAINED == "yes"
+            bound = min(length(list_c), SMALL_ARRAY)
+            return list_c[begin:bound]
+        end
         return identity.(list_c)
     end
 end

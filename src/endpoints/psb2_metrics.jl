@@ -80,6 +80,7 @@ struct EndpointBatchVecDiff <: BatchEndpoint
         preds::Vector{<:Vector{<:Vector{<:Number}}}, # pop[ ind1[ out1, out2 ], ind2... ]. Each out => [int]
         y::Vector{<:Vector{<:Number}},
     )
+        PENALTY = 1000
         res = Float64[]
         n_vecs = length(preds[1]) # assume all are the same
         @assert n_vecs == length(y)
@@ -90,7 +91,7 @@ struct EndpointBatchVecDiff <: BatchEndpoint
                 true_vec = y[ith_vec]
                 loss = 0.0
                 # diff in length
-                length_penalty = abs(length(pred_vec) - length(true_vec)) * 1000
+                length_penalty = abs(length(pred_vec) - length(true_vec)) * PENALTY
                 loss += length_penalty
                 # element wise diff 
                 for (t, p) in zip(true_vec, pred_vec)

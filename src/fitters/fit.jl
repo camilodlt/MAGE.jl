@@ -60,6 +60,7 @@ function fit(
             meta_library,
             population_callbacks,
         )
+        @info "Time Population $time_pop"
 
         population, time_mut = _make_mutations(
             population,
@@ -71,6 +72,7 @@ function fit(
             shared_inputs,
             mutation_callbacks,
         )
+        @info "Time Mutation $time_mut"
 
         population, time_out_mut = _make_output_mutations(
             population,
@@ -81,6 +83,7 @@ function fit(
             meta_library,
             output_mutation_callbacks,
         )
+        @info "Time Out Mutation $time_out_mut"
 
         # ADD Parent
         if iteration > 1
@@ -97,7 +100,9 @@ function fit(
             shared_inputs,
             decoding_callbacks,
         )
+        @info "Time Decoding $time_pop_prog"
 
+        @warn "Graphs evals"
         for ith_x = 1:length(X)
             # unpack input nodes
             x, y = X[ith_x], Y[ith_x]
@@ -107,15 +112,12 @@ function fit(
             ]
             # append input nodes to pop
             replace_shared_inputs!(shared_inputs, input_nodes) # update 
-            # Eval pop wrt training data
-            # if iteration > 10
-            #     @bp
-            # end
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
                 model_architecture,
                 meta_library,
             )
+            @info "Time Eval $time_eval"
             # Endpoint results
             # @bp
             fitness = endpoint_callback(outputs, y)
@@ -140,6 +142,7 @@ function fit(
         ind_performances = resolve_ind_loss_tracker(M_individual_loss_tracker)
         # @bp
         # Elite selection callbacks
+        @warn "Selection"
         elite_idx, time_elite = _make_elite_selection(
             ind_performances,
             population,
@@ -237,7 +240,7 @@ function fit(
     # end
     # LAST PRINT 
     println("LAST OUTPUTS")
-    for ith_x = 1:length(X)
+    time_test_inference = @elapsed for ith_x = 1:length(X)
         reset_genome!(population[elite_idx])
 
         # unpack input nodes
@@ -258,6 +261,7 @@ function fit(
         fitness = endpoint_callback([outputs], y) # batch of 1 ind
         @show fitness
     end
+    @info "Time Test Inference $time_test_inference"
 
     println("### BEST PROG ###")
     for (i, prog) in enumerate(best_program)

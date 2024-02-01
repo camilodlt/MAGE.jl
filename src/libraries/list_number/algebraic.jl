@@ -9,6 +9,7 @@ Exports : **bundle\\_listnumber\\_algebraic**:
 module listnumber_algebraic
 
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = Number[]
 
@@ -24,6 +25,10 @@ VECTORNUM = Vector{<:Number}
 Element wise Abs value 
 """
 function abs_vector(v::VECTORNUM, args...)
+    if CONSTRAINED
+        bound = min(length(v), SMALL_ARRAY)
+        return abs.(v[begin:bound])
+    end
     return abs.(v)
 end
 

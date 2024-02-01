@@ -16,6 +16,7 @@ module listgeneric_subset
 
 using ..UTCGP: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
 import .listgeneric_basic: new_list, identity_list
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ########### #
 # SUBSET LIST #
@@ -32,6 +33,11 @@ function pick_from_inclusive_generic_factory(T::DataType)
     return @eval ((list_gen::Vector{V}, from_i::Int, args...) where {V<:$T}) -> begin
         mx_legnth = length(list_gen)
         from_i = max(from_i, 1)
+        if CONSTRAINED
+            tmp = list_gen[from_i:mx_legnth]
+            bound = min(length(tmp), SMALL_ARRAY)
+            return tmp[begin:bound]
+        end
         return list_gen[from_i:mx_legnth]
     end
 end
@@ -55,6 +61,11 @@ pick_from_inclusive_generic = pick_from_inclusive_generic_factory(Any)
 function pick_from_exclusive_generic_factory(T::DataType)
     return @eval ((list_gen::Vector{V}, from_i::Int, args...) where {V<:$T}) -> begin
         from_i = max(from_i, 1)
+        if CONSTRAINED
+            tmp = list_gen[from_i+1:end]
+            bound = min(length(tmp), SMALL_ARRAY)
+            return tmp[begin:bound]
+        end
         return list_gen[from_i+1:end]
     end
 end
@@ -77,6 +88,11 @@ pick_from_exclusive_generic = pick_from_exclusive_generic_factory(Any)
 function pick_until_inclusive_generic_factory(T::DataType)
     return @eval ((list_gen::Vector{V}, until_i::Int, args...) where {V<:$T}) -> begin
         until_i = min(length(list_gen), until_i)
+        if CONSTRAINED
+            tmp = list_gen[begin:until_i]
+            bound = min(length(tmp), SMALL_ARRAY)
+            return tmp[begin:bound]
+        end
         return list_gen[begin:until_i]
     end
 end
@@ -103,6 +119,11 @@ function pick_until_exclusive_generic_factory(T::DataType)
         mx = length(list_gen)
         until = until_i - 1
         until = min(mx, until)
+        if CONSTRAINED
+            tmp = list_gen[begin:until]
+            bound = min(length(tmp), SMALL_ARRAY)
+            return tmp[begin:bound]
+        end
         return list_gen[begin:until]
     end
 end
@@ -149,6 +170,10 @@ subset_list_of_tuples = subset_list_of_tuples_factory(Any)
 
 function subset_by_mask_factory(T::DataType)
     return @eval ((v::Vector{V}, m::Vector{<:Number}) where {V<:$T}) -> begin
+        if CONSTRAINED
+            @assert length(m) < BIG_ARRAY
+            @assert length(v) < BIG_ARRAY
+        end
         mask = m .> 0.0
         return v[mask]
     end
@@ -168,6 +193,10 @@ subset_by_mask = subset_by_mask_factory(Any)
 
 function subset_by_indices_factory(T::DataType)
     return @eval ((v::Vector{V}, m::Vector{Int}) where {V<:$T}) -> begin
+        if CONSTRAINED
+            @assert length(m) < BIG_ARRAY
+            @assert length(v) < BIG_ARRAY
+        end
         v_ = deepcopy(v)
         return v_[m]
     end

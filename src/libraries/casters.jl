@@ -1,8 +1,13 @@
-MIN_INT = -30^4
-MAX_INT = 30^4
-MIN_FLOAT = -30.0^4
-MAX_FLOAT = 30.0^4
+d_neg = "-100000"
+d_pos = "100000"
 
+MIN_INT = parse(Int, get(ENV, "UTCGP_MIN_INT", d_neg))
+MAX_INT = parse(Int, get(ENV, "UTCGP_MAX_INT", d_pos))
+MIN_FLOAT = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", d_neg))
+MAX_FLOAT = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", d_pos))
+
+println("Caster: Min Int : $MIN_INT")
+println("Caster: Max Int : $MAX_INT")
 # LIST ---
 
 """

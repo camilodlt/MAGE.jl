@@ -21,8 +21,10 @@ function get_listinteger_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for wrapper in factory_bundle
-            wrapper.fn = wrapper.fn(Int)
+        for (i,wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(Int) # specialize
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 
@@ -64,8 +66,10 @@ function get_listfloat_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for wrapper in factory_bundle
-            wrapper.fn = wrapper.fn(Float64)
+        for (i,wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(Float64)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
     listfloat_bundles = [
@@ -105,8 +109,10 @@ function get_liststring_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for wrapper in factory_bundle
-            wrapper.fn = wrapper.fn(String)
+        for (i,wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(String)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 
@@ -152,8 +158,10 @@ function get_list_int_tuples_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for wrapper in factory_bundle
-            wrapper.fn = wrapper.fn(Int)
+        for (i,wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(Int)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 
@@ -184,8 +192,10 @@ function get_list_string_tuples_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for wrapper in factory_bundle
-            wrapper.fn = wrapper.fn(String)
+        for (i,wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(String)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 

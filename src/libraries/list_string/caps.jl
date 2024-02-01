@@ -12,6 +12,7 @@ Exports :
 module liststring_caps
 
 using ..UTCGP: FunctionBundle, append_method!
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ################### #
 # Broacast uppercase #
@@ -28,6 +29,10 @@ bundle_liststring_caps = FunctionBundle(fallback)
 Broadcasts the `Base.titlecase` function to every element in the vector. 
 """
 function capitalize_list_string(strings::Vector{String}, args...)::Vector{String}
+    if CONSTRAINED
+        bound = min(length(strings), SMALL_ARRAY)
+        return titlecase.(strings[begin:bound])
+    end
     return titlecase.(strings)
 end
 
@@ -37,6 +42,10 @@ end
 Broadcasts the `Base.uppercasefirst` function to every element in the vector. 
 """
 function uppercasefirst_list_string(strings::Vector{String}, args...)::Vector{String}
+    if CONSTRAINED
+        bound = min(length(strings), SMALL_ARRAY)
+        return uppercasefirst.(strings[begin:bound])
+    end
     return uppercasefirst.(strings)
 end
 

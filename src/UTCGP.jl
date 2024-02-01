@@ -1,5 +1,11 @@
 module UTCGP
 
+NANO_ARRAY = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
+SMALL_ARRAY = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
+BIG_ARRAY = parse(Int, get(ENV, "UTCGP_BIG_ARRAY", "10000"))
+CONSTRAINED = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
+println("CONSTRAINED STATE = $CONSTRAINED ")
+
 abstract type AbstractCallable end
 
 include("element_nodes/element_nodes.jl")
@@ -101,13 +107,15 @@ include("mutations/new_material_mutation.jl")
 export new_material_mutation!
 # FUNCTIONS
 
-
-
 # Libraries
 
 # -- Caster
 include("libraries/casters.jl")
 export listinteger_caster
+export listfloat_caster
+export float_caster
+export integer_caster
+export string_caster
 
 # -- Element 
 include("libraries/element/pick_element.jl")

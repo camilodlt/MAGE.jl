@@ -11,6 +11,7 @@ module listinteger_primes
 
 using ..UTCGP: FunctionBundle, append_method!
 using Primes
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ########### #
 # PRIMES      #
@@ -30,6 +31,9 @@ bundle_listinteger_primes = FunctionBundle(fallback)
 Returns the divisors for an integer.
 """
 function int_divisors(n::Int, args...)
+    if CONSTRAINED
+        @assert n < 9999999
+    end
     return divisors(n)
 end
 

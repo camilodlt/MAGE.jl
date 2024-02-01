@@ -15,6 +15,7 @@ Exports : **bundle\\_listnumber\\_arithmetic**:
 module listnumber_arithmetic
 
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = Number[]
 
@@ -32,6 +33,10 @@ VECTORNUM = Vector{<:Number}
 Sum every element in the vector `v` with `n`
 """
 function sum_broadcast(v::VECTORNUM, n::Number, args...)
+    if CONSTRAINED
+        bound = min(length(v), SMALL_ARRAY)
+        return v[begin:bound] .+ n
+    end
     v .+ n
 end
 
@@ -41,6 +46,10 @@ end
 Substract `n` from every element in `v`
 """
 function subtract_broadcast(v::VECTORNUM, n::Number, args...)
+    if CONSTRAINED
+        bound = min(length(v), SMALL_ARRAY)
+        return v[begin:bound] .- n
+    end
     v .- n
 end
 
@@ -50,6 +59,10 @@ end
 Multiply `n` by every element in `v`
 """
 function mult_broadcast(v::VECTORNUM, n::Number, args...)
+    if CONSTRAINED
+        bound = min(length(v), SMALL_ARRAY)
+        return v[begin:bound] .* n
+    end
     v .* n
 end
 
@@ -65,6 +78,10 @@ function div_broadcast(v::VECTORNUM, n::Number, args...)
     if n == 0
         throw(DivideError())
     end
+    if CONSTRAINED
+        bound = min(length(v), SMALL_ARRAY)
+        return v[begin:bound] ./ n
+    end
     v ./ n
 end
 
@@ -78,6 +95,13 @@ Element wise sum between `v1` and `v2`.
 Can throw DimensionMismatch.
 """
 function sum_vector(v1::VECTORNUM, v2::VECTORNUM, args...)
+    if CONSTRAINED
+        if length(v1) != length(v2)
+            throw(DimensionMismatch())
+        end
+        bound = min(length(v1), SMALL_ARRAY)
+        return v1[begin:bound] + v2[begin:bound]
+    end
     v1 + v2
 end
 
@@ -89,6 +113,13 @@ Element wise substraction between `v1` and `v2`
 Can throw DimensionMismatch.
 """
 function subtract_vector(v1::VECTORNUM, v2::VECTORNUM, args...)
+    if CONSTRAINED
+        if length(v1) != length(v2)
+            throw(DimensionMismatch())
+        end
+        bound = min(length(v1), SMALL_ARRAY)
+        return v1[begin:bound] .- v2[begin:bound]
+    end
     v1 .- v2
 end
 
@@ -100,6 +131,13 @@ Element wise multiplication between `v1` and `v2`.
 Can throw DimensionMismatch.
 """
 function mult_vector(v1::VECTORNUM, v2::VECTORNUM, args...)
+    if CONSTRAINED
+        if length(v1) != length(v2)
+            throw(DimensionMismatch())
+        end
+        bound = min(length(v1), SMALL_ARRAY)
+        return v1[begin:bound] .* v2[begin:bound]
+    end
     v1 .* v2
 end
 
@@ -117,6 +155,13 @@ Can throw DimensionMismatch.
 function div_vector(v1::VECTORNUM, v2::VECTORNUM, args...)
     if any(v2 .== 0)
         throw(DivideError())
+    end
+    if CONSTRAINED
+        if length(v1) != length(v2)
+            throw(DimensionMismatch())
+        end
+        bound = min(length(v1), SMALL_ARRAY)
+        return v1[begin:bound] ./ v2[begin:bound]
     end
     v1 ./ v2
 end

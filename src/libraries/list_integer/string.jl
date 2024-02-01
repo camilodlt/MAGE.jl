@@ -11,6 +11,7 @@ Exports :
 module listinteger_string
 
 using ..UTCGP: FunctionBundle, append_method!
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ########### #
 # String Grep #
@@ -30,6 +31,9 @@ Returns the indices of the start of the overlaping matches between `s` and the `
 Kind of like python's `re.findall` with the option `overlapped=True`.
 """
 function match_with_overlap(s::String, pattern::String)
+    if CONSTRAINED
+        @assert length(s) < 100000
+    end
     cond = true
     starts = Int[]
     start = 1
@@ -64,6 +68,10 @@ end
 Broadcasts `length` to every element in `v`
 """
 function length_broadcast(v::Vector{String}, args...)
+    if CONSTRAINED
+        m = min(length(v), SMALL_ARRAY)
+        return length.(v[begin:m])
+    end
     return length.(v)
 end
 

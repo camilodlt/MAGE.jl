@@ -14,6 +14,7 @@ Exports :
 module listgeneric_utils
 
 using ..UTCGP: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ##### #
 # SORT  #
@@ -28,6 +29,10 @@ bundle_listgeneric_utils_factory = FunctionBundle(fallback)
 
 function sort_list_factory(T::DataType)
     return @eval ((a::Vector{V}, args...) where {V<:$T}) -> begin
+        if CONSTRAINED
+            bound = min(length(a), SMALL_ARRAY)
+            return sort(a[begin:bound])
+        end
         return sort(a)
     end
 end
@@ -45,6 +50,10 @@ function append_to_list_factory(T::DataType)
     return @eval ((v::Vector{V}, el::V, args...) where {V<:$T}) -> begin
         v2 = deepcopy(v)
         push!(v2, el)
+        if CONSTRAINED
+            bound = min(length(v2), SMALL_ARRAY)
+            return v2[begin:bound]
+        end
         return v2
     end
 end
@@ -60,8 +69,15 @@ append_to_list = append_to_list_factory(Any)
 
 function unique_in_list_factory(T::DataType)
     return @eval ((v::Vector{V}, args...) where {V<:$T}) -> begin
+        if CONSTRAINED
+            @assert length(v) <= SMALL_ARRAY
+        end
         v2 = deepcopy(v)
         unique!(v2)
+        if CONSTRAINED
+            bound = min(length(v2), SMALL_ARRAY)
+            return v2[begin:bound]
+        end
         return v2
     end
 end
@@ -77,6 +93,10 @@ function replace_by_mapping_factory(T::DataType)
     return @eval (
         (to_change::Vector{V}, from_to_mapping::Vector{Tuple{V,V}}) where {V<:$T}
     ) -> begin
+        if CONSTRAINED
+            @assert length(to_change) <= SMALL_ARRAY
+            @assert length(from_to_mapping) <= SMALL_ARRAY
+        end
         # Replace by mapping
         res = []
         for a in to_change

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 """
 BAD FN to test dispatch. 
 
@@ -19,12 +18,16 @@ Exports : **bundle_listgeneric_basic**:
 
 """
 module listgeneric_basic
-
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # Identity
 function identity_list_factory(T::DataType)
     return @eval ((l::Vector{V}, args...) where {V<:$T}) -> begin
+        if CONSTRAINED
+            bound = min(length(l), BIG_ARRAY)
+            return l[begin:bound]
+        end
         return l
     end
 end
@@ -53,6 +56,10 @@ new_list = new_list_factory(Any)
 # Reverse List
 function reverse_list_factory(T::DataType)
     return @eval ((l::Vector{V}, args...) where {V<:$T}) -> begin
+        if CONSTRAINED
+            bound = min(length(l), BIG_ARRAY)
+            return reverse(l[begin:bound])
+        end
         return reverse(l)
     end
 end

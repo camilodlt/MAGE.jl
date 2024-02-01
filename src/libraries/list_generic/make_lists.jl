@@ -12,6 +12,7 @@ Exports : **bundle\\_listgeneric\\_makelist**:
 module listgeneric_makelist
 
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 
 # FALLBACK

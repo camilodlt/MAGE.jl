@@ -32,7 +32,7 @@
     @test begin
         # Normal 
         z = listtuple_mappings.mappings_a_to_b_factory(Float64)
-        d = listtuple_mappings.mappings_a_to_b_factory(Float64)
+        d = listtuple_mappings.mappings_a_to_b_factory(String)
         z([1.0, 2.0], [4.0, 5.0]) == [(1.0, 4.0), (2.0, 5.0)] &&
             d(["1.0", "2.0"], ["4.0", "5.0"]) == [("1.0", "4.0"), ("2.0", "5.0")]
     end
