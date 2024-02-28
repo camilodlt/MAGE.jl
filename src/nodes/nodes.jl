@@ -1,9 +1,15 @@
 #############################################
+using Base.Threads: FloatTypes
 # NODE MATERIAL (the vector repr of the node)
 #############################################
 
 # HOLDER OF NODE ELEMENrS
-struct NodeMaterial
+
+"""
+
+Holds the integers of a node. 
+"""
+@auto_hash_equals struct NodeMaterial
     material::Vector{<:AbstractElement}
     function NodeMaterial()
         return new(Vector{CGPElement}())

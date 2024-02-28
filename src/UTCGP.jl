@@ -1,4 +1,5 @@
 module UTCGP
+using AutoHashEquals
 
 NANO_ARRAY = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
 SMALL_ARRAY = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
