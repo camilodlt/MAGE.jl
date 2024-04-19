@@ -140,9 +140,6 @@ function recursive_decode_node!(
         calling_node,
         meta_library.libraries[type_idx],
     )
-    # fn_idx = extract_function_from_node(calling_node).value
-    # connexions = extract_connexions_from_node(calling_node)
-    # connexions_types = extract_connexions_types_from_node(calling_node)
     inputs = inputs_for_node(
         connexions,
         connexions_types,

@@ -1,10 +1,14 @@
 module UTCGP
-using AutoHashEquals
 
-NANO_ARRAY = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
-SMALL_ARRAY = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
-BIG_ARRAY = parse(Int, get(ENV, "UTCGP_BIG_ARRAY", "10000"))
-CONSTRAINED = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
+using Term
+import DataStructures: OrderedDict
+import DuckDB
+import SearchNetworks as sn
+
+const NANO_ARRAY::Int = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
+const SMALL_ARRAY::Int = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
+const BIG_ARRAY::Int = parse(Int, get(ENV, "UTCGP_BIG_ARRAY", "10000"))
+const CONSTRAINED::Bool = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
 println("CONSTRAINED STATE = $CONSTRAINED ")
 
 abstract type AbstractCallable end
@@ -117,6 +121,12 @@ export listfloat_caster
 export float_caster
 export integer_caster
 export string_caster
+
+
+# -- Element 
+include("libraries/bool/basic_bool.jl")
+import .bool_basic: bundle_bool_basic
+export bundle_bool_basic
 
 # -- Element 
 include("libraries/element/pick_element.jl")
@@ -263,6 +273,10 @@ include("libraries/number/reduce.jl")
 import .number_reduce: bundle_number_reduce
 export bundle_number_reduce
 
+include("libraries/number/transcendental.jl")
+import .number_transcendental: bundle_number_transcendental
+export bundle_number_transcendental
+
 # --- FLOAT 
 
 include("libraries/float/basic_float.jl")
@@ -302,6 +316,7 @@ export default_elite_selection_callback
 export default_early_stop_callback
 export default_free_mutation_callback
 export default_free_decoding_callback
+export eval_budget_early_stop
 
 # ENDPOINTS
 include("endpoints/endpoint_structs.jl")
@@ -324,9 +339,21 @@ include("libraries/pre_made_libraries.jl")
 # FILE TRACKING 
 include("metrics_trackers/local_file.jl")
 
+# SN TRACKING --- ---
+include("search_network/sn_types.jl")
+# --  fns to extract info 
+include("search_network/hashers.jl")
+include("search_network/edge_prop_getters.jl")
+include("search_network/node_hashers.jl")
+
+# -- sn writer 
+include("search_network/sn_writer_init_utils.jl")
+include("search_network/utils.jl")
+include("search_network/sn_callbacks.jl")
+
+
 # Test utils
 include("test_utils.jl")
-
 end # 
 
 

@@ -201,6 +201,12 @@ struct MetaLibrary <: AbstractMetaLibrary
             n_fns = unpack_bundles_in_library!(lib)
             @assert n_fns > 0 "Lib can't be empty"
         end
+        for lib in libs
+            for fn in lib
+                # @show fn.name
+                _verify_last_arg_is_vararg!(fn.fn)
+            end
+        end
         return new(libs)
     end
 end

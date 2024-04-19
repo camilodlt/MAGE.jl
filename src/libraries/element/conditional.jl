@@ -35,7 +35,6 @@ function if_else_multiplexer(cond::Number, a::T, b::T, args...) where {T<:Any}
     end
 end
 
-
 append_method!(bundle_element_conditional, if_else_multiplexer)
 
 end

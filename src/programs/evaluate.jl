@@ -202,9 +202,31 @@ function evaluate_program(
             end
             # println("Going to calculate : $(fn.name)")
             t = @elapsed res = evaluate_fn_wrapper(fn, inputs_values)
-            if t > 0.05
-                @warn "$(fn.name) took $t seconds with inputs sizes : $(size.(inputs_values)). Types $(typeof.(inputs_values))"
+            if t > 0.1
+                @warn "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))"
+                println(
+                    "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))",
+                )
+                @show CONSTRAINED
                 GC.gc()
+                if isdefined(Main, :Infiltrator)
+                    Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                end
+            end
+            s = length.(inputs_values)
+            if length(s[1]) >= 1 && s[1][1] > 1000
+                @show length.(inputs_values)
+                @show fn.name
+                @show UTCGP.CONSTRAINED
+                println(
+                    "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))",
+                )
+                @show CONSTRAINED
+                GC.gc()
+                if isdefined(Main, :Infiltrator)
+                    Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                end
+                println(size.(res))
             end
             # println("Elapsed $t with fn : $(fn.name) with inputs : $inputs_values")
             set_node_value!(calling_node, res)

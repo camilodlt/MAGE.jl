@@ -1,6 +1,9 @@
 # -*- coding:: utf-8 -*-
 using Statistics
 
+abstract type CallbackParameters end
+
+
 function _make_population(
     genome::UTGenome,
     generation::Int,
@@ -219,6 +222,25 @@ function _make_elite_selection(
 end
 
 
+"""
+
+The normal parameters accepted for an epoch callback.
+"""
+mutable struct ParametersStandardEpoch <: CallbackParameters
+    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}}
+    population::Population
+    generation::Int
+    run_config::runConf
+    model_architecture::modelArchitecture
+    node_config::nodeConfig
+    meta_library::MetaLibrary
+    shared_inputs::SharedInput
+    programs::PopulationPrograms
+    best_loss::Float64
+    best_program::IndividualPrograms
+    elite_idx::Int
+end
+
 function _make_epoch_callbacks_calls(
     ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
     population::Population,
@@ -255,3 +277,58 @@ function _make_epoch_callbacks_calls(
     end
     return mean(t)
 end
+
+function _make_early_stop_callbacks_calls(
+    generation_loss_tracker::GenerationLossTracker,
+    ind_loss_tracker::IndividualLossTracker,
+    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
+    population::Population,
+    generation::Int,
+    run_config::runConf,
+    model_architecture::modelArchitecture,
+    node_config::nodeConfig,
+    meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
+    programs::PopulationPrograms,
+    best_loss::Float64,
+    best_program::IndividualPrograms,
+    elite_idx::Int,
+    early_stop_callbacks::Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable}}}},
+)::Bool
+    decisions = []
+    t = []
+    for early_stop_callback in early_stop_callbacks
+        fn =
+            early_stop_callback isa Symbol ? get_fn_from_symbol(early_stop_callback) :
+            early_stop_callback
+        t_e = @elapsed tmp_decision = fn(
+            generation_loss_tracker,
+            ind_loss_tracker,
+            ind_performances,
+            population,
+            generation,
+            run_config,
+            model_architecture,
+            node_config,
+            meta_library,
+            shared_inputs,
+            programs,
+            best_loss,
+            best_program,
+            elite_idx,
+        )
+        push!(t, t_e)
+        push!(decisions, tmp_decision)
+    end
+    @assert length(decisions) > 0 "The early stop decisions is empty. Early stop functions are not returning a decision"
+    decision_time = mean(t)
+    @debug "Early stop decision time $decision_time"
+    decision = any(decisions)
+    if decision
+        @warn "Early stop decision $decision"
+    else
+        @debug "Early stop decision $decision"
+    end
+    return decision
+end
+

@@ -9,6 +9,7 @@ Exports :
     - `parse_from_list_string`
 """
 module listinteger_string
+using Debugger
 
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
@@ -30,7 +31,9 @@ Returns the indices of the start of the overlaping matches between `s` and the `
 
 Kind of like python's `re.findall` with the option `overlapped=True`.
 """
-function match_with_overlap(s::String, pattern::String)
+function match_with_overlap(s::String, pattern::String, args...)
+    Debugger.@bp
+
     if CONSTRAINED
         @assert length(s) < 100000
     end

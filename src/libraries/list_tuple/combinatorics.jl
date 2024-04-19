@@ -54,7 +54,7 @@ vector_of_products = vector_of_products_factory(Any)
 # Combinations --- 
 
 function vector_of_combinations_factory(T::DataType)
-    return @eval ((v::Vector{V}) where {V<:$T}) -> begin
+    return @eval ((v::Vector{V}, args...) where {V<:$T}) -> begin
         @assert !isempty(v) && length(unique(typeof.(v))) == 1
         if CONSTRAINED
             @assert length(v) < SMALL_ARRAY

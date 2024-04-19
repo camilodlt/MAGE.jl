@@ -21,10 +21,11 @@ function get_listinteger_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for (i,wrapper) in enumerate(factory_bundle)
+        for (i, wrapper) in enumerate(factory_bundle)
             fn = wrapper.fn(Int) # specialize
             # create a new wrapper in order to change the type
-            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 
@@ -66,10 +67,11 @@ function get_listfloat_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for (i,wrapper) in enumerate(factory_bundle)
+        for (i, wrapper) in enumerate(factory_bundle)
             fn = wrapper.fn(Float64)
             # create a new wrapper in order to change the type
-            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
     listfloat_bundles = [
@@ -109,10 +111,11 @@ function get_liststring_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for (i,wrapper) in enumerate(factory_bundle)
+        for (i, wrapper) in enumerate(factory_bundle)
             fn = wrapper.fn(String)
             # create a new wrapper in order to change the type
-            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 
@@ -158,10 +161,11 @@ function get_list_int_tuples_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for (i,wrapper) in enumerate(factory_bundle)
+        for (i, wrapper) in enumerate(factory_bundle)
             fn = wrapper.fn(Int)
             # create a new wrapper in order to change the type
-            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 
@@ -192,10 +196,11 @@ function get_list_string_tuples_bundles()
     ]
     factories = [deepcopy(b) for b in factories]
     for factory_bundle in factories
-        for (i,wrapper) in enumerate(factory_bundle)
+        for (i, wrapper) in enumerate(factory_bundle)
             fn = wrapper.fn(String)
             # create a new wrapper in order to change the type
-            factory_bundle.functions[i] = FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
         end
     end
 
@@ -225,6 +230,7 @@ function get_integer_bundles()
         bundle_number_reduce,
         bundle_element_pick,
         bundle_element_conditional,
+        bundle_number_transcendental,
     ]
     integer_bundles = [deepcopy(b) for b in integer_bundles]
     # Update Casters && Fallbacks
@@ -249,6 +255,26 @@ function get_float_bundles()
         bundle_number_reduce,
         bundle_element_pick,
         bundle_element_conditional,
+        bundle_number_transcendental,
+    ]
+    float_bundles = [deepcopy(b) for b in float_bundles]
+    # Update Casters && Fallbacks
+    for b in float_bundles
+        update_caster!(b, float_caster)
+        update_fallback!(b, () -> 0.0)
+    end
+    return float_bundles
+end
+
+"""
+SR float lib
+"""
+function get_sr_float_bundles()
+    float_bundles = [
+        bundle_float_basic,
+        bundle_integer_modulo,
+        bundle_number_arithmetic,
+        bundle_number_transcendental,
     ]
     float_bundles = [deepcopy(b) for b in float_bundles]
     # Update Casters && Fallbacks

@@ -9,7 +9,7 @@ using Base.Threads: FloatTypes
 
 Holds the integers of a node. 
 """
-@auto_hash_equals struct NodeMaterial
+struct NodeMaterial
     material::Vector{<:AbstractElement}
     function NodeMaterial()
         return new(Vector{CGPElement}())

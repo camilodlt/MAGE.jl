@@ -11,7 +11,7 @@ abstract type AbstractElement end
 ####################
 
 
-@auto_hash_equals Base.@kwdef mutable struct CGPElement <: AbstractElement
+Base.@kwdef mutable struct CGPElement <: AbstractElement
 
     # BOUNDS
     lowest_bound::Int

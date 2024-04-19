@@ -39,8 +39,9 @@ end
 `n` ones.
 """
 function ones_(n::Int, args...)
+    n_::Int = 0
     if CONSTRAINED
-        n_ = min(10000, n)
+        n_ += min(SMALL_ARRAY, n)
         return ones(n_)
     end
     return ones(n)
@@ -69,7 +70,7 @@ end
 """
 function zeros_(n::Int, args...)
     if CONSTRAINED
-        n_ = min(10000, n)
+        n_ = min(SMALL_ARRAY, n)
         return zeros(n_)
     end
     return zeros(n)

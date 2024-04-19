@@ -32,6 +32,22 @@ struct EndpointBatchLevensthein <: BatchEndpoint
         end
         return new(res)
     end
+    function EndpointBatchLevensthein(preds::Vector{Vector{String}}, y::Vector{String})
+        res = Float64[]
+        for ind_outputs in preds
+            d = 0.0
+            if length(ind_outputs) != length(y)
+                d += 1000
+            end
+            for (pred, truth) in zip(ind_outputs, y)
+                l = Levenshtein()(pred, truth)
+                l = isnan(l) ? 1000 : l
+                d += l
+            end
+            push!(res, d)
+        end
+        return new(res)
+    end
 end
 
 ##################
@@ -44,7 +60,7 @@ struct EndpointBatchAbsDifference <: BatchEndpoint
         res = Float64[]
         for ind_outputs in preds
             pred = ind_outputs[1]
-            dist = convert(Float64, abs(pred - y))
+            dist = convert(Float64, abs(round(pred, digits = 12) - round(y, digits = 12)))
             push!(res, dist)
         end
         return new(res)
@@ -59,13 +75,33 @@ struct EndpointBatchAbsDifference <: BatchEndpoint
             for i = 1:length(y)
                 pred = ind_outputs[i]
                 truth = y[i]
-                dist = convert(Float64, abs(pred - truth))
+                dist = convert(
+                    Float64,
+                    abs(round(pred, digits = 12) - round(truth, digits = 12)),
+                )
                 push!(ind_distances, dist)
             end
-            ind_mean_distance = sum(filter(!isnan, ind_distances))
+
+            non_nan_preds = filter(!isnan, ind_distances)
+            if length(non_nan_preds) == 0
+                ind_mean_distance = 10_000
+            else
+                ind_mean_distance = sum(non_nan_preds)
+            end
             push!(res, ind_mean_distance)
         end
         return new(res)
+    end
+    function EndpointBatchAbsDifference(
+        preds::Vector{<:Vector{<:Bool}},
+        y::Vector{<:Number},
+    )
+        preds_ = [[bool_to_int_caster(p) for p in ind] for ind in preds]
+        return EndpointBatchAbsDifference(preds_, y)
+    end
+    function EndpointBatchAbsDifference(preds::Vector{BitVector}, y::Vector{<:Number})
+        preds_ = [[bool_to_int_caster(p) for p in ind] for ind in preds]
+        return EndpointBatchAbsDifference(preds_, y)
     end
 
 end
@@ -95,7 +131,7 @@ struct EndpointBatchVecDiff <: BatchEndpoint
                 loss += length_penalty
                 # element wise diff 
                 for (t, p) in zip(true_vec, pred_vec)
-                    loss += abs(t - p)
+                    loss += abs(round(t, digits = 12) - round(p, digits = 12))
                 end
                 push!(ind_losses, loss)
             end

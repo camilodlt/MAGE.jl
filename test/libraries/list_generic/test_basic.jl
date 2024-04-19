@@ -28,7 +28,6 @@ end
     end
     @test begin
         wrapper = bundle_listgeneric_basic[1] # Identity list
-        println(wrapper.parent_module)
         wrapper.name == :identity_list
     end
     @test begin

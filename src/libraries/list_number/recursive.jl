@@ -67,6 +67,7 @@ function recmult(init_number::Number, mult_by::Number, n_times::Int, args...)
         init_number = init_number * mult_by
     end
     vec = identity.(vec)
+    # print("recmult length : $(length(vec))")
     return vec
 end
 
@@ -75,7 +76,7 @@ end
 
 Returns the range between 1 (inclusive) and max_n (inclusive).
 """
-function range_(max_n::Number)
+function range_(max_n::Number, args...)
     if CONSTRAINED
         @assert max_n <= SMALL_ARRAY
     end

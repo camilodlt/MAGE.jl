@@ -169,7 +169,7 @@ subset_list_of_tuples = subset_list_of_tuples_factory(Any)
 # Subset Vector By Mask--- 
 
 function subset_by_mask_factory(T::DataType)
-    return @eval ((v::Vector{V}, m::Vector{<:Number}) where {V<:$T}) -> begin
+    return @eval ((v::Vector{V}, m::Vector{<:Number}, args...) where {V<:$T}) -> begin
         if CONSTRAINED
             @assert length(m) < BIG_ARRAY
             @assert length(v) < BIG_ARRAY
@@ -192,7 +192,7 @@ subset_by_mask = subset_by_mask_factory(Any)
 # Subset By Indices --- 
 
 function subset_by_indices_factory(T::DataType)
-    return @eval ((v::Vector{V}, m::Vector{Int}) where {V<:$T}) -> begin
+    return @eval ((v::Vector{V}, m::Vector{Int}, args...) where {V<:$T}) -> begin
         if CONSTRAINED
             @assert length(m) < BIG_ARRAY
             @assert length(v) < BIG_ARRAY

@@ -24,8 +24,6 @@ struct OperationInput
 end
 
 
-
-
 function extract_input_node_from_operationInput(
     operation_input::OperationInput,
 )::Union{CGPNode,InputNode}

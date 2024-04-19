@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 using Statistics
 using Debugger
+using Term
+# using Infiltrator
+
 ### FIT API ###
 
 function fit(
@@ -25,7 +28,10 @@ function fit(
     # Callbacks after step ::
     elite_selection_callbacks::Vector{Symbol},
     epoch_callbacks::Union{Nothing,Vector{<:Union{Symbol,AbstractCallable}}},
-    early_stop_callback::Union{Nothing,Symbol},
+    early_stop_callbacks::Union{
+        Nothing,
+        Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable}}}},
+    },
     last_callback::Union{Nothing,AbstractCallable},
 ) # Tuple{UTGenome, IndividualPrograms, GenerationLossTracker}::
 
@@ -33,7 +39,7 @@ function fit(
     local best_program = nothing
     local population = nothing
     local elite_idx
-
+    # @bp
     # CALL PRE CALLBACKS
     if !isnothing(pre_callbacks) && length(pre_callbacks) > 1
         for pre_callback in pre_callbacks
@@ -112,6 +118,7 @@ function fit(
             ]
             # append input nodes to pop
             replace_shared_inputs!(shared_inputs, input_nodes) # update 
+            # @bp
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
                 model_architecture,
@@ -119,7 +126,10 @@ function fit(
             )
             @info "Time Eval $time_eval"
             # Endpoint results
-            # @bp
+            # Main.@infiltrate
+            # if isdefined(Main, :Infiltrator)
+            #     Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+            # end
             fitness = endpoint_callback(outputs, y)
             fitness_values = get_endpoint_results(fitness)
 
@@ -141,6 +151,7 @@ function fit(
         # Selection
         ind_performances = resolve_ind_loss_tracker(M_individual_loss_tracker)
         # @bp
+
         # Elite selection callbacks
         @warn "Selection"
         elite_idx, time_elite = _make_elite_selection(
@@ -159,6 +170,7 @@ function fit(
         std_ = std(filter(!isnan, ind_performances))
         best_program = population_programs[elite_idx]
         genome = deepcopy(population[elite_idx])
+
 
         # EPOCH CALLBACK
         if !isnothing(epoch_callbacks)
@@ -187,17 +199,29 @@ function fit(
         # store iteration loss/fitness
         affect_fitness_to_loss_tracker!(M_gen_loss_tracker, iteration, best_loss)
 
-        println(" Iteration loss: $best_loss at index $elite_idx. Std: $(round(std_))")
+        println(
+            "Iteration $iteration loss: $(round(best_loss, digits = 10)) at index $elite_idx. Std: $(round(std_))",
+        )
 
         # EARLY STOP CALLBACK # TODO
-        if !isnothing(early_stop_callback)
-            early_stop = get_fn_from_symbol(early_stop_callback)(
+        if !isnothing(early_stop_callbacks) || length(early_stop_callbacks) == 0
+            early_stop = _make_early_stop_callbacks_calls(
                 M_gen_loss_tracker,
+                M_individual_loss_tracker,
+                ind_performances,
+                population,
                 iteration,
-                run_config.generations,
+                run_config,
                 model_architecture,
                 node_config,
-            )
+                meta_library,
+                shared_inputs,
+                population_programs,
+                best_loss,
+                best_program,
+                elite_idx,
+                early_stop_callbacks,
+            ) # true if any
         end
 
         if early_stop
@@ -218,6 +242,42 @@ function fit(
                     elite_idx,
                 )
             end
+
+            tree_dict = Dict()
+            function print_node__(io, node; kw...)
+                theme::Term.Theme = Term.TERM_THEME[]
+
+                styled = if (node isa AbstractString || node isa Number)
+                    Term.highlight(string(node), :string; theme = theme)
+                else
+                    styled = Term.highlight(typeof(node); theme = theme)
+                end
+                reshaped = Term.reshape_text(styled, theme.tree_max_leaf_width)
+                print(io, reshaped)
+
+            end
+
+
+            for (i, prog) in enumerate(best_program)
+                name = "Program n $i"
+                ops = OrderedDict()
+                for op in prog
+                    node_name =
+                        "$(typeof(op.calling_node)) " *
+                        string(node_to_vector(op.calling_node)) *
+                        " at $(op.calling_node.id)"
+                    op_dict = Dict()
+                    ins = [
+                        UTCGP.extract_input_node_from_operationInput(inp).id for
+                        inp in op.inputs
+                    ]
+                    insert!(ins, 1, string(op.fn.name))
+                    op_dict[node_name] = ins
+                    ops[op.calling_node.id] = op_dict
+                end
+                tree_dict[name] = ops
+            end
+            println(Term.Tree(tree_dict, print_node_function = print_node__))
             return tuple(genome, best_program, M_gen_loss_tracker)
         end
 
@@ -239,39 +299,63 @@ function fit(
     #     )
     # end
     # LAST PRINT 
-    println("LAST OUTPUTS")
-    time_test_inference = @elapsed for ith_x = 1:length(X)
-        reset_genome!(population[elite_idx])
+    # println("LAST OUTPUTS")
+    # time_test_inference = @elapsed for ith_x = 1:length(X)
+    #     reset_genome!(population[elite_idx])
 
-        # unpack input nodes
-        x, y = X[ith_x], Y[ith_x]
-        input_nodes = [
-            InputNode(value, pos, pos, model_architecture.inputs_types_idx[pos]) for
-            (pos, value) in enumerate(x)
-        ]
-        # append input nodes to pop
-        replace_shared_inputs!(shared_inputs, input_nodes) # update 
-        outputs = evaluate_individual_programs(
-            best_program,
-            model_architecture.chromosomes_types,
-            meta_library,
-        )
-        # Endpoint results
-        @show ith_x x y outputs
-        fitness = endpoint_callback([outputs], y) # batch of 1 ind
-        @show fitness
-    end
-    @info "Time Test Inference $time_test_inference"
+    #     # unpack input nodes
+    #     x, y = X[ith_x], Y[ith_x]
+    #     input_nodes = [
+    #         InputNode(value, pos, pos, model_architecture.inputs_types_idx[pos]) for
+    #         (pos, value) in enumerate(x)
+    #     ]
+    #     # append input nodes to pop
+    #     replace_shared_inputs!(shared_inputs, input_nodes) # update 
+    #     outputs = evaluate_individual_programs(
+    #         best_program,
+    #         model_architecture.chromosomes_types,
+    #         meta_library,
+    #     )
+    #     # Endpoint results
+    #     @show ith_x x y outputs
+    #     fitness = endpoint_callback([outputs], y) # batch of 1 ind
+    #     @show fitness
+    # end
+    # @info "Time Test Inference $time_test_inference"
 
-    println("### BEST PROG ###")
-    for (i, prog) in enumerate(best_program)
-        println("Program n ", i)
-        for op in prog
-            println(op.fn.name)
-            println("--- ", op.calling_node.id)
-            println("------ ", node_to_vector(op.calling_node))
+    tree_dict = Dict()
+    function print_node_(io, node; kw...)
+        theme::Term.Theme = Term.TERM_THEME[]
+
+        styled = if (node isa AbstractString || node isa Number)
+            Term.highlight(string(node), :string; theme = theme)
+        else
+            styled = Term.highlight(typeof(node); theme = theme)
         end
+        reshaped = Term.reshape_text(styled, theme.tree_max_leaf_width)
+        print(io, reshaped)
+
     end
+
+    for (i, prog) in enumerate(best_program)
+        name = "Program n $i"
+        ops = OrderedDict()
+        for op in prog
+            node_name =
+                "$(typeof(op.calling_node)) " *
+                string(node_to_vector(op.calling_node)) *
+                " at $(op.calling_node.id)"
+            op_dict = Dict()
+            ins =
+                [UTCGP.extract_input_node_from_operationInput(inp).id for inp in op.inputs]
+            insert!(ins, 1, string(op.fn.name))
+            op_dict[node_name] = ins
+            ops[op.calling_node.id] = op_dict
+        end
+        tree_dict[name] = ops
+    end
+    println(Term.Tree(tree_dict, print_node_function = print_node_))
+    # @bp
     return (genome, best_program, M_gen_loss_tracker)
 end
 

@@ -91,7 +91,7 @@ unique_in_list = unique_in_list_factory(Any)
 # Replace By Mapping --- 
 function replace_by_mapping_factory(T::DataType)
     return @eval (
-        (to_change::Vector{V}, from_to_mapping::Vector{Tuple{V,V}}) where {V<:$T}
+        (to_change::Vector{V}, from_to_mapping::Vector{Tuple{V,V}}, args...) where {V<:$T}
     ) -> begin
         if CONSTRAINED
             @assert length(to_change) <= SMALL_ARRAY

@@ -383,10 +383,63 @@ end
 
 function default_early_stop_callback(
     generation_loss_tracker::GenerationLossTracker,
-    iteration::Int,
-    generations::Int,
+    ind_loss_tracker::IndividualLossTracker,
+    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
+    population::Population,
+    generation::Int,
+    run_config::runConf,
     model_architecture::modelArchitecture,
     node_config::nodeConfig,
+    meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
+    programs::PopulationPrograms,
+    best_loss::Float64,
+    best_program::IndividualPrograms,
+    elite_idx::Int,
 )::Bool
-    return generation_loss_tracker[iteration][1] ≈ 0.0
+    return generation_loss_tracker[generation][1] ≈ 0.0
+end
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# MAX EVAL BUDGET
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
+mutable struct eval_budget_early_stop <: AbstractCallable
+    max_budget::Int
+    cur_budget::Int
+    function eval_budget_early_stop(b::Int)
+        @assert b > 0
+        return new(b, 0)
+    end
+end
+
+function decide_max_budget(tracker::eval_budget_early_stop)
+    decision = tracker.cur_budget >= tracker.max_budget
+    @debug "Max eval budget early stop decision : $decision. Because current : $(tracker.cur_budget) while max : $(tracker.max_budget) "
+    decision
+end
+
+function (obj::eval_budget_early_stop)(
+    generation_loss_tracker::GenerationLossTracker,
+    ind_loss_tracker::IndividualLossTracker,
+    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
+    population::Population,
+    generation::Int,
+    run_config::runConf,
+    model_architecture::modelArchitecture,
+    node_config::nodeConfig,
+    meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
+    programs::PopulationPrograms,
+    best_loss::Float64,
+    best_program::IndividualPrograms,
+    elite_idx::Int,
+)::Bool
+    @bp
+    n_evals = sum([length(i[2]) for i in ind_loss_tracker.store]) # sum all evals for all individuals
+    obj.cur_budget += n_evals
+    decision = decide_max_budget(obj)
+
+    return decision
 end

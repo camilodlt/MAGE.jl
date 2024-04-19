@@ -1,6 +1,6 @@
 using UTCGP
 using Test
-
+using Random
 
 @testset "Make Single Genome" begin
     # SIZE OF CHROMOSOME
@@ -57,4 +57,3 @@ using Test
         max_allowed_con == [4, 5, 6, 7]
     end
 end
-

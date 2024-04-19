@@ -1,10 +1,10 @@
 d_neg = "-100000"
 d_pos = "100000"
 
-MIN_INT = parse(Int, get(ENV, "UTCGP_MIN_INT", d_neg))
-MAX_INT = parse(Int, get(ENV, "UTCGP_MAX_INT", d_pos))
-MIN_FLOAT = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", d_neg))
-MAX_FLOAT = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", d_pos))
+const MIN_INT::Int = parse(Int, get(ENV, "UTCGP_MIN_INT", d_neg))
+const MAX_INT::Int = parse(Int, get(ENV, "UTCGP_MAX_INT", d_pos))
+const MIN_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", d_neg))
+const MAX_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", d_pos))
 
 println("Caster: Min Int : $MIN_INT")
 println("Caster: Max Int : $MAX_INT")
@@ -61,6 +61,16 @@ function listtuple_identity(l::Vector{Tuple{T,T}}) where {T}
 end
 
 # ELEMENTS ---
+
+"""
+    bool_to_int_caster(b::Bool)::Int
+
+Returns 1 or 0.
+"""
+function bool_to_int_caster(b::Bool)::Int
+    return Int(b)
+end
+
 """
     integer_caster(i::Number)
 

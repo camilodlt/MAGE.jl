@@ -36,8 +36,27 @@ end
 Base.size(bundle::FunctionBundle) = length(bundle.functions)
 Base.length(bundle::FunctionBundle) = length(bundle.functions)
 Base.getindex(bundle::FunctionBundle, i::Int) = bundle.functions[i]
+function Base.getindex(bundle::FunctionBundle, name::Symbol)
+    for fnw in bundle.functions
+        if fnw.name == name
+            return fnw
+        end
+    end
+end
+
 Base.iterate(bundle::FunctionBundle, state = 1) =
     state > length(bundle.functions) ? nothing : (bundle.functions[state], state + 1)
+
+function _verify_last_arg_is_vararg!(fn::Function)
+    ms = methods(fn)
+    for m in ms
+        sig = m.sig
+        if sig isa UnionAll
+            sig = sig.body
+        end
+        @assert sig.types[end] == Vararg{Any} "$fn"
+    end
+end
 
 function append_method!(bundle::FunctionBundle, fn::Function)
     fn_wrapped = FunctionWrapper(fn, bundle.caster, bundle.fallback)
@@ -47,7 +66,6 @@ function append_method!(bundle::FunctionBundle, fn::Function, name::Symbol)
     fn_wrapped = FunctionWrapper(fn, name, bundle.caster, bundle.fallback)
     push!(bundle.functions, fn_wrapped)
 end
-
 
 function _unique_names_in_bundle(b::FunctionBundle)::Bool
     n = [fw.name for fw in b.functions]

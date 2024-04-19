@@ -67,7 +67,7 @@ The `starting_point` hence represents the number of inputs that should precede t
 
 It is supposed to reference functions that return only one defined type.
 """
-@auto_hash_equals struct SingleGenome <: AbstractGenome
+struct SingleGenome <: AbstractGenome
     starting_point::Int
     chromosome::Vector{<:AbstractEvolvableNode}
 end

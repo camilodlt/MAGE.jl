@@ -24,6 +24,9 @@ function standard_mutate!(
             @warn node.id
             node.node_material[1].value = 2 # CONVENTION BY DEFAULT
             @warn "Node didn't find a functionning call after $max_calls iterations. Current call : $call_nb"
+            print(
+                "Node didn't find a functionning call after $max_calls iterations. Current call : $call_nb",
+            )
             break
         end
         call_nb += 1

@@ -28,9 +28,16 @@ bundle_listgeneric_concat_factory = FunctionBundle(fallback)
 
 function concat_two_lists_factory(T::DataType)
     return @eval ((list_a::Vector{V}, list_b::Vector{V}, args...) where {V<:$T}) -> begin
-        list_c = [deepcopy(list_a)...; deepcopy(list_b)...]
-        if CONSTRAINED == "yes"
-            bound = min(length(list_c), SMALL_ARRAY)
+        a_c = deepcopy(list_a)::Vector{V}
+        b_c = deepcopy(list_b)::Vector{V}
+        list_c = V[]
+        push!(list_c, a_c...)
+        push!(list_c, b_c...)
+        bound::Int = 0
+        if CONSTRAINED
+            sm::Int = SMALL_ARRAY
+            l::Int = length(list_c)
+            bound += min(l, sm)
             return list_c[begin:bound]
         end
         return identity.(list_c)
