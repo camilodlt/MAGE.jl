@@ -200,8 +200,14 @@ function evaluate_program(
                 node = extract_input_node_from_operationInput(operationInput)
                 push!(inputs_values, get_node_value(node))
             end
-            # println("Going to calculate : $(fn.name)")
-            t = @elapsed res = evaluate_fn_wrapper(fn, inputs_values)
+
+            allocs = @allocated t = @elapsed res = evaluate_fn_wrapper(fn, inputs_values)
+            if allocs * 1e-8 > 10 # 9 mb
+                println(
+                    "$(fn.name) took $t seconds with $allocs allocated with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))",
+                )
+                GC.gc()
+            end
             if t > 0.1
                 @warn "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))"
                 println(
@@ -214,7 +220,7 @@ function evaluate_program(
                 end
             end
             s = length.(inputs_values)
-            if length(s[1]) >= 1 && s[1][1] > 1000
+            if length(s) >= 1 && s[1] > 1000
                 @show length.(inputs_values)
                 @show fn.name
                 @show UTCGP.CONSTRAINED
@@ -230,6 +236,7 @@ function evaluate_program(
             end
             # println("Elapsed $t with fn : $(fn.name) with inputs : $inputs_values")
             set_node_value!(calling_node, res)
+
         end
     end
     @assert calling_node isa OutputNode "Last node is not Output Node?"
