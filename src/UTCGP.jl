@@ -1,5 +1,5 @@
 module UTCGP
-
+using Debugger
 using Term
 import DataStructures: OrderedDict
 import DuckDB
@@ -8,7 +8,19 @@ import SearchNetworks as sn
 const NANO_ARRAY::Int = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
 const SMALL_ARRAY::Int = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
 const BIG_ARRAY::Int = parse(Int, get(ENV, "UTCGP_BIG_ARRAY", "10000"))
-const CONSTRAINED::Bool = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
+CONSTRAINED::Bool = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
+
+d_neg = "-100"
+d_pos = "100"
+
+MIN_INT::Int = parse(Int, get(ENV, "UTCGP_MIN_INT", d_neg))
+MAX_INT::Int = parse(Int, get(ENV, "UTCGP_MAX_INT", d_pos))
+MIN_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", d_neg))
+MAX_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", d_pos))
+
+println("Caster: Min Int : $MIN_INT")
+println("Caster: Max Int : $MAX_INT")
+
 println("CONSTRAINED STATE = $CONSTRAINED ")
 
 abstract type AbstractCallable end
@@ -44,6 +56,10 @@ export extract_connexions_types_from_node,
     extract_connexions_from_node, extract_function_from_node
 export set_node_element_value!
 export extract_parameters_from_node
+
+# DISPATCHER FOR ANONYMOUS METHODS
+include("libraries/manual_dispatcher.jl")
+export ManualDispatcher
 
 # FN RELATED
 include("libraries/function.jl")
@@ -110,6 +126,11 @@ export numbered_mutation!
 include("mutations/decreasing_mutation.jl")
 include("mutations/new_material_mutation.jl")
 export new_material_mutation!
+
+
+# IMAGE UTILS 
+include("libraries/image/image_utils.jl")
+
 # FUNCTIONS
 
 # Libraries
@@ -300,6 +321,41 @@ export bundle_integer_modulo
 include("libraries/integer/cond.jl")
 import .integer_cond: bundle_integer_cond
 export bundle_integer_cond
+
+# 2D IMAGES Basic 
+
+export SImageND, SizedImage, SizedImage2D, SizedImage3D
+export SImage2D, SImage3D
+
+include("libraries/image2D/basic_image2D.jl")
+import .image2D_basic: bundle_image2D_basic
+export bundle_image2D_basic
+import .image2D_basic: bundle_image2D_basic_factory
+export bundle_image2D_basic_factory
+
+# 2D IMAGES Morph
+include("libraries/image2D/morph_image2D.jl")
+import .image2D_morph: bundle_image2D_morph
+export bundle_image2D_morph
+import .image2D_morph: bundle_image2D_morph_factory
+export bundle_image2D_morph_factory
+
+# 2D IMAGES Binarize
+include("libraries/image2D/binarize_image2D.jl")
+import .image2D_binarize: bundle_image2D_binarize
+export bundle_image2D_binarize
+import .image2D_binarize: bundle_image2D_binarize_factory
+export bundle_image2D_binarize_factory
+
+# 2D IMAGES Segmentation
+include("libraries/image2D/segmentation_image2D.jl")
+import .image2D_segmentation: bundle_image2D_segmentation_factory
+export bundle_image2D_segmentation_factory
+
+# 2D IMAGES Segmentation
+include("libraries/image2D/arithmetic_image2D.jl")
+import .image2D_arithmetic: bundle_image2D_arithmetic_factory
+export bundle_image2D_arithmetic_factory
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")

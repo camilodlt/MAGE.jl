@@ -102,7 +102,6 @@ function free_numbered_mutation!(
         )
         return selected_nodes, sampled_idx
     end
-    # @bp
     return nothing
 end
 

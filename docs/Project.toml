@@ -1,5 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-
-[compat]
-Documenter = "1.2"
+DocumenterVitepress = "4710194d-e776-4893-9690-8d956a29c365"
+LiveServer = "16fef848-5104-11e9-1b77-fb7a48bbb589"
+SearchNetworks = "17666995-d420-48ac-8d7c-8a155fef8e5d"
+UTCGP = "956831e1-0a7a-492a-ae16-058c6128a9f2"

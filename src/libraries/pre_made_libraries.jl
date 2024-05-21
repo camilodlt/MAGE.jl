@@ -312,3 +312,37 @@ function get_string_bundles()
     end
     return string_bundles
 end
+
+"""
+
+Image Bundles
+"""
+
+function get_image2D_bundles()
+    bundle_images = [bundle_image2D_basic, bundle_image2D_morph, bundle_image2D_binarize]
+
+    # Update Casters && Fallbacks
+    # for b in bundle_images
+    # update_caster!(b, ())
+    # update_fallback!(b, () -> SImageND)
+    # end
+    return deepcopy(bundle_images)
+end
+function get_image2D_factory_bundles()
+    bundle_images = [
+        bundle_image2D_basic_factory,
+        bundle_image2D_morph_factory,
+        bundle_image2D_binarize_factory,
+        bundle_image2D_segmentation_factory,
+        bundle_image2D_arithmetic_factory,
+        # bundle_image2D_barithmetic_factory, # TODO 
+        # bundle_image2D_transcendental_factory, # TODO
+    ]
+
+    # Update Casters && Fallbacks
+    # for b in bundle_images
+    # update_caster!(b, ())
+    # update_fallback!(b, () -> SImageND)
+    # end
+    return deepcopy(bundle_images)
+end

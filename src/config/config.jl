@@ -45,10 +45,10 @@ case is rare
         outputs_types_idx::Vector{Int})
 """
 struct modelArchitecture
-    inputs_types::Vector
+    inputs_types::Vector{<:T} where {T<:Type}
     inputs_types_idx::Vector{Int}
-    chromosomes_types::Vector{<:DataType}
-    outputs_types::Vector
+    chromosomes_types::Vector{<:T} where {T<:Type}
+    outputs_types::Vector{<:T} where {T<:Type}
     outputs_types_idx::Vector{Int}
 end
 

@@ -21,7 +21,6 @@ function cut_vector_algo(x, y)
     possible_losses = subtract_vector(rs, rs_rev_rev_lag1)
     abs_possible_losses = abs_vector(possible_losses)
     cut_point = reduce_argmin(abs_possible_losses) # inclusive to the left
-    # @bp
     p1 = pick_until_inclusive_generic(x, cut_point)
     p2 = pick_from_exclusive_generic(x, cut_point)
     return (p1 == y[1] && p2 == y[2])

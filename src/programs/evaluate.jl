@@ -2,7 +2,7 @@
 using Debugger
 import ThreadPools
 
-MAXTIME = parse(Float64, get(ENV, "UTCGP_MAXTIME", "0.5"))
+# MAXTIME = parse(Float64, get(ENV, "UTCGP_MAXTIME", "0.5"))
 
 """
     @timeout(seconds, expr_to_run, expr_when_fails)
@@ -184,9 +184,9 @@ end "failed"
 
 function evaluate_program(
     program::Program,
-    chromosomes_types::Vector{<:DataType},
+    chromosomes_types::Vector{<:T},
     metalibrary::MetaLibrary,
-)::Any
+)::Any where {T<:Type}
     calling_node = nothing
     @assert length(program) > 0
     @info "Program Length $(length(program))"
@@ -208,32 +208,30 @@ function evaluate_program(
                 )
                 GC.gc()
             end
-            if t > 0.1
+            if t > 0.5
+                @debug "$(fn.name) took $t seconds with inputs : $inputs_values. Types $(typeof.(inputs_values))"
                 @warn "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))"
                 println(
                     "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))",
                 )
                 @show CONSTRAINED
                 GC.gc()
-                if isdefined(Main, :Infiltrator)
-                    Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-                end
             end
             s = length.(inputs_values)
-            if length(s) >= 1 && s[1] > 1000
-                @show length.(inputs_values)
-                @show fn.name
-                @show UTCGP.CONSTRAINED
-                println(
-                    "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))",
-                )
-                @show CONSTRAINED
-                GC.gc()
-                if isdefined(Main, :Infiltrator)
-                    Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-                end
-                println(size.(res))
-            end
+            # if length(s) >= 1 && s[1] > 1000
+            #     @show length.(inputs_values)
+            #     @show fn.name
+            #     @show UTCGP.CONSTRAINED
+            #     println(
+            #         "$(fn.name) took $t seconds with inputs sizes : $(length.(inputs_values)). Types $(typeof.(inputs_values))",
+            #     )
+            #     @show CONSTRAINED
+            #     GC.gc()
+            #     if isdefined(Main, :Infiltrator)
+            #         Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+            #     end
+            #     println(size.(res))
+            # end
             # println("Elapsed $t with fn : $(fn.name) with inputs : $inputs_values")
             set_node_value!(calling_node, res)
 
@@ -245,10 +243,9 @@ end
 
 function evaluate_individual_programs(
     individual_programs::IndividualPrograms,
-    chromosomes_types::Vector{<:DataType},
+    chromosomes_types::Vector{<:T},
     metalibrary::MetaLibrary,
-)::Vector{<:Any}
-    # @bp
+)::Vector{<:Any} where {T<:Type}
     outputs = []
     for (ith_program, program) in enumerate(individual_programs)
         output = evaluate_program(program, chromosomes_types, metalibrary)
