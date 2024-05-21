@@ -39,7 +39,6 @@ function fit(
     local best_program = nothing
     local population = nothing
     local elite_idx
-    # @bp
     # CALL PRE CALLBACKS
     if !isnothing(pre_callbacks) && length(pre_callbacks) > 1
         for pre_callback in pre_callbacks
@@ -118,7 +117,6 @@ function fit(
             ]
             # append input nodes to pop
             replace_shared_inputs!(shared_inputs, input_nodes) # update 
-            # @bp
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
                 model_architecture,
@@ -150,7 +148,6 @@ function fit(
 
         # Selection
         ind_performances = resolve_ind_loss_tracker(M_individual_loss_tracker)
-        # @bp
 
         # Elite selection callbacks
         @warn "Selection"
@@ -204,7 +201,7 @@ function fit(
         )
 
         # EARLY STOP CALLBACK # TODO
-        if !isnothing(early_stop_callbacks) || length(early_stop_callbacks) == 0
+        if !isnothing(early_stop_callbacks) && length(early_stop_callbacks) == 0
             early_stop = _make_early_stop_callbacks_calls(
                 M_gen_loss_tracker,
                 M_individual_loss_tracker,
@@ -355,7 +352,6 @@ function fit(
         tree_dict[name] = ops
     end
     println(Term.Tree(tree_dict, print_node_function = print_node_))
-    # @bp
     return (genome, best_program, M_gen_loss_tracker)
 end
 

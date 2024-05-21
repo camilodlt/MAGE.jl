@@ -436,7 +436,6 @@ function (obj::eval_budget_early_stop)(
     best_program::IndividualPrograms,
     elite_idx::Int,
 )::Bool
-    @bp
     n_evals = sum([length(i[2]) for i in ind_loss_tracker.store]) # sum all evals for all individuals
     obj.cur_budget += n_evals
     decision = decide_max_budget(obj)

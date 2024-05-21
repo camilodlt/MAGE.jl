@@ -127,6 +127,10 @@ Pkg.build("PyCall")
     @testset "Bool" begin
         include("libraries/bool/test_basic.jl")
     end
+
+    # IMAGE 2D
+    include("libraries/image2D/tests_image2D.jl")
+
     # @testset "Integers" begin
     #     include("libraries/integer/test_basic.jl")
     #     include("libraries/integer/test_find.jl")

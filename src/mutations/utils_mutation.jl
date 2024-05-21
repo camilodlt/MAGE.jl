@@ -179,13 +179,10 @@ function check_functionning_node(
             shared_inputs,
             model_architecture,
         )
-        # if fn.name == :compare_tuple_a_eq_b
-        #     @bp
-        # end
         arg_types = tuple([op.type for op in inputs]...)
-        # Get types from input
         return Base.hasmethod(fn.fn, arg_types)
     catch
+        @bp
         @warn "Problem checking the node functionning state. False returned"
         return false
     end

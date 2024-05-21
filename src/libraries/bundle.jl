@@ -57,13 +57,23 @@ function _verify_last_arg_is_vararg!(fn::Function)
         @assert sig.types[end] == Vararg{Any} "$fn"
     end
 end
+function _verify_last_arg_is_vararg!(m::ManualDispatcher)
+    fns = m.functions
+    for fn in fns
+        _verify_last_arg_is_vararg!(fn)
+    end
+end
 
-function append_method!(bundle::FunctionBundle, fn::Function)
+function append_method!(bundle::FunctionBundle, fn::LikeFunction)
     fn_wrapped = FunctionWrapper(fn, bundle.caster, bundle.fallback)
     push!(bundle.functions, fn_wrapped)
 end
-function append_method!(bundle::FunctionBundle, fn::Function, name::Symbol)
+function append_method!(bundle::FunctionBundle, fn::LikeFunction, name::Symbol)
     fn_wrapped = FunctionWrapper(fn, name, bundle.caster, bundle.fallback)
+    push!(bundle.functions, fn_wrapped)
+end
+function append_method!(bundle::FunctionBundle, dp::AbstractManualDispatcher)
+    fn_wrapped = FunctionWrapper(dp, dp.name, bundle.caster, bundle.fallback)
     push!(bundle.functions, fn_wrapped)
 end
 

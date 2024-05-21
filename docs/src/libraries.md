@@ -47,3 +47,11 @@ UTCGP.liststring_caster
 ```
 
 ## Pre made libraries
+
+
+# Libs 
+
+## CV
+
+### Segmentation
+

@@ -1,13 +1,3 @@
-d_neg = "-100000"
-d_pos = "100000"
-
-const MIN_INT::Int = parse(Int, get(ENV, "UTCGP_MIN_INT", d_neg))
-const MAX_INT::Int = parse(Int, get(ENV, "UTCGP_MAX_INT", d_pos))
-const MIN_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", d_neg))
-const MAX_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", d_pos))
-
-println("Caster: Min Int : $MIN_INT")
-println("Caster: Max Int : $MAX_INT")
 # LIST ---
 
 """

@@ -1,35 +1,63 @@
-using Debugger
-using Base:Threads
 
-abstract type AbstractFunction end
+function _get_parent_module_symbol(f::Function)
+    return Symbol(parentmodule(f))
+end
+
+function _get_parent_module_symbol(f::AbstractManualDispatcher)
+    return Symbol(parentmodule(f[1]))
+end
+
+function _get_name_from_likefn(f::Function)
+    Symbol(f)
+end
+function _get_name_from_likefn(dp::AbstractManualDispatcher)
+    dp.name
+end
 
 mutable struct FunctionWrapper{T} <: AbstractFunction
     name::Symbol
     parent_module::Symbol
-    fn::Function
+    fn::LikeFunction
     caster::Union{Function,Nothing}
     fallback::Function
-    function FunctionWrapper(
-        fn::T,
-        caster::Union{Function,Nothing},
-        fallback::Function,
-    ) where {T<:Function}
-        return new{T}(Symbol(fn), Symbol(parentmodule(fn)), fn, caster, fallback)
-    end
-    function FunctionWrapper(fn::T, fallback::Function) where {T<:Function}
-        return new{T}(Symbol(fn), Symbol(parentmodule(fn)), fn, nothing, fallback)
-    end
+
+    """
+    Function Wrapper with caster and fallback
+    """
     function FunctionWrapper(
         fn::T,
         name::Symbol,
         caster::Union{Function,Nothing},
         fallback::Function,
-    ) where {T<:Function}
-        return new{T}(name, Symbol(parentmodule(fn)), fn, caster, fallback)
+    ) where {T<:LikeFunction}
+        p_mod = _get_parent_module_symbol(fn)
+        return new{T}(name, p_mod, fn, caster, fallback)
     end
 end
 
-mutable struct FunctionWrapperLegacy<: AbstractFunction
+"""
+Function Wrapper with caster and fallback
+"""
+function FunctionWrapper(
+    fn::T,
+    caster::Union{Function,Nothing},
+    fallback::Function,
+) where {T<:LikeFunction}
+    name = _get_name_from_likefn(fn)
+    return FunctionWrapper(fn, name, caster, fallback)
+end
+
+
+"""
+Function Wrapper with fallback.
+"""
+function FunctionWrapper(fn::T, fallback::Function) where {T<:LikeFunction}
+    return FunctionWrapper(fn, nothing, fallback)
+end
+
+
+# OLD
+mutable struct FunctionWrapperLegacy <: AbstractFunction
     name::Symbol
     parent_module::Symbol
     fn::Function
@@ -56,9 +84,7 @@ mutable struct FunctionWrapperLegacy<: AbstractFunction
 end
 
 # from https://discourse.julialang.org/t/performance-of-hasmethod-vs-try-catch-on-methoderror/99827/23
-@enum IsGood::Int8 begin
-    Good; Bad; Undefined
-end
+
 const SafeFunctions = Dict{Type,IsGood}()
 const SafeFunctionsLock = Threads.SpinLock()
 println("RECORD OF FNS : $SafeFunctions")
@@ -71,9 +97,9 @@ function safe_call(f::F, x::T) where {F<:FunctionWrapper,T<:Tuple}
             if !isnothing(f.caster)
                 tmp = f.caster(tmp)
             end
-            return (tmp,true) # types are ok but might still error out bc of other pbs
-        catch 
-            return (f.fallback(),true)
+            return (tmp, true) # types are ok but might still error out bc of other pbs
+        catch
+            return (f.fallback(), true)
         end
     end
     status == Bad && return (f.fallback(), false) # If types are nok, always return fallback
@@ -83,12 +109,12 @@ function safe_call(f::F, x::T) where {F<:FunctionWrapper,T<:Tuple}
             if !isnothing(f.caster)
                 tmp = f.caster(tmp)
             end
-            (tmp,true)
+            (tmp, true)
         catch e
             if !isa(e, MethodError)
                 (f.fallback(), true) # The method produced another runtime error, but arguments where accepted
             else
-            (f.fallback(), false)
+                (f.fallback(), false)
             end
         end
         if output[2]

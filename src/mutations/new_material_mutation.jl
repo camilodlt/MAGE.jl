@@ -90,7 +90,6 @@ function new_material_mutation!(
             shared_inputs,
             model_architecture,
         ) == prev
-
         mutate_one_element_from_node!(node)
         if call_nb > max_calls
             @warn "Can't find a correct mutation after $call_nb"
