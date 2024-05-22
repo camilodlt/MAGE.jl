@@ -57,6 +57,13 @@ function _verify_last_arg_is_vararg!(fn::Function)
         @assert sig.types[end] == Vararg{Any} "$fn"
     end
 end
+function _verify_last_arg_is_vararg!(m::Method)
+    sig = m.sig
+    if sig isa UnionAll
+        sig = sig.body
+    end
+    @assert sig.types[end] == Vararg{Any} "$fn"
+end
 function _verify_last_arg_is_vararg!(m::ManualDispatcher)
     fns = m.functions
     for fn in fns

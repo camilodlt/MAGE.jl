@@ -155,7 +155,7 @@ end
     fn = bundle_image2D_basic_factory[:ones_2D].fn
     dp = fn(SImageND{<:Tuple,N0f32,2})
 
-    @test_throws ErrorException begin
+    @test_throws ArgumentError begin
         res = dp((3,)) # for int gives 255
         size_ok = size(res) == (3, 3)
         nbs = unique(res)
@@ -324,7 +324,7 @@ end
     dp = fn(SImageND{<:Tuple,N0f32,2})
 
     # ZEROS(K) erros bc type is UInt32
-    @test_throws ErrorException begin
+    @test_throws ArgumentError begin
         res = dp((3,)) # for int gives 0
         size_ok = size(res) == (3, 3)
         nbs = unique(res)
@@ -396,7 +396,7 @@ end
     dp = fn(SImageND{<:Tuple,N0f32,2})
 
     # ZEROS(K,K)
-    @test_throws ErrorException begin # errors bc type is not UINT8
+    @test_throws ArgumentError begin # errors bc type is not UINT8
         res = dp((3, 10)) # for int gives 0
         size_ok = size(res) == (3, 10)
         nbs = unique(res)
