@@ -1,0 +1,18 @@
+---
+engine: julia
+---
+
+# GenerationLossTracker {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+iteration i : nb i goes from 0 to the total nb of generations computed.
+ 
+The tracked value per iteration is the best loss (elite loss)
+ 
+
+
+:::
+    
+

@@ -67,7 +67,7 @@ end
 Returns the floored number.
 """
 function integer_caster(i::Number)::Int
-    return clamp(floor(Int, i), MIN_INT, MAX_INT)
+    return clamp(floor(Int, i), MIN_INT[], MAX_INT[])
 end
 
 """
@@ -76,7 +76,7 @@ end
 Returns the number as Float64
 """
 function float_caster(n::Number)
-    return clamp(convert(Float64, n), MIN_FLOAT, MAX_FLOAT)
+    return clamp(convert(Float64, n), MIN_FLOAT[], MAX_FLOAT[])
 end
 
 """

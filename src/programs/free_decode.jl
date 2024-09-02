@@ -34,7 +34,11 @@ function free_recursive_decode_node!(
 
     # TODO EXTRA PARAMS ???
     for operation_input in inputs
-        next_calling_node = extract_input_node_from_operationInput(operation_input)
+        R_next_calling_node =
+            _extract_input_node_from_operationInput(shared_inputs, operation_input)
+        next_calling_node = @unwrap_or R_next_calling_node throw(
+            ErrorException("Could not extract the input from operation."),
+        )
         next_type_idx = operation_input.type_idx # op_input is the next 
         # calling_node. Hence, its type idx is going to be used 
         # to get the function.

@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# sn_fitness_hasher {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+sn_fitness_hasher(params::UTCGP.ParametersStandardEpoch)
+
+```
+
+It just returns the `ind_performances` attribute in the `params` (which are the fitnesses per individual).
+ 
+
+
+:::
+    
+

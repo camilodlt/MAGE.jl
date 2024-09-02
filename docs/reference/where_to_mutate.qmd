@@ -1,0 +1,32 @@
+---
+engine: julia
+---
+
+# where_to_mutate {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+where_to_mutate(length_::Int, threshold::Float64, rng::AbstractRNG)
+
+```
+
+This functions samples from [0:1] `length_` times. Each sampled number is compared against a `threshold`.
+ 
+**Example**
+ 
+For a `threshold` of 0.4 and a `length_` of 10, it will, on average, return a vector  with 6 0s and 4 1s.  
+ 
+**Caveats**
+ 
+  * `length_` >= 1
+**Returns** a Bool Vector telling whether or not the sampled number was less or equal  than the threshold. 
+ 
+
+
+:::
+    
+

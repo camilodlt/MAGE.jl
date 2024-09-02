@@ -55,41 +55,19 @@ function FunctionWrapper(fn::T, fallback::Function) where {T<:LikeFunction}
     return FunctionWrapper(fn, nothing, fallback)
 end
 
-
-# OLD
-mutable struct FunctionWrapperLegacy <: AbstractFunction
-    name::Symbol
-    parent_module::Symbol
-    fn::Function
-    caster::Union{Function,Nothing}
-    fallback::Function
-    function FunctionWrapperLegacy(
-        fn::Function,
-        caster::Union{Function,Nothing},
-        fallback::Function,
-    )
-        return new(Symbol(fn), Symbol(parentmodule(fn)), fn, caster, fallback)
-    end
-    function FunctionWrapperLegacy(fn::Function, fallback::Function)
-        return new(Symbol(fn), Symbol(parentmodule(fn)), fn, nothing, fallback)
-    end
-    function FunctionWrapperLegacy(
-        fn::Function,
-        name::Symbol,
-        caster::Union{Function,Nothing},
-        fallback::Function,
-    )
-        return new(name, Symbol(parentmodule(fn)), fn, caster, fallback)
-    end
-end
-
 # from https://discourse.julialang.org/t/performance-of-hasmethod-vs-try-catch-on-methoderror/99827/23
-
 const SafeFunctions = Dict{Type,IsGood}()
-const SafeFunctionsLock = Threads.SpinLock()
+const SafeFunctionsLock = Base.ReentrantLock()
 println("RECORD OF FNS : $SafeFunctions")
 
-function safe_call(f::F, x::T) where {F<:FunctionWrapper,T<:Tuple}
+Base.@nospecializeinfer function safe_call(
+    @nospecialize(f::FunctionWrapper),
+    @nospecialize(x::Tuple)
+)
+    global SafeFunctions, SafeFunctionsLock
+
+    F = typeof(f)
+    T = typeof(x)
     status = get(SafeFunctions, Tuple{F,T}, Undefined)
     if status == Good
         try
@@ -103,56 +81,143 @@ function safe_call(f::F, x::T) where {F<:FunctionWrapper,T<:Tuple}
         end
     end
     status == Bad && return (f.fallback(), false) # If types are nok, always return fallback
-    return lock(SafeFunctionsLock) do
-        output = try
-            tmp = f.fn(x...)
-            if !isnothing(f.caster)
-                tmp = f.caster(tmp)
-            end
-            (tmp, true)
-        catch e
-            if !isa(e, MethodError)
-                (f.fallback(), true) # The method produced another runtime error, but arguments where accepted
-            else
-                (f.fallback(), false)
-            end
+    output = try
+        tmp = f.fn(x...)
+        if !isnothing(f.caster)
+            tmp = f.caster(tmp)
         end
+        (tmp, true)
+    catch e
+        if !isa(e, MethodError)
+            (f.fallback(), true) # The method produced another runtime error, but arguments where accepted
+        else
+            (f.fallback(), false)
+        end
+    end
+    return lock(SafeFunctionsLock) do
+        tid = Threads.threadid()
+        fn_name = Symbol(f)
+        @debug "Holding safe call lock for $(fn_name) by $(tid). $(now())"
         if output[2]
             SafeFunctions[Tuple{F,T}] = Good
         else
             SafeFunctions[Tuple{F,T}] = Bad
         end
+        @debug "Unlocking safe call lock for $(fn_name) by $(tid). $(now())"
         return output
     end
 end
 
-# FASTER
-function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})
-    # inputs = deepcopy(inputs_) # safety
-    output = safe_call(fn_wrapper, (inputs_...,))
-    return output[1]
-end
+# function safe_call(f::F, x::T) where {F<:FunctionWrapper,T<:Tuple}
+#     global SafeFunctions, SafeFunctionsLock
+#     status = get(SafeFunctions, Tuple{F,T}, Undefined)
+#     if status == Good
+#         try
+#             tmp = f.fn(x...)
+#             if !isnothing(f.caster)
+#                 tmp = f.caster(tmp)
+#             end
+#             return (tmp, true) # types are ok but might still error out bc of other pbs
+#         catch
+#             return (f.fallback(), true)
+#         end
+#     end
+#     status == Bad && return (f.fallback(), false) # If types are nok, always return fallback
+#     output = try
+#         tmp = f.fn(x...)
+#         if !isnothing(f.caster)
+#             tmp = f.caster(tmp)
+#         end
+#         (tmp, true)
+#     catch e
+#         if !isa(e, MethodError)
+#             (f.fallback(), true) # The method produced another runtime error, but arguments where accepted
+#         else
+#             (f.fallback(), false)
+#         end
+#     end
+#     return lock(SafeFunctionsLock) do
+#         tid = Threads.threadid()
+#         fn_name = Symbol(f)
+#         @debug "Holding safe call lock for $(fn_name) by $(tid). $(now())"
+#         if output[2]
+#             SafeFunctions[Tuple{F,T}] = Good
+#         else
+#             SafeFunctions[Tuple{F,T}] = Bad
+#         end
+#         @debug "Unlocking safe call lock for $(fn_name) by $(tid). $(now())"
+#         return output
+#     end
+# end
 
-# NORMAL EVAL FN
-function evaluate_fn_wrapper_legacy(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})
-    inputs = deepcopy(inputs_) # safety
-    output = let output = nothing
-        types = [typeof(i) for i in inputs]
-        if Base.hasmethod(fn_wrapper.fn, types)
-            try
-                output = fn_wrapper.fn(inputs...)
-                if !isnothing(fn_wrapper.caster)
-                    output = fn_wrapper.caster(output)
+# FASTER
+Base.@nospecializeinfer function evaluate_fn_wrapper(
+    @nospecialize(fn_wrapper::FunctionWrapper),
+    @nospecialize(inputs_::Vector{<:Any})
+)
+    # slow
+    # @timeit_debug to "Eval fn. slow" begin
+    #     output, flag = (nothing, false)
+    #     if SAFE_CALL[]
+    #         output, flag = safe_call(fn_wrapper, (inputs_...,))
+    #     else
+    #         output, flag = try
+    #             tmp = fn_wrapper.fn(inputs_...)
+    #             if !isnothing(fn_wrapper.caster)
+    #                 tmp = fn_wrapper.caster(tmp)
+    #             end
+    #             (tmp, true) # types are ok but might still error out bc of other pbs
+    #         catch
+    #             (fn_wrapper.fallback(), true)
+    #         end
+    #     end
+    # end
+    @timeit_debug to "Eval fn. fast" begin
+        output, flag = (nothing, false)
+        cast = !isnothing(fn_wrapper.caster)
+        begin
+            if SAFE_CALL[]
+                output, flag = safe_call(fn_wrapper, (inputs_...,))
+            else
+                output = try
+                    @timeit_debug to "Eval fn Ok $(fn_wrapper.name)" call_fn_wrap(
+                        fn_wrapper,
+                        inputs_,
+                        Val(cast),
+                    )
+                catch e
+                    if e isa MethodError
+                        # if isdefined(Main, :Infiltrator)
+                        #     Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                        # end
+                        @warn "$(fn_wrapper.name) got a MethodError with inputs of type $(typeof.(inputs_))"
+                        println(e)
+                    end
+                    @timeit_debug to "Eval fn Nok $(fn_wrapper.name)" fn_wrapper.fallback()
                 end
-            catch e
-                @info "Exception during fn eval. fn : $(fn_wrapper.name). inputs : $(inputs)"
-                @info e
             end
         end
-        if isnothing(output)
-            output = fn_wrapper.fallback()
-        end
-        output
     end
     return output
 end
+
+@inline function call_fn_wrap(
+    @nospecialize(fn_wrapper::FunctionWrapper),
+    @nospecialize(inputs),
+    ::Val{true},
+)
+    fn_wrapper.caster(fn_wrapper.fn(inputs...))
+end
+@inline function call_fn_wrap(
+    @nospecialize(fn_wrapper::FunctionWrapper),
+    @nospecialize(inputs),
+    ::Val{false},
+)
+    fn_wrapper.fn(inputs...)
+end
+
+# function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})
+#     # inputs = deepcopy(inputs_) # safety
+#     output = safe_call(fn_wrapper, (inputs_...,))
+#     return output[1]
+# end

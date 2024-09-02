@@ -1,0 +1,39 @@
+---
+engine: julia
+---
+
+# MetaLibrary {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+MetaLibrary(libs::Vector{<:AbstractLibrary})
+
+```
+
+From a vector of libraries, they will be unpacked and added to the MetaLibrary.
+ 
+**Caveats**: 
+ 
+  * The vector of libraries can't be empty.
+  * The libraries will be unpacked one by one
+  * The libraries can't be empty
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+A MetaLibrary holds multiple Libraries. A Library holds functions.
+ 
+
+
+:::
+    
+

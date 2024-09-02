@@ -1,0 +1,389 @@
+---
+engine: julia
+---
+
+# getindex {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+getindex(type[, elements...])
+
+```
+
+Construct a 1-d array of the specified type. This is usually called with the syntax `Type[]`. Element values can be specified using `Type[a,b,c,...]`.
+ 
+
+### Examples
+    
+
+```{julia}
+#| eval: false
+julia> Int8[1, 2, 3]
+3-element Vector{Int8}:
+ 1
+ 2
+ 3
+
+julia> getindex(Int8, 1, 2, 3)
+3-element Vector{Int8}:
+ 1
+ 2
+ 3
+
+```
+
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+getindex(collection, key...)
+
+```
+
+Retrieve the value(s) stored at the given key or index within a collection. The syntax `a[i,j,...]` is converted by the compiler to `getindex(a, i, j, ...)`.
+ 
+See also [`get`](@ref), [`keys`](@ref), [`eachindex`](@ref).
+ 
+
+### Examples
+    
+
+```{julia}
+#| eval: false
+julia> A = Dict("a" => 1, "b" => 2)
+Dict{String, Int64} with 2 entries:
+  "b" => 2
+  "a" => 1
+
+julia> getindex(A, "a")
+1
+
+```
+
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+getindex(A, inds...)
+
+```
+
+Return a subset of array `A` as specified by `inds`, where each `ind` may be, for example, an `Int`, an [`AbstractRange`](@ref), or a [`Vector`](@ref). See the manual section on [array indexing](@ref man-array-indexing) for details.
+ 
+
+### Examples
+    
+
+```{julia}
+#| eval: false
+julia> A = [1 2; 3 4]
+2×2 Matrix{Int64}:
+ 1  2
+ 3  4
+
+julia> getindex(A, 1)
+1
+
+julia> getindex(A, [2, 1])
+2-element Vector{Int64}:
+ 3
+ 1
+
+julia> getindex(A, 2:4)
+3-element Vector{Int64}:
+ 3
+ 2
+ 4
+
+```
+
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+getindex(tree::GitTree, target::AbstractString) -> GitObject
+
+```
+
+Look up `target` path in the `tree`, returning a [`GitObject`](@ref) (a [`GitBlob`](@ref) in the case of a file, or another [`GitTree`](@ref) if looking up a directory).
+ 
+
+### Examples
+    
+
+```{julia}
+#| eval: false
+tree = LibGit2.GitTree(repo, "HEAD^{tree}")
+readme = tree["README.md"]
+subtree = tree["test"]
+runtests = subtree["runtests.jl"]
+
+```
+
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+v = sd[k]
+
+```
+
+Argument `sd` is a SortedDict and `k` is a key. In an expression, this retrieves the value (`v`) associated with the key (or `KeyError` if none). On the left-hand side of an assignment, this assigns or reassigns the value associated with the key. (For assigning and reassigning, see also `insert!` below.) Time: O(*c* log *n*)
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+cb[i]
+
+```
+
+Get the i-th element of CircularBuffer.
+ 
+  * `cb[1]` to get the element at the front
+  * `cb[end]` to get the element at the back
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+getindex(tree, ind)
+
+```
+
+Gets the key present at index `ind` of the tree. Indexing is done in increasing order of key.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Indexes the internal library at a given index.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Index the library with the name of a function
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Returns the library at a given index.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Gets multiple inputs at several indices.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Indexes the internal vector of nodes at a given index.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Indexes the internal vector of nodes at multiple indices.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Indexes the internal vector of nodes at a given index.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Indexes the internal vector of nodes at multiple indices.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+g[iter]
+
+```
+
+Return the subgraph induced by `iter`. Equivalent to [`induced_subgraph`](@ref)`(g, iter)[1]`.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+g[e, Val(:weight)]
+
+```
+
+Return the weight of edge `e`.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+g[i, j, Val(:weight)]
+
+```
+
+Return the weight of edge `(i, j)`.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+g[e, :weight]
+
+```
+
+Return the weight of edge `e`.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+g[i, j, :weight]
+
+```
+
+Return the weight of edge `(i, j)`.
+ 
+
+
+:::
+    
+

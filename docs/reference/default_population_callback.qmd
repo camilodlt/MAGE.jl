@@ -1,0 +1,18 @@
+---
+engine: julia
+---
+
+# default_population_callback {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+A population of size 1 is expanded to a population of size lambda_. 
+ 
+Where each offspring is a `deepcopy` of the only UTGenome in the population.
+ 
+
+
+:::
+    
+

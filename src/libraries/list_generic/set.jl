@@ -28,9 +28,9 @@ bundle_listgeneric_set_factory = FunctionBundle(fallback)
 # Intersect
 function intersect_factory(T::DataType)
     return @eval ((a::Vector{V}, b::Vector{V}, args...) where {V<:$T}) -> begin
-        if CONSTRAINED
-            @assert length(a) < BIG_ARRAY
-            @assert length(b) < BIG_ARRAY
+        if CONSTRAINED[]
+            @assert length(a) < BIG_ARRAY[]
+            @assert length(b) < BIG_ARRAY[]
         end
         return identity.([e for e in intersect(Set(a), Set(b))])
     end
@@ -47,9 +47,9 @@ intersect_ = intersect_factory(Any)
 
 function left_join_factory(T::DataType)
     return @eval ((a::Vector{V}, b::Vector{V}, args...) where {V<:$T}) -> begin
-        if CONSTRAINED
-            @assert length(a) < BIG_ARRAY
-            @assert length(b) < BIG_ARRAY
+        if CONSTRAINED[]
+            @assert length(a) < BIG_ARRAY[]
+            @assert length(b) < BIG_ARRAY[]
         end
         # Intersect
         a_set = Set(a)
@@ -71,9 +71,9 @@ left_join = left_join_factory(Any)
 
 function intersect_with_duplicates_factory(T::DataType)
     return @eval ((a::Vector{V}, b::Vector{V}, args...) where {V<:$T}) -> begin
-        if CONSTRAINED
-            @assert length(a) < BIG_ARRAY
-            @assert length(b) < BIG_ARRAY
+        if CONSTRAINED[]
+            @assert length(a) < BIG_ARRAY[]
+            @assert length(b) < BIG_ARRAY[]
         end
         common = intersect(Set(a), Set(b))
         res = []

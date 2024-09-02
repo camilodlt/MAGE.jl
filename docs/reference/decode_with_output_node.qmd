@@ -1,0 +1,31 @@
+---
+engine: julia
+---
+
+# decode_with_output_node {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+decode_with_output_node(
+    ut_genome::UTGenome,
+    output_node::OutputNode,
+    meta_library::MetaLibrary,
+    model_architecture::modelArchitecture,
+    shared_inputs::SharedInput,
+)::Program
+
+```
+
+Decodes a single program, that is, the sequence of `Operation`s needed to calculate the output value of a single output node.
+ 
+Returns a `Program`, which is a series of operations (from last to first) and holds a `SharedInput` reference which can be modified in order to change the inputs for the program without decoding again. 
+ 
+
+
+:::
+    
+

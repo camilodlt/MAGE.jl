@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# sn_db_name_edge {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+sn_db_name_edge(params::UTCGP.ParametersStandardEpoch)
+
+```
+
+Returns the db_name n times.  n is the length of the population. 
+ 
+
+
+:::
+    
+

@@ -1,0 +1,16 @@
+---
+engine: julia
+---
+
+# add_pop_loss_to_ind_tracker! {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Puts a loss for every individual on a single sample
+ 
+
+
+:::
+    
+

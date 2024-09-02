@@ -1,0 +1,36 @@
+---
+engine: julia
+---
+
+# ManualDispatcher {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+ManualDispatcher
+ 
+Dispatches on the first type matching functions inside the dispatcher.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+ManualDispatcher(fns::Tuple{Vararg{<:Function}}, name::Symbol)
+
+```
+
+Constructor
+ 
+
+
+:::
+    
+

@@ -1,0 +1,25 @@
+---
+engine: julia
+---
+
+# listinteger_caster {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+listinteger_caster(l :: Vector{<:Number})
+
+```
+
+Cast a vector of generic Number type to concrete Int64 type. 
+ 
+Numbers are floored.
+ 
+
+
+:::
+    
+

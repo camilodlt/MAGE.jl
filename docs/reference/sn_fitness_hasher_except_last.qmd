@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# sn_fitness_hasher_except_last {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+sn_fitness_hasher_except_last(params::UTCGP.ParametersStandardEpoch)
+
+```
+
+It just returns the `ind_performances` attribute in the `params` (which are the fitnesses per individual). The last element in the population is ignored because it's the parent. 
+ 
+
+
+:::
+    
+

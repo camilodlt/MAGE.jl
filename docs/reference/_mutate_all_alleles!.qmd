@@ -1,0 +1,18 @@
+---
+engine: julia
+---
+
+# _mutate_all_alleles! {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Replace all element values with a new `random_element_value`.
+ 
+It uses `set_node_element_value!` so the frozen state of the elements is respected.
+ 
+
+
+:::
+    
+

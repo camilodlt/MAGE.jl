@@ -1,5 +1,4 @@
 #############################################
-using Base.Threads: FloatTypes
 # NODE MATERIAL (the vector repr of the node)
 #############################################
 
@@ -86,7 +85,6 @@ function extract_parameters_from_node(node::AbstractEvolvableNode)::Vector{CGPEl
     return params
 end
 
-
 function extract_connexions_types_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     connexions_types =
         [element for element in node.node_material.material if element.element_type == TYPE]
@@ -136,8 +134,8 @@ Base.iterate(n::AbstractNode, state = 1) =
 mutable struct InputNode <: AbstractNonEvolvableNode
     node_material::NodeMaterial
     value::Any
-    x_postion::Int
-    x_real_postion::Int
+    x_position::Int
+    x_real_position::Int
     y_position::Int
     id::String
 
@@ -152,6 +150,16 @@ mutable struct InputNode <: AbstractNonEvolvableNode
             id,
         )
     end
+end
+
+function get_node_value(x::InputNode)
+    get_node_value(x.value)
+end
+function get_node_value(x::SubArray{InputNode,0})
+    x[1].value
+end
+function get_node_value(x::Any)
+    x
 end
 
 mutable struct CGPNode <: AbstractGenomeNode
@@ -189,8 +197,8 @@ end
 mutable struct OutputNode <: AbstractOutputNode
     node_material::NodeMaterial
     value::Any
-    x_postion::Int
-    x_real_postion::Int
+    x_position::Int
+    x_real_position::Int
     y_position::Int
     id::String
 
@@ -214,5 +222,122 @@ mutable struct OutputNode <: AbstractOutputNode
     )
         id = "node ($x_pos,$y_pos)"
         return new(nm, value, x_pos, x_real_pos, y_pos, id)
+    end
+end
+
+
+####################################
+# PARAMETRIC NODES
+####################################
+abstract type AbstractParametricNode{T} <: AbstractEvolvableNode end
+abstract type AbstractParametricInputNode{T} <: AbstractParametricNode{T} end # Genome nodes
+abstract type AbstractParametricGenomeNode{T} <: AbstractParametricNode{T} end # Genome nodes
+abstract type AbstractParametricOutputNode{T} <: AbstractParametricNode{T} end # Output Nodes
+
+struct InputNodeP{T} <: AbstractParametricInputNode{T}
+    node_material::NodeMaterial
+    is_set::Ref{Bool}
+    value::Ref{T}
+    x_position::Int
+    x_real_position::Int
+    y_position::Int
+    id::String
+
+    function InputNodeP(
+        value::Ref{T},
+        x_pos::Int,
+        x_real_pos::Int,
+        y_pos::Int,
+    ) where {T<:DataType}
+        id = "inp ($x_pos,$y_pos)"
+        return new{T}(
+            NodeMaterial(), # empty node material
+            Ref{Bool}(false),
+            value,
+            x_pos,
+            x_real_pos,
+            y_pos,
+            id,
+        )
+    end
+end
+
+struct CGPNodeP{T} <: AbstractParametricGenomeNode{T}
+    node_material::NodeMaterial
+    is_set::Ref{Bool}
+    value::Ref{T}
+    x_position::Int
+    x_real_position::Int
+    y_position::Int
+    id::String
+
+    function CGPNodeP(
+        nm::NodeMaterial,
+        value::Ref{T},
+        x_pos::Int,
+        x_real_pos::Int,
+        y_pos::Int,
+    ) where {T}
+        id = "nd ($x_pos,$y_pos)"
+        return new{T}(
+            nm,# empty node material
+            Ref{Bool}(false),
+            value,
+            x_pos,
+            x_real_pos,
+            y_pos,
+            id,
+        )
+    end
+
+    function CGPNodeP(value::Ref{T}, x_pos::Int, x_real_pos::Int, y_pos::Int) where {T}
+        nm = NodeMaterial()
+        return CGPNodeP(nm, value, x_pos, x_real_pos, y_pos)
+    end
+end
+
+struct OutputNodeP{T} <: AbstractParametricOutputNode{T}
+    node_material::NodeMaterial
+    is_set::Ref{Bool}
+    value::Ref{T}
+    x_position::Int
+    x_real_position::Int
+    y_position::Int
+    id::String
+
+    function OutputNodeP(
+        nm::NodeMaterial,
+        value::Ref{T},
+        x_pos::Int,
+        x_real_pos::Int,
+        y_pos::Int,
+    ) where {T}
+        id = "node ($x_pos,$y_pos)"
+        return new{T}(nm, Ref{Bool}(false), value, x_pos, x_real_pos, y_pos, id)
+    end
+    function OutputNodeP(value::Ref{T}, x_pos::Int, x_real_pos::Int, y_pos::Int) where {T}
+        nm = NodeMaterial()
+        return OutputNodeP(nm, value, x_pos, x_real_pos, y_pos)
+    end
+end
+
+# API
+function get_node_value(node::AbstractParametricNode{T})::T where {T}
+    node.is_set[] ? node.value[] : nothing
+end
+
+function get_node_value(x::SubArray{InputNodeP{T},0})::T where {T}
+    get_node_value(x[1])
+end
+
+function reset_node_value!(node::AbstractParametricNode{T}) where {T}
+    node.is_set[] = nothing
+end
+
+function set_node_value!(node::AbstractParametricNode{T}, val::T) where {T}
+    if node.is_set[]
+        node.value[] = val
+    else
+        @warn "Node was set so set_node_value! was omitted"
     end
 end

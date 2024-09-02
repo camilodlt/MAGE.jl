@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# _assert_keys_in_allowed {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+_assert_keys_in_allowed(d::OrderedDict{K,V}, allowed::Vector{String}) where {K,V}
+
+```
+
+Asserts that the order of the columns is correct. i.e. every key in `d` is the corresponding column at that index in `allowed`
+ 
+
+
+:::
+    
+

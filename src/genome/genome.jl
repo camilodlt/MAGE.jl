@@ -45,12 +45,38 @@ Base.getindex(shared_inputs::AbstractGenomeInputs, i::Vector{<:Int}) =
     shared_inputs.inputs[i]
 
 """
-
+From a SharedInput obj, it replaces the inputs while keeping the same object. 
+The new inputs must have the same size as the SharedInput
 """
 function replace_shared_inputs!(si::SharedInput, new_inputs::Vector{InputNode})
     @assert length(si) == length(new_inputs) "There must be the same number of inputs it order to replace them. $(length(si)) vs $(length(new_inputs)) "
     empty!(si.inputs)
     push!(si.inputs, new_inputs...)
+end
+
+"""
+From a SharedInput obj, it replaces the inputs while keeping the same object. 
+The `new_inputs` replace the values of the old inputs. 
+"""
+function replace_shared_inputs!(si::SharedInput, new_inputs::Vector{A}) where {A}
+    @assert length(si) == length(new_inputs) "There must be the same number of inputs it order to replace them. $(length(si)) vs $(length(new_inputs)) "
+    for (old_input, new_input) in zip(si.inputs, new_inputs)
+        set_node_value!(old_input, new_input)
+    end
+end
+
+"""
+    Base.similar(lazy_inputs::SharedInput)
+"""
+function Base.similar(lazy_inputs::SharedInput)
+    ins = []
+    for (input_ith, input) in enumerate(lazy_inputs.inputs)
+        empty_node =
+            InputNode(nothing, input.x_position, input.x_real_position, input.y_position)
+        set_node_value!(empty_node, @view lazy_inputs.inputs[input_ith])
+        push!(ins, empty_node)
+    end
+    SharedInput(ins)
 end
 
 ################
@@ -106,7 +132,7 @@ Base.getindex(genome::AbstractGenome, i::Vector{<:Int}) = genome.chromosome[i]
 ################
 struct UTGenome <: AbstractMetaGenome
     genomes::Vector{<:AbstractGenome}
-    output_nodes::Vector{OutputNode}
+    output_nodes::Vector{AbstractOutputNode}
 end
 """
     size(genome::AbstractMetaGenome)

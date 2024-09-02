@@ -6,3 +6,10 @@ function get_fn_from_symbol(fn_name::Symbol)
     end
     return fn
 end
+
+@inline function get_fn_from_symbol(fn::Function)
+    fn
+end
+@inline function get_fn_from_symbol(fn::AbstractCallable)
+    fn
+end

@@ -47,7 +47,7 @@ function subtract_image2D_factory(i::Type{I}) where {I<:InputType}
         S = CONCT.parameters[1] # Tuple{X,Y}
         img3 = float(img1) - float(img2)
         clamp01nan!(img3)
-        return SImageND(img3, S)
+        return SImageND($TT.(img3), S)
     end
     return m1
 end
@@ -75,7 +75,7 @@ function add_image2D_factory(i::Type{I}) where {I<:InputType}
         S = CONCT.parameters[1] # Tuple{X,Y}
         img3 = float(img1) + float(img2)
         clamp01nan!(img3)
-        return SImageND(img3, S)
+        return SImageND($TT.(img3), S)
     end
     return m1
 end
@@ -103,7 +103,7 @@ function mult_image2D_factory(i::Type{I}) where {I<:InputType}
         S = CONCT.parameters[1] # Tuple{X,Y}
         img3 = float(img1) * float(img2)
         clamp01nan!(img3)
-        return SImageND(img3, S)
+        return SImageND($TT.(img3), S)
     end
     return m1
 end

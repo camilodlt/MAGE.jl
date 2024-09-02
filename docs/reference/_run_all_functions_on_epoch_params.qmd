@@ -1,0 +1,36 @@
+---
+engine: julia
+---
+
+# _run_all_functions_on_epoch_params {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+_run_all_hashers_on_epoch_params(
+    params::UTCGP.ParametersStandardEpoch,
+    writer::Abstract_SN_Writer,
+)
+
+_run_all_functions_on_epoch_params(
+    params::UTCGP.ParametersStandardEpoch,
+    writer::Abstract_SN_Writer,
+    ::sn.Abstract_Nodes,
+)
+
+```
+
+The `writer` has a bunch of hash function, for each column in the DB. Some functions will provide information for each edge (i.e. `edges_prop_getters`) and some will provide information (a hash) for each node (i.e. `nodes_hashers`). 
+ 
+This function executes all functions with the epoch `params` as input (either for edges or for nodes). It  is up to the hash function to know which information it hashes. And, it is up to the caller to modify the `params` if needed (selecting only the elite for example).
+ 
+The function returns a column view which is an OrderedDict with :     - keys : the keys in the `writer`     - values : A vector with the hashed values (or properties) for all individuals 
+ 
+
+
+:::
+    
+

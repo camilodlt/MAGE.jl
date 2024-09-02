@@ -25,7 +25,7 @@ import UTCGP:
     MAX_FLOAT,
     _positive_params,
     _ceil_positive_params
-using ImageCore: N0f8, Normed
+using ImageCore: N0f8, Normed, clamp01nan!
 using ..UTCGP:
     SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type
 
@@ -70,7 +70,11 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
-    m1 = @eval ((img::CONCT, w::Int, p::Int, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    m1 = @eval (
+        (img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {CONCT<:$I}
+    ) -> begin
+        w = round(Int, w_n)
+        p = round(Int, p_n)
         # max window size
         img_w, img_h = _extract_image_size_from_image_type(CONCT)
         max_w::Int = floor(Int, min(img_w, img_h))
@@ -78,22 +82,29 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage}
         p = clamp(p, 0, 100) # percentage diff of pixel t for calling it background
         w = clamp(w, 9, max_w)
         f = AdaptiveThreshold(window_size = w, percentage = p)
-        return SImageND(binarize(img.img, f))
+        res = binarize(img.img, f)
+        clamp01nan!(res)
+        return SImageND($TT.(res))
     end
 
-    m2 = @eval ((img::CONCT, w::Int, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    m2 = @eval ((img::CONCT, w_n::Number, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+        w = round(Int, w_n)
         # max window size
         img_w, img_h = _extract_image_size_from_image_type(CONCT)
         max_w::Int = floor(Int, min(img_w, img_h))
 
         w = clamp(w, 9, max_w)
         f = AdaptiveThreshold(window_size = w)
-        return SImageND(binarize(img.img, f))
+        res = binarize(img.img, f)
+        clamp01nan!(res)
+        return SImageND($TT.(res))
     end
 
     m3 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
         f = AdaptiveThreshold(img.img) # adaptive window size and percentage
-        return SImageND(binarize(img.img, f))
+        res = binarize(img.img, f)
+        clamp01nan!(res)
+        return SImageND($TT.(res))
     end
 
     ManualDispatcher((m1, m2, m3), :binarize_adaptive2D)
@@ -118,7 +129,8 @@ function binarizeManual_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
-    m1 = @eval ((img::CONCT, t::Int, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    m1 = @eval ((img::CONCT, t_n::Number, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+        t = round(Int, t_n)
         t_f = t / 100
         t_f = clamp(t_f, 0.0, 1.0) # new th
         new_img = float(img.img) .> t_f

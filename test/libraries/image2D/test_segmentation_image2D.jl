@@ -108,3 +108,17 @@ end
     end
 end
 
+###############
+# Mean shift   #
+###############
+
+@testset "Image2D Segmentation: meanshift_image2D_factory(T) " begin
+    @test begin
+        fac = UTCGP.bundle_image2D_segmentation_factory[:meanshift_2D].fn
+        dp = fac(SImageND{Tuple{10,10},N0f8,2})
+        ones_ = ones(N0f8, 10, 10)
+        ones_[5, 5] = 0
+        ones_ = SImageND(ones_)
+        size(ones_) == (10, 10)
+    end
+end

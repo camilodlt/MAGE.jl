@@ -1,0 +1,32 @@
+---
+engine: julia
+---
+
+# _calc_individual_unique_hash {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+_calc_individual_unique_hash(
+    extra_hashes::OrderedDict{String,Vector{T}},
+    index_at::Int,
+) where {T}
+
+```
+
+The `id_hash` is the sha256 of the union of all hashes for a given individual at position `index_at`.
+ 
+Example :
+ 
+The `column_view` has 2 keys "hash1" and "hash2". There are 2 individuals hashed. {     "hash1" => ["a","b"]     "hash2" => ["1", "2"] }
+ 
+For `index_at` of 1, it will perform the sha algorithm of ["a", "1"], and for an `index_at` of 2, it will perform the hashing on ["b","2"].
+ 
+
+
+:::
+    
+

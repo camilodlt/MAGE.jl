@@ -1,0 +1,16 @@
+---
+engine: julia
+---
+
+# ParametersStandardEpoch {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+The normal parameters accepted for an epoch callback.
+ 
+
+
+:::
+    
+

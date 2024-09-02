@@ -48,8 +48,8 @@ bundle_listinteger_iscond = FunctionBundle(fallback)
 Indicator function. 1 where element is > 0
 """
 function is_sup_0(from::Vector{<:Number}, args...)
-    if CONSTRAINED
-        bound = min(length(from), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(from), SMALL_ARRAY[])
         return Int.(from[begin:bound] .> 0)
     end
     return Int.(from .> 0)
@@ -63,8 +63,8 @@ end
 Indicator function. 1 where element is == 0
 """
 function is_eq_0(from::Vector{<:Number}, args...)
-    if CONSTRAINED
-        bound = min(length(from), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(from), SMALL_ARRAY[])
         return Int.(from[begin:bound] .== 0)
     end
     return Int.(from .== 0)
@@ -78,8 +78,8 @@ end
 Indicator function. 1 where element is < 0
 """
 function is_less_0(from::Vector{<:Number}, args...)
-    if CONSTRAINED
-        bound = min(length(from), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(from), SMALL_ARRAY[])
         return Int.(from[begin:bound] .< 0)
     end
     return Int.(from .< 0)
@@ -95,8 +95,8 @@ end
 Indicator function. 1 where element is `==` to `to`.
 """
 function is_eq_to(from::Vector{<:Number}, to::Number, args...)
-    if CONSTRAINED
-        bound = min(length(from), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(from), SMALL_ARRAY[])
         return Int.(from[begin:bound] .== to)
     end
     return Int.(from .== to)
@@ -112,8 +112,8 @@ end
 For every tuple of elements (a,b), return whether a>b.
 """
 function compare_tuple_a_gr_b(combinations::Vector{Tuple{T,T}}, args...) where {T<:Number}
-    if CONSTRAINED
-        bound = min(length(combinations), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(combinations), SMALL_ARRAY[])
         odds = [Int(a > b) for (a, b) in combinations[begin:bound]]
         return odds
     end
@@ -126,8 +126,8 @@ end
 For every tuple of elements (a,b), return whether a==b.
 """
 function compare_tuple_a_eq_b(combinations::Vector{Tuple{T,T}}, args...) where {T<:Number}
-    if CONSTRAINED
-        bound = min(length(combinations), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(combinations), SMALL_ARRAY[])
         odds = [Int(a == b) for (a, b) in combinations[begin:bound]]
         return odds
     end
@@ -140,8 +140,8 @@ end
 For every tuple of elements (a,b), return whether a<b.
 """
 function compare_tuple_a_less_b(combinations::Vector{Tuple{T,T}}, args...) where {T<:Number}
-    if CONSTRAINED
-        bound = min(length(combinations), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(combinations), SMALL_ARRAY[])
         odds = [Int(a < b) for (a, b) in combinations[begin:bound]]
         return odds
     end
@@ -157,8 +157,8 @@ Returns a vector of the same size where each element is :
     - 0 otherwise 
 """
 function is_more_than_right(x::Vector{T}, args...) where {T<:Number}
-    if CONSTRAINED
-        @assert length(x) <= SMALL_ARRAY
+    if CONSTRAINED[]
+        @assert length(x) <= SMALL_ARRAY[]
     end
     l = T[]
     for (ith, n) in enumerate(x)
@@ -176,8 +176,8 @@ Returns a vector of the same size where each element is :
     - 0 otherwise 
 """
 function is_more_eq_than_right(x::Vector{T}, args...) where {T<:Number}
-    if CONSTRAINED
-        @assert length(x) <= SMALL_ARRAY
+    if CONSTRAINED[]
+        @assert length(x) <= SMALL_ARRAY[]
     end
     l = T[]
     for (ith, n) in enumerate(x)
@@ -197,8 +197,8 @@ Returns a vector of the same size as `v` where each element is :
 The first element is always 0.
 """
 function is_eq_to_prev(v::Vector{T}, args...) where {T}
-    if CONSTRAINED
-        @assert length(v) <= SMALL_ARRAY
+    if CONSTRAINED[]
+        @assert length(v) <= SMALL_ARRAY[]
     end
     is_eq = zeros(Int, length(v))
     for (pos, cur) in enumerate(v)
@@ -220,8 +220,8 @@ Retunrs a vector of the same size where an element is :
     - 0 otherwise
 """
 function even_indices_mask(v::Vector{<:Any}, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return [(i % 2 == 0) ? 1 : 0 for (i, _) in enumerate(v[begin:bound])]
     end
     return [(i % 2 == 0) ? 1 : 0 for (i, _) in enumerate(v)]
@@ -236,8 +236,8 @@ Retunrs a vector of the same size where an element is :
     - 0 otherwise
 """
 function odd_indices_mask(v::Vector{<:Any}, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return [(i % 2 != 0) ? 1 : 0 for (i, _) in enumerate(v[begin:bound])]
     end
     return [(i % 2 != 0) ? 1 : 0 for (i, _) in enumerate(v)]
@@ -254,8 +254,8 @@ Returns a vector of the same size as `v` where each element is :
     - 0 otherwise
 """
 function mask(v::Vector{<:Number}, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return Int.(v[begin:bound] .> 0)
     end
     return Int.(v .> 0)
@@ -269,8 +269,8 @@ Returns a vector of the same size as `v` where each element is :
     - 1 otherwise
 """
 function inverse_mask(v::Vector{<:Number}, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return Int.(v[begin:bound] .<= 0)
     end
     return Int.(v .<= 0)
@@ -288,8 +288,8 @@ Returns a list of the same size as `v` where each element is :
     - 0 otherwise
 """
 function greater_than_broadcast(v::Vector{<:Number}, than::Number, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return Int.(v[begin:bound] .> than)
     end
     return Int.(v .> than)
@@ -303,8 +303,8 @@ Returns a list of the same size as `v` where each element is :
     - 0 otherwise
 """
 function less_than_broadcast(v::Vector{<:Number}, than::Number, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return Int.(v[begin:bound] .< than)
     end
     return Int.(v .< than)
@@ -318,8 +318,8 @@ Returns a list of the same size as `v` where each element is :
     - 0 otherwise
 """
 function eq_broadcast(v::Vector{<:Number}, than::Number, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return Int.(v[begin:bound] .== than)
     end
     return Int.(v .== than)
@@ -333,9 +333,9 @@ end
 """
 """
 function compare_two_vectors(v1::Vector{T}, v2::Vector{T}, args...) where {T}
-    if CONSTRAINED
-        @assert length(v1) <= SMALL_ARRAY
-        @assert length(v2) <= SMALL_ARRAY
+    if CONSTRAINED[]
+        @assert length(v1) <= SMALL_ARRAY[]
+        @assert length(v2) <= SMALL_ARRAY[]
     end
     @assert length(v1) == length(v2)
     return Int.(v1 .== v2)

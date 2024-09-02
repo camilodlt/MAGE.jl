@@ -1,0 +1,4 @@
+[deps]
+MAGE_RADIOMICS_EXT = "53e1843f-b1da-40c4-9db3-ae00929378b1"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+UTCGP = "956831e1-0a7a-492a-ae16-058c6128a9f2"

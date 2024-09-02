@@ -1,0 +1,16 @@
+---
+engine: julia
+---
+
+# _ceil_positive_params {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Type Stable
+ 
+
+
+:::
+    
+

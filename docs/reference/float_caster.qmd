@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# float_caster {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+float_caster(i::Number)
+
+```
+
+Returns the number as Float64
+ 
+
+
+:::
+    
+

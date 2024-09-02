@@ -1,0 +1,49 @@
+---
+engine: julia
+---
+
+# mutate_per_allele! {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+mutate_per_allele!(node::OutputNode, run_config::runConf)
+
+```
+
+Uses the `runConf.output_mutation_rate` to decide whether to mutate each  allele (element) of a node. An allele is mutated if a random float between 0 and 1 is inferior than the mutation value. See [`where_to_mutate`](@ref) for more info. 
+ 
+The mutation for each node element that ought to be mutated is done with `random_element_value` Hence, a uniform mutation across min-max bounds. 
+ 
+Returns the number of elements submitted to mutation.
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+mutate_per_allele!(node::AbstractEvolvableNode, run_config::runConf)
+
+```
+
+Uses the `runConf.mutation_rate` to decide whether to mutate each  allele (element) of a node. An allele is mutated if a random float between 0 and 1 is inferior than the mutation value. See [`where_to_mutate`](@ref) for more info. 
+ 
+The mutation for each node element that ought to be mutated is done with `random_element_value` Hence, a uniform mutation across min-max bounds. 
+ 
+Returns the number of elements submitted to mutation.
+ 
+
+
+:::
+    
+
