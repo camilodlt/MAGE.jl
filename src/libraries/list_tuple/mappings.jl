@@ -27,9 +27,9 @@ bundle_listtuple_mappings_factory = FunctionBundle(fallback)
 # Mappings a=>b --- 
 function mappings_a_to_b_factory(T::DataType)
     return @eval ((from::Vector{V}, to::Vector{V}, args...) where {V<:$T}) -> begin
-        if CONSTRAINED
-            @assert length(from) <= SMALL_ARRAY
-            @assert length(to) <= SMALL_ARRAY
+        if CONSTRAINED[]
+            @assert length(from) <= SMALL_ARRAY[]
+            @assert length(to) <= SMALL_ARRAY[]
         end
         tuples = [(a, b) for (a, b) in zip(from, to)]
         return tuples

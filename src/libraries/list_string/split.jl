@@ -25,8 +25,8 @@ bundle_liststring_split = FunctionBundle(fallback)
 """ 
 """
 function split_string_to_vector(s::String, by::String, args...)
-    if CONSTRAINED
-        bound = min(length(s), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(s), SMALL_ARRAY[])
         return String.(split(s[begin:bound], by))
     end
     return String.(split(s, by))

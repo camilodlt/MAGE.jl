@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# _nb_of_processed_individuals {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+_nb_of_processed_individuals(d::OrderedDict{String,Vector{Any}})
+
+```
+
+Returns the number of individuals from the column view. 
+ 
+
+
+:::
+    
+

@@ -1,4 +1,4 @@
-abstract type AbstractManualDispatcher{T} end
+abstract type AbstractManualDispatcher{T} <: Function end
 abstract type AbstractSequentialManualDispatcher{T<:Tuple} <: AbstractManualDispatcher{T} end
 abstract type AbstractFunctionLookup end
 abstract type AbstractFunction end
@@ -15,13 +15,13 @@ ArgsTypes = Tuple{Vararg{<:Type}}
 
 function _create_fn_lookup()
     SafeFunctions = Dict{Type,IsGood}()
-    SafeFunctionsLock = Threads.SpinLock()
+    SafeFunctionsLock = Base.ReentrantLock()
     return (SafeFunctions, SafeFunctionsLock)
 end
 
 struct FunctionLookup <: AbstractFunctionLookup
     lookup::Dict{Type,IsGood}
-    lock::Threads.SpinLock
+    lock::Base.ReentrantLock
 end
 
 function FunctionLookup()
@@ -152,11 +152,14 @@ function (dp::ManualDispatcher{FT})(inputs::T) where {T<:Tuple{Vararg{Any}},FT}
 end
 
 function (dp::ManualDispatcher{FT})(inputs::Vararg{Any}) where {FT}
+
     tt = typeof.(inputs)
     fn = _which_fn_in_manual_dispatcher(dp, tt)
     # isnothing(fn) && throw(MethodError(dp, tt))
     if isnothing(fn) || !(fn isa Function)
-        throw(MethodError(dp, tt))
+        # msg::MethodError = MethodError(sum, tt)
+        msg = MethodError(dp, 1)
+        throw(msg)
     else
         fn_sure = identity(fn)
         return fn_sure(inputs...)

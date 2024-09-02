@@ -1,0 +1,16 @@
+---
+engine: julia
+---
+
+# get_integer_bundles {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+integer_bundles
+ 
+
+
+:::
+    
+

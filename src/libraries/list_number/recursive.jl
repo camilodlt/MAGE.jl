@@ -38,8 +38,8 @@ The size of the return is the same as
 the size of the input.
 """
 function recsum(from::Vector{<:Number}, args...)
-    if CONSTRAINED
-        bound = min(length(from), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(from), SMALL_ARRAY[])
         from = from[begin:bound]
     end
     s = 0 # it will get promoted to the type of the other numbers
@@ -57,7 +57,7 @@ The first entry of the vector is returned as is.
 """
 function recmult(init_number::Number, mult_by::Number, n_times::Int, args...)
     @assert n_times < 10_000
-    if CONSTRAINED
+    if CONSTRAINED[]
         @assert mult_by < 10000
         @assert mult_by > -10000
     end
@@ -77,8 +77,8 @@ end
 Returns the range between 1 (inclusive) and max_n (inclusive).
 """
 function range_(max_n::Number, args...)
-    if CONSTRAINED
-        @assert max_n <= SMALL_ARRAY
+    if CONSTRAINED[]
+        @assert max_n <= SMALL_ARRAY[]
     end
     return collect(1:max_n)
 end

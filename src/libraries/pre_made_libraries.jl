@@ -246,6 +246,17 @@ end
 floatinteger_bundles
 """
 function get_float_bundles()
+    factories = [bundle_element_conditional_factory]
+    factories = [deepcopy(b) for b in factories]
+    for factory_bundle in factories
+        for (i, wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(Float64)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+        end
+    end
+
     float_bundles = [
         bundle_float_basic,
         bundle_integer_find,
@@ -254,8 +265,9 @@ function get_float_bundles()
         bundle_number_arithmetic,
         bundle_number_reduce,
         bundle_element_pick,
-        bundle_element_conditional,
         bundle_number_transcendental,
+        bundle_number_reduceFromImg,
+        factories...,
     ]
     float_bundles = [deepcopy(b) for b in float_bundles]
     # Update Casters && Fallbacks
@@ -318,16 +330,6 @@ end
 Image Bundles
 """
 
-function get_image2D_bundles()
-    bundle_images = [bundle_image2D_basic, bundle_image2D_morph, bundle_image2D_binarize]
-
-    # Update Casters && Fallbacks
-    # for b in bundle_images
-    # update_caster!(b, ())
-    # update_fallback!(b, () -> SImageND)
-    # end
-    return deepcopy(bundle_images)
-end
 function get_image2D_factory_bundles()
     bundle_images = [
         bundle_image2D_basic_factory,
@@ -335,8 +337,9 @@ function get_image2D_factory_bundles()
         bundle_image2D_binarize_factory,
         bundle_image2D_segmentation_factory,
         bundle_image2D_arithmetic_factory,
-        # bundle_image2D_barithmetic_factory, # TODO 
-        # bundle_image2D_transcendental_factory, # TODO
+        bundle_image2D_barithmetic_factory,
+        bundle_image2D_transcendental_factory,
+        bundle_image2D_filtering_factory,
     ]
 
     # Update Casters && Fallbacks

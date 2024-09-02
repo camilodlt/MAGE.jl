@@ -130,10 +130,10 @@ end
 
     # ONES(K) Clamped by globals
     @test begin
-        prev = UTCGP.MAX_INT
-        prev_c = UTCGP.CONSTRAINED
-        UTCGP.MAX_INT = 3
-        UTCGP.CONSTRAINED = true
+        prev = UTCGP.MAX_INT[]
+        prev_c = UTCGP.CONSTRAINED[]
+        UTCGP.MAX_INT[] = 3
+        UTCGP.CONSTRAINED[] = true
         cond = false
         try
             res = dp((100,)) # not allowed -
@@ -142,8 +142,8 @@ end
             cond = false
             throw(e)
         finally
-            UTCGP.MAX_INT = prev
-            UTCGP.CONSTRAINED = prev_c
+            UTCGP.MAX_INT[] = prev
+            UTCGP.CONSTRAINED[] = prev_c
         end
         cond
     end
@@ -201,10 +201,10 @@ end
 
     # ONES(K,K) Clamped by globals
     @test begin
-        prev = UTCGP.MAX_INT
-        prev_c = UTCGP.CONSTRAINED
-        UTCGP.MAX_INT = 3
-        UTCGP.CONSTRAINED = true
+        prev = UTCGP.MAX_INT[]
+        prev_c = UTCGP.CONSTRAINED[]
+        UTCGP.MAX_INT[] = 3
+        UTCGP.CONSTRAINED[] = true
         cond = false
         try
             res = dp((100, 2)) # not allowed -
@@ -213,8 +213,8 @@ end
             cond = false
             throw(e)
         finally
-            UTCGP.MAX_INT = prev
-            UTCGP.CONSTRAINED = prev_c
+            UTCGP.MAX_INT[] = prev
+            UTCGP.CONSTRAINED[] = prev_c
         end
         cond
     end
@@ -298,10 +298,10 @@ end
 
     # ZEROS(K) Clamped by globals
     @test begin
-        prev = UTCGP.MAX_INT
-        prev_c = UTCGP.CONSTRAINED
-        UTCGP.MAX_INT = 3
-        UTCGP.CONSTRAINED = true
+        prev = UTCGP.MAX_INT[]
+        prev_c = UTCGP.CONSTRAINED[]
+        UTCGP.MAX_INT[] = 3
+        UTCGP.CONSTRAINED[] = true
         cond = false
         try
             res = dp((100,)) # not allowed -
@@ -310,8 +310,8 @@ end
             cond = false
             throw(e)
         finally
-            UTCGP.MAX_INT = prev
-            UTCGP.CONSTRAINED = prev_c
+            UTCGP.MAX_INT[] = prev
+            UTCGP.CONSTRAINED[] = prev_c
         end
         cond
     end
@@ -371,10 +371,10 @@ end
 
     # ZEROS(K,K) Clamped by globals
     @test begin
-        prev = UTCGP.MAX_INT
-        prev_c = UTCGP.CONSTRAINED
-        UTCGP.MAX_INT = 3
-        UTCGP.CONSTRAINED = true
+        prev = UTCGP.MAX_INT[]
+        prev_c = UTCGP.CONSTRAINED[]
+        UTCGP.MAX_INT[] = 3
+        UTCGP.CONSTRAINED[] = true
         cond = false
         try
             res = dp((100, 2)) # not allowed -
@@ -383,8 +383,8 @@ end
             cond = false
             throw(e)
         finally
-            UTCGP.MAX_INT = prev
-            UTCGP.CONSTRAINED = prev_c
+            UTCGP.MAX_INT[] = prev
+            UTCGP.CONSTRAINED[] = prev_c
         end
         cond
     end

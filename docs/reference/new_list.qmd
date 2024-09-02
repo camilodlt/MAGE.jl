@@ -1,0 +1,18 @@
+---
+engine: julia
+---
+
+# new_list {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+BAD FN to test dispatch. 
+ 
+DO not use
+ 
+
+
+:::
+    
+

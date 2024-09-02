@@ -5,7 +5,7 @@ using UTCGP.listgeneric_set: left_join
 @testset "Set" begin
     @test begin
         # bundle import
-        length(bundle_listgeneric_set) == 2 &&
+        length(bundle_listgeneric_set) == 3 &&
             _unique_names_in_bundle(bundle_listgeneric_set)
     end
 
@@ -43,5 +43,6 @@ using UTCGP.listgeneric_set: left_join
         b = ["2", "3"]
         left_join(a, b)
     end
-
 end
+
+# TODO there is a third function to test.

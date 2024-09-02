@@ -14,6 +14,7 @@ Exports :
 
 module image2D_basic
 
+using ImageCore: clamp01nan!, Normed, float64
 using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
@@ -104,27 +105,29 @@ function ones_2D_factory(i::Type{I}) where {I<:SizedImage}
 
     Returns a matrix of ones in N0f8 with size `(k,k)`.
     """
-    m2 = @eval (k1::Int, k2::Int, args::Vararg{Any}) -> begin
-        k1, k2 = _positive_params(k1, k2)
-        if CONSTRAINED
-            k1, k2 = _ceil_positive_params(k1, k2)
-        end
-        return SImageND(ones($TT, k1, k2))
-    end
+    # m2 = @eval (k1_n::Number, k2_n::Number, args::Vararg{Any}) -> begin
+    #     k1 = round(Int, k1_n)
+    #     k2 = round(Int, k2_n)
+    #     k1, k2 = _positive_params(k1, k2)
+    #     if CONSTRAINED[]
+    #         k1, k2 = _ceil_positive_params(k1, k2)
+    #     end
+    #     return SImageND(ones($TT, k1, k2))
+    # end
 
     """
         ones_(k::Integer, args...)::Array{N0f8,2}
 
     Returns a matrix of ones in N0f8 with size `(k,k)`.
     """
-    m3 = @eval (k::Int, args::Vararg{Any}) -> begin
-        k, = _positive_params(k) # dim cannot be less than 1
-        if CONSTRAINED
-            k, = _ceil_positive_params(k)
-        end
-        return SImageND(ones($TT, k, k))
-    end
-    return ManualDispatcher((m1, m2, m3), :ones_2D)
+    # m3 = @eval (k::Int, args::Vararg{Any}) -> begin
+    #     k, = _positive_params(k) # dim cannot be less than 1
+    #     if CONSTRAINED[]
+    #         k, = _ceil_positive_params(k)
+    #     end
+    #     return SImageND(ones($TT, k, k))
+    # end
+    return ManualDispatcher((m1,), :ones_2D)
 end
 
 # ################### #
@@ -155,34 +158,58 @@ function zeros_2D_factory(i::Type{I}) where {I<:SizedImage}
 
     Returns a matrix of zeros in N0f8 with size `(k,k)`.
     """
-    m2 = @eval (k1::Int, k2::Int, args...) -> begin
-        k1, k2, = _positive_params(k1, k2)
-        if CONSTRAINED
-            k1, k2, = _ceil_positive_params(k1, k2)
-        end
-        return SImageND(zeros($TT, k1, k2))
-    end
+    # m2 = @eval (k1_n::Number, k2_n::Number, args...) -> begin
+    #     k1 = round(Int, k1_n)
+    #     k2 = round(Int, k2_n)
+    #     k1, k2, = _positive_params(k1, k2)
+    #     if CONSTRAINED[]
+    #         k1, k2, = _ceil_positive_params(k1, k2)
+    #     end
+    #     return SImageND(zeros($TT, k1, k2))
+    # end
 
     """
         ones_(k::Integer, args...)::Array{UInt8,2}
 
     Returns a matrix of zeros in N0f8 with size `(k,k)`.
     """
-    m3 = @eval (k::Int, args...) -> begin
-        k, = _positive_params(k)
-        if CONSTRAINED
-            k, = _ceil_positive_params(k)
-        end
-        return SImageND(zeros($TT, k, k))
-    end
+    # m3 = @eval (k::Int, args...) -> begin
+    #     k, = _positive_params(k)
+    #     if CONSTRAINED[]
+    #         k, = _ceil_positive_params(k)
+    #     end
+    #     return SImageND(zeros($TT, k, k))
+    # end
 
-    ManualDispatcher((m1, m2, m3), :zeros_2D)
+    ManualDispatcher((m1,), :zeros_2D)
+end
+
+# ################### #
+# INVERT #
+# ################### #
+"""
+    experimental_image2D(img::Array{T,2}, args...)::Array{T,2} where {T<:Number}
+
+"""
+function experimental_invert_image2D_factory(i::Type{I}) where {I<:SizedImage}
+    TT = Base.unwrap_unionall(I).parameters[2]
+    _validate_factory_type(TT)
+    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+        S = CONCT.parameters[1] # Tuple{X,Y}
+        inv_ = abs.(1.0 .- float64.(img))
+        return SImageND($TT.(inv_))
+    end
 end
 
 # # Factory Methods
 append_method!(bundle_image2D_basic_factory, identity_image2D_factory, :identity_image2D)
 append_method!(bundle_image2D_basic_factory, ones_2D_factory, :ones_2D)
 append_method!(bundle_image2D_basic_factory, zeros_2D_factory, :zeros_2D)
+append_method!(
+    bundle_image2D_basic_factory,
+    experimental_invert_image2D_factory,
+    :experimental_invert_2D,
+)
 
 # Default
 

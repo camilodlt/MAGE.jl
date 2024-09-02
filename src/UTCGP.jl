@@ -1,29 +1,71 @@
 module UTCGP
-using Debugger
+
+const CONSTRAINED::Ref{Bool} = Ref{Bool}()
+const MIN_INT::Ref{Int} = Ref{Int}()
+const MAX_INT::Ref{Int} = Ref{Int}()
+const MIN_FLOAT::Ref{Int} = Ref{Int}()
+const MAX_FLOAT::Ref{Int} = Ref{Int}()
+
+const NANO_ARRAY::Ref{Int} = Ref{Int}()
+const SMALL_ARRAY::Ref{Int} = Ref{Int}()
+const BIG_ARRAY::Ref{Int} = Ref{Int}()
+
+const SAFE_CALL::Ref{Bool} = Ref{Bool}()
 using Term
 import DataStructures: OrderedDict
 import DuckDB
 import SearchNetworks as sn
+using Dates
+using ErrorTypes
+using ErrorTypes: ResultConstructor
+using DataFlowTasks
+using Logging
 
-const NANO_ARRAY::Int = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
-const SMALL_ARRAY::Int = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
-const BIG_ARRAY::Int = parse(Int, get(ENV, "UTCGP_BIG_ARRAY", "10000"))
-CONSTRAINED::Bool = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
+using TimerOutputs
+const debuglogger = ConsoleLogger(stderr, right_justify = 10)
+global_logger(debuglogger)
+const to = TimerOutput()
 
-d_neg = "-100"
-d_pos = "100"
+function __init__()
+    global CONSTRAINED
+    global MIN_INT, MAX_INT
+    global MIN_FLOAT, MAX_FLOAT
+    global NANO_ARRAY, SMALL_ARRAY, BIG_ARRAY
+    global SAFE_CALL
+    global to
 
-MIN_INT::Int = parse(Int, get(ENV, "UTCGP_MIN_INT", d_neg))
-MAX_INT::Int = parse(Int, get(ENV, "UTCGP_MAX_INT", d_pos))
-MIN_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", d_neg))
-MAX_FLOAT::Int = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", d_pos))
+    CONSTRAINED[] = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
+    MIN_INT[] = parse(Int, get(ENV, "UTCGP_MIN_INT", "-1000"))
+    MAX_INT[] = parse(Int, get(ENV, "UTCGP_MAX_INT", "1000"))
+    MIN_FLOAT[] = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", "-1000"))
+    MAX_FLOAT[] = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", "1000"))
 
-println("Caster: Min Int : $MIN_INT")
-println("Caster: Max Int : $MAX_INT")
+    NANO_ARRAY[] = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
+    SMALL_ARRAY[] = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
+    BIG_ARRAY[] = parse(Int, get(ENV, "UTCGP_BIG_ARRAY", "10000"))
 
-println("CONSTRAINED STATE = $CONSTRAINED ")
+    SAFE_CALL[] = get(ENV, "UTCGP_SAFE_CALL", "") == "yes"
 
+    @show CONSTRAINED[]
+    @show MIN_INT[]
+    @show MAX_INT[]
+
+    @show NANO_ARRAY[]
+    @show SMALL_ARRAY[]
+    @show BIG_ARRAY[]
+
+    @show SAFE_CALL[]
+
+    # TIMER
+    reset_timer!(to)
+    @timeit_debug to "init module" sleep(0.01)
+end
+
+# Callbacks fns 
 abstract type AbstractCallable end
+FN_TYPE = Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable}}}}
+Mandatory_FN = FN_TYPE
+Optional_FN = Union{Nothing,FN_TYPE}
 
 include("element_nodes/element_nodes.jl")
 
@@ -77,7 +119,7 @@ export MetaLibrary
 
 # CONFIG 
 include("config/config.jl")
-export runConf
+export AbstractRunConf, runConf, RunConfGA
 export modelArchitecture
 export nodeConfig
 
@@ -93,6 +135,7 @@ export make_evolvable_utgenome
 export make_evolvable_single_genome
 include("genome/utils_genome.jl")
 export initialize_genome!
+export reset_genome!
 
 # POPULATION
 include("population/population.jl")
@@ -100,6 +143,7 @@ export Population
 
 # METRICS 
 include("metrics_trackers/individual_loss_tracker.jl")
+export IndividualLossTracker, IndividualLossTrackerMT
 
 # PROGRAMS 
 include("programs/programs.jl")
@@ -107,6 +151,8 @@ include("programs/decode.jl")
 include("programs/free_decode.jl")
 include("programs/evaluate.jl")
 
+export InputPromise, OperationInput, Operation, Program
+export replace_shared_inputs!
 # MUTATIONS
 include("mutations/utils_mutation.jl")
 export where_to_mutate
@@ -157,6 +203,8 @@ export bundle_element_pick
 include("libraries/element/conditional.jl")
 import .element_conditional: bundle_element_conditional
 export bundle_element_conditional
+import .element_conditional: bundle_element_conditional_factory
+export bundle_element_conditional_factory
 
 # -- String
 include("libraries/string/grep.jl")
@@ -294,6 +342,10 @@ include("libraries/number/reduce.jl")
 import .number_reduce: bundle_number_reduce
 export bundle_number_reduce
 
+include("libraries/number/reduce_from_img.jl")
+import .number_reduceFromImg: bundle_number_reduceFromImg
+export bundle_number_reduceFromImg
+
 include("libraries/number/transcendental.jl")
 import .number_transcendental: bundle_number_transcendental
 export bundle_number_transcendental
@@ -303,6 +355,10 @@ export bundle_number_transcendental
 include("libraries/float/basic_float.jl")
 import .float_basic: bundle_float_basic
 export bundle_float_basic
+
+include("libraries/float/GLCM.jl")
+import .experimental_GLCM: experimental_bundle_float_glcm_factory
+export experimental_bundle_float_glcm_factory
 
 # -- INTEGER
 
@@ -352,10 +408,24 @@ include("libraries/image2D/segmentation_image2D.jl")
 import .image2D_segmentation: bundle_image2D_segmentation_factory
 export bundle_image2D_segmentation_factory
 
-# 2D IMAGES Segmentation
+# 2D IMAGES Arithmetic
 include("libraries/image2D/arithmetic_image2D.jl")
 import .image2D_arithmetic: bundle_image2D_arithmetic_factory
 export bundle_image2D_arithmetic_factory
+
+include("libraries/image2D/barithmetic_image2D.jl")
+import .image2D_barithmetic: bundle_image2D_barithmetic_factory
+export bundle_image2D_barithmetic_factory
+
+# 2D IMAGES Segmentation
+include("libraries/image2D/transcendental_image2D.jl")
+import .image2D_transcendental: bundle_image2D_transcendental_factory
+export bundle_image2D_transcendental_factory
+
+# 2D IMAGES Filtering
+include("libraries/image2D/filtering_image2D.jl")
+import .image2D_filtering: bundle_image2D_filtering_factory
+export bundle_image2D_filtering_factory
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")
@@ -369,10 +439,18 @@ export default_numbered_new_material_mutation_callback
 export default_ouptut_mutation_callback
 export default_decoding_callback
 export default_elite_selection_callback
+export default_eliteDistribution_selection_callback
 export default_early_stop_callback
 export default_free_mutation_callback
 export default_free_decoding_callback
-export eval_budget_early_stop
+export eval_budget_early_stop, _make_ga_early_stop_callbacks_calls
+
+include("fitters/ga_callbacks.jl")
+export GA_POP_ARGS, GA_MUTATION_ARGS, GA_SELECTION_ARGS
+export ga_population_callback,
+    ga_numbered_new_material_mutation_callback,
+    ga_output_mutation_callback,
+    ga_elite_selection_callback
 
 # ENDPOINTS
 include("endpoints/endpoint_structs.jl")
@@ -387,7 +465,11 @@ export AIM_LossEpoch
 include("fitters/fit_utils.jl")
 include("fitters/callbacks_callers.jl")
 include("fitters/fit.jl")
+include("fitters/ga_fit.jl")
+include("fitters/fit_mt.jl")
 export fit
+export fit_mt
+export fit_ga, fit_ga_mt
 
 # PRE MADE BUNDLES 
 include("libraries/pre_made_libraries.jl")
@@ -410,6 +492,13 @@ include("search_network/sn_callbacks.jl")
 
 # Test utils
 include("test_utils.jl")
+
+# EXT
+#include("libraries/float/MAGE_RADIOMICS.jl")
+#function _FOS_MeanFeatureValue()
+#    @error "MAGE_RADIOMICS_EXT must be loaded to use"
+#end
+#export _FOS_MeanFeatureValue
 end # 
 
 

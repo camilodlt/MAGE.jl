@@ -1,0 +1,30 @@
+---
+engine: julia
+---
+
+# decode_with_output_nodes {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+decode_with_output_nodes(
+    ut_genome::UTGenome,
+    meta_library::MetaLibrary,
+    model_architecture::modelArchitecture,
+    shared_inputs::SharedInput,
+)::IndividualPrograms
+
+```
+
+Decodes a program for each output node in the `ut_genome`.
+ 
+Returns a `IndividualPrograms` struct, which is a vector of `Programs`. The length of the `IndividualPrograms` output is equal to the number of output nodes in the genome.
+ 
+
+
+:::
+    
+

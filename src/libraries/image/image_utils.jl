@@ -32,7 +32,8 @@ end
 Type Stable
 """
 function _ceil_positive_params(x::T...) where {T<:Int}
-    max_ = MAX_INT
+    global MAX_INT
+    max_ = MAX_INT[]
     min_ = 1
     nbs = clamp.(x, min_, max_)
     return nbs

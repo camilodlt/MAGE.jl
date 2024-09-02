@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# listtuple_identity {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+liststring_caster(l :: Vector{<:Any})
+
+```
+
+Returns the identity of each el in l.
+ 
+
+
+:::
+    
+

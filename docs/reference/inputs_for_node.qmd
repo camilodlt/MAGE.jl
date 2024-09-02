@@ -1,0 +1,18 @@
+---
+engine: julia
+---
+
+# inputs_for_node {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+From node's connections, makes a vector of OperationInput s
+ 
+An OperationInput wraps the input, which might be an InputNode or a normal CGPNode
+ 
+
+
+:::
+    
+

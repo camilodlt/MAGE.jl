@@ -49,10 +49,12 @@ Base.iterate(bundle::FunctionBundle, state = 1) =
 
 function _verify_last_arg_is_vararg!(fn::Function)
     ms = methods(fn)
+
     for m in ms
         sig = m.sig
         if sig isa UnionAll
-            sig = sig.body
+            sig = Base.unwrap_unionall(sig)
+            # sig = sig.body
         end
         @assert sig.types[end] == Vararg{Any} "$fn"
     end
@@ -60,7 +62,7 @@ end
 function _verify_last_arg_is_vararg!(m::Method)
     sig = m.sig
     if sig isa UnionAll
-        sig = sig.body
+        sig = Base.unwrap_unionall(sig)
     end
     @assert sig.types[end] == Vararg{Any} "$fn"
 end

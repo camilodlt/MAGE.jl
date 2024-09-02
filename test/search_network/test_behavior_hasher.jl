@@ -227,9 +227,6 @@ end
                 d["model_architecture"],
                 d["shared_inputs"],
             )
-            for program in p
-                reverse!(program.program)
-            end
             push!(progs, p)
 
         end

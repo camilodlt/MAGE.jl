@@ -1,0 +1,14 @@
+---
+engine: julia
+---
+
+# node_to_vector {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+
+:::
+    
+

@@ -1,0 +1,50 @@
+---
+engine: julia
+---
+
+# SN_writer {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+SN_writer(con::DuckDB.DB, hashers::OrderedDict{String,<:Function})
+
+```
+
+SN Writer is an struct who will be responsible for the Search Network callbacks. 
+ 
+This SN Writer is meant to store all the individuals in the population, that population is not filtered in any way.
+ 
+It accepts :     - A function that returns the index of the edges relative to the population      - The functions that will hash the individuals     - The functions that will provide information for the edges
+ 
+See the call to the instantiation of this struct for more information
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+The instantiated SN_writer writes : 
+ 
+  * The nodes
+  * The edges between the parent and all the children
+Hashes will depend on which hashers where passed to the SN_writer during initialization. 
+ 
+All individuals are hashed with those hashers. 
+ 
+Edges happen between the `id_hash` of the parent and that of every child.  Extra cols for the EDGE table depend on the `edges_prop_getters` of the struct. 
+ 
+Note: `id_hash` is the hash of the union of all extra hashes. 
+ 
+
+
+:::
+    
+

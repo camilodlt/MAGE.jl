@@ -1,0 +1,28 @@
+---
+engine: julia
+---
+
+# unpack_bundles_in_library! {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+From all the bundles in the Library, it *unpacks* them and adds ALL functions to the internal list of functions.
+ 
+It's a way of having all functions (comming from multiple bundles) in the same place. 
+ 
+This operation is meant to be run once, after all bundles have been added to the Library.
+ 
+**Caveats**: 
+ 
+  * This functions will replace the previous (if any) content of the internal list of fns
+of the Library. A warning is given if the list of functions was not empty.
+ 
+  * A warning is also given if the bundles, after unpacking, resulted in an empty list of functions.
+Returns the number of functions in Library (after unpacking).
+ 
+
+
+:::
+    
+

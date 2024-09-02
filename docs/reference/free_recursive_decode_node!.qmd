@@ -1,0 +1,29 @@
+---
+engine: julia
+---
+
+# free_recursive_decode_node! {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Depth-first search (DFS)
+ 
+Args:     node (CGP*Node): _description*     type*idx (int): _description*     program (list[Any]): *description*
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+The recursion is stopped at InputNode
+ 
+
+
+:::
+    
+

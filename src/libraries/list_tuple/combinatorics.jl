@@ -30,14 +30,14 @@ bundle_listtuple_combinatorics_factory = FunctionBundle(fallback)
 # Products --- 
 function vector_of_products_factory(T::DataType)
     return @eval ((list_a::Vector{V}, list_b::Vector{V}, args...) where {V<:$T}) -> begin
-        if CONSTRAINED
+        if CONSTRAINED[]
             @assert length(list_a) <= 1000
             @assert length(list_b) <= 1000
         end
         p = collect(product(list_a, list_b))
         p = reshape(p, length(p))
-        if CONSTRAINED
-            bound = min(length(p), BIG_ARRAY)
+        if CONSTRAINED[]
+            bound = min(length(p), BIG_ARRAY[])
             p = p[begin:bound]
         end
         return identity.(p)
@@ -56,13 +56,13 @@ vector_of_products = vector_of_products_factory(Any)
 function vector_of_combinations_factory(T::DataType)
     return @eval ((v::Vector{V}, args...) where {V<:$T}) -> begin
         @assert !isempty(v) && length(unique(typeof.(v))) == 1
-        if CONSTRAINED
-            @assert length(v) < SMALL_ARRAY
+        if CONSTRAINED[]
+            @assert length(v) < SMALL_ARRAY[]
         end
         combs = collect(combinations(v, 2))
         combs = [Tuple(_ for _ in c) for c in combs]
-        if CONSTRAINED
-            bound = min(length(combs), SMALL_ARRAY)
+        if CONSTRAINED[]
+            bound = min(length(combs), SMALL_ARRAY[])
             return combs[begin:bound]
         end
         return combs

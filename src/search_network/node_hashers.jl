@@ -70,6 +70,16 @@ function (::sn_strictphenotype_hasher)(params::UTCGP.ParametersStandardEpoch)
     return [individual_phen_hasher(p) for p in params.programs]
 end
 
+function individual_phen_hasher(p::IndividualPrograms)
+    vec = []
+    for prog in p
+        for op in prog
+            n_inputs = length(op.inputs) * 2 # inps + types
+            push!(vec, node_to_vector(op.calling_node)[1:1+n_inputs]...) # the active part of the node
+        end
+    end
+    return general_hasher_sha(vec)
+end
 # BEHAVIOR HASHER --- --- 
 
 struct sn_behavior_hasher <: Abstract_Node_Hash_Function

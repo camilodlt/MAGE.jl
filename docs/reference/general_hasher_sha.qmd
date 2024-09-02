@@ -1,0 +1,27 @@
+---
+engine: julia
+---
+
+# general_hasher_sha {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+general_hasher_sha(element::T) where {T}
+
+```
+
+Serializes an element and then calculates the SHA256 of that serialization value.  The hash is then transformed to hex values to make it shorter. 
+ 
+An hash, in the form of an string, is returned. 
+ 
+This method may be used to hash every element in the package.  Also, it should be session persistent.
+ 
+
+
+:::
+    
+

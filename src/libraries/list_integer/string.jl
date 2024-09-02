@@ -32,7 +32,7 @@ Returns the indices of the start of the overlaping matches between `s` and the `
 Kind of like python's `re.findall` with the option `overlapped=True`.
 """
 function match_with_overlap(s::String, pattern::String, args...)
-    if CONSTRAINED
+    if CONSTRAINED[]
         @assert length(s) < 100000
     end
     cond = true
@@ -69,8 +69,8 @@ end
 Broadcasts `length` to every element in `v`
 """
 function length_broadcast(v::Vector{String}, args...)
-    if CONSTRAINED
-        m = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        m = min(length(v), SMALL_ARRAY[])
         return length.(v[begin:m])
     end
     return length.(v)

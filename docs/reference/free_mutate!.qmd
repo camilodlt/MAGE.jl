@@ -1,0 +1,20 @@
+---
+engine: julia
+---
+
+# free_mutate! {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+every allele of every node has the same prob of mutation.
+ 
+Inside each allele, higher numbers have higher probs to be sampled.
+ 
+::param genome:: *description* ::type genome:: UT*Genome ::param allele*mutation*rate:: _description* ::type allele*mutation*rate:: Float64 ::param meta*library:: _description* ::type meta*library:: MetaLibrary ::param chromosomes*types:: *description* ::type chromosomes*types:: Vector[Type] ::param input*types:: For 2 inputs of type array :: [index*of*array, index*of*array] ::type input_types:: Vector[Int]
+ 
+
+
+:::
+    
+

@@ -26,7 +26,7 @@ function get_example_utgraph()
 
     # Modify manually the genome
     # Node 3 calls with `paste` inputs 1,2 => >String
-    ut_genome[1][1][1].value = 4 # Function paste0
+    ut_genome[1][1][1].value = 5 # Function paste0
     ut_genome[1][1][2].value = 1 # con 1
     ut_genome[1][1][4].value = 2 # con 2
     ut_genome[1][1][3].value = 1 # type string
@@ -42,7 +42,7 @@ function get_example_utgraph()
     # => ["b","e","g","i","n"]
 
     # Node 5,1 calls with concat from input 4 => string
-    ut_genome[1][3][1].value = 8 # Function paste_list_string # TODO replace with get_fn_by_name or smth
+    ut_genome[1][3][1].value = 9 # Function paste_list_string # TODO replace with get_fn_by_name or smth
     ut_genome[1][3][2].value = 4 # con 3
     ut_genome[1][3][4].value = 1 # con 1, does not matter
     ut_genome[1][3][3].value = 2 # type string
@@ -56,7 +56,6 @@ function get_example_utgraph()
     # Decode
     program =
         decode_with_output_node(ut_genome, ut_genome.output_nodes[1], ml, ma, shared_inputs)
-    reverse!(program.program)
     res = UTCGP.evaluate_program(program, [String, Vector{String}], ml)
     return ma, ml, nc, program, res, shared_inputs, ut_genome
 end
@@ -90,7 +89,7 @@ function get_example_utgraph_2out()
 
     # Modify manually the genomebundle_liststring_split
     # Node 3 calls with `paste` inputs 1,2 => >String
-    ut_genome[1][1][1].value = 4 # Function paste0
+    ut_genome[1][1][1].value = 5 # Function paste0
     ut_genome[1][1][2].value = 1 # con 1
     ut_genome[1][1][4].value = 2 # con 2
     ut_genome[1][1][3].value = 1 # type string
@@ -106,7 +105,7 @@ function get_example_utgraph_2out()
     # => ["b","e","g","i","n"]
 
     # Node 5,1 calls with concat from input 4 => string
-    ut_genome[1][3][1].value = 8 # Function paste_list_string # TODO replace with get_fn_by_name or smth
+    ut_genome[1][3][1].value = 9 # Function paste_list_string # TODO replace with get_fn_by_name or smth
     ut_genome[1][3][2].value = 4 # con 3
     ut_genome[1][3][4].value = 1 # con 1, does not matter
     ut_genome[1][3][3].value = 2 # type list_string
@@ -125,10 +124,10 @@ function get_example_utgraph_2out()
         decode_with_output_node(ut_genome, ut_genome.output_nodes[1], ml, ma, shared_inputs)
     program_2 =
         decode_with_output_node(ut_genome, ut_genome.output_nodes[2], ml, ma, shared_inputs)
-    reverse!(program_1.program)
-    reverse!(program_2.program)
     res_1 = UTCGP.evaluate_program(program_1, [String, Vector{String}], ml)
     res_2 = UTCGP.evaluate_program(program_2, [String, Vector{String}], ml)
+    @show res_1
+    @show res_2
     return ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome
 end
 
@@ -212,7 +211,7 @@ end
         numbered_mutation!(ut_genome, run_conf, ma, ml, shared_inputs)
     end
     # NUMBERED_MUTATION -- logs the mutation so at least one will take place
-    @test_logs (:info, r"Selected node.*") match_mode = :any begin
+    @test_logs (:debug, r"Selected node.*") match_mode = :any begin
         ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome =
             get_example_utgraph_2out()
         run_conf = runConf(3, 100_000, 1.1, 0.1)

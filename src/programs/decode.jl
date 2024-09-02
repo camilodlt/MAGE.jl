@@ -1,5 +1,16 @@
-# -*- coding: utf-8 -*-
+"""
+Decodes a program. Destined for MAGE use (without type discrepancies).
+"""
 
+
+"""
+
+Unpacks a node giving : 
+
+- function
+- connexions
+- connexions
+"""
 function extract_fn_connexions_types_from_node(
     node::AbstractEvolvableNode,
     library::Library,
@@ -33,11 +44,10 @@ end
 
 
 function _operation_input_from_shared_inputs(
-    shared_inputs::SharedInput,
     index_at::Int,
     model_architecture::modelArchitecture,
 )
-    input_wrapper = InputPromise(shared_inputs.inputs, index_at)
+    input_wrapper = InputPromise(index_at)
     #node_type_idx = shared_inputs[index_at].y_position. Not using y_pos since Inputs is uni dim
     type = model_architecture.inputs_types[index_at]
     #this type will be used to get the method that julia will call
@@ -71,7 +81,7 @@ function inputs_for_node(
     connexions::Vector{CGPElement},
     connexions_types::Vector{CGPElement},
     ut_genome::UTGenome,
-    shared_inputs::SharedInput,
+    inputs_wrapper::SharedInput,
     model_architecture::modelArchitecture,
 )::Vector{OperationInput}
     _validate_connexions(connexions, connexions_types)
@@ -84,27 +94,24 @@ function inputs_for_node(
         connexion_type_value = get_node_element_value(connexions_types[idx]) # to filter the utgenome
         concerned_chromosome = ut_genome.genomes[connexion_type_value]
         connexion_is_input_node = false
-
+        from = ""
         # GET THE ACTUAL INDEX VALUE
         # either from share_input or from the genome
         if connexion_value <= concerned_chromosome.starting_point
-            @debug "Input is in SharedInput"
             # the connection is an input node
+            from *= "ShareInput"
             connexion_is_input_node = true
             index_at = connexion_value # index the inputs
         else
-            @debug "Input is in Chromosome"
             # offset by the n inputs. Index the genome
+            from *= "Chromosome"
             index_at = connexion_value - concerned_chromosome.starting_point
         end
-        @debug "Index at : $index_at"
+
+        @debug "Decode : Conn. value : $connexion_value. Conn. input will be from $from. Index at : $index_at"
         # GET THE NODE OR A WAY TO GET THE INPUT NODE
         if connexion_is_input_node
-            op_input = _operation_input_from_shared_inputs(
-                shared_inputs,
-                index_at,
-                model_architecture,
-            )
+            op_input = _operation_input_from_shared_inputs(index_at, model_architecture) # program has the weak ref to shared_inputs
         else
             op_input = _operation_input_from_chromosome(
                 concerned_chromosome,
@@ -133,7 +140,7 @@ function recursive_decode_node!(
     operations_list::Vector{<:AbstractOperation},
     model_architecture::modelArchitecture,
     ut_genome::UTGenome,
-    shared_inputs::SharedInput,
+    program::Program,
 )
 
     fn, connexions, connexions_types = extract_fn_connexions_types_from_node(
@@ -144,7 +151,7 @@ function recursive_decode_node!(
         connexions,
         connexions_types,
         ut_genome,
-        shared_inputs,
+        program.program_inputs,
         model_architecture,
     )
     fn_name = fn.name
@@ -167,7 +174,13 @@ function recursive_decode_node!(
 
     # TODO EXTRA PARAMS ???
     for operation_input in inputs
-        next_calling_node = extract_input_node_from_operationInput(operation_input)
+        R_next_calling_node =
+            _extract_input_node_from_operationInput(program.program_inputs, operation_input)
+        next_calling_node = @unwrap_or R_next_calling_node begin
+            @show operation_input
+            @show program
+            throw(ErrorException("Could not get the input node from an operation"))
+        end
         next_type_idx = operation_input.type_idx # op_input is the next 
         # calling_node. Hence, its type idx is going to be used 
         # to get the function.
@@ -179,7 +192,7 @@ function recursive_decode_node!(
             operations_list,
             model_architecture,
             ut_genome,
-            shared_inputs,
+            program,
         )
     end
 end
@@ -187,17 +200,22 @@ end
 """
 The recursion is stopped at InputNode
 """
-function recursive_decode_node!(
-    calling_node::InputNode,
-    args...,
-    # meta_library::MetaLibrary,
-    # type_idx::Int,
-    # operations_list::Vector{<:AbstractOperation},
-    # model_architecture::modelArchitecture,
-    # ut_genome::UTGenome,
-    # shared_inputs::SharedInput,
-) end
+function recursive_decode_node!(calling_node::InputNode, args...) end
 
+"""
+    decode_with_output_node(
+        ut_genome::UTGenome,
+        output_node::OutputNode,
+        meta_library::MetaLibrary,
+        model_architecture::modelArchitecture,
+        shared_inputs::SharedInput,
+    )::Program
+
+Decodes a single program, that is, the sequence of `Operation`s needed to calculate the output value of a single output node.
+
+Returns a `Program`, which is a series of operations (from last to first) and holds a `SharedInput` reference which can be modified
+in order to change the inputs for the program without decoding again. 
+"""
 function decode_with_output_node(
     ut_genome::UTGenome,
     output_node::OutputNode,
@@ -206,8 +224,7 @@ function decode_with_output_node(
     shared_inputs::SharedInput,
 )::Program
     operations = Operation[]
-    # the last in the selected chromosome
-    # output_node = genome.genomes[output_chromosome_idx].genome[-1]
+    program = Program(operations, shared_inputs)
     recursive_decode_node!(
         output_node,
         meta_library,
@@ -215,19 +232,32 @@ function decode_with_output_node(
         operations,
         model_architecture,
         ut_genome,
-        shared_inputs,
+        program,
     )
-    return Program(operations)
+    reverse!(program)
+    return program
 
 end
 
+"""
+    decode_with_output_nodes(
+        ut_genome::UTGenome,
+        meta_library::MetaLibrary,
+        model_architecture::modelArchitecture,
+        shared_inputs::SharedInput,
+    )::IndividualPrograms
+
+Decodes a program for each output node in the `ut_genome`.
+
+Returns a `IndividualPrograms` struct, which is a vector of `Programs`. The length of the `IndividualPrograms` output
+is equal to the number of output nodes in the genome.
+"""
 function decode_with_output_nodes(
     ut_genome::UTGenome,
     meta_library::MetaLibrary,
     model_architecture::modelArchitecture,
     shared_inputs::SharedInput,
 )::IndividualPrograms
-
     output_nodes = ut_genome.output_nodes
     ind_progs = Program[]
     for output_node in output_nodes
@@ -242,6 +272,7 @@ function decode_with_output_nodes(
     end
     return IndividualPrograms(ind_progs)
 end
+
 
 # # REMOVE DUPLICATES #
 

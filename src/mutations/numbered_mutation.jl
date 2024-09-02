@@ -29,7 +29,7 @@ function numbered_mutation!(
     if n > 0
         sampled_idx = sample_n(length(active_nodes), n)
         selected_nodes = active_nodes[sampled_idx]
-        @info "Selected node(s) to mutate : $([n.id for n in selected_nodes])"
+        @debug "Selected node(s) to mutate : $([n.id for n in selected_nodes])"
         numbered_mutation!(
             selected_nodes,
             meta_library,
@@ -92,7 +92,7 @@ function free_numbered_mutation!(
     if n > 0
         sampled_idx = sample_n(length(active_nodes), n)
         selected_nodes = active_nodes[sampled_idx]
-        @info "Selected node(s) to mutate : $([n.id for n in selected_nodes])"
+        @debug "Selected node(s) to mutate : $([n.id for n in selected_nodes])"
         free_numbered_mutation!(
             selected_nodes,
             meta_library,

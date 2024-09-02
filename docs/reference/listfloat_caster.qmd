@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# listfloat_caster {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+listfloat_caster(l :: Vector{<:Number})
+
+```
+
+Cast a vector of generic Number type to concrete Float64 type. 
+ 
+
+
+:::
+    
+

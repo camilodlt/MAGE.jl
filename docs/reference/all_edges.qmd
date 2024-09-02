@@ -1,0 +1,23 @@
+---
+engine: julia
+---
+
+# all_edges {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+all_edges(params::UTCGP.ParametersStandardEpoch)
+
+```
+
+It returns the index of all individuals in all the population
+ 
+
+
+:::
+    
+

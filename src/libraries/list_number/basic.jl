@@ -26,8 +26,8 @@ VECTORNUM = Vector{<:Number}
 "Ones_like"
 """
 function ones_(v::VECTORNUM, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return ones(length(v[begin:bound]))
     end
     return ones(length(v))
@@ -40,8 +40,8 @@ end
 """
 function ones_(n::Int, args...)
     n_::Int = 0
-    if CONSTRAINED
-        n_ += min(SMALL_ARRAY, n)
+    if CONSTRAINED[]
+        n_ += min(SMALL_ARRAY[], n)
         return ones(n_)
     end
     return ones(n)
@@ -56,8 +56,8 @@ end
 "zeros_like"
 """
 function zeros_(v::VECTORNUM, args...)
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         return zeros(length(v[begin:bound]))
     end
     return zeros(length(v))
@@ -69,8 +69,8 @@ end
 `n` zeros.
 """
 function zeros_(n::Int, args...)
-    if CONSTRAINED
-        n_ = min(SMALL_ARRAY, n)
+    if CONSTRAINED[]
+        n_ = min(SMALL_ARRAY[], n)
         return zeros(n_)
     end
     return zeros(n)

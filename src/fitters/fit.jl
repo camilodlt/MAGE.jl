@@ -8,7 +8,7 @@ using Term
 
 function fit(
     X::Any,
-    Y::Any,
+    Y::Union{Any,Nothing},
     shared_inputs::SharedInput,
     genome::UTGenome,
     model_architecture::modelArchitecture,
@@ -110,13 +110,18 @@ function fit(
         @warn "Graphs evals"
         for ith_x = 1:length(X)
             # unpack input nodes
-            x, y = X[ith_x], Y[ith_x]
+            if isnothing(Y) # X is dataloader
+                x, y = X[ith_x]
+            else
+                x, y = X[ith_x], Y[ith_x]
+            end
             input_nodes = [
                 InputNode(value, pos, pos, model_architecture.inputs_types_idx[pos]) for
                 (pos, value) in enumerate(x)
             ]
             # append input nodes to pop
-            replace_shared_inputs!(shared_inputs, input_nodes) # update 
+            replace_shared_inputs!(population_programs, input_nodes) # update 
+            @bp
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
                 model_architecture,
@@ -124,10 +129,6 @@ function fit(
             )
             @info "Time Eval $time_eval"
             # Endpoint results
-            # Main.@infiltrate
-            # if isdefined(Main, :Infiltrator)
-            #     Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-            # end
             fitness = endpoint_callback(outputs, y)
             fitness_values = get_endpoint_results(fitness)
 

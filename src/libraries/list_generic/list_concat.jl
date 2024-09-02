@@ -34,8 +34,8 @@ function concat_two_lists_factory(T::DataType)
         push!(list_c, a_c...)
         push!(list_c, b_c...)
         bound::Int = 0
-        if CONSTRAINED
-            sm::Int = SMALL_ARRAY
+        if CONSTRAINED[]
+            sm::Int = SMALL_ARRAY[]
             l::Int = length(list_c)
             bound += min(l, sm)
             return list_c[begin:bound]

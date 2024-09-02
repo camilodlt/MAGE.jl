@@ -1,0 +1,38 @@
+---
+engine: julia
+---
+
+# _assert_sn_writer_consistency {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+_assert_sn_writer_consistency(con, hashers)
+
+```
+
+Checks that the `hashers` dict has:     - The nb of functions == the number of cols that need a function (so no the mandatory ones)      - Keys that match the names and order of the columns in the corresponding table in `con`     - The table : sn.Abstract*Edges, Abstract*Nodes
+ 
+In other words, that the `hashers` have an item for all the columns in the table and also in the correct order. 
+ 
+This function raises an AssertionError if the conditions are not met. 
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+If there are no fns, the functions does nothing. It has nothing to verify
+ 
+
+
+:::
+    
+

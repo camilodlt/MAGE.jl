@@ -95,7 +95,7 @@ function set_node_element_value!(node_element::CGPElement, value::Int)
             @info "Node is frozen but it has a nothing value. The new value will be set"
             node_element.value = value
         else
-            @info "Node is frozen. New value is omitted"
+            @debug "Node is frozen. New value is omitted"
         end
     else
         node_element.value = value

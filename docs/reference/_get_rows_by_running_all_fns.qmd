@@ -1,0 +1,32 @@
+---
+engine: julia
+---
+
+# _get_rows_by_running_all_fns {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+function _get_rows_by_running_all_fns(
+    params::UTCGP.ParametersStandardEpoch,
+    writer::Abstract_SN_Writer,
+)
+
+```
+
+Runs the functions (either node/edge) against the epoch parameters. 
+ 
+Those functions return a column view (col_name => [population info, ...])
+ 
+That column view is transposed to have a row view:      - {col=> value, ...}  # row 1 relative to individual 1
+ 
+For `sn.Abstract_Nodes`, the `id_hash` will be calculated and placed at the beginning of the row. 
+ 
+
+
+:::
+    
+

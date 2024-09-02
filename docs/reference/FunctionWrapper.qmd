@@ -1,0 +1,27 @@
+---
+engine: julia
+---
+
+# FunctionWrapper {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Function Wrapper with caster and fallback
+ 
+
+
+:::
+    
+
+ --- 
+ 
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Function Wrapper with fallback.
+ 
+
+
+:::
+    
+

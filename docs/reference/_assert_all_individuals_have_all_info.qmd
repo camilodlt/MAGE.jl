@@ -1,0 +1,37 @@
+---
+engine: julia
+---
+
+# _assert_all_individuals_have_all_info {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+
+```{julia}
+#| eval: false
+_assert_all_individuals_have_all_info(extra_hashes::OrderedDict{String,Any})
+
+```
+
+Because extractor functions work on batch data, after applying them we have : 
+ 
+A dict with :      - Keys : the col names in the DB     - Values : A vector with hashes/properties for each individual
+ 
+This is the column view. 
+ 
+All vectors should have the same length. Because for each function, it should  have hashed all individuals. 
+ 
+As an example, suppose      - hasher1 gives the length of the individual     - hasher2 gives the length of the active individual
+ 
+If the population has 3 individuals. 
+ 
+  * The `column_view` dict should have 2 entries (names should match the DB) : `hasher1`, `hasher2`.
+  * Each entry is a vector of length 3. One for every individual
+This functions just ensures that all keys have vectors of the same length.
+ 
+
+
+:::
+    
+

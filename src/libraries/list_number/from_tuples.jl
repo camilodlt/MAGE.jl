@@ -24,8 +24,8 @@ VECTORNUM = Vector{<:Number}
 """
 function sum_tuples_in_vector(v::Vector{Tuple{T,T}}, args...) where {T<:Number}
     # println("Sum_tuples_in_vector : length v : $(length(v))")
-    if CONSTRAINED
-        bound = min(length(v), SMALL_ARRAY)
+    if CONSTRAINED[]
+        bound = min(length(v), SMALL_ARRAY[])
         # println("Sum_tuples_in_vector : length v cons : $(length(v))")
         return identity.([a + b for (a, b) in v[begin:bound]])
     end

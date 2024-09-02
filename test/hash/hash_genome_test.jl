@@ -139,7 +139,6 @@ end
             ma,
             shared_inputs,
         )
-        reverse!(program_1_ut1.program)
 
         # DECODE UT 2
         program_1_ut2 = decode_with_output_node(
@@ -149,7 +148,6 @@ end
             ma,
             shared_inputs,
         )
-        reverse!(program_1_ut2.program)
 
         # BOTH PROGRAMS SHOULD BE THE SAME
         hash_by(program_1_ut1, basic_serializer) == hash_by(program_1_ut2, basic_serializer)
@@ -200,7 +198,6 @@ end
             ma,
             shared_inputs,
         )
-        reverse!(program_1_ut1.program)
 
         # DECODE UT 2
         program_1_ut2 = decode_with_output_node(
@@ -210,7 +207,6 @@ end
             ma,
             shared_inputs,
         )
-        reverse!(program_1_ut2.program)
 
         # BOTH PROGRAMS SHOULD BE THE SAME
         phenotypes_equal =

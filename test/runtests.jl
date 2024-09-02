@@ -19,8 +19,8 @@ ENV["PYTHON"] = path
 #Pkg.add("PyCall")
 Pkg.build("PyCall")
 
-#@testset failfast = true "UTCGP TEST" begin
-@testset "UTCGP TEST" begin
+@testset failfast = true "UTCGP TEST" begin
+    # @testset "UTCGP TEST" begin
 
     @testset "node_element" begin
         include("element_nodes/test_element_node.jl")
@@ -53,6 +53,12 @@ Pkg.build("PyCall")
             include("libraries/clone_bundle.jl")
         end
     end
+
+    # PROGRAMS
+    @testset "Programs" begin
+        include("programs/test_decode_program.jl")
+    end
+
     @testset "Mutations" begin
         @testset "Utils " begin
             include("mutations/test_utils_mutations.jl")
@@ -140,6 +146,7 @@ Pkg.build("PyCall")
     include("libraries/image2D/test_binarize_image2D.jl")
     include("libraries/image2D/test_segmentation_image2D.jl")
     include("libraries/image2D/test_arithmetic_image2D.jl")
+    include("libraries/image2D/test_barithmetic_image2D.jl")
 
 
     @testset "Integers" begin

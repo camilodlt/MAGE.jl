@@ -1,0 +1,19 @@
+---
+engine: julia
+---
+
+# extract_fn_connexions_types_from_node {#sec-doc}
+    
+
+::: {.callout-note appearance="simple" title="docblock" collapse=false}    
+
+Unpacks a node giving : 
+ 
+  * function
+  * connexions
+  * connexions types
+
+
+:::
+    
+

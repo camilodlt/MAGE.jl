@@ -35,7 +35,6 @@ Base.setindex!(ind_tracker::AbstractIndLossTracker, value::Any, k::Int) =
     (ind_tracker.store[k] = value)
 
 
-
 function add_loss_to_ind_tracker!(
     individual_loss_tracker::IndividualLossTracker,
     id::Int,
@@ -66,6 +65,59 @@ function resolve_ind_loss_tracker(individual_loss_tracker::IndividualLossTracker
     end
     return mean_prog_length_per_individual
 end
+
+
+"""
+Multi Threaded Loss tracker
+
+individual i : [loss_x_1, loss_x_2, ..., loss_x_n]
+where n is the number of samples in the data.
+
+In words: each individual has a fitness value for every data sample.
+
+During inference steps, the method `add_pop_loss_to_ind_tracker`
+adds losses to the store.
+    => so that each ind_i = [numbers]
+
+Before elite selection, the method `resolves_ind_loss_tracker`
+takes the mean per individual.
+    => so that each ind_i = number
+"""
+struct IndividualLossTrackerMT <: AbstractIndLossTracker
+    store::Array{Float64,2}
+    n_individuals::Int
+    n_samples::Int
+    function IndividualLossTrackerMT(n_individuals, n_samples)
+        store = Array{Float64}(undef, n_individuals, n_samples)
+        return new(store, n_individuals, n_samples)
+    end
+end
+
+function Base.view(t::IndividualLossTrackerMT, r::Base.AbstractUnitRange)
+    view(t.store, r)
+end
+
+function Base.view(t::IndividualLossTrackerMT, inds...)
+    view(t.store, inds...)
+end
+
+"""
+
+Puts a loss for every individual on a single sample
+"""
+function add_pop_loss_to_ind_tracker!(
+    individual_loss_tracker_view::SubArray{Float64,2},
+    col_nb::Int,
+    losses::Vector{Float64},
+)
+    individual_loss_tracker_view[:, col_nb] = losses
+end
+
+function resolve_ind_loss_tracker(individual_loss_tracker::IndividualLossTrackerMT)
+    fitness_per_individual = mean(individual_loss_tracker.store, dims = 2)
+    return fitness_per_individual[:, 1] # a vector where each element is an individual final fitness
+end
+
 
 # ######################################
 # # GENERATIONS TRACKER

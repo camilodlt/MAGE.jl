@@ -53,19 +53,81 @@ struct modelArchitecture
 end
 
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # 
+# ################# RUN CONF ################### #
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # 
+
+abstract type AbstractRunConf end
+
 """
-Specifies the experiment properties.
-
-
     runConf(lambda_::Int
         generations::Int
         mutation_rate::Float64
         output_mutation_rate::Float64)
 
+Specifies the experiment properties.
 """
-struct runConf
+struct runConf <: AbstractRunConf
     lambda_::Int
     generations::Int
     mutation_rate::Float64
     output_mutation_rate::Float64
 end
+
+function _verif_config_ga(n_elite::Int, n_new::Int, tournament_size::Int)::Option{Int}
+    @assert n_elite >= 1 "The elite truncation needs to involve more than 1 individual"
+    @assert n_new >= 1 "The 'extra' population has to be > 1"
+    @assert tournament_size <= n_elite "The tournament has to involve at most the number of elite individuals ($tournament_size should be <= $n_elite)"
+    @assert tournament_size >= 1 "The tournament has to involve at least one elite individual"
+    some(1)
+end
+
+function _info_config_ga(n_elite::Int, n_new::Int, tournament_size::Int)
+    pop = n_elite + n_new
+    @info "Run conf with a pop of $pop (Elite: $n_elite, Other : $n_new)."
+    @info "Run conf with tournament size of $tournament_size"
+end
+
+"""
+    RunConfGA( 
+        n_elite::Int,
+        n_new::Int,
+        tournament_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int
+        )
+    
+Specifies the experiment properties for GA.
+"""
+struct RunConfGA <: AbstractRunConf
+    n_elite::Int
+    n_new::Int
+    tournament_size::Int
+    mutation_rate::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfGA(
+        n_elite::Int,
+        n_new::Int,
+        tournament_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        _verif_config_ga(n_elite, n_new, tournament_size)
+        _info_config_ga(n_elite, n_new, tournament_size)
+        @assert generations >= 1 "At least one iteration"
+        new(
+            n_elite,
+            n_new,
+            tournament_size,
+            mutation_rate,
+            output_mutation_rate,
+            generations,
+        )
+    end
+end
+
+
+
