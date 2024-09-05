@@ -184,6 +184,7 @@ function reduce_minimum(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C
     return minimum(float64.(from))
 end
 
+
 # APPEND FUNCTIONS --- 
 append_method!(bundle_number_reduceFromImg, reduce_length)
 # append_method!(bundle_number_reduceFromImg, reduce_biggestAxis)
