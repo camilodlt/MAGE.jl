@@ -363,3 +363,39 @@ function get_image2D_factory_bundles()
     return deepcopy(bundle_images)
 end
 
+
+# ATARI
+
+function get_float_bundles_atari()
+    factories = [bundle_element_conditional_factory]
+    factories = [deepcopy(b) for b in factories]
+    for factory_bundle in factories
+        for (i, wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(Float64)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+        end
+    end
+
+    float_bundles = [
+        bundle_float_basic,
+        bundle_integer_find,
+        bundle_integer_modulo,
+        bundle_integer_cond,
+        bundle_number_arithmetic,
+        bundle_number_reduce,
+        bundle_element_pick,
+        bundle_number_transcendental,
+        bundle_number_reduceFromImg,
+        bundle_number_coordinanatesFromImg,
+        factories...,
+    ]
+    float_bundles = [deepcopy(b) for b in float_bundles]
+    # Update Casters && Fallbacks
+    for b in float_bundles
+        update_caster!(b, float_caster)
+        update_fallback!(b, () -> 0.0)
+        return float_bundles
+    end
+end
