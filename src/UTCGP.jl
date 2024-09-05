@@ -345,6 +345,8 @@ export bundle_number_reduce
 include("libraries/number/reduce_from_img.jl")
 import .number_reduceFromImg: bundle_number_reduceFromImg
 export bundle_number_reduceFromImg
+import .number_coordinatesFromImg: bundle_number_coordinatesFromImg
+export bundle_number_coordinatesFromImg
 
 include("libraries/number/transcendental.jl")
 import .number_transcendental: bundle_number_transcendental

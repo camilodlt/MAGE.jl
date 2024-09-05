@@ -38,6 +38,8 @@ fallback(args...) = return 0.0
 
 bundle_number_reduceFromImg = FunctionBundle(fallback)
 
+bundle_number_coordinatesFromImg = FunctionBundle(fallback)
+
 # FUNCTIONS ---
 
 ## Reduce Length --- 
@@ -184,6 +186,25 @@ function reduce_minimum(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C
     return minimum(float64.(from))
 end
 
+# Vertical argmax ---
+"""
+    experimental_vertical_argmax()
+Return the y coordinate where the image has it max value
+"""
+function experimental_vertical_argmax(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+    argmax_values = argmax(float64.(from))
+    return argmax_values[1]
+end
+
+# Horizontal argmax ---
+"""
+    experimental_horizontal_argmax()
+Return the y coordinate where the image has it max value
+"""
+function experimental_horizontal_argmax(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+    argmax_values = argmax(float64.(from))
+    return argmax_values[2]
+end
 
 # APPEND FUNCTIONS --- 
 append_method!(bundle_number_reduceFromImg, reduce_length)
@@ -198,5 +219,7 @@ append_method!(bundle_number_reduceFromImg, reduce_median)
 append_method!(bundle_number_reduceFromImg, reduce_std)
 append_method!(bundle_number_reduceFromImg, reduce_maximum)
 append_method!(bundle_number_reduceFromImg, reduce_minimum)
+append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_argmax)
+append_method!(bundle_number_coordinatesFromImg, experimental_vertical_argmax)
 end
 
