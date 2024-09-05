@@ -427,6 +427,11 @@ include("libraries/image2D/filtering_image2D.jl")
 import .image2D_filtering: bundle_image2D_filtering_factory
 export bundle_image2D_filtering_factory
 
+# 2D IMAGES Filtering
+include("libraries/image2D/mask_image2D.jl")
+import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
+export experimental_bundle_image2D_mask_factory
+
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")
 export default_population_callback

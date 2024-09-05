@@ -36,7 +36,7 @@ bundle_number_transcendental = FunctionBundle(fallback)
 Returns π
 """
 function pi_(args...)
-    return π
+    return Float64(π)
 end
 
 ## Exp

@@ -69,6 +69,7 @@ function get_listfloat_bundles()
     for factory_bundle in factories
         for (i, wrapper) in enumerate(factory_bundle)
             fn = wrapper.fn(Float64)
+            @show wrapper.name
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
                 FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
@@ -221,6 +222,16 @@ end
 integer_bundles
 """
 function get_integer_bundles()
+    factories = [bundle_element_conditional_factory]
+    factories = [deepcopy(b) for b in factories]
+    for factory_bundle in factories
+        for (i, wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(Int)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+        end
+    end
     integer_bundles = [
         bundle_integer_basic,
         bundle_integer_find,
@@ -229,8 +240,9 @@ function get_integer_bundles()
         bundle_number_arithmetic,
         bundle_number_reduce,
         bundle_element_pick,
-        bundle_element_conditional,
+        # bundle_element_conditional,
         bundle_number_transcendental,
+        factories...,
     ]
     integer_bundles = [deepcopy(b) for b in integer_bundles]
     # Update Casters && Fallbacks
@@ -340,6 +352,7 @@ function get_image2D_factory_bundles()
         bundle_image2D_barithmetic_factory,
         bundle_image2D_transcendental_factory,
         bundle_image2D_filtering_factory,
+        bundle_element_conditional_factory,
     ]
 
     # Update Casters && Fallbacks

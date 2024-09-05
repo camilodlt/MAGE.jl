@@ -46,6 +46,9 @@ end
 Returns the minimum in the vector.
 """
 function reduce_min(from::Vector{<:Number}, args...)
+    if isempty(from)
+        throw(ArgumentError("vector is empty"))
+    end
     return minimum(from)
 end
 ## reduce max
@@ -56,6 +59,9 @@ end
 Returns the maximum in the vector.
 """
 function reduce_max(from::Vector{<:Number}, args...)
+    if isempty(from)
+        throw(ArgumentError("vector is empty"))
+    end
     return maximum(from)
 end
 ## reduce argmin
@@ -65,6 +71,9 @@ end
 Returns the `argmin` of the vector.
 """
 function reduce_argmin(from::Vector{<:Number}, args...)
+    if isempty(from)
+        throw(ArgumentError("vector is empty"))
+    end
     return argmin(from)
 end
 ## reduce argmax
@@ -74,6 +83,9 @@ end
 Returns the `argmax` of the vector.
 """
 function reduce_argmax(from::Vector{<:Number}, args...)
+    if isempty(from)
+        throw(ArgumentError("vector is empty"))
+    end
     return argmax(from)
 end
 
@@ -84,6 +96,9 @@ end
 Returns the length of the vector
 """
 function reduce_length(from::Vector{<:Any}, args...)
+    if isempty(from)
+        throw(ArgumentError("vector is empty"))
+    end
     return length(from)
 end
 
@@ -93,6 +108,9 @@ end
 Return the length of the string.
 """
 function reduce_length(from::String, args...)
+    if isempty(from)
+        throw(ArgumentError("vector is empty"))
+    end
     return length(from)
 end
 

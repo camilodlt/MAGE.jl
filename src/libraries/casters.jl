@@ -20,7 +20,7 @@ end
 Cast a vector of generic Number type to concrete Float64 type. 
 
 """
-function listfloat_caster(l::Vector{<:Any})
+function listfloat_caster(l::Vector{<:Any})::Vector{Float64}
     if isempty(l)
         return Float64.([])
     end
