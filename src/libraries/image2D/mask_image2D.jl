@@ -217,7 +217,6 @@ function maskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
 end
 
 # TODO outside a and b
-# TODO invert image
 
 # Factory Methods
 append_method!(

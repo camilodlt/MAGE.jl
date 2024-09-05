@@ -394,10 +394,11 @@ function get_float_bundles_atari()
     float_bundles = [deepcopy(b) for b in float_bundles]
     # Update Casters && Fallbacks
     for b in float_bundles
+        println("Updating casters for bundle")
         update_caster!(b, float_caster)
         update_fallback!(b, () -> 0.0)
-        return float_bundles
     end
+    float_bundles
 end
 
 function get_image2D_factory_bundles_atari()
