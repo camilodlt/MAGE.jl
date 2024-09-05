@@ -380,15 +380,15 @@ function get_float_bundles_atari()
 
     float_bundles = [
         bundle_float_basic,
-        bundle_integer_find,
+        # bundle_integer_find,
         bundle_integer_modulo,
         bundle_integer_cond,
         bundle_number_arithmetic,
-        bundle_number_reduce,
-        bundle_element_pick,
+        # bundle_number_reduce,
+        # bundle_element_pick,
         bundle_number_transcendental,
         bundle_number_reduceFromImg,
-        bundle_number_coordinanatesFromImg,
+        bundle_number_coordinatesFromImg,
         factories...,
     ]
     float_bundles = [deepcopy(b) for b in float_bundles]
@@ -398,4 +398,28 @@ function get_float_bundles_atari()
         update_fallback!(b, () -> 0.0)
         return float_bundles
     end
+end
+
+function get_image2D_factory_bundles_atari()
+    bundle_images = [
+        bundle_image2D_basic_factory,
+        bundle_image2D_morph_factory,
+        bundle_image2D_binarize_factory,
+        bundle_image2D_segmentation_factory,
+        bundle_image2D_arithmetic_factory,
+        bundle_image2D_barithmetic_factory,
+        bundle_image2D_transcendental_factory,
+        bundle_image2D_filtering_factory,
+        bundle_element_conditional_factory,
+        # experimental_bundle_float_glcm_factory, texture stuff
+        experimental_bundle_image2D_mask_factory,
+        experimental_bundle_image2D_maskregion_factory,
+    ]
+
+    # Update Casters && Fallbacks
+    # for b in bundle_images
+    # update_caster!(b, ())
+    # update_fallback!(b, () -> SImageND)
+    # end
+    return deepcopy(bundle_images)
 end

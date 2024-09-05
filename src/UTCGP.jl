@@ -345,7 +345,7 @@ export bundle_number_reduce
 include("libraries/number/reduce_from_img.jl")
 import .number_reduceFromImg: bundle_number_reduceFromImg
 export bundle_number_reduceFromImg
-import .number_coordinatesFromImg: bundle_number_coordinatesFromImg
+import .number_reduceFromImg: bundle_number_coordinatesFromImg
 export bundle_number_coordinatesFromImg
 
 include("libraries/number/transcendental.jl")
@@ -433,6 +433,8 @@ export bundle_image2D_filtering_factory
 include("libraries/image2D/mask_image2D.jl")
 import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
 export experimental_bundle_image2D_mask_factory
+import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
+export experimental_bundle_image2D_maskregion_factory
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")
