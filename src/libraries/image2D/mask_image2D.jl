@@ -179,10 +179,8 @@ function maskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
         if to_ == from_
             return img
         end
-        @show from_
-        @show to_
         for i = 1:h
-            if i > from_ || i < to_
+            if i > from_ && i < to_
                 img.img[:, i] .= $TT(0)
             end
         end
@@ -208,11 +206,9 @@ function maskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
         if to_ == from_
             return img
         end
-        @show from_
-        @show to_
-        for i = 1:h
-            if i > from_ || i < to_
-                img.img[:, i] .= $TT(0)
+        for i = 1:w
+            if i > from_ && i < to_
+                img.img[i, :] .= $TT(0)
             end
         end
         return SImageND($TT.(img))
