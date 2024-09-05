@@ -206,7 +206,6 @@ function experimental_horizontal_argmax(from::SImageND{S,T,D,C}, args...) where 
     return argmax_values[2]
 end
 
-
 # APPEND FUNCTIONS --- 
 append_method!(bundle_number_reduceFromImg, reduce_length)
 # append_method!(bundle_number_reduceFromImg, reduce_biggestAxis)
