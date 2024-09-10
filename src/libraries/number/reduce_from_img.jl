@@ -202,7 +202,7 @@ end
 # Horizontal argmax ---
 """
     experimental_horizontal_argmax()
-Return the y coordinate where the image has it max value
+Return the x coordinate where the image has it max value
 """
 function experimental_horizontal_argmax(
     from::SImageND{S,T,D,C},
@@ -210,6 +210,32 @@ function experimental_horizontal_argmax(
 ) where {S,T<:Normed,D,C}
     argmax_values = argmax(float64.(from))
     return argmax_values[2]
+end
+
+# Vertical center of mass
+"""
+    experimental_vertical_center_of_mass()
+Return the y coordinate of the center of mass of the image 
+"""
+function experimental_vertical_center_of_mass(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+    y = collect(1:size(from, 1))
+    yy = ones(size(from, 2))' .* y
+    A = sum(from)
+    y_cms = sum(yy .* from) / A
+    return y_cms
+end
+
+# Horizontal center of mass
+"""
+    experimental_horizontal_center_of_mass()
+Return the x coordinate of the center of mass of the image 
+"""
+function experimental_horizontal_center_of_mass(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+    x = collect(1:size(from, 2))
+    xx = x' .* ones(size(from, 1))
+    A = sum(from)
+    x_cms = sum(xx .* from) / A
+    return x_cms
 end
 
 # APPEND FUNCTIONS --- 
@@ -227,5 +253,7 @@ append_method!(bundle_number_reduceFromImg, reduce_maximum)
 append_method!(bundle_number_reduceFromImg, reduce_minimum)
 append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_argmax)
 append_method!(bundle_number_coordinatesFromImg, experimental_vertical_argmax)
+append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_center_of_mass)
+append_method!(bundle_number_coordinatesFromImg, experimental_vertical_center_of_mass)
 end
 
