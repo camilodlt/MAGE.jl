@@ -398,7 +398,13 @@ function eval_and_reset(
     metalibrary::MetaLibrary,
 )
     ind_p = population_programs[idx_ind]
-    evaluate_individual_programs(ind_p, model_architecture.chromosomes_types, metalibrary)
+    o = evaluate_individual_programs(
+        ind_p,
+        model_architecture.chromosomes_types,
+        metalibrary,
+    )
+    reset_programs!(ind_p)
+    o
 end
 
 function evaluate_population_programs(
@@ -408,29 +414,6 @@ function evaluate_population_programs(
 )#::Vector{Vector{<:Any}}
     n_individuals = length(population_programs)
     @assert n_individuals > 0 "No individuals to evaluate"
-    # slow
-    # @timeit_debug to "evaluate_population_programs. Old Version" begin
-    #     pop_outputs = []
-    #     for (ith_individual, individual_programs) in enumerate(population_programs)
-    #         @debug "Evaluating individal $ith_individual"
-    #         push!(
-    #             pop_outputs,
-    #             evaluate_individual_programs(
-    #                 individual_programs,
-    #                 model_architecture.chromosomes_types,
-    #                 metalibrary,
-    #             ),
-    #         )
-    #         UTCGP.reset_programs!(individual_programs)
-    #     end
-
-    #     for i in eachindex(pop_outputs)
-    #         pop_outputs[i] = identity.(pop_outputs[i])
-    #     end
-    #     pop_outputs = identity.(pop_outputs)
-    # end
-
-    # faster
     @timeit_debug to "evaluate_population_programs. Eval inds Tuple" begin
         os = ntuple(
             i ->

@@ -191,7 +191,10 @@ end
     experimental_vertical_argmax()
 Return the y coordinate where the image has it max value
 """
-function experimental_vertical_argmax(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+function experimental_vertical_argmax(
+    from::SImageND{S,T,D,C},
+    args...,
+) where {S,T<:Normed,D,C}
     argmax_values = argmax(float64.(from))
     return argmax_values[1]
 end
@@ -201,15 +204,18 @@ end
     experimental_horizontal_argmax()
 Return the y coordinate where the image has it max value
 """
-function experimental_horizontal_argmax(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+function experimental_horizontal_argmax(
+    from::SImageND{S,T,D,C},
+    args...,
+) where {S,T<:Normed,D,C}
     argmax_values = argmax(float64.(from))
     return argmax_values[2]
 end
 
 # APPEND FUNCTIONS --- 
 append_method!(bundle_number_reduceFromImg, reduce_length)
-# append_method!(bundle_number_reduceFromImg, reduce_biggestAxis)
-# append_method!(bundle_number_reduceFromImg, reduce_smallerAxis)
+append_method!(bundle_number_reduceFromImg, reduce_biggestAxis)
+append_method!(bundle_number_reduceFromImg, reduce_smallerAxis)
 append_method!(bundle_number_reduceFromImg, reduce_histMode)
 append_method!(bundle_number_reduceFromImg, reduce_propWhite)
 append_method!(bundle_number_reduceFromImg, reduce_propBlack)

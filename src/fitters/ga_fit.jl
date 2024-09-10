@@ -801,7 +801,7 @@ function fit_ga_meanbatch_mt(
             return tuple(genome, best_programs, M_gen_loss_tracker)
         end
 
-        gct = @elapsed GC.gc(false)
+        gct = @elapsed GC.gc(true)
         @warn "Running GC at the end of iteration. GC time : $gct"
 
     end

@@ -26,7 +26,7 @@ function _eval_batch_on_pop(
         @info "Started Batch fit at Thread $(tid). $(now())"
         non_shared_pop_programs = deepcopy(non_shared_pop_programs)
         # s = Base.summarysize(non_shared_pop_programs) / 1e+9
-        # @debug "Non Shared Programs size in thread $tid in GB: $s"
+        # @info "Non Shared Programs size in thread $tid in GB: $s"
     end
 
     # Sequential

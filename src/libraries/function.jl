@@ -60,10 +60,8 @@ const SafeFunctions = Dict{Type,IsGood}()
 const SafeFunctionsLock = Base.ReentrantLock()
 println("RECORD OF FNS : $SafeFunctions")
 
-Base.@nospecializeinfer function safe_call(
-    @nospecialize(f::FunctionWrapper),
-    @nospecialize(x::Tuple)
-)
+# Base.@nospecializeinfer function safe_call( not available in 1.9.3
+function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
     global SafeFunctions, SafeFunctionsLock
 
     F = typeof(f)
@@ -151,7 +149,8 @@ end
 # end
 
 # FASTER
-Base.@nospecializeinfer function evaluate_fn_wrapper(
+# Base.@nospecializeinfer function evaluate_fn_wrapper( # not avail in 1.9.3
+function evaluate_fn_wrapper(
     @nospecialize(fn_wrapper::FunctionWrapper),
     @nospecialize(inputs_::Vector{<:Any})
 )
