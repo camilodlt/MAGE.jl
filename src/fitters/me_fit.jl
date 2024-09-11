@@ -32,7 +32,7 @@ function _me_init_params(genome::UTGenome, run_config::AbstractRunConf, ma, ml, 
     return early_stop, best_programs, elite_idx, population
 end
 
-function fit_me_mt(
+function fit_me_atari_mt(
     shared_inputs::SharedInput,
     genome::UTGenome,
     model_architecture::modelArchitecture,
@@ -50,7 +50,7 @@ function fit_me_mt(
     endpoint_callback::Type{<:BatchEndpoint},
     final_step_callbacks::Optional_FN,
     # Callbacks after step ::
-    elite_selection_callbacks::Mandatory_FN,
+    elite_selection_callbacks::Optional_FN,
     epoch_callbacks::Optional_FN,
     early_stop_callbacks::Optional_FN,
     last_callback::Optional_FN,
@@ -117,9 +117,15 @@ function fit_me_mt(
 
         # M_individual_loss_tracker = IndividualLossTrackerMT(length(population), length(X))
         @warn "MT Graphs evals"
-        fitness = endpoint_callback(population_programs, model_arch, meta_library)
-        fitness_values = get_endpoint_results(fitness)
+        endpoint_holder =
+            endpoint_callback(population_programs, model_architecture, meta_library)
+        fitness_values, descriptor_values = get_endpoint_results(endpoint_holder)
         UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
+
+        # ME INSERTS
+        batch_insert!(ARCHIVE, population, fitness_values, descriptor_values)
+        @show coverage(ARCHIVE)
+        @show best_fitness(ARCHIVE)
 
         # Resetting the population (removes node values)
         [reset_genome!(g) for g in population]
@@ -136,6 +142,7 @@ function fit_me_mt(
 
         try
             histogram(ind_performances) |> println
+            histogram([descriptor_values[i] for i = 1:length(descriptor_values)]) |> println
         catch e
             @error "Could not drawn histogram"
         end
