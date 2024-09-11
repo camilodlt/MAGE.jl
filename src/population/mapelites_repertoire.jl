@@ -50,4 +50,13 @@ function coverage(rep::MapelitesRepertoire)
     return count(ismissing, rep.fitness_values) / length(rep.pop)
 end
 
+function best_fitness(rep::MapelitesRepertoire)
+    return minimum(rep.fitness_values)
+end
+
+function best_individual(rep::MapelitesRepertoire)
+    min_idx = argmin(rep.fitness_values)
+    return rep.pop[min_idx]
+end
+
 Base.size(rep::MapelitesRepertoire) = length(rep.pop)
