@@ -1,5 +1,4 @@
 # the MapelitesRepertoire should be created with the centroids ready but not with the pop / fitness_values
-
 struct MapelitesRepertoire <: AbstractPopulation
     pop::Vector{Union{UTGenome,Missing}}
     fitness_values::Vector{Union{Number,Missing}}
@@ -10,7 +9,7 @@ end
 function insert!(rep::MapelitesRepertoire, genome::UTGenome, fitness::Number, descriptors::Vector{Number})
     idx = argmin([norm(descriptors .- centroid) for centroid in rep.centroids])
     # check the strategy for replacement: new equal? new smaller? only if better fitness?
-    if ismissing(fitness_values[idx]) || fitness <= fitness_values[idx]
+    if ismissing(rep.fitness_values[idx]) || fitness <= rep.fitness_values[idx]
         rep.pop[idx] = genome
         rep.fitness_values[idx] = fitness
         rep.descriptors[idx] = descriptors
