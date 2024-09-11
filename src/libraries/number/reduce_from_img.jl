@@ -217,7 +217,10 @@ end
     experimental_vertical_center_of_mass()
 Return the y coordinate of the center of mass of the image 
 """
-function experimental_vertical_center_of_mass(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+function experimental_vertical_center_of_mass(
+    from::SImageND{S,T,D,C},
+    args...,
+) where {S,T<:Normed,D,C}
     y = collect(1:size(from, 1))
     yy = ones(size(from, 2))' .* y
     A = sum(from)
@@ -230,7 +233,10 @@ end
     experimental_horizontal_center_of_mass()
 Return the x coordinate of the center of mass of the image 
 """
-function experimental_horizontal_center_of_mass(from::SImageND{S,T,D,C}, args...) where {S,T<:Normed,D,C}
+function experimental_horizontal_center_of_mass(
+    from::SImageND{S,T,D,C},
+    args...,
+) where {S,T<:Normed,D,C}
     x = collect(1:size(from, 2))
     xx = x' .* ones(size(from, 1))
     A = sum(from)
@@ -253,7 +259,7 @@ append_method!(bundle_number_reduceFromImg, reduce_maximum)
 append_method!(bundle_number_reduceFromImg, reduce_minimum)
 append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_argmax)
 append_method!(bundle_number_coordinatesFromImg, experimental_vertical_argmax)
-append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_center_of_mass)
-append_method!(bundle_number_coordinatesFromImg, experimental_vertical_center_of_mass)
+# append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_center_of_mass)
+# append_method!(bundle_number_coordinatesFromImg, experimental_vertical_center_of_mass)
 end
 

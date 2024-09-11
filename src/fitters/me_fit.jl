@@ -147,7 +147,7 @@ function fit_me_atari_mt(
 
         try
             histogram(ind_performances) |> println
-            histogram([descriptor_values[i] for i = 1:length(descriptor_values)]) |> println
+            histogram([d[1] for d in descriptor_values]) |> println
         catch e
             @error "Could not drawn histogram"
         end
