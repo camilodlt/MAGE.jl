@@ -129,13 +129,16 @@ function fit_me_atari_mt(
         @show fitness_values descriptor_values
         UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 
+
+        # Resetting the population (removes node values)
+        [reset_genome!(g) for g in population]
+
         # ME INSERTS
         batch_insert!(ARCHIVE, population.pop, fitness_values, descriptor_values)
         @show coverage(ARCHIVE)
         @show best_fitness(ARCHIVE)
 
-        # Resetting the population (removes node values)
-        [reset_genome!(g) for g in population]
+
 
         # final step call...
         if !isnothing(final_step_callbacks)
