@@ -52,12 +52,13 @@ function coverage(rep::MapelitesRepertoire)
 end
 
 function best_fitness(rep::MapelitesRepertoire)
-    return minimum(rep.fitness_values)
+    return minimum(collect(skipmissing(rep.fitness_values)))
 end
 
 function best_individual(rep::MapelitesRepertoire)
-    min_idx = argmin(rep.fitness_values)
-    return rep.pop[min_idx]
+    min_idx = argmin(collect(skipmissing(rep.fitness_values)))
+    non_empty_pop = collect(skipmissing(rep.pop))
+    return non_empty_pop[min_idx]
 end
 
 Base.size(rep::MapelitesRepertoire) = length(rep.pop)
