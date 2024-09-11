@@ -130,4 +130,34 @@ struct RunConfGA <: AbstractRunConf
 end
 
 
+"""
+    RunConfME( 
+        centroids::Vector{Vector{Float64}}
+        sample_size::Int
+        mutation_rate::Float64
+        output_mutation_rate::Float64
+        generations::Int
+        )
+    
+Specifies the experiment properties for GA.
+"""
+struct RunConfME <: AbstractRunConf
+    centroids::Vector{Vector{Float64}}
+    sample_size::Int
+    mutation_rate::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfGA(
+        centroids::Vector{Vector{Float64}},
+        sample_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        @assert generations >= 1 "At least one iteration"
+        new(centroids, sample_size, mutation_rate, output_mutation_rate, generations)
+    end
+end
+
+
 

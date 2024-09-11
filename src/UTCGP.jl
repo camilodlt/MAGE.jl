@@ -20,6 +20,7 @@ using ErrorTypes
 using ErrorTypes: ResultConstructor
 using DataFlowTasks
 using Logging
+using LinearAlgebra
 
 using TimerOutputs
 const debuglogger = ConsoleLogger(stderr, right_justify = 10)
@@ -502,6 +503,10 @@ include("search_network/sn_callbacks.jl")
 # Test utils
 include("test_utils.jl")
 
+# MAP ELITES
+include("population/mapelites_repertoire.jl")
+include("fitters/mapelites_callbacks.jl")
+include("fitters/me_fit.jl")
 # EXT
 #include("libraries/float/MAGE_RADIOMICS.jl")
 #function _FOS_MeanFeatureValue()
