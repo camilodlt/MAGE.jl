@@ -1,6 +1,4 @@
 # the MapelitesRepertoire should be created with the centroids ready but not with the pop / fitness_values
-# a common trick is to initialize as "empty" the positions where stuff is not available
-# fitness_values of those are initialized as infinity
 
 struct MapelitesRepertoire <: AbstractPopulation
     pop::Vector{Union{UTGenome,Missing}}
@@ -11,6 +9,7 @@ end
 
 function insert!(rep::MapelitesRepertoire, genome::UTGenome, fitness::Number, descriptors::Vector{Number})
     idx = argmin([norm(descriptors .- centroid) for centroid in rep.centroids])
+    # check the strategy for replacement: new equal? new smaller? only if better fitness?
     if ismissing(fitness_values[idx]) || fitness <= fitness_values[idx]
         rep.pop[idx] = genome
         rep.fitness_values[idx] = fitness
@@ -24,4 +23,8 @@ function batch_insert!(rep::MapelitesRepertoire, genomes::Vector{UTGenome}, fitn
     end
 end
 
-Base.size(pop::Population) = length(pop.pop)
+function coverage(rep::MapelitesRepertoire)
+    return count(ismissing, rep.fitness_values) / length(rep.pop) 
+end
+
+Base.size(rep::MapelitesRepertoire) = length(rep.pop)
