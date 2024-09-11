@@ -147,7 +147,7 @@ struct RunConfME <: AbstractRunConf
     mutation_rate::Float64
     output_mutation_rate::Float64
     generations::Int
-    function RunConfGA(
+    function RunConfME(
         centroids::Vector{Vector{Float64}},
         sample_size::Int,
         mutation_rate::Float64,

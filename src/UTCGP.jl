@@ -64,7 +64,7 @@ end
 
 # Callbacks fns 
 abstract type AbstractCallable end
-FN_TYPE = Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable}}}}
+FN_TYPE = Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable,<:Function}}}}
 Mandatory_FN = FN_TYPE
 Optional_FN = Union{Nothing,FN_TYPE}
 
