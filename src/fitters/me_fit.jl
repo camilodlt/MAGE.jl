@@ -117,6 +117,8 @@ function fit_me_atari_mt(
             decoding_callbacks,
         )
 
+        UTCGP.reset_programs!.(population_programs)
+
         # M_individual_loss_tracker = IndividualLossTrackerMT(length(population), 1)
         M_individual_loss_tracker = IndividualLossTracker() # size of []
 
@@ -148,6 +150,7 @@ function fit_me_atari_mt(
         try
             histogram(ind_performances) |> println
             histogram([d[1] for d in descriptor_values]) |> println
+            @show ARCHIVE.descriptors
             histogram(collect(skipmissing(ARCHIVE.descriptors)))
 
         catch e

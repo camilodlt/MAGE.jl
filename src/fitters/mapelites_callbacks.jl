@@ -58,7 +58,9 @@ function me_population_callback(pop_args::ME_POP_ARGS)::Option{Population}
     Config = pop_args.run_config
     Archive = pop_args.archive
     pop_size = Config.sample_size
-    return some(sample(Archive, pop_size))
+    new_pop = sample(Archive, pop_size)
+    UTCGP.reset_genome!.(new_pop)
+    return some(new_pop)
 end
 
 """
