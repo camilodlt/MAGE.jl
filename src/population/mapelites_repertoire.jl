@@ -48,7 +48,7 @@ function batch_insert!(rep::MapelitesRepertoire, genomes::Vector{UTGenome}, fitn
 end
 
 function coverage(rep::MapelitesRepertoire)
-    return count(ismissing, rep.fitness_values) / length(rep.pop)
+    return 1 - count(ismissing, rep.fitness_values) / length(rep.pop)
 end
 
 function best_fitness(rep::MapelitesRepertoire)
