@@ -27,7 +27,8 @@ struct MapelitesRepertoire <: Abstract_MapElitesRepertoire
 end
 
 function sample(rep::MapelitesRepertoire, n_samples::Int)
-    return Population(rand(rep.pop, n_samples))
+    non_missing_genomes = collect(skipmissing(rep.pop))
+    return Population(rand(non_missing_genomes, n_samples))
 end
 
 function insert!(rep::MapelitesRepertoire, genome::UTGenome, fitness::Float64, descriptors::Vector{Float64})
