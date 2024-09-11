@@ -23,7 +23,7 @@ end
 
 """
 """
-struct ME_MUTATION_ARGS <: Abstract_ME_POP_ARGS
+struct ME_MUTATION_ARGS <: Abstract_ME_MUTATION_ARGS
     archive::Abstract_MapElitesRepertoire
     population::Population
     generation::Int
@@ -31,6 +31,7 @@ struct ME_MUTATION_ARGS <: Abstract_ME_POP_ARGS
     model_architecture::modelArchitecture
     node_config::nodeConfig
     meta_library::MetaLibrary
+    shared_inputs::SharedInput
 end
 
 """
@@ -93,6 +94,28 @@ function me_decoding_callback(decode_args::ME_DECODE_ARGS)::PopulationPrograms
     # Decoding all programs
     population_programs =
         [decode_with_output_nodes(individual, ml, ma, si) for individual in pop]
+
+    return PopulationPrograms(population_programs)
+end
+
+function me_decoding_callback(
+    population::Population,
+    generation::Int,
+    run_config::AbstractRunConf,
+    model_architecture::modelArchitecture,
+    node_config::nodeConfig,
+    meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
+)::PopulationPrograms
+    # Decoding all programs
+    population_programs = [
+        decode_with_output_nodes(
+            individual,
+            meta_library,
+            model_architecture,
+            shared_inputs,
+        ) for individual in population
+    ]
 
     return PopulationPrograms(population_programs)
 end

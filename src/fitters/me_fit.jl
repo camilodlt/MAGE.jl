@@ -76,11 +76,12 @@ function fit_me_atari_mt(
             node_config,
             meta_library,
         )
-        population, time_pop =
-            @unwrap_or _make_me_population(me_pop_args, population_callbacks) throw(
-                "Could not unwrap make_population",
-            )
-
+        if iteration != 1
+            population, time_pop =
+                @unwrap_or _make_me_population(me_pop_args, population_callbacks) throw(
+                    "Could not unwrap make_population",
+                )
+        end
         # Program mutations ---
         me_mutation_args = ME_MUTATION_ARGS(
             ARCHIVE,
@@ -90,7 +91,7 @@ function fit_me_atari_mt(
             model_architecture,
             node_config,
             meta_library,
-            # shared_inputs,
+            shared_inputs,
         )
         population, time_mut =
             @unwrap_or _make_me_mutations!(me_mutation_args, mutation_callbacks) throw(
@@ -104,6 +105,7 @@ function fit_me_atari_mt(
         # ) throw("Could not unwrap make_ga_output_mutations")
 
         # Genotype to Phenotype mapping --- 
+
         population_programs, time_pop_prog = _make_decoding(
             population,
             iteration,
@@ -115,15 +117,18 @@ function fit_me_atari_mt(
             decoding_callbacks,
         )
 
-        # M_individual_loss_tracker = IndividualLossTrackerMT(length(population), length(X))
+        # M_individual_loss_tracker = IndividualLossTrackerMT(length(population), 1)
+        M_individual_loss_tracker = IndividualLossTracker() # size of []
+
         @warn "MT Graphs evals"
         endpoint_holder =
             endpoint_callback(population_programs, model_architecture, meta_library)
         fitness_values, descriptor_values = get_endpoint_results(endpoint_holder)
+        @show fitness_values descriptor_values
         UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 
         # ME INSERTS
-        batch_insert!(ARCHIVE, population, fitness_values, descriptor_values)
+        batch_insert!(ARCHIVE, population.pop, fitness_values, descriptor_values)
         @show coverage(ARCHIVE)
         @show best_fitness(ARCHIVE)
 
@@ -168,13 +173,13 @@ function fit_me_atari_mt(
         end
 
         # store iteration loss/fitness
-        affect_fitness_to_loss_tracker!(M_gen_loss_tracker, iteration, elite_best_fitness)
-        # println(
-        #     "Iteration $iteration. 
-        #     Best fitness: $(round(elite_best_fitness, digits = 10)) at index $elite_best_ftiness_idx 
-        #     Elite mean fitness : $(round(elite_avg_fitness, digits = 10)). Std: $(round(elite_std_fitness)) at indices : $(elite_idx)",
-        # )
-        println("Iteration $iteration")
+        affect_fitness_to_loss_tracker!(
+            M_gen_loss_tracker,
+            iteration,
+            UTCGP.best_fitness(ARCHIVE),
+        )
+        println("Iteration $iteration. 
+                 Archive best fitness : $(round(UTCGP.best_fitness(ARCHIVE), digits = 10))")
 
         # EARLY STOP CALLBACK # TODO
         if !isnothing(early_stop_callbacks) && length(early_stop_callbacks) != 0
