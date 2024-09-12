@@ -162,7 +162,8 @@ function fit_me_atari_mt(
 
         # EPOCH CALLBACK
         if !isnothing(epoch_callbacks)
-            _make_epoch_callbacks_calls(
+            epoch_callbacks[1](
+            # _make_epoch_callbacks_calls(
                 ind_performances,
                 ARCHIVE,
                 iteration
