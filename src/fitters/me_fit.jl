@@ -126,7 +126,7 @@ function fit_me_atari_mt(
         endpoint_holder =
             endpoint_callback(population_programs, model_architecture, meta_library)
         fitness_values, descriptor_values = get_endpoint_results(endpoint_holder)
-        @show fitness_values descriptor_values
+        # @show fitness_values descriptor_values
         UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 
 
@@ -151,10 +151,10 @@ function fit_me_atari_mt(
         ind_performances = UTCGP.resolve_ind_loss_tracker(M_individual_loss_tracker)
 
         try
-            histogram(ind_performances) |> println
-            histogram([d[1] for d in descriptor_values]) |> println
-            @show ARCHIVE.descriptors
-            histogram(collect(skipmissing(ARCHIVE.descriptors)))
+            # histogram(ind_performances) |> println
+            # histogram([d[1] for d in descriptor_values]) |> println
+            # @show ARCHIVE.descriptors
+            histogram(collect(skipmissing(ARCHIVE.fitness_values)))
 
         catch e
             @error "Could not drawn histogram"
@@ -164,19 +164,22 @@ function fit_me_atari_mt(
         if !isnothing(epoch_callbacks)
             _make_epoch_callbacks_calls(
                 ind_performances,
-                population,
-                iteration,
-                run_config,
-                model_architecture,
-                node_config,
-                meta_library,
-                shared_inputs,
-                population_programs,
-                [],
-                best_programs,
-                elite_idx,
-                view([], :),
-                epoch_callbacks,
+                ARCHIVE,
+                iteration
+                # ind_performances,
+                # population,
+                # iteration,
+                # run_config,
+                # model_architecture,
+                # node_config,
+                # meta_library,
+                # shared_inputs,
+                # population_programs,
+                # [],
+                # best_programs,
+                # elite_idx,
+                # view([], :),
+                # epoch_callbacks,
             )
         end
 
