@@ -348,6 +348,8 @@ import .number_reduceFromImg: bundle_number_reduceFromImg
 export bundle_number_reduceFromImg
 import .number_reduceFromImg: bundle_number_coordinatesFromImg
 export bundle_number_coordinatesFromImg
+import .number_reduceFromImg: bundle_number_relativeCoordinatesFromImg
+export bundle_number_relativeCoordinatesFromImg
 
 include("libraries/number/transcendental.jl")
 import .number_transcendental: bundle_number_transcendental
