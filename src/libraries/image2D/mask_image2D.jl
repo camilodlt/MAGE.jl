@@ -233,8 +233,8 @@ function notmaskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImag
         w = S.parameters[1]
         h = S.parameters[2]
         # soft rescales in [0,1] and then rescales in [0,h] 
-        to_ = h * (tanh(2 to_- 1) + 1) / 2
-        from_ = h * (tanh(2 from_- 1) + 1) / 2
+        to_ = h * (tanh(2to_- 1) + 1) / 2
+        from_ = h * (tanh(2from_- 1) + 1) / 2
         # these two rows are technically unnecessary
         to_ = clamp(to_, 0, h) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
@@ -264,8 +264,8 @@ function notmaskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImag
         w = S.parameters[1]
         h = S.parameters[2]
         # soft rescales in [0,1] and then rescales in [0,w] 
-        to_ = w * (tanh(2 to_- 1) + 1) / 2
-        from_ = w * (tanh(2 from_- 1) + 1) / 2
+        to_ = w * (tanh(2to_- 1) + 1) / 2
+        from_ = w * (tanh(2from_- 1) + 1) / 2
         # these two rows are technically unnecessary
         to_ = clamp(to_, 0, w) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
@@ -295,8 +295,8 @@ function maskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
         w = S.parameters[1]
         h = S.parameters[2]
         # soft rescales in [0,1] and then rescales in [0,h] 
-        to_ = h * (tanh(2 to_- 1) + 1) / 2
-        from_ = h * (tanh(2 from_- 1) + 1) / 2
+        to_ = h * (tanh(2to_- 1) + 1) / 2
+        from_ = h * (tanh(2from_- 1) + 1) / 2
         # these two rows are technically unnecessary
         to_ = clamp(to_, 0, h) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
@@ -326,8 +326,8 @@ function maskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
         w = S.parameters[1]
         h = S.parameters[2]
         # soft rescales in [0,1] and then rescales in [0,w] 
-        to_ = w * (tanh(2 to_- 1) + 1) / 2
-        from_ = w * (tanh(2 from_- 1) + 1) / 2
+        to_ = w * (tanh(2to_- 1) + 1) / 2
+        from_ = w * (tanh(2from_- 1) + 1) / 2
         # these two rows are technically unnecessary
         to_ = clamp(to_, 0, w) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
