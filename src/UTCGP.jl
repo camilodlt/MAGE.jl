@@ -436,6 +436,8 @@ import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
 export experimental_bundle_image2D_mask_factory
 import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
 export experimental_bundle_image2D_maskregion_factory
+import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_relative_factory
+export experimental_bundle_image2D_maskregion_relative_factory
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")
