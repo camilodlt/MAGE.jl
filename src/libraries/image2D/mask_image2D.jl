@@ -404,9 +404,9 @@ function notmaskbycolor_image2D_factory(i::Type{I}) where {I<:SizedImage}
         for i = 1:w
             for j=1:h
                 if img.img[i, j] > (color_ - threshold) && img.img[i, j] < (color_ + threshold)
-                    img.img[i, j] .= $TT(1)
+                    img.img[i, j] = $TT(1)
                 else
-                    img.img[i, j] .= $TT(0)
+                    img.img[i, j] = $TT(0)
                 end
             end
         end
