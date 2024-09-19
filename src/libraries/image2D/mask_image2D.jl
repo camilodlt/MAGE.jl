@@ -345,6 +345,76 @@ function maskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     return m1
 end
 
+# idea of focusing the vision around a certain area
+# TODO 1 range as parameter
+# TODO 2 change focus shape to sphere
+function notmaskaround_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
+    TT = Base.unwrap_unionall(I).parameters[2] # Image type
+    _validate_factory_type(TT)
+    m1 = @eval (
+        (img_::CONCT, x::Number, y::Number, args::Vararg{Any}) where {CONCT<:$I}
+    ) -> begin
+        img = deepcopy(img_)
+        range = 0.25
+        S = _get_image_tuple_size(CONCT)
+        w = S.parameters[1]
+        h = S.parameters[2]
+        x_range = range * w
+        y_range = range * h
+        x_ = w * (tanh(2x_- 1) + 1) / 2
+        y_ = h * (tanh(2y_- 1) + 1) / 2
+        x_from_ = clamp(round(Int, x_ - x_range), 0, x_to_)
+        x_to_ = clamp(round(Int, x_ + x_range), x_from_, w)
+        y_from_ = clamp(round(Int, y_ - y_range), 0, y_to_)
+        y_to_ = clamp(round(Int, y_ + y_range), y_from_, h) 
+        # mask along x
+        if x_to_ > x_from_
+            for i = 1:w
+                if i > x_from_ && i < x_to_
+                    img.img[i, :] .= $TT(0)
+                end
+            end
+        end
+        # mask along y
+        if y_to_ > y_from_
+            for i = 1:h
+                if i > from_ && i < y_to_
+                    img.img[:, i] .= $TT(0)
+                end
+            end
+        end
+        return SImageND($TT.(img))
+    end
+    return m1
+end
+
+# returns the binarized image: white where the color is the requested one, black elsewhere
+function notmaskbycolor_image2D_factory(i::Type{I}) where {I<:SizedImage}
+    TT = Base.unwrap_unionall(I).parameters[2] # Image type
+    _validate_factory_type(TT)
+    m1 = @eval (
+        (img_::CONCT, color::Number, args::Vararg{Any}) where {CONCT<:$I}
+    ) -> begin
+        img = deepcopy(img_)
+        S = _get_image_tuple_size(CONCT)
+        w = S.parameters[1]
+        h = S.parameters[2]
+        color_ = clamp(color, 0.0, 1.0)
+        threshold = 1. / 255.
+        for i = 1:w
+            for j=1:h
+                if img.img[i, j] > (color_ - threshold) && img.img[i, j] < (color_ + threshold)
+                    img.img[i, j] .= $TT(1)
+                else
+                    img.img[i, j] .= $TT(0)
+                end
+            end
+        end
+        return SImageND($TT.(img))
+    end
+    return m1
+end
+
 # TODO outside a and b
 
 # Factory Methods
@@ -406,6 +476,11 @@ append_method!(
     experimental_bundle_image2D_maskregion_relative_factory,
     maskfromtoh_relative_image2D_factory,
     :experimental_maskfromtoh_relative_image2D,
+)
+append_method!(
+    experimental_bundle_image2D_maskregion_relative_factory,
+    notmaskaround_relative_image2D_factory,
+    :experimental_notmaskaround_relative_image2D,
 )
 
 end
