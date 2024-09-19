@@ -433,6 +433,11 @@ append_method!(
     maskeqt_image2D_factory,
     :maskeqt_image2D,
 )
+append_method!(
+    experimental_bundle_image2D_mask_factory,
+    notmaskbycolor_image2D_factory,
+    :experimental_notmaskbycolor_image2D,
+)
 
 # MASK REGION #
 append_method!(
