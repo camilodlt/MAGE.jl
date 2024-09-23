@@ -345,6 +345,7 @@ function _run_op(operation::Operation, program_inputs::SharedInput)
 
         fname = fn.name
         @debug "Evaluating $fname"
+
         @timeit_debug to "Calc res" res = evaluate_fn_wrapper(fn, inputs_values)
         if isnothing(res)
             if isdefined(Main, :Infiltrator)

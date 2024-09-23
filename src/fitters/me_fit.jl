@@ -14,13 +14,13 @@ function init_pop(genome, ma, ml, si, n_pop::Int)
     new_pop = Vector{UTGenome}(undef, n_pop)
     for i = 1:n_pop
         g_new = deepcopy(genome)
-        UTCGP.reset_genome!(g_new)
-        initialize_genome!(g_new)
-        correct_all_nodes!(g_new, ma, ml, si)
-        fix_all_output_nodes!(g_new)
+        # UTCGP.reset_genome!(g_new)
+        # initialize_genome!(g_new)
+        # correct_all_nodes!(g_new, ma, ml, si)
+        # fix_all_output_nodes!(g_new)
         new_pop[i] = g_new
     end
-    Population(new_pop)
+    Population(deepcopy(new_pop))
 
 end
 
@@ -155,7 +155,6 @@ function fit_me_atari_mt(
             # histogram([d[1] for d in descriptor_values]) |> println
             # @show ARCHIVE.descriptors
             histogram(collect(skipmissing(ARCHIVE.fitness_values)))
-
         catch e
             @error "Could not drawn histogram"
         end
