@@ -133,7 +133,7 @@ function Base.show(_::IO, op::Operation)
         " at $(op.calling_node.id)"
     # ins = [_extract_id_from_R(inp) for inp in op.inputs]
     ins = []
-    insert!(ins, 1, string(op.fn.name))
+    Base.insert!(ins, 1, string(op.fn.name))
     op_dict[node_name] = ins
     println(Term.Tree(op_dict, print_node_function = print_node__))
 end
