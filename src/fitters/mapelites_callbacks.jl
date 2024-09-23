@@ -166,6 +166,47 @@ function _make_me_mutations!(
     return some(tuple(me_args.population, tt))
 end
 
+function _make_epoch_callbacks_calls(
+    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
+    archive::MapelitesRepertoire,
+    population::Population,
+    generation::Int,
+    run_config::AbstractRunConf,
+    model_architecture::modelArchitecture,
+    node_config::nodeConfig,
+    meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
+    programs::PopulationPrograms,
+    best_loss::Union{Nothing,Float64,Vector{Float64}},
+    best_program::Union{Nothing,IndividualPrograms,Vector{IndividualPrograms}},
+    elite_idx::Union{Nothing,Int,Vector{Int}},
+    Batch::Union{SubArray,Nothing},
+    epoch_callbacks::FN_TYPE,
+)::Float64
+    t = []
+    for epoch_callback in epoch_callbacks
+        fn = epoch_callback isa Symbol ? get_fn_from_symbol(epoch_callback) : epoch_callback
+        t_e = @elapsed fn(
+            ind_performances,
+            archive,
+            population,
+            generation,
+            run_config,
+            model_architecture,
+            node_config,
+            meta_library,
+            shared_inputs,
+            programs,
+            best_loss,
+            best_program,
+            elite_idx,
+            Batch,
+        )
+        push!(t, t_e)
+    end
+    return mean(t)
+end
+
 # function _make_ga_output_mutations!(
 #     ga_args::GA_MUTATION_ARGS,
 #     output_mutation_callbacks::FN_TYPE,

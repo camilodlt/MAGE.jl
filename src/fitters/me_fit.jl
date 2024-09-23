@@ -138,8 +138,6 @@ function fit_me_atari_mt(
         @show coverage(ARCHIVE)
         @show best_fitness(ARCHIVE)
 
-
-
         # final step call...
         if !isnothing(final_step_callbacks)
             for final_step_callback in final_step_callbacks
@@ -161,25 +159,22 @@ function fit_me_atari_mt(
 
         # EPOCH CALLBACK
         if !isnothing(epoch_callbacks)
-            epoch_callbacks[1](
-            # _make_epoch_callbacks_calls(
+            _make_epoch_callbacks_calls(
                 ind_performances,
                 ARCHIVE,
-                iteration
-                # ind_performances,
-                # population,
-                # iteration,
-                # run_config,
-                # model_architecture,
-                # node_config,
-                # meta_library,
-                # shared_inputs,
-                # population_programs,
-                # [],
-                # best_programs,
-                # elite_idx,
-                # view([], :),
-                # epoch_callbacks,
+                population,
+                iteration,
+                run_config,
+                model_architecture,
+                node_config,
+                meta_library,
+                shared_inputs,
+                population_programs,
+                nothing, # []
+                nothing, # best_programs,
+                nothing,# elite_idx,
+                nothing,
+                epoch_callbacks,
             )
         end
 
