@@ -208,6 +208,13 @@ function fit_me_atari_mt(
             # early_stop =
             #     _make_ga_early_stop_callbacks_calls(early_stop_args, early_stop_callbacks) # true if any
         end
+        best_individual = UTCGP.best_individual(ARCHIVE)
+        best_program = decode_with_output_nodes(
+            best_individual,
+            meta_library,
+            model_architecture,
+            shared_inputs,
+        )
 
         if early_stop
             g = run_config.generations
@@ -228,12 +235,19 @@ function fit_me_atari_mt(
                 # )
             end
             # UTCGP.show_program(program)
-            return tuple(genome, best_programs, M_gen_loss_tracker)
+            return tuple(best_individual, best_program, M_gen_loss_tracker)
         end
 
         gct = @elapsed GC.gc(false)
         @warn "Running GC at the end of iteration. GC time : $gct"
 
     end
-    return (genome, best_programs, M_gen_loss_tracker)
+    best_individual = UTCGP.best_individual(ARCHIVE)
+    best_program = decode_with_output_nodes(
+        best_individual,
+        meta_library,
+        model_architecture,
+        shared_inputs,
+    )
+    return (best_individual, best_program, M_gen_loss_tracker)
 end
