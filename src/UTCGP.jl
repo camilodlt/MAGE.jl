@@ -21,6 +21,7 @@ using ErrorTypes: ResultConstructor
 using DataFlowTasks
 using Logging
 using LinearAlgebra
+using StatsBase
 
 using TimerOutputs
 const debuglogger = ConsoleLogger(stderr, right_justify = 10)

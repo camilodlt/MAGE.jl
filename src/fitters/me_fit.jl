@@ -123,8 +123,12 @@ function fit_me_atari_mt(
         M_individual_loss_tracker = IndividualLossTracker() # size of []
 
         @warn "MT Graphs evals"
-        endpoint_holder =
-            endpoint_callback(population_programs, model_architecture, meta_library)
+        endpoint_holder = endpoint_callback(
+            population_programs,
+            model_architecture,
+            meta_library,
+            iteration,
+        )
         fitness_values, descriptor_values = get_endpoint_results(endpoint_holder)
         # @show fitness_values descriptor_values
         UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
