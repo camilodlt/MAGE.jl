@@ -512,6 +512,10 @@ include("test_utils.jl")
 include("population/mapelites_repertoire.jl")
 include("fitters/mapelites_callbacks.jl")
 include("fitters/me_fit.jl")
+
+include("fitters/stn_callbacks.jl")
+include("fitters/stn_fit.jl")
+
 # EXT
 #include("libraries/float/MAGE_RADIOMICS.jl")
 #function _FOS_MeanFeatureValue()

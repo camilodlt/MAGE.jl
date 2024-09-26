@@ -159,5 +159,32 @@ struct RunConfME <: AbstractRunConf
     end
 end
 
+struct RunConfSTN <: AbstractRunConf
+    sample_size::Int
+    behavior_col::String
+    serialization_col::String
+    mutation_rate::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfSTN(
+        sample_size::Int,
+        behavior_col::String,
+        serialization_col::String,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        @assert generations >= 1 "At least one iteration"
+        new(
+            sample_size,
+            behavior_col,
+            serialization_col,
+            mutation_rate,
+            output_mutation_rate,
+            generations,
+        )
+    end
+end
+
 
 
