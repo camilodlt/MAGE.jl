@@ -129,6 +129,44 @@ struct RunConfGA <: AbstractRunConf
     end
 end
 
+"""
+    RunConfNSGA2( 
+        n_new::Int,
+        tournament_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int
+        )
+    
+Specifies the experiment properties for NSGA2.
+"""
+struct RunConfNSGA2 <: AbstractRunConf
+    n_new::Int
+    tournament_size::Int
+    mutation_rate::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfNSGA2(
+        n_new::Int,
+        tournament_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        # n elite faked to 1 for reusing methods
+        _verif_config_ga(1, n_new, tournament_size)
+        _info_config_ga(1, n_new, tournament_size)
+        @assert generations >= 1 "At least one iteration"
+        new(
+            n_new,
+            tournament_size,
+            mutation_rate,
+            output_mutation_rate,
+            generations,
+        )
+    end
+end
+
 
 """
     RunConfME( 
