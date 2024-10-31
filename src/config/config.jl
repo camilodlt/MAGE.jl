@@ -141,24 +141,25 @@ end
 Specifies the experiment properties for NSGA2.
 """
 struct RunConfNSGA2 <: AbstractRunConf
-    n_new::Int
+    pop_size::Int
     tournament_size::Int
     mutation_rate::Float64
     output_mutation_rate::Float64
     generations::Int
     function RunConfNSGA2(
-        n_new::Int,
+        pop_size::Int,
         tournament_size::Int,
         mutation_rate::Float64,
         output_mutation_rate::Float64,
         generations::Int,
     )
-        # n elite faked to 1 for reusing methods
-        _verif_config_ga(1, n_new, tournament_size)
-        _info_config_ga(1, n_new, tournament_size)
+        @assert tournament_size >= 1 "The tournament has to involve at least one individual"
+        @assert tournament_size < pop_size "Tournament size must be smaller than population size"
         @assert generations >= 1 "At least one iteration"
+        @info "Run conf with a pop of $pop_size"
+        @info "Run conf with tournament size of $tournament_size"
         new(
-            n_new,
+            pop_size,
             tournament_size,
             mutation_rate,
             output_mutation_rate,
