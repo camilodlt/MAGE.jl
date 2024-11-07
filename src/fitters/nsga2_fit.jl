@@ -59,13 +59,13 @@ end
 # computes the crowding distance regardless of the dominance
 function _crowding_distance(fitness_values::Vector{Vector{Float64}})
     matrix_fitnesses = mapreduce(permutedims, vcat, fitness_values)
-    distances = Vector{Float64}(0., length(fitness_values))
+    distances = zeros(length(fitness_values))
     for m = 1:length(fitness_values[1])
         min_m = minimum(matrix_fitnesses[:,m])
         max_m = maximum(matrix_fitnesses[:,m])
         sorted_indexes = sortperm(matrix_fitnesses[:,m])
-        distances[sorted_indexes[1]] = inf
-        distances[sorted_indexes[length(sorted_indexes)]] = inf
+        distances[sorted_indexes[1]] = Inf
+        distances[sorted_indexes[length(sorted_indexes)]] = Inf
         for idx in 2:length(sorted_indexes)-1
             distances[idx] += (matrix_fitnesses[sorted_indexes[idx+1],m] - matrix_fitnesses[sorted_indexes[idx-1],m]) / (max_m - min_m)
         end
@@ -75,7 +75,7 @@ end
 
 function _ranks_and_crowding_distances(fitness_values::Vector{Vector{Float64}})
     ranks = _rank_population(fitness_values)
-    distances = Vector{Float64}(0., length(fitness_values))
+    distances = zeros(length(fitness_values))
     for rank = minimum(ranks):maximum(ranks)
         current_rank_indexes = findall(==(rank), ranks)
         distances[current_rank_indexes] = _crowding_distance(fitness_values[current_rank_indexes])
@@ -203,10 +203,14 @@ function fit_nsga2_atari_mt(
             full_population = Population(vcat(population.pop, offspring.pop))
         else
             fitness_values = offspring_fitness_values
-            full_population = offspring.pop
+            full_population = offspring
         end
 
         ranks, distances = _ranks_and_crowding_distances(fitness_values)
+
+        @show fitness_values
+        @show ranks
+        @show distances
 
         # Survival selection
         nsga2_selection_args = NSGA2_SELECTION_ARGS(
