@@ -153,3 +153,24 @@ function affect_fitness_to_loss_tracker!(
     end
     push!(generations_loss_tracker.store[id], loss)
 end
+
+
+struct GenerationMultiObjectiveLossTracker <: AbstractGenLossTracker
+    pareto_front::OrderedDict{Int,Vector{Vector{<:Number}}}
+    function GenerationMultiObjectiveLossTracker()
+        return new(OrderedDict{Int,Vector{Vector{<:Number}}}())
+    end
+
+end
+
+Base.size(gen_tracker::AbstractGenLossTracker) = length(gen_tracker.pareto_front)
+Base.length(gen_tracker::AbstractGenLossTracker) = length(gen_tracker.pareto_front)
+Base.getindex(gen_tracker::AbstractGenLossTracker, k::Int) = gen_tracker.pareto_front[k]
+
+function affect_fitness_to_loss_tracker!(
+    generations_mo_loss_tracker::GenerationMultiObjectiveLossTracker,
+    id::Int,
+    pareto_front::Vector{Vector{Float64}},
+)
+    generations_mo_loss_tracker.pareto_front[id] = deepcopy(pareto_front)
+end
