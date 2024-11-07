@@ -113,6 +113,7 @@ function fit_nsga2_atari_mt(
 
     local early_stop, best_programs, pareto_front_idx, population, ranks, distances =
         _nsga2_init_params(genome, run_config)
+    ind_performances = Vector{Vector{Float64}}()
 
     # PRE CALLBACKS
     _make_pre_callbacks_calls(pre_callbacks)
@@ -231,6 +232,8 @@ function fit_nsga2_atari_mt(
         ind_performances = fitness_values[survival_idx]
         elite_ranks = ranks[survival_idx]
         population = Population(full_population.pop[survival_idx])
+        
+        @show ind_performances
 
         # TODO loss trackers
         # ind_performances = UTCGP.resolve_ind_loss_tracker(M_individual_loss_tracker)
