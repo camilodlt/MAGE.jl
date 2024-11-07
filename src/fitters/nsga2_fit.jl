@@ -38,19 +38,25 @@ end
 # computes the ranks in terms of pareto fronts
 function _rank_population(fitness_values::Vector{Vector{Float64}})
     ranks = Vector{Int64}(undef, length(fitness_values))
+    @show ranks
     for rank = 1:length(fitness_values)
         current_fitnesses = fitness_values[ranks.>rank]
         if length(current_fitnesses) < 1
             break
         end
         for (fit_idx, fit) in enumerate(fitness_values)
-            if isdefined(ranks, fit_idx)
+            if ranks[fit_idx] <= rank
                 continue
             end
             dominated = [all(diff -> diff >= 0, fit .- f) && any(diff -> diff > 0, fit .- f) for f in current_fitnesses]
+            @show current_fitnesses
+            @show fit
+            @show dominated
             if all(!, dominated)
                 ranks[fit_idx] = rank
+                @show rank
             end
+            @show ranks
         end
     end
     return ranks
