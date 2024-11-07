@@ -125,7 +125,6 @@ function fit_nsga2_atari_mt(
             model_architecture,
             node_config,
             meta_library,
-            ind_performances,
             ranks,
             distances
         )

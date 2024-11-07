@@ -18,7 +18,6 @@ struct NSGA2_POP_ARGS <: Abstract_NSGA2_POP_ARGS
     model_architecture::modelArchitecture
     node_config::nodeConfig
     meta_library::MetaLibrary
-    fitnesses::Vector{Vector{Float64}}
     ranks::Vector{Int64}
     distances::Vector{Float64}
 end
