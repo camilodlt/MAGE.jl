@@ -253,7 +253,7 @@ function nsga2_survival_selection_callback(args::NSGA2_SELECTION_ARGS)::Option{V
     full_population = args.population
     pop_size = args.run_config.pop_size
     @assert length(ranks) == length(full_population.pop) # "During Selection, the size of the individual performances does not match that of the run config : ($(n_fitnesses) vs elite: $(R.n_elite) + new $(R.n_new))"
-    indexes = []
+    indexes = Vector{Int64}(undef, 0)
     for rank=minimum(ranks):maximum(ranks)
         current_rank_idxs = findall(==(rank), ranks)
         # promote current front if it fits
