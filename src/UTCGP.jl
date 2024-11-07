@@ -513,6 +513,10 @@ include("population/mapelites_repertoire.jl")
 include("fitters/mapelites_callbacks.jl")
 include("fitters/me_fit.jl")
 
+# NSGA2
+include("fitters/nsga2_callbacks.jl")
+include("fitters/nsga2_fit.jl")
+
 include("fitters/stn_callbacks.jl")
 include("fitters/stn_fit.jl")
 
