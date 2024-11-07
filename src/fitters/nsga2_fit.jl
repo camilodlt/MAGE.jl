@@ -63,6 +63,10 @@ function _crowding_distance(fitness_values::Vector{Vector{Float64}})
     for m = 1:length(fitness_values[1])
         min_m = minimum(matrix_fitnesses[:,m])
         max_m = maximum(matrix_fitnesses[:,m])
+        # for the current objective all elements are equal, skipping prevents 0. division
+        if min_m == max_m
+            continue
+        end
         sorted_indexes = sortperm(matrix_fitnesses[:,m])
         distances[sorted_indexes[1]] = Inf
         distances[sorted_indexes[length(sorted_indexes)]] = Inf
