@@ -198,7 +198,7 @@ function fit_nsga2_atari_mt(
         end
 
         # Merge parents and offspring
-        if generation > 1
+        if iteration > 1
             fitness_values = vcat(ind_performances, offspring_fitness_values)
             full_population = Population(vcat(population.pop, offspring.pop))
         else
