@@ -251,7 +251,7 @@ function nsga2_survival_selection_callback(args::NSGA2_SELECTION_ARGS)::Option{V
     ranks = args.ranks
     distances = args.distances
     full_population = args.population
-    pop_size = args.pop_size
+    pop_size = args.run_config.pop_size
     @assert length(ranks) == length(full_population.pop) # "During Selection, the size of the individual performances does not match that of the run config : ($(n_fitnesses) vs elite: $(R.n_elite) + new $(R.n_new))"
     indexes = []
     for rank=minimum(ranks):maximum(ranks)
