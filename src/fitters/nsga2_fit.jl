@@ -230,7 +230,7 @@ function fit_nsga2_atari_mt(
 
         ind_performances = fitness_values[survival_idx]
         elite_ranks = ranks[survival_idx]
-        population = full_population[survival_idx]
+        population = Population(full_population.pop[survival_idx])
 
         # TODO loss trackers
         # ind_performances = UTCGP.resolve_ind_loss_tracker(M_individual_loss_tracker)
