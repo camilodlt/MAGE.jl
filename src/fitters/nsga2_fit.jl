@@ -105,14 +105,14 @@ function fit_nsga2_atari_mt(
     epoch_callbacks::Optional_FN,
     early_stop_callbacks::Optional_FN,
     last_callback::Optional_FN,
-) # Tuple{Vector{UTGenome}, Vector{IndividualPrograms}, GenerationLossTracker}::
+) # Tuple{Vector{UTGenome}, Vector{IndividualPrograms}, GenerationMultiObjectiveLossTracker}::
 
     local early_stop, best_programs, pareto_front_idx, population, ranks, distances =
         _nsga2_init_params(genome, run_config)
 
     # PRE CALLBACKS
     _make_pre_callbacks_calls(pre_callbacks)
-    M_gen_loss_tracker = GenerationLossTracker()
+    M_gen_loss_tracker = GenerationMultiObjectiveLossTracker()
     for iteration = 1:run_config.generations
         early_stop ? break : nothing
         @warn "Iteration : $iteration"
@@ -258,15 +258,23 @@ function fit_nsga2_atari_mt(
             )
         end
 
-        # TODO
+        pareto_front_individuals = population[findall(==(minimum(elite_ranks)), elite_ranks)]
+        pareto_front_fitnesses = ind_performances[findall(==(minimum(elite_ranks)), elite_ranks)]
+        best_programs = decode_with_output_nodes.(
+            pareto_front_individuals,
+            meta_library,
+            model_architecture,
+            shared_inputs,
+        )
+
         # store iteration loss/fitness
-        # affect_fitness_to_loss_tracker!(
-        #     M_gen_loss_tracker,
-        #     iteration,
-        #     UTCGP.best_fitness(ARCHIVE),
-        # )
-        # println("Iteration $iteration. 
-        #          Archive best fitness : $(round(UTCGP.best_fitness(ARCHIVE), digits = 10))")
+        affect_fitness_to_loss_tracker!(
+            M_gen_loss_tracker,
+            iteration,
+            pareto_front_fitnesses,
+        )
+        println("Iteration $iteration. 
+                 Pareto front fitness values : $pareto_front_fitnesses")
 
         # EARLY STOP CALLBACK 
         if !isnothing(early_stop_callbacks) && length(early_stop_callbacks) != 0
@@ -289,14 +297,6 @@ function fit_nsga2_atari_mt(
             # early_stop =
             #     _make_ga_early_stop_callbacks_calls(early_stop_args, early_stop_callbacks) # true if any
         end
-
-        pareto_front_individuals = population[findall(==(minimum(elite_ranks)), elite_ranks)]
-        best_programs = decode_with_output_nodes.(
-            pareto_front_individuals,
-            meta_library,
-            model_architecture,
-            shared_inputs,
-        )
 
         if early_stop
             g = run_config.generations
