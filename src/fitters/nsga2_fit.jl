@@ -267,12 +267,7 @@ function fit_nsga2_atari_mt(
 
         pareto_front_individuals = population[findall(==(minimum(elite_ranks)), elite_ranks)]
         pareto_front_fitnesses = ind_performances[findall(==(minimum(elite_ranks)), elite_ranks)]
-        best_programs = decode_with_output_nodes.(
-            pareto_front_individuals,
-            meta_library,
-            model_architecture,
-            shared_inputs,
-        )
+        best_programs = [decode_with_output_nodes(pfi, meta_library, model_architecture, shared_inputs) for pfi in pareto_front_individuals]
 
         # store iteration loss/fitness
         affect_fitness_to_loss_tracker!(
