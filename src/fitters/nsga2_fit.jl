@@ -42,7 +42,6 @@ end
 # computes the ranks in terms of pareto fronts
 function _rank_population(fitness_values::Vector{Vector{Float64}})
     ranks = Vector{Int64}(undef, length(fitness_values))
-    @show ranks
     for rank = 1:length(fitness_values)
         current_fitnesses = fitness_values[ranks.>rank]
         if length(current_fitnesses) < 1
@@ -52,17 +51,14 @@ function _rank_population(fitness_values::Vector{Vector{Float64}})
             if ranks[fit_idx] <= rank
                 continue
             end
-            dominated = [all(diff -> diff >= 0., fit .- f) && any(diff -> diff > 0., fit .- f) for f in current_fitnesses]
-            @show current_fitnesses
-            @show fit
-            @show dominated
+            dominated = [all(diff -> diff >= 0, fit .- f) && any(diff -> diff > 0, fit .- f) for f in current_fitnesses]
             if all(!, dominated)
                 ranks[fit_idx] = rank
-                @show rank
             end
-            @show ranks
         end
+        # @show ranks
     end
+    # @show fitness_values
     return ranks
 end
 
@@ -223,9 +219,9 @@ function fit_nsga2_atari_mt(
 
         ranks, distances = _ranks_and_crowding_distances(fitness_values)
 
-        @show fitness_values
-        @show ranks
-        @show distances
+        # @show fitness_values
+        # @show ranks
+        # @show distances
 
         # Survival selection
         nsga2_selection_args = NSGA2_SELECTION_ARGS(
@@ -243,7 +239,7 @@ function fit_nsga2_atari_mt(
         elite_ranks = ranks[survival_idx]
         population = Population(full_population.pop[survival_idx])
         
-        @show ind_performances
+        # @show ind_performances
 
         # TODO loss trackers
         # ind_performances = UTCGP.resolve_ind_loss_tracker(M_individual_loss_tracker)
