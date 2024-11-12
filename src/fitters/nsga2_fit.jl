@@ -48,7 +48,7 @@ function _rank_population(fitness_values::Vector{Vector{Float64}})
             if ranks[fit_idx] <= rank
                 continue
             end
-            dominated = [all(diff -> diff >= 0, fit .- f) && any(diff -> diff > 0, fit .- f) for f in current_fitnesses]
+            dominated = [all(diff -> diff >= 0., fit .- f) && any(diff -> diff > 0., fit .- f) for f in current_fitnesses]
             @show current_fitnesses
             @show fit
             @show dominated
