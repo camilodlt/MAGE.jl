@@ -13,13 +13,17 @@ end
 
 # copied from ME fit, can we remove it and import it from there?
 function init_pop(genome, ma, ml, si, n_pop::Int)
+    # TODO check if random initialization improves performance
+    random_initialization = true
     new_pop = Vector{UTGenome}(undef, n_pop)
     for i = 1:n_pop
         g_new = deepcopy(genome)
-        # UTCGP.reset_genome!(g_new)
-        # initialize_genome!(g_new)
-        # correct_all_nodes!(g_new, ma, ml, si)
-        # fix_all_output_nodes!(g_new)
+        if random_initialization
+            UTCGP.reset_genome!(g_new)
+            initialize_genome!(g_new)
+            correct_all_nodes!(g_new, ma, ml, si)
+            fix_all_output_nodes!(g_new)
+        end
         new_pop[i] = g_new
     end
     Population(deepcopy(new_pop))
