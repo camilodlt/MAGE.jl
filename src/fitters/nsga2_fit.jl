@@ -41,7 +41,7 @@ end
 
 # computes the ranks in terms of pareto fronts
 function _rank_population(fitness_values::Vector{Vector{Float64}})
-    ranks = [len(fitness_values) for i=1:len(fitness_values)]
+    ranks = [length(fitness_values) for i=1:length(fitness_values)]
     for rank = 1:length(fitness_values)
         current_fitnesses = fitness_values[ranks.>rank]
         if length(current_fitnesses) < 1
