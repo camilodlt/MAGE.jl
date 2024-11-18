@@ -163,6 +163,7 @@ struct RunConfSTN <: AbstractRunConf
     sample_size::Int
     behavior_col::String
     serialization_col::String
+    semantics_n::Int
     mutation_rate::Float64
     output_mutation_rate::Float64
     generations::Int
@@ -170,15 +171,18 @@ struct RunConfSTN <: AbstractRunConf
         sample_size::Int,
         behavior_col::String,
         serialization_col::String,
+        semantics_n::Int,
         mutation_rate::Float64,
         output_mutation_rate::Float64,
         generations::Int,
     )
         @assert generations >= 1 "At least one iteration"
+        @assert semantics_n >= 1 "At least one semantic instance"
         new(
             sample_size,
             behavior_col,
             serialization_col,
+            semantics_n,
             mutation_rate,
             output_mutation_rate,
             generations,

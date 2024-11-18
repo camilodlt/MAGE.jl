@@ -67,28 +67,12 @@ It uses `set_node_element_value!` so the frozen state of the elements is respect
 function _mutate_all_alleles!(material_to_mutate::Vector{CGPElement})
     for node_element in material_to_mutate
         set_node_element_value!(node_element, random_element_value(node_element))
+        # if rand() > 0.99
+            # @warn "Using decreasing mutation"
+        # end
+        # set_node_element_value!(node_element, random_decreasing_element_value(node_element))
     end
 end
-
-# """ TODO 
-# Replace all element values with a new `random_element_value`
-# If the element is a connexion, apply `random`
-# """
-# function _mutate_all_alleles!(
-#     material_to_mutate::Vector{CGPElement},
-#     node_config::nodeConfig,
-# )
-#     for node_element in material_to_mutate
-#         if node_element.element_type == CONNEXION
-
-#             node_element.value = random_element_value_from_probs(node_element)
-#         else
-
-#             node_element.value = random_element_value(node_element)
-#         end
-
-#     end
-# end
 
 
 #########################

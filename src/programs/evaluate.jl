@@ -337,6 +337,7 @@ function _run_op(::AbstractOperation, ::SharedInput)
 end
 
 function _run_op(operation::Operation, program_inputs::SharedInput)
+    @bp
     # operation = program[idx_op]
     fn, calling_node, inputs = (operation.fn, operation.calling_node, operation.inputs)
     if calling_node.value === nothing
@@ -344,6 +345,12 @@ function _run_op(operation::Operation, program_inputs::SharedInput)
             _extract_inputs_for_eval(inputs, program_inputs)
 
         fname = fn.name
+
+        #
+        if rand() > 0.99999
+            @warn "CHECKING VALUES BEFORE & AFTER OP. DISBLE IN PRODUCTION"
+        end
+        backup = deepcopy(inputs_values)
         @debug "Evaluating $fname"
 
         @timeit_debug to "Calc res" res = evaluate_fn_wrapper(fn, inputs_values)
@@ -352,6 +359,15 @@ function _run_op(operation::Operation, program_inputs::SharedInput)
                 Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
             end
         end
+        if backup != inputs_values
+            if !any(isnan.(backup)) # Nan != Nan so it's a false pos
+                @error "BACKUP DIFF THAN INPUT_VALUES $fname"
+                if isdefined(Main, :Infiltrator)
+                    Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                end
+            end
+        end
+
         @timeit_debug to "Calc set res" t = @elapsed set_node_value!(calling_node, res)
     end
 end

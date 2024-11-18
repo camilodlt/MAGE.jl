@@ -466,6 +466,7 @@ export ga_population_callback,
     ga_numbered_new_material_mutation_callback,
     ga_output_mutation_callback,
     ga_elite_selection_callback
+# export tracker_population_callback
 
 # ENDPOINTS
 include("endpoints/endpoint_structs.jl")

@@ -60,6 +60,9 @@ const SizedImage2D{S1,S2,T,IT} =
 const SizedImage3D{S1,S2,S3,T,IT} =
     SizedImage{Tuple{S1,S2,S3},T,3,IT} where {T,IT<:AbstractArray{T,2}}
 
+function Base.isnan(::AbtractSizedImage{S,T,N,IT}) where {S,T,N,IT}
+    false
+end
 Base.length(a::T) where {T<:SizedImage} = length(a.img)
 Base.size(a::T) where {T<:SizedImage} = size(a.img)
 # Base.setindex(a::A, i) = setindex(a.x, i)

@@ -41,6 +41,40 @@ struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
     end
 end
 
+# struct GA_EXTENSIBLE_POP_ARGS <: Abstract_GA_POP_ARGS
+#     population::Population
+#     generation::Int
+#     run_config::RunConfGA
+#     model_architecture::modelArchitecture
+#     node_config::nodeConfig
+#     meta_library::MetaLibrary
+#     fitnesses::Vector{Float64}
+#     extra::Dict
+
+#     function GA_EXTENSIBLE_POP_ARGS(
+#         population::Population,
+#         generation::Int,
+#         run_config::RunConfGA,
+#         model_architecture::modelArchitecture,
+#         node_config::nodeConfig,
+#         meta_library::MetaLibrary,
+#         fitnesses::Vector{Float64},
+#         extra::Dict = Dict(),
+#     )
+#         @assert length(fitnesses) == length(population) "The nb of fitnesses (per elite ind.) do not correspond to the number of individuals in the population. $(length(fitnesses)) vs $(length(population))"
+#         new(
+#             population,
+#             generation,
+#             run_config,
+#             model_architecture,
+#             node_config,
+#             meta_library,
+#             fitnesses,
+#             extra,
+#         )
+#     end
+# end
+
 function tournament_selection(
     population::Population,
     tournament_size::Int,
@@ -85,6 +119,38 @@ function ga_population_callback(pop_args::GA_POP_ARGS)::Option{Population}
     end
     return some(Population(inds))
 end
+
+# function tracker_population_callback(pop_args::GA_EXTENSIBLE_POP_ARGS)::Option{Population}
+#     extra = pop_args.extra
+#     @assert haskey(extra, :tracker)
+#     tracker = extra[:tracker]
+#     @assert tracker isa Vector
+#     Config = pop_args.run_config
+#     Pop = pop_args.population
+#     n_elite = Config.n_elite
+#     @assert length(Pop) == n_elite "While making new pop. More individuals in the population than needed. Actual $(length(Pop)) vs Needed (by the config) : $(n_elite)"
+#     pop_size = n_elite + Config.n_new
+#     inds = Vector{UTCGP.UTGenome}(undef, pop_size)
+#     history = Pair{String,String}[]
+#     # Truncation
+#     for (elite_ith, elite_ind) in enumerate(pop_args.population)
+#         inds[elite_ith] = deepcopy(elite_ind)
+#         push!(history, UTCGP.general_hasher_sha(elite_ind) => "")
+#     end
+
+#     # Tournament 
+#     for ith_new = 1:Config.n_new
+#         new_index = n_elite + ith_new
+#         winner =
+#             @unwrap_or tournament_selection(Pop, Config.tournament_size, pop_args.fitnesses) throw(
+#                 "Tournament could not take place with config : $(Config) and fitnesses : $pop_args.fitnesses",
+#             )
+#         inds[new_index] = deepcopy(winner)
+#         push!(history, UTCGP.general_hasher_sha(winner) => "")
+#     end
+#     push!(tracker, history)
+#     return some(Population(inds))
+# end
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Mutation Callback
@@ -442,6 +508,25 @@ function _make_ga_population(
     @info "Time Population $tt"
     return some(tuple(ga_args.population, tt))
 end
+
+# function _make_ga_population(
+#     ga_args::GA_EXTENSIBLE_POP_ARGS,
+#     population_callbacks,
+#     args...,
+# )::Option{Tuple{Population,Float64}}
+#     t = []
+#     for population_callback in population_callbacks
+#         fn = get_fn_from_symbol(population_callback)
+#         t_e = @elapsed pop_result = fn(ga_args)
+#         pop = @unwrap_or pop_result throw("GA Pop function did not return a population")
+#         empty!(ga_args.population.pop)
+#         push!(ga_args.population.pop, pop.pop...) # replace pop for succequent calls
+#         push!(t, t_e)
+#     end
+#     tt = mean(t)
+#     @info "Time Population $tt"
+#     return some(tuple(ga_args.population, tt))
+# end
 
 """
 

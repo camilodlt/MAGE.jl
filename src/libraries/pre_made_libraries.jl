@@ -343,6 +343,7 @@ Image Bundles
 """
 
 function get_image2D_factory_bundles()
+
     bundle_images = [
         bundle_image2D_basic_factory,
         bundle_image2D_morph_factory,
@@ -353,16 +354,46 @@ function get_image2D_factory_bundles()
         bundle_image2D_transcendental_factory,
         bundle_image2D_filtering_factory,
         bundle_element_conditional_factory,
+        experimental_bundle_image2D_mask_factory,
+        #experimental_bundle_image2D_maskregion_factory,
+        #experimental_bundle_image2D_maskregion_relative_factory,
     ]
-
-    # Update Casters && Fallbacks
-    # for b in bundle_images
-    # update_caster!(b, ())
-    # update_fallback!(b, () -> SImageND)
-    # end
     return deepcopy(bundle_images)
 end
 
+function get_float_image_bundles()
+    factories = [bundle_element_conditional_factory]
+    factories = [deepcopy(b) for b in factories]
+    for factory_bundle in factories
+        for (i, wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(Float64)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+        end
+    end
+
+    float_bundles = [
+        bundle_float_basic,
+        bundle_integer_modulo,
+        bundle_integer_cond,
+        bundle_number_arithmetic,
+        bundle_number_transcendental,
+        bundle_number_reduceFromImg,
+        # bundle_number_coordinatesFromImg,     # to uncomment if not processing relative elements
+        # bundle_number_relativeCoordinatesFromImg,
+        # experimental_bundle_float_glcm_factory, # texture stuff
+        factories...,
+    ]
+    float_bundles = [deepcopy(b) for b in float_bundles]
+    # Update Casters && Fallbacks
+    for b in float_bundles
+        println("Updating casters for bundle")
+        update_caster!(b, float_caster)
+        update_fallback!(b, () -> 0.0)
+    end
+    float_bundles
+end
 
 # ATARI
 
@@ -416,7 +447,7 @@ function get_image2D_factory_bundles_atari()
         # experimental_bundle_float_glcm_factory, texture stuff
         experimental_bundle_image2D_mask_factory,
         # experimental_bundle_image2D_maskregion_factory,
-        experimental_bundle_image2D_maskregion_relative_factory
+        experimental_bundle_image2D_maskregion_relative_factory,
     ]
 
     # Update Casters && Fallbacks
