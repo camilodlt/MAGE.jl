@@ -193,7 +193,9 @@ function evaluate_fn_wrapper(
 
                         # println(e)
                     end
-                    @timeit_debug to "Eval fn Nok $(fn_wrapper.name)" fn_wrapper.fallback()
+                    @timeit_debug to "Eval fn Nok $(fn_wrapper.name)" out =
+                        fn_wrapper.fallback()
+                    out
                 end
             end
         end

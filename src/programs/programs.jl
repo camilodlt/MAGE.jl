@@ -278,7 +278,6 @@ function replace_shared_inputs!(program::Program, new_inputs::Vector{InputNode})
 end
 
 
-
 """
     replace_shared_inputs!(program::Program, ref_inputs::SharedInput)
 
