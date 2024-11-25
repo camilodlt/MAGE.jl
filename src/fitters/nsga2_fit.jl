@@ -39,8 +39,12 @@ function _nsga2_init_params(genome::UTGenome, run_config::RunConfNSGA2)
     return early_stop, best_programs, pareto_front_idx, population, ranks, distances
 end
 
-# computes the ranks in terms of pareto fronts
 function _rank_population(fitness_values::Vector{Vector{Float64}})
+    return _rank_population(fitness_values, false)
+end
+
+# computes the ranks in terms of pareto fronts
+function _rank_population(fitness_values::Vector{Vector{Float64}}, duplicates_last::Bool)
     ranks = [length(fitness_values) for i=1:length(fitness_values)]
     for rank = 1:length(fitness_values)
         current_fitnesses = fitness_values[ranks.>rank]
@@ -59,6 +63,17 @@ function _rank_population(fitness_values::Vector{Vector{Float64}})
         # @show ranks
     end
     # @show fitness_values
+    if duplicates_last
+        max_rank = maximum(ranks)
+        for rank=1:max_rank
+            current_rank_indexes = findall(==(rank), ranks)
+            current_fitness_values = fitness_values[current_rank_indexes]
+            indexes_of_unique_fitness_values = current_rank_indexes[unique(i -> current_fitness_values[i], 1:length(current_fitness_values))]
+            indexes_of_repetitions = filter(x -> !(x in indexes_of_unique_fitness_values), current_rank_indexes)
+            # increases the rank of all repeated values -> will be selected after a fully diverse population has been picked
+            ranks[indexes_of_repetitions] .= max_rank + rank
+        end
+    end
     return ranks
 end
 
@@ -84,7 +99,7 @@ function _crowding_distance(fitness_values::Vector{Vector{Float64}})
 end
 
 function _ranks_and_crowding_distances(fitness_values::Vector{Vector{Float64}})
-    ranks = _rank_population(fitness_values)
+    ranks = _rank_population(fitness_values, true)
     distances = zeros(length(fitness_values))
     for rank = minimum(ranks):maximum(ranks)
         current_rank_indexes = findall(==(rank), ranks)
