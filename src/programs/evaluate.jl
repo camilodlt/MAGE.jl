@@ -347,11 +347,11 @@ function _run_op(operation::Operation, program_inputs::SharedInput)
         @debug "Evaluating $fname"
 
         @timeit_debug to "Calc res" res = evaluate_fn_wrapper(fn, inputs_values)
-        if isnothing(res)
-            if isdefined(Main, :Infiltrator)
-                Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-            end
-        end
+        # if isnothing(res)
+        #     if isdefined(Main, :Infiltrator)
+        #         Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+        #     end
+        # end
         @timeit_debug to "Calc set res" t = @elapsed set_node_value!(calling_node, res)
     end
 end
