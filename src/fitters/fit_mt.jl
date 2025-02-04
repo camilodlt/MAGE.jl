@@ -18,7 +18,7 @@ function _eval_batch_on_pop(
     non_shared_pop_programs::PopulationPrograms,
     model_arch::modelArchitecture,
     meta_library::MetaLibrary,
-    endpoint_callback::Type{<:BatchEndpoint},
+    endpoint_callback::Union{Type{<:BatchEndpoint},<:BatchEndpoint},
 )
 
     @timeit_debug to "fit_mt. Thread setup bf eval" begin

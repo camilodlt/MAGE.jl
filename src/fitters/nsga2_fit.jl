@@ -34,8 +34,8 @@ function _nsga2_init_params(genome::UTGenome, run_config::RunConfNSGA2)
     best_programs = nothing
     pareto_front_idx = nothing
     population = UTCGP.Population([deepcopy(genome) for i = 1:run_config.pop_size]) # initial pop 
-    ranks = [1 for i=1:run_config.pop_size]
-    distances = [0. for i=1:run_config.pop_size]
+    ranks = [1 for i = 1:run_config.pop_size]
+    distances = [0.0 for i = 1:run_config.pop_size]
     return early_stop, best_programs, pareto_front_idx, population, ranks, distances
 end
 
@@ -45,7 +45,7 @@ end
 
 # computes the ranks in terms of pareto fronts
 function _rank_population(fitness_values::Vector{Vector{Float64}}, duplicates_last::Bool)
-    ranks = [length(fitness_values) for i=1:length(fitness_values)]
+    ranks = [length(fitness_values) for i = 1:length(fitness_values)]
     for rank = 1:length(fitness_values)
         current_fitnesses = fitness_values[ranks.>rank]
         if length(current_fitnesses) < 1
@@ -55,7 +55,10 @@ function _rank_population(fitness_values::Vector{Vector{Float64}}, duplicates_la
             if ranks[fit_idx] <= rank
                 continue
             end
-            dominated = [all(diff -> diff >= 0., fit .- f) && any(diff -> diff > 0., fit .- f) for f in current_fitnesses]
+            dominated = [
+                all(diff -> diff >= 0.0, fit .- f) && any(diff -> diff > 0.0, fit .- f)
+                for f in current_fitnesses
+            ]
             if all(!, dominated)
                 ranks[fit_idx] = rank
             end
@@ -65,13 +68,19 @@ function _rank_population(fitness_values::Vector{Vector{Float64}}, duplicates_la
     # @show fitness_values
     if duplicates_last
         max_rank = maximum(ranks)
-        for rank=1:max_rank
+        last_rank = max_rank + 1
+        for rank = 1:max_rank
             current_rank_indexes = findall(==(rank), ranks)
             current_fitness_values = fitness_values[current_rank_indexes]
-            indexes_of_unique_fitness_values = current_rank_indexes[unique(i -> current_fitness_values[i], 1:length(current_fitness_values))]
-            indexes_of_repetitions = filter(x -> !(x in indexes_of_unique_fitness_values), current_rank_indexes)
+            indexes_of_unique_fitness_values = current_rank_indexes[unique(
+                i -> current_fitness_values[i],
+                1:length(current_fitness_values),
+            )]
+            indexes_of_repetitions =
+                filter(x -> !(x in indexes_of_unique_fitness_values), current_rank_indexes)
             # increases the rank of all repeated values -> will be selected after a fully diverse population has been picked
-            ranks[indexes_of_repetitions] .= max_rank + rank
+            # ranks[indexes_of_repetitions] .= max_rank + rank
+            ranks[indexes_of_repetitions] .= last_rank
         end
     end
     return ranks
@@ -82,17 +91,21 @@ function _crowding_distance(fitness_values::Vector{Vector{Float64}})
     matrix_fitnesses = mapreduce(permutedims, vcat, fitness_values)
     distances = zeros(length(fitness_values))
     for m = 1:length(fitness_values[1])
-        min_m = minimum(matrix_fitnesses[:,m])
-        max_m = maximum(matrix_fitnesses[:,m])
+        min_m = minimum(matrix_fitnesses[:, m])
+        max_m = maximum(matrix_fitnesses[:, m])
         # for the current objective all elements are equal, skipping prevents 0. division
         if min_m == max_m
             continue
         end
-        sorted_indexes = sortperm(matrix_fitnesses[:,m])
+        sorted_indexes = sortperm(matrix_fitnesses[:, m])
         distances[sorted_indexes[1]] = Inf
         distances[sorted_indexes[length(sorted_indexes)]] = Inf
-        for idx in 2:length(sorted_indexes)-1
-            distances[idx] += (matrix_fitnesses[sorted_indexes[idx+1],m] - matrix_fitnesses[sorted_indexes[idx-1],m]) / (max_m - min_m)
+        for idx = 2:length(sorted_indexes)-1
+            distances[idx] +=
+                (
+                    matrix_fitnesses[sorted_indexes[idx+1], m] -
+                    matrix_fitnesses[sorted_indexes[idx-1], m]
+                ) / (max_m - min_m)
         end
     end
     return distances
@@ -103,7 +116,8 @@ function _ranks_and_crowding_distances(fitness_values::Vector{Vector{Float64}})
     distances = zeros(length(fitness_values))
     for rank = minimum(ranks):maximum(ranks)
         current_rank_indexes = findall(==(rank), ranks)
-        distances[current_rank_indexes] = _crowding_distance(fitness_values[current_rank_indexes])
+        distances[current_rank_indexes] =
+            _crowding_distance(fitness_values[current_rank_indexes])
     end
     return (ranks, distances)
 end
@@ -142,7 +156,7 @@ function fit_nsga2_atari_mt(
     for iteration = 1:run_config.generations
         early_stop ? break : nothing
         @warn "Iteration : $iteration"
-            
+
         # Population
         nsga2_pop_args = NSGA2_POP_ARGS(
             population,
@@ -152,7 +166,7 @@ function fit_nsga2_atari_mt(
             node_config,
             meta_library,
             ranks,
-            distances
+            distances,
         )
         if iteration > 1
             # Compute offspring 
@@ -181,7 +195,7 @@ function fit_nsga2_atari_mt(
             #     output_mutation_callbacks,
             # ) throw("Could not unwrap make_ga_output_mutations")
         else
-         offspring = population
+            offspring = population
         end
 
         # Genotype to Phenotype mapping --- 
@@ -209,7 +223,7 @@ function fit_nsga2_atari_mt(
             iteration,
         )
         offspring_fitness_values = get_endpoint_results(endpoint_holder) # Vector{Vector{Float64}}
-        
+
         # TODO implement tracker for vector fitnesses
         # UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 
@@ -239,12 +253,8 @@ function fit_nsga2_atari_mt(
         # @show distances
 
         # Survival selection
-        nsga2_selection_args = NSGA2_SELECTION_ARGS(
-            ranks,
-            distances,
-            full_population,
-            run_config,
-        )
+        nsga2_selection_args =
+            NSGA2_SELECTION_ARGS(ranks, distances, full_population, run_config)
         survival_idx, time_survival = @unwrap_or _make_nsga2_survival_selection(
             nsga2_selection_args,
             survival_selection_callbacks,
@@ -253,7 +263,7 @@ function fit_nsga2_atari_mt(
         ind_performances = fitness_values[survival_idx]
         elite_ranks = ranks[survival_idx]
         population = Population(full_population.pop[survival_idx])
-        
+
         # @show ind_performances
 
         # TODO loss trackers
@@ -289,9 +299,13 @@ function fit_nsga2_atari_mt(
             )
         end
 
-        pareto_front_individuals = population[findall(==(minimum(elite_ranks)), elite_ranks)]
-        pareto_front_fitnesses = ind_performances[findall(==(minimum(elite_ranks)), elite_ranks)]
-        best_programs = [decode_with_output_nodes(pfi, meta_library, model_architecture, shared_inputs) for pfi in pareto_front_individuals]
+        pareto_front_individuals =
+            population[findall(==(minimum(elite_ranks)), elite_ranks)]
+        pareto_front_fitnesses =
+            ind_performances[findall(==(minimum(elite_ranks)), elite_ranks)]
+        best_programs = [
+            decode_with_output_nodes(pfi, meta_library, model_architecture, shared_inputs) for pfi in pareto_front_individuals
+        ]
 
         # store iteration loss/fitness
         affect_fitness_to_loss_tracker!(

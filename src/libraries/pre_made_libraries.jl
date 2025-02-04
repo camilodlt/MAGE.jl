@@ -276,7 +276,7 @@ function get_float_bundles()
         bundle_integer_cond,
         bundle_number_arithmetic,
         bundle_number_reduce,
-        bundle_element_pick,
+        # bundle_element_pick,
         bundle_number_transcendental,
         bundle_number_reduceFromImg,
         factories...,
@@ -380,7 +380,7 @@ function get_float_bundles_atari()
 
     float_bundles = [
         bundle_float_basic,
-        # bundle_integer_find,
+        bundle_integer_find,
         bundle_integer_modulo,
         bundle_integer_cond,
         bundle_number_arithmetic,

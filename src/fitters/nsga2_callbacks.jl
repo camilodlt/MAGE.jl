@@ -45,7 +45,7 @@ function tournament_selection_multiobj(
     population::Population,
     tournament_size::Int,
     ranks::Vector{Int64},
-    distances::Vector{Float64}
+    distances::Vector{Float64},
 )::Option{UTGenome}
     # Sample the elite
     indices = 1:length(population) # to sort both vectors (fitnesses and pop)
@@ -82,10 +82,14 @@ function nsga2_population_callback(pop_args::NSGA2_POP_ARGS)::Option{Population}
 
     # Tournament (adding individuals with others selected with tournament)
     for ith_new = 1:Config.pop_size
-        winner =
-            @unwrap_or tournament_selection_multiobj(Pop, Config.tournament_size, pop_args.ranks, pop_args.distances) throw(
-                "Tournament could not take place with config : $(Config), ranks : $pop_args.ranks, and distances $pop_args.distances",
-            )
+        winner = @unwrap_or tournament_selection_multiobj(
+            Pop,
+            Config.tournament_size,
+            pop_args.ranks,
+            pop_args.distances,
+        ) throw(
+            "Tournament could not take place with config : $(Config), ranks : $pop_args.ranks, and distances $pop_args.distances",
+        )
         inds[ith_new] = deepcopy(winner)
     end
     return some(Population(inds))
@@ -170,7 +174,8 @@ function _make_nsga2_mutations!(
     for mutation_callback in mutation_callbacks
         fn = get_fn_from_symbol(mutation_callback)
         t_e = @elapsed pop_res = fn(nsga2_args)
-        pop = @unwrap_or pop_res throw("NSGA2 Mutation function did not return a population")
+        pop =
+            @unwrap_or pop_res throw("NSGA2 Mutation function did not return a population")
         push!(t, t_e)
     end
     tt = mean(t)
@@ -179,7 +184,7 @@ function _make_nsga2_mutations!(
 end
 
 function _make_epoch_callbacks_calls(
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
+    ind_performances::Union{Vector{<:Number},Vector{<:Vector{<:Number}}},
     ranks::Vector{Int64},
     population::Population,
     generation::Int,
@@ -254,7 +259,7 @@ function nsga2_survival_selection_callback(args::NSGA2_SELECTION_ARGS)::Option{V
     pop_size = args.run_config.pop_size
     @assert length(ranks) == length(full_population.pop) # "During Selection, the size of the individual performances does not match that of the run config : ($(n_fitnesses) vs elite: $(R.n_elite) + new $(R.n_new))"
     indexes = Vector{Int64}(undef, 0)
-    for rank=minimum(ranks):maximum(ranks)
+    for rank = minimum(ranks):maximum(ranks)
         current_rank_idxs = findall(==(rank), ranks)
         # promote current front if it fits
         if length(current_rank_idxs) + length(indexes) <= pop_size
@@ -264,9 +269,9 @@ function nsga2_survival_selection_callback(args::NSGA2_SELECTION_ARGS)::Option{V
             n_keep = pop_size - length(indexes)
             current_distances = distances[current_rank_idxs]
             sorted_indexes = sortperm(-current_distances)
-            indexes_to_keep = sorted_indexes[1:n_keep] 
-            append!(indexes, indexes_to_keep) 
-            break          
+            indexes_to_keep = sorted_indexes[1:n_keep]
+            append!(indexes, indexes_to_keep)
+            break
         end
     end
     @assert length(indexes) == pop_size "During survival selection $length(indexes) elements were selected, expected $pop_size."

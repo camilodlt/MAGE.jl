@@ -287,8 +287,14 @@ append_method!(bundle_number_reduceFromImg, reduce_maximum)
 append_method!(bundle_number_reduceFromImg, reduce_minimum)
 append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_argmax)
 append_method!(bundle_number_coordinatesFromImg, experimental_vertical_argmax)
-append_method!(bundle_number_relativeCoordinatesFromImg, experimental_horizontal_relative_argmax)
-append_method!(bundle_number_relativeCoordinatesFromImg, experimental_vertical_relative_argmax)
+append_method!(
+    bundle_number_relativeCoordinatesFromImg,
+    experimental_horizontal_relative_argmax,
+)
+append_method!(
+    bundle_number_relativeCoordinatesFromImg,
+    experimental_vertical_relative_argmax,
+)
 # append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_center_of_mass)
 # append_method!(bundle_number_coordinatesFromImg, experimental_vertical_center_of_mass)
 end
