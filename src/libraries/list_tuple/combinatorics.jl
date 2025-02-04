@@ -53,6 +53,17 @@ vector_of_products = vector_of_products_factory(Any)
 
 # Combinations --- 
 
+"""
+    vector_of_combinations_factory(T::DataType)
+
+Factory function. 
+
+Collects combinations (size 2) of elements of a vector.
+
+Reacts to SMALL_ARRAY[].
+
+Raises error if the vector hsa elements of different types or if the vector is empty. 
+"""
 function vector_of_combinations_factory(T::DataType)
     return @eval ((v::Vector{V}, args...) where {V<:$T}) -> begin
         @assert !isempty(v) && length(unique(typeof.(v))) == 1
@@ -68,12 +79,12 @@ function vector_of_combinations_factory(T::DataType)
         return combs
     end
 end
+
 """
     vector_of_combinations(v::Vector{T})
 
 Returns all combinations (of size 2) between the elements of the vector.
 """
-
 vector_of_combinations = vector_of_combinations_factory(Any)
 
 #########
