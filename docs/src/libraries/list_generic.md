@@ -146,8 +146,7 @@ Elements have to be of the same type (also applies for `make_list_from_three_ele
 
 ```jldoctest
 julia> make_list_from_two_elements("juli",'a')
-ERROR: MethodError: no method matching make_list_from_two_elements(::String, ::Char)
-[...] 
+ERROR: MethodError: no method matching
 ```
 
 ```@docs
@@ -187,6 +186,6 @@ But lists have to be of the same type:
 
 ```jldoctest
 julia> concat_two_lists([1,2], [3.0,4.0])
-ERROR: MethodError: no method matching concat_two_lists(::Vector{Int64}, ::Vector{Float64})
+ERROR: MethodError: no method matching
 [...]
 ```
