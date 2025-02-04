@@ -1,0 +1,6 @@
+[deps]
+IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+QuartoDocBuilder = "164f4f01-dadb-4e86-a767-9a3bba57cbbb"
+QuartoNotebookRunner = "4c0109c6-14e9-4c88-93f0-2b974d3468f4"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+UTCGP = "956831e1-0a7a-492a-ae16-058c6128a9f2"
