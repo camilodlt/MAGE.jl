@@ -32,4 +32,4 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo = "github.com/camilodlt/UTCGP.jl.git", devbranch = "main")
+# deploydocs(; repo = "github.com/camilodlt/UTCGP.jl.git", devbranch = "main")
