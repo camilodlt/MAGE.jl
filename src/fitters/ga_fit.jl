@@ -30,7 +30,7 @@ function fit_ga(
     output_mutation_callbacks::Mandatory_FN,
     decoding_callbacks::Mandatory_FN,
     # Callbacks per step (while looping through data)
-    endpoint_callback::Type{<:BatchEndpoint},
+    endpoint_callback::Union{Type{<:BatchEndpoint},<:BatchEndpoint},
     final_step_callbacks::Optional_FN,
     # Callbacks after step ::
     elite_selection_callbacks::Mandatory_FN,
@@ -279,7 +279,7 @@ function fit_ga_mt(
     output_mutation_callbacks::Mandatory_FN,
     decoding_callbacks::Mandatory_FN,
     # Callbacks per step (while looping through data)
-    endpoint_callback::Type{<:BatchEndpoint},
+    endpoint_callback::Union{Type{<:BatchEndpoint},<:BatchEndpoint},
     final_step_callbacks::Optional_FN,
     # Callbacks after step ::
     elite_selection_callbacks::Mandatory_FN,
@@ -545,7 +545,7 @@ function fit_ga_meanbatch_mt(
     output_mutation_callbacks::Mandatory_FN,
     decoding_callbacks::Mandatory_FN,
     # Callbacks per step (while looping through data)
-    endpoint_callback::Type{<:BatchEndpoint},
+    endpoint_callback::Union{Type{<:BatchEndpoint},<:BatchEndpoint},
     final_step_callbacks::Optional_FN,
     # Callbacks after step ::
     elite_selection_callbacks::Mandatory_FN,

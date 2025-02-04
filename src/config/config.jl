@@ -129,5 +129,101 @@ struct RunConfGA <: AbstractRunConf
     end
 end
 
+"""
+    RunConfNSGA2( 
+        n_new::Int,
+        tournament_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int
+        )
+    
+Specifies the experiment properties for NSGA2.
+"""
+struct RunConfNSGA2 <: AbstractRunConf
+    pop_size::Int
+    tournament_size::Int
+    mutation_rate::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfNSGA2(
+        pop_size::Int,
+        tournament_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        @assert tournament_size >= 1 "The tournament has to involve at least one individual"
+        @assert tournament_size < pop_size "Tournament size must be smaller than population size"
+        @assert generations >= 1 "At least one iteration"
+        @info "Run conf with a pop of $pop_size"
+        @info "Run conf with tournament size of $tournament_size"
+        new(
+            pop_size,
+            tournament_size,
+            mutation_rate,
+            output_mutation_rate,
+            generations,
+        )
+    end
+end
+
+
+"""
+    RunConfME( 
+        centroids::Vector{Vector{Float64}}
+        sample_size::Int
+        mutation_rate::Float64
+        output_mutation_rate::Float64
+        generations::Int
+        )
+    
+Specifies the experiment properties for GA.
+"""
+struct RunConfME <: AbstractRunConf
+    centroids::Vector{Vector{Float64}}
+    sample_size::Int
+    mutation_rate::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfME(
+        centroids::Vector{Vector{Float64}},
+        sample_size::Int,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        @assert generations >= 1 "At least one iteration"
+        new(centroids, sample_size, mutation_rate, output_mutation_rate, generations)
+    end
+end
+
+struct RunConfSTN <: AbstractRunConf
+    sample_size::Int
+    behavior_col::String
+    serialization_col::String
+    mutation_rate::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfSTN(
+        sample_size::Int,
+        behavior_col::String,
+        serialization_col::String,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        @assert generations >= 1 "At least one iteration"
+        new(
+            sample_size,
+            behavior_col,
+            serialization_col,
+            mutation_rate,
+            output_mutation_rate,
+            generations,
+        )
+    end
+end
+
 
 

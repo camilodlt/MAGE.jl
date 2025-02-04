@@ -184,7 +184,6 @@ function _run_all_functions_on_epoch_params(
 )
     population_info_per_function = _run_each_function!(writer.edges_prop_getters, params)
     return population_info_per_function
-
 end
 
 function _run_all_functions_on_epoch_params(

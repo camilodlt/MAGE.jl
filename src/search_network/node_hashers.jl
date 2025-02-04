@@ -126,9 +126,6 @@ function (obj::sn_behavior_hasher)(params::UTCGP.ParametersStandardEpoch)
     HASHES_PER_INDIVIDUAL =
         [general_hasher_sha(ind_outputs) for ind_outputs in BEHAVIORS_PER_INDIVIDUAL]
 
-    # println(BEHAVIORS_PER_INDIVIDUAL)
-    # println(HASHES_PER_INDIVIDUAL)
-
     return HASHES_PER_INDIVIDUAL
 end
 

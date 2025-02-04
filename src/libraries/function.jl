@@ -186,9 +186,6 @@ function evaluate_fn_wrapper(
                     )
                 catch e
                     if e isa MethodError
-                        # if isdefined(Main, :Infiltrator)
-                        #     Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-                        # end
                         @warn "$(fn_wrapper.name) got a MethodError with inputs of type $(typeof.(inputs_))"
                         if isdefined(Main, :Infiltrator)
                             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
@@ -209,14 +206,20 @@ end
     @nospecialize(inputs),
     ::Val{true},
 )
-    fn_wrapper.caster(fn_wrapper.fn(inputs...))
+    @debug "Running fn : $(fn_wrapper.name)"
+    o = fn_wrapper.caster(fn_wrapper.fn(inputs...))
+    @debug "End Running fn : $(fn_wrapper.name)"
+    o
 end
 @inline function call_fn_wrap(
     @nospecialize(fn_wrapper::FunctionWrapper),
     @nospecialize(inputs),
     ::Val{false},
 )
-    fn_wrapper.fn(inputs...)
+    @debug "Running fn : $(fn_wrapper.name)"
+    o = fn_wrapper.fn(inputs...)
+    @debug "End Running fn : $(fn_wrapper.name)"
+    o
 end
 
 # function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})

@@ -237,7 +237,7 @@ mutable struct ParametersStandardEpoch <: CallbackParameters
     ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}}
     population::Population
     generation::Int
-    run_config::runConf
+    run_config::AbstractRunConf
     model_architecture::modelArchitecture
     node_config::nodeConfig
     meta_library::MetaLibrary
@@ -246,6 +246,7 @@ mutable struct ParametersStandardEpoch <: CallbackParameters
     best_loss::Float64
     best_program::IndividualPrograms
     elite_idx::Int
+    other::Union{Nothing,Any}
 end
 
 function _make_epoch_callbacks_calls(

@@ -276,7 +276,7 @@ function get_float_bundles()
         bundle_integer_cond,
         bundle_number_arithmetic,
         bundle_number_reduce,
-        bundle_element_pick,
+        # bundle_element_pick,
         bundle_number_transcendental,
         bundle_number_reduceFromImg,
         factories...,
@@ -380,7 +380,7 @@ function get_float_bundles_atari()
 
     float_bundles = [
         bundle_float_basic,
-        # bundle_integer_find,
+        bundle_integer_find,
         bundle_integer_modulo,
         bundle_integer_cond,
         bundle_number_arithmetic,
@@ -388,7 +388,8 @@ function get_float_bundles_atari()
         # bundle_element_pick,
         bundle_number_transcendental,
         bundle_number_reduceFromImg,
-        bundle_number_coordinatesFromImg,
+        bundle_number_coordinatesFromImg,     # to uncomment if not processing relative elements
+        bundle_number_relativeCoordinatesFromImg,
         factories...,
     ]
     float_bundles = [deepcopy(b) for b in float_bundles]
@@ -415,6 +416,7 @@ function get_image2D_factory_bundles_atari()
         # experimental_bundle_float_glcm_factory, texture stuff
         experimental_bundle_image2D_mask_factory,
         experimental_bundle_image2D_maskregion_factory,
+        experimental_bundle_image2D_maskregion_relative_factory,
     ]
 
     # Update Casters && Fallbacks

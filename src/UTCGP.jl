@@ -20,6 +20,8 @@ using ErrorTypes
 using ErrorTypes: ResultConstructor
 using DataFlowTasks
 using Logging
+using LinearAlgebra
+using StatsBase
 
 using TimerOutputs
 const debuglogger = ConsoleLogger(stderr, right_justify = 10)
@@ -63,7 +65,7 @@ end
 
 # Callbacks fns 
 abstract type AbstractCallable end
-FN_TYPE = Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable}}}}
+FN_TYPE = Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable,<:Function}}}}
 Mandatory_FN = FN_TYPE
 Optional_FN = Union{Nothing,FN_TYPE}
 
@@ -347,6 +349,8 @@ import .number_reduceFromImg: bundle_number_reduceFromImg
 export bundle_number_reduceFromImg
 import .number_reduceFromImg: bundle_number_coordinatesFromImg
 export bundle_number_coordinatesFromImg
+import .number_reduceFromImg: bundle_number_relativeCoordinatesFromImg
+export bundle_number_relativeCoordinatesFromImg
 
 include("libraries/number/transcendental.jl")
 import .number_transcendental: bundle_number_transcendental
@@ -435,6 +439,8 @@ import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
 export experimental_bundle_image2D_mask_factory
 import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
 export experimental_bundle_image2D_maskregion_factory
+import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_relative_factory
+export experimental_bundle_image2D_maskregion_relative_factory
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")
@@ -501,6 +507,18 @@ include("search_network/sn_callbacks.jl")
 
 # Test utils
 include("test_utils.jl")
+
+# MAP ELITES
+include("population/mapelites_repertoire.jl")
+include("fitters/mapelites_callbacks.jl")
+include("fitters/me_fit.jl")
+
+# NSGA2
+include("fitters/nsga2_callbacks.jl")
+include("fitters/nsga2_fit.jl")
+
+include("fitters/stn_callbacks.jl")
+include("fitters/stn_fit.jl")
 
 # EXT
 #include("libraries/float/MAGE_RADIOMICS.jl")
