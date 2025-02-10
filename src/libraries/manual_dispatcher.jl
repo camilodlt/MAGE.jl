@@ -152,7 +152,6 @@ function (dp::ManualDispatcher{FT})(inputs::T) where {T<:Tuple{Vararg{Any}},FT}
 end
 
 function (dp::ManualDispatcher{FT})(inputs::Vararg{Any}) where {FT}
-
     tt = typeof.(inputs)
     fn = _which_fn_in_manual_dispatcher(dp, tt)
     # isnothing(fn) && throw(MethodError(dp, tt))

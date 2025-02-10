@@ -2,6 +2,8 @@
 using Statistics
 using Debugger
 using Term
+using ErrorTypes
+
 # using Infiltrator
 
 ### FIT API ###
@@ -16,23 +18,20 @@ function fit(
     run_config::runConf,
     meta_library::MetaLibrary,
     # Callbacks before training
-    pre_callbacks::Union{Nothing,Vector{Symbol}},
+    pre_callbacks::UTCGP.Optional_FN,
     # Callbacks before step (before looping through data)
-    population_callbacks::Vector{Symbol},
-    mutation_callbacks::Vector{Symbol},
-    output_mutation_callbacks::Vector{Symbol},
-    decoding_callbacks::Vector{<:Union{Symbol,AbstractCallable}},
+    population_callbacks::UTCGP.Mandatory_FN,
+    mutation_callbacks::UTCGP.Mandatory_FN,
+    output_mutation_callbacks::UTCGP.Mandatory_FN,
+    decoding_callbacks::UTCGP.Mandatory_FN,
     # Callbacks per step (while looping through data)
-    endpoint_callback::Type{<:BatchEndpoint},
-    final_step_callbacks::Union{Nothing,Vector{Function}},
+    endpoint_callback::Union{Type{<:UTCGP.BatchEndpoint},<:UTCGP.BatchEndpoint},
+    final_step_callbacks::UTCGP.Optional_FN,
     # Callbacks after step ::
-    elite_selection_callbacks::Vector{Symbol},
-    epoch_callbacks::Union{Nothing,Vector{<:Union{Symbol,AbstractCallable}}},
-    early_stop_callbacks::Union{
-        Nothing,
-        Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable}}}},
-    },
-    last_callback::Union{Nothing,AbstractCallable},
+    elite_selection_callbacks::UTCGP.Mandatory_FN,
+    epoch_callbacks::UTCGP.Optional_FN,
+    early_stop_callbacks::UTCGP.Optional_FN,
+    last_callback::UTCGP.Optional_FN,
 ) # Tuple{UTGenome, IndividualPrograms, GenerationLossTracker}::
 
     local early_stop = false
@@ -127,7 +126,7 @@ function fit(
                 model_architecture,
                 meta_library,
             )
-            @info "Time Eval $time_eval"
+            # @info "Time Eval $time_eval"
             # Endpoint results
             fitness = endpoint_callback(outputs, y)
             fitness_values = get_endpoint_results(fitness)
@@ -185,6 +184,7 @@ function fit(
                 best_loss,
                 best_program,
                 elite_idx,
+                view(X, :),
                 epoch_callbacks,
             )
         end
@@ -266,10 +266,12 @@ function fit(
                         " at $(op.calling_node.id)"
                     op_dict = Dict()
                     ins = [
-                        UTCGP.extract_input_node_from_operationInput(inp).id for
-                        inp in op.inputs
+                        UTCGP._extract_input_node_from_operationInput(
+                            shared_inputs,
+                            inp,
+                        ).id for inp in op.inputs
                     ]
-                    insert!(ins, 1, string(op.fn.name))
+                    Base.insert!(ins, 1, string(op.fn.name))
                     op_dict[node_name] = ins
                     ops[op.calling_node.id] = op_dict
                 end
@@ -344,9 +346,13 @@ function fit(
                 string(node_to_vector(op.calling_node)) *
                 " at $(op.calling_node.id)"
             op_dict = Dict()
-            ins =
-                [UTCGP.extract_input_node_from_operationInput(inp).id for inp in op.inputs]
-            insert!(ins, 1, string(op.fn.name))
+            ins = [
+                unwrap_or(
+                    UTCGP._extract_input_node_from_operationInput(shared_inputs, inp),
+                    nothing,
+                ).id for inp in op.inputs
+            ]
+            Base.insert!(ins, 1, string(op.fn.name))
             op_dict[node_name] = ins
             ops[op.calling_node.id] = op_dict
         end

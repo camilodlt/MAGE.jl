@@ -17,6 +17,7 @@ makedocs(;
     ),
     pages = [
         "Home" => "index.md",
+        "Examples" => ["sr_example.md"],
         "Model Config" => "config.md",
         "Libraries" => "libraries.md",
         "Mutations" => "mutations.md",
