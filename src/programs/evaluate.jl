@@ -346,12 +346,19 @@ function _run_op(operation::Operation, program_inputs::SharedInput)
         fname = fn.name
         @debug "Evaluating $fname"
 
-        @timeit_debug to "Calc res" res = evaluate_fn_wrapper(fn, inputs_values)
-        # if isnothing(res)
-        #     if isdefined(Main, :Infiltrator)
-        #         Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-        #     end
+        # if inputs_values == [Any[]]
+        # if isdefined(Main, :Infiltrator)
+        # Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
         # end
+        # end
+        @timeit_debug to "Calc res" res = evaluate_fn_wrapper(fn, inputs_values)
+
+        if res != "" && eltype(res) != String && eltype(res) != Int && res isa Vector
+            if isdefined(Main, :Infiltrator)
+                Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+            end
+        end
+
         @timeit_debug to "Calc set res" t = @elapsed set_node_value!(calling_node, res)
     end
 end
@@ -412,12 +419,27 @@ function eval_and_reset(
     reset_programs!(ind_p)
     o
 end
+function eval_and_reset_with_time(
+    idx_ind::Int,
+    population_programs::PopulationPrograms,
+    model_architecture::modelArchitecture,
+    metalibrary::MetaLibrary,
+)
+    ind_p = population_programs[idx_ind]
+    t = @elapsed o = evaluate_individual_programs(
+        ind_p,
+        model_architecture.chromosomes_types,
+        metalibrary,
+    )
+    reset_programs!(ind_p)
+    (o, t)
+end
 
 function evaluate_population_programs(
     population_programs::PopulationPrograms,
     model_architecture::modelArchitecture,
     metalibrary::MetaLibrary,
-)#::Vector{Vector{<:Any}}
+)
     n_individuals = length(population_programs)
     @assert n_individuals > 0 "No individuals to evaluate"
     @timeit_debug to "evaluate_population_programs. Eval inds Tuple" begin
@@ -430,4 +452,30 @@ function evaluate_population_programs(
         UTCGP.reset_programs!(population_programs)
     end
     return pop_outputs
+end
+
+function evaluate_population_programs_with_time(
+    population_programs::PopulationPrograms,
+    model_architecture::modelArchitecture,
+    metalibrary::MetaLibrary,
+)
+    n_individuals = length(population_programs)
+    @assert n_individuals > 0 "No individuals to evaluate"
+    @timeit_debug to "evaluate_population_programs. Eval inds Tuple" begin
+        os = ntuple(
+            i -> eval_and_reset_with_time(
+                i,
+                population_programs,
+                model_architecture,
+                metalibrary,
+            ),
+            length(population_programs),
+        )
+        pop_outputs = collect(os)
+        UTCGP.reset_programs!(population_programs)
+    end
+    return collect(ntuple(i -> os[i][1], n_individuals)),
+    collect(ntuple(i -> os[i][2], n_individuals))
+
+
 end

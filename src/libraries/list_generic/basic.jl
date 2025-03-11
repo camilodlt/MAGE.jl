@@ -42,7 +42,7 @@ identity_list = identity_list_factory(Any)
 # New List
 function new_list_factory(T::DataType)
     return @eval (args...) -> begin
-        return []
+        return $T[]
     end
 end
 

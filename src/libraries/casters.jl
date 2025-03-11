@@ -9,7 +9,7 @@ Numbers are floored.
 """
 function listinteger_caster(l::Vector{<:Any})::Vector{Int}
     if isempty(l)
-        return Int.([])
+        return Int[]
     end
     return floor.(Int, l)
 end
@@ -22,7 +22,7 @@ Cast a vector of generic Number type to concrete Float64 type.
 """
 function listfloat_caster(l::Vector{<:Any})::Vector{Float64}
     if isempty(l)
-        return Float64.([])
+        return Float64[]
     end
     return convert.(Float64, l)
 end
@@ -35,14 +35,14 @@ Cast a vector of generic Number type to concrete Float64 type.
 """
 function liststring_caster(l::Vector{<:Any})
     if isempty(l)
-        return String.([])
+        return String[]
     end
     return string.(l)
 end
 
 
 """
-    liststring_caster(l :: Vector{<:Any})
+    listtuple_identity(l::Vector{Tuple{T,T}}) where {T}
 
 Returns the identity of each el in l.
 """

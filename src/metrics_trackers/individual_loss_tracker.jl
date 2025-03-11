@@ -163,9 +163,12 @@ struct GenerationMultiObjectiveLossTracker <: AbstractGenLossTracker
 
 end
 
-Base.size(gen_tracker::AbstractGenLossTracker) = length(gen_tracker.pareto_front)
-Base.length(gen_tracker::AbstractGenLossTracker) = length(gen_tracker.pareto_front)
-Base.getindex(gen_tracker::AbstractGenLossTracker, k::Int) = gen_tracker.pareto_front[k]
+Base.size(gen_tracker::GenerationMultiObjectiveLossTracker) =
+    length(gen_tracker.pareto_front)
+Base.length(gen_tracker::GenerationMultiObjectiveLossTracker) =
+    length(gen_tracker.pareto_front)
+Base.getindex(gen_tracker::GenerationMultiObjectiveLossTracker, k::Int) =
+    gen_tracker.pareto_front[k]
 
 function affect_fitness_to_loss_tracker!(
     generations_mo_loss_tracker::GenerationMultiObjectiveLossTracker,

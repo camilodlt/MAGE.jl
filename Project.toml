@@ -74,6 +74,7 @@ MAGE_RADIOMICS = "MAGE_RADIOMICS_EXT"
 
 [compat]
 julia = "1.6"
+DataFlowTasks = ">=0.2.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

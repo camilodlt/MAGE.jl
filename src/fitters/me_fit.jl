@@ -10,19 +10,6 @@ function fix_all_output_nodes!(ut_genome::UTGenome)
     end
 end
 
-function init_pop(genome, ma, ml, si, n_pop::Int)
-    new_pop = Vector{UTGenome}(undef, n_pop)
-    for i = 1:n_pop
-        g_new = deepcopy(genome)
-        # UTCGP.reset_genome!(g_new)
-        # initialize_genome!(g_new)
-        # correct_all_nodes!(g_new, ma, ml, si)
-        # fix_all_output_nodes!(g_new)
-        new_pop[i] = g_new
-    end
-    Population(deepcopy(new_pop))
-end
-
 function _me_init_params(genome::UTGenome, run_config::AbstractRunConf, ma, ml, si)
     early_stop = false
     best_programs = nothing
@@ -68,10 +55,14 @@ function fit_me_atari_mt(
         # RANDOM MT RATE
         mutation_rate = rand([1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1])
         run_config = UTCGP.RunConfME(
-            run_config.centroids, run_config.sample_size, mutation_rate , 0.1, run_config.generations
+            run_config.centroids,
+            run_config.sample_size,
+            mutation_rate,
+            0.1,
+            run_config.generations,
         )
         @info "Mutation Rate = $mutation_rate"
-            
+
         # Population
         me_pop_args = ME_POP_ARGS(
             ARCHIVE,

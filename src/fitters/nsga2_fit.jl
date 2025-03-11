@@ -1,15 +1,3 @@
-# copied from ME fit, can we remove it and import it from there?
-function fix_all_output_nodes!(ut_genome::UTGenome)
-    for (ith_out_node, output_node) in enumerate(ut_genome.output_nodes)
-        to_node = output_node[2].highest_bound + 1 - ith_out_node
-        set_node_element_value!(output_node[2], to_node)
-        set_node_freeze_state(output_node[2])
-        set_node_freeze_state(output_node[1])
-        set_node_freeze_state(output_node[3])
-        println("Output node at $ith_out_node: $(output_node.id) pointing to $to_node")
-        println("Output Node material : $(node_to_vector(output_node))")
-    end
-end
 
 # copied from ME fit, can we remove it and import it from there?
 function init_pop(genome, ma, ml, si, n_pop::Int)

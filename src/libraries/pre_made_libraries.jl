@@ -122,13 +122,6 @@ function get_liststring_bundles()
 
     liststring_bundles = [
         factories...,
-        bundle_listgeneric_basic,
-        bundle_listgeneric_subset,
-        bundle_listgeneric_makelist,
-        bundle_listgeneric_concat,
-        bundle_listgeneric_set,
-        bundle_listgeneric_where,
-        bundle_listgeneric_utils,
         bundle_liststring_split,
         bundle_liststring_caps,
         bundle_liststring_broadcast,
@@ -315,6 +308,16 @@ end
 stringinteger_bundles
 """
 function get_string_bundles()
+    factories = [bundle_element_conditional_factory]
+    factories = [deepcopy(b) for b in factories]
+    for factory_bundle in factories
+        for (i, wrapper) in enumerate(factory_bundle)
+            fn = wrapper.fn(String)
+            # create a new wrapper in order to change the type
+            factory_bundle.functions[i] =
+                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+        end
+    end
 
     string_bundles = [
         bundle_string_basic,
@@ -324,8 +327,8 @@ function get_string_bundles()
         bundle_string_conditional,
         bundle_string_caps,
         bundle_string_parse,
-        bundle_element_pick,
-        bundle_element_conditional,
+        bundle_element_pick, # TODO 
+        factories...,
     ]
 
     string_bundles = [deepcopy(b) for b in string_bundles]

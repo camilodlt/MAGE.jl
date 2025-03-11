@@ -1,3 +1,4 @@
+__precompile__()
 module UTCGP
 
 const CONSTRAINED::Ref{Bool} = Ref{Bool}()
@@ -48,6 +49,27 @@ function __init__()
 
     SAFE_CALL[] = get(ENV, "UTCGP_SAFE_CALL", "") == "yes"
 
+    # @show CONSTRAINED[]
+    # @show MIN_INT[]
+    # @show MAX_INT[]
+
+    # @show NANO_ARRAY[]
+    # @show SMALL_ARRAY[]
+    # @show BIG_ARRAY[]
+
+    # @show SAFE_CALL[]
+
+    # TIMER
+    reset_timer!(to)
+end
+function show_constants_module()
+    global CONSTRAINED
+    global MIN_INT, MAX_INT
+    global MIN_FLOAT, MAX_FLOAT
+    global NANO_ARRAY, SMALL_ARRAY, BIG_ARRAY
+    global SAFE_CALL
+    global to
+
     @show CONSTRAINED[]
     @show MIN_INT[]
     @show MAX_INT[]
@@ -58,9 +80,6 @@ function __init__()
 
     @show SAFE_CALL[]
 
-    # TIMER
-    reset_timer!(to)
-    @timeit_debug to "init module" sleep(0.01)
 end
 
 # Callbacks fns 
