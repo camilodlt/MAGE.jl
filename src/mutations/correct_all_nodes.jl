@@ -48,7 +48,8 @@ function correct_node!(
         library,
         ut_genome,
         shared_inputs,
-        model_architecture,
+        model_architecture;
+        current_call = call_nb,
     )
         mutate_one_element_from_node!(node)
         if call_nb > max_calls
@@ -57,6 +58,16 @@ function correct_node!(
             @warn node.id
             node.node_material[1].value = 2 # CONVENTION BY DEFAULT
             @warn "Node didn't find a functionning call after $max_calls iterations. Current call : $call_nb"
+            ok = check_functionning_node(
+                node,
+                library,
+                ut_genome,
+                shared_inputs,
+                model_architecture;
+                current_call = call_nb,
+            )
+            @warn "Node state after default $(node_to_vector(node)) $ok"
+            break
         end
         call_nb += 1
     end

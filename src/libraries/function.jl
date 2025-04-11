@@ -187,11 +187,6 @@ function evaluate_fn_wrapper(
                 catch e
                     if e isa MethodError
                         @warn "$(fn_wrapper.name) got a MethodError with inputs of type $(typeof.(inputs_))"
-                        if isdefined(Main, :Infiltrator)
-                            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-                        end
-
-                        # println(e)
                     end
                     @timeit_debug to "Eval fn Nok $(fn_wrapper.name)" fn_wrapper.fallback()
                 end

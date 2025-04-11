@@ -167,7 +167,8 @@ function check_functionning_node(
     library::Library,
     ut_genome::UTGenome,
     shared_inputs::SharedInput,
-    model_architecture::modelArchitecture,
+    model_architecture::modelArchitecture;
+    current_call::Int = 0,
 )
     try
         fn, connexions, connexions_types =
@@ -181,8 +182,8 @@ function check_functionning_node(
         )
         arg_types = tuple([op.type for op in inputs]...)
         return Base.hasmethod(fn.fn, arg_types)
-    catch
-        @bp
+    catch e
+        @show e
         @warn "Problem checking the node functionning state. False returned"
         return false
     end

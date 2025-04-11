@@ -539,6 +539,9 @@ include("fitters/nsga2_fit.jl")
 include("fitters/stn_callbacks.jl")
 include("fitters/stn_fit.jl")
 
+# CROSSOVER
+include("crossover/mage_crossover.jl")
+
 # EXT
 #include("libraries/float/MAGE_RADIOMICS.jl")
 #function _FOS_MeanFeatureValue()

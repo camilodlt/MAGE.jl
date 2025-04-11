@@ -21,6 +21,7 @@ makedocs(;
         "Model Config" => "config.md",
         "Libraries" => "libraries.md",
         "Mutations" => "mutations.md",
+        "Crossover" => "crossover.md",
         "Vector Generic Lib" => "libraries/list_generic.md",
         "Vector Number Lib" => "libraries/list_number.md",
         "Vector Integer Lib" => "libraries/list_integer.md",

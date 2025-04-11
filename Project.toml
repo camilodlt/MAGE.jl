@@ -47,7 +47,6 @@ OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 PProf = "e4faabce-9ead-11e9-39d9-4379958e3056"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Primes = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
-PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 ReTest = "e0db7c4e-2690-44b9-bad6-7687da720f89"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
@@ -73,8 +72,8 @@ MAGE_RADIOMICS_EXT = "53e1843f-b1da-40c4-9db3-ae00929378b1"
 MAGE_RADIOMICS = "MAGE_RADIOMICS_EXT"
 
 [compat]
-julia = "1.6"
 DataFlowTasks = ">=0.2.0"
+julia = "1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

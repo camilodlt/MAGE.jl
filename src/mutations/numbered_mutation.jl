@@ -1,20 +1,34 @@
 import StatsBase: sample, Weights
 import Random
-# using Debugger
+
+abstract type AbstractNumberedMutationArgs end
+struct MissingNumberedMutationArgs <: AbstractNumberedMutationArgs end
+struct NumberedMutationArgs <: AbstractNumberedMutationArgs
+    mutation_n_active_nodes::Int64
+    function NumberedMutationArgs(mutation_n_active_nodes::Number)
+        @assert mutation_n_active_nodes >= 1.0 "Mutation should be > 1."
+        new(Int64(mutation_n_active_nodes))
+    end
+end
+
+numbered_mutation_trait(conf) = MissingNumberedMutationArgs
+numbered_mutation_trait(conf::RunConfGA) = NumberedMutationArgs(conf.mutation_rate)
+numbered_mutation_trait(conf::RunConfCrossOverGA) =
+    NumberedMutationArgs(conf.mutation_n_active_nodes)
+numbered_mutation_trait(conf::runConf) = NumberedMutationArgs(conf.mutation_rate)
 
 function numbered_mutation!(
     ut_genome::UTGenome,
-    run_config::runConf,
+    numbered_mutation_args::NumberedMutationArgs,
     model_architecture::modelArchitecture,
     meta_library::MetaLibrary,
     shared_inputs::SharedInput,
 )
-    @assert run_config.mutation_rate > 1.0 "Mutation should be > 1."
     @assert length(model_architecture.inputs_types) > 0 "At least one input ? "
-    @assert length(model_architecture.chromosomes_types) == length(ut_genome.genomes) "Need to give all chromosome types (Int, Float64, ...) in order so we check that nodes function with available signatures"  # noqa :: 3501
+    @assert length(model_architecture.chromosomes_types) == length(ut_genome.genomes) "Need to give all chromosome types (Int, Float64, ...) in order so we check that nodes function with available signatures"
 
     # n to sample 
-    n = floor(Int, run_config.mutation_rate)
+    n = numbered_mutation_args.mutation_n_active_nodes
     # decode 
     ind_progs =
         decode_with_output_nodes(ut_genome, meta_library, model_architecture, shared_inputs)
@@ -39,6 +53,24 @@ function numbered_mutation!(
         )
         return selected_nodes, sampled_idx
     end
+end
+
+function numbered_mutation!(
+    ut_genome::UTGenome,
+    run_config::AbstractRunConf,
+    model_architecture::modelArchitecture,
+    meta_library::MetaLibrary,
+    shared_inputs::SharedInput,
+)
+
+    # TODO 
+    numbered_mutation!(
+        ut_genome,
+        numbered_mutation_trait(run_config),
+        model_architecture,
+        meta_library,
+        shared_inputs,
+    )
 end
 
 function numbered_mutation!(
@@ -119,3 +151,4 @@ function free_numbered_mutation!(
     end
 end
 
+export NumberedMutationArgs, numbered_mutation_trait

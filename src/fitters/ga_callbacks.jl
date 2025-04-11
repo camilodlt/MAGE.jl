@@ -17,6 +17,7 @@ struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
     node_config::nodeConfig
     meta_library::MetaLibrary
     fitnesses::Vector{Float64}
+    extras::Dict
 
     function GA_POP_ARGS(
         population::Population,
@@ -25,7 +26,8 @@ struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
         model_architecture::modelArchitecture,
         node_config::nodeConfig,
         meta_library::MetaLibrary,
-        fitnesses::Vector{Float64},
+        fitnesses::Vector{Float64};
+        extras::Dict = Dict(),
     )
         @assert length(fitnesses) == length(population) "The nb of fitnesses (per elite ind.) do not correspond to the number of individuals in the population. $(length(fitnesses)) vs $(length(population))"
 
@@ -37,6 +39,7 @@ struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
             node_config,
             meta_library,
             fitnesses,
+            extras,
         )
     end
 end
@@ -44,8 +47,9 @@ end
 function tournament_selection(
     population::Population,
     tournament_size::Int,
-    fitnesses::Vector{Float64},
-)::Option{UTGenome}
+    fitnesses::Vector{Float64};
+    return_idx = false,
+)::Union{Option{UTGenome},Tuple{Option{UTGenome},Option{Int}}}
     # Sample the elite
     indices = 1:length(population) # to sort both vectors (fitnesses and pop)
     subset = sample(indices, tournament_size, replace = false) # sample a portion of the elite population
@@ -53,7 +57,11 @@ function tournament_selection(
     # Select among the subset
     f_subset = fitnesses[subset] # the fitnesses of the subset
     index_best = subset[argmin(f_subset)] # which individual it represent
-    some(population[index_best])
+    if return_idx
+        some(population[index_best]), some(index_best)
+    else
+        some(population[index_best])
+    end
 end
 
 
@@ -157,6 +165,7 @@ struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
     node_config::nodeConfig
     meta_library::MetaLibrary
     shared_inputs::SharedInput
+    extras::Dict
 
     function GA_MUTATION_ARGS(
         population::Population,
@@ -165,7 +174,8 @@ struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
         model_architecture::modelArchitecture,
         node_config::nodeConfig,
         meta_library::MetaLibrary,
-        shared_inputs::SharedInput,
+        shared_inputs::SharedInput;
+        extras = Dict(),
     )
         new(
             population,
@@ -175,6 +185,7 @@ struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
             node_config,
             meta_library,
             shared_inputs,
+            extras,
         )
     end
 end
@@ -184,7 +195,7 @@ function ga_numbered_new_material_mutation_callback(
 )::Option{Population}
     Config = args.run_config
     fs = fieldnames(typeof(Config))
-    :n_elite in fs ? n_elite = Config.n_elite : none
+    :n_elite in fs ? n_elite = Config.n_elite : (return none)
     Pop = args.population
     Pop_subset = @view Pop.pop[n_elite+1:end] # only mutate the rest of the population, not the elite, truncated, part.
     for individual in Pop_subset
@@ -463,7 +474,7 @@ function _make_ga_mutations!(
         # push!(ga_args.population.pop, pop.pop...) # replace pop for succequent calls
         push!(t, t_e)
     end
-    tt = mean(t)
+    tt = isempty(t) ? 0.0 : mean(t)
     @info "Time Mutations $tt"
     return some(tuple(ga_args.population, tt))
 end

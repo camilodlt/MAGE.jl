@@ -58,6 +58,11 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # 
 
 abstract type AbstractRunConf end
+abstract type AbstractRunConfTrait end
+struct MissingRunConfTrait <: UTCGP.AbstractRunConfTrait end
+
+# Default trait: if no specialization is provided for a type T, we return a MissingRunConfTrait.
+runconf_trait(::Type{T}) where {T} = MissingRunConfTrait()
 
 """
     runConf(lambda_::Int
@@ -130,6 +135,82 @@ struct RunConfGA <: AbstractRunConf
 end
 
 """
+    RunConfCrossOverGA(n_elite, n_new, tournament_size, mutation_n_active_nodes,
+                       mutation_prob, crossover_prob, output_mutation_rate, generations)
+
+Configuration for a Genetic Algorithm (GA) using crossover and mutation.
+
+# Arguments
+- `n_elite::Int`: Number of elite individuals to preserve each generation.
+- `n_new::Int`: Number of new individuals to create via genetic operators.
+- `tournament_size::Int`: Size of the tournament used for selection.
+- `mutation_n_active_nodes::Float64`: Mutation rate relative to the number of active nodes.
+- `mutation_prob::Float64`: Probability of applying mutation (must be between 0 and 1).
+- `crossover_prob::Float64`: Probability of applying crossover (must be between 0 and 1).
+- `output_mutation_rate::Float64`: Mutation rate for output genes.
+- `generations::Int`: Number of generations to run (must be at least 1).
+
+Configuration is verified via `_verif_config_ga` and logged using `_info_config_ga`.
+"""
+struct RunConfCrossOverGA <: AbstractRunConf
+    n_elite::Int
+    n_new::Int
+    tournament_size::Int
+    mutation_n_active_nodes::Int
+    mutation_prob::Float64
+    crossover_prob::Float64
+    output_mutation_rate::Float64
+    generations::Int
+    function RunConfCrossOverGA(
+        n_elite::Int,
+        n_new::Int,
+        tournament_size::Int,
+        mutation_n_active_nodes::Int,
+        mutation_prob::Float64,
+        crossover_prob::Float64,
+        output_mutation_rate::Float64,
+        generations::Int,
+    )
+        _verif_config_ga(n_elite, n_new, tournament_size)
+        _info_config_ga(n_elite, n_new, tournament_size)
+        @assert 0.0 < mutation_prob <= 1.0 "Mutation Prob has to be greater than 0 and at most 1. Got $mutation_prob "
+        @assert mutation_n_active_nodes >= 1 "Mutation_n_active_nodes has to be greater than 1. Got $(mutation_n_active_nodes)"
+        @assert 0.0 < crossover_prob <= 1.0 "Crossover Prob has to be greater than 0 and at most 1. Got $(crossover_prob)"
+        @assert generations >= 1 "At least one iteration"
+        new(
+            n_elite,
+            n_new,
+            tournament_size,
+            mutation_n_active_nodes,
+            mutation_prob,
+            crossover_prob,
+            output_mutation_rate,
+            generations,
+        )
+    end
+end
+
+abstract type AbstractGAArgs end
+
+"""
+RunConfs have to adapt to this GA api
+"""
+struct GAWithTournamentArgs <: AbstractGAArgs
+    n_elite::Int64
+    n_new::Int64
+    tournament_size::Int64
+end
+struct MissingGAArgs <: AbstractGAArgs end
+
+runconf_trait_evolutationary_strategy(conf::AbstractRunConf) = MissingGAArgs
+runconf_trait_evolutationary_strategy(conf::UTCGP.RunConfCrossOverGA) =
+    GAWithTournamentArgs(conf.n_elite, conf.n_new, conf.tournament_size)
+
+# TODO
+abstract type AbstractOnePlusLambda end
+struct OnePlusLambda <: AbstractOnePlusLambda end
+
+"""
     RunConfNSGA2( 
         n_new::Int,
         tournament_size::Int,
@@ -158,13 +239,7 @@ struct RunConfNSGA2 <: AbstractRunConf
         @assert generations >= 1 "At least one iteration"
         @info "Run conf with a pop of $pop_size"
         @info "Run conf with tournament size of $tournament_size"
-        new(
-            pop_size,
-            tournament_size,
-            mutation_rate,
-            output_mutation_rate,
-            generations,
-        )
+        new(pop_size, tournament_size, mutation_rate, output_mutation_rate, generations)
     end
 end
 
@@ -225,5 +300,5 @@ struct RunConfSTN <: AbstractRunConf
     end
 end
 
-
-
+export runconf_trait, runconf_trait_evolutationary_strategy
+export RunConfCrossOverGA, GAWithTournamentArgs
