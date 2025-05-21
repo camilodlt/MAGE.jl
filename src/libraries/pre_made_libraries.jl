@@ -290,6 +290,7 @@ function get_sr_float_bundles()
     float_bundles = [
         bundle_float_basic,
         bundle_integer_modulo,
+        bundle_integer_cond,
         bundle_number_arithmetic,
         bundle_number_transcendental,
     ]
