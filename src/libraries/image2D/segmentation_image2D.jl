@@ -12,12 +12,13 @@ Exports :
 """
 module image2D_segmentation
 
-using ImageCore: Gray
 using ImageSegmentation
 using ImageMorphology
+using LRUCache
+using TimerOutputs
+using ..UTCGP: image2D_basic
 using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
-using LRUCache
 import UTCGP:
     CONSTRAINED,
     MIN_INT,
@@ -25,21 +26,14 @@ import UTCGP:
     MIN_FLOAT,
     MAX_FLOAT,
     _positive_params,
-    _ceil_positive_params,
-    to
-using TimerOutputs
-using ImageCore: N0f8, Normed
+    _ceil_positive_params
+using ImageCore: N0f8, Normed, clamp01nan!, clamp01nan, float64, Gray, FixedPoint
 using ..UTCGP:
-    SizedImage,
-    SImageND,
-    _get_image_tuple_size,
-    _get_image_type,
-    _validate_factory_type,
-    SizedImage2D
-using Clustering
-fallback(args...) = return nothing
+    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type, 
+    IntensityPixel, BinaryPixel, SegmentPixel
 
-bundle_image2D_segmentation_factory = FunctionBundle(fallback)
+fallback(args...) = return nothing
+bundle_image2DSegment_segmentation_factory = FunctionBundle(fallback)
 
 # ######################## #
 # Felzenswalb Segmentation #
@@ -179,100 +173,125 @@ end
 
 TODO TEST
 """
-function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage}
-    TT = Base.unwrap_unionall(I).parameters[2]
-    _validate_factory_type(TT)
-    StorageType = TT.types[1] # UInt8, UInt16 ...
+function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    S1, S2 = S.parameters[1], S.parameters[2]
+    _validate_factory_type(IT)
 
-    m1 = @eval ((img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT<:$I}) -> begin
-        S = CONCT.parameters[1] # Tuple{X,Y}
+    m1 = @eval ((img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
         th = isnan(th) ? 0.1 : th
-        th = clamp(th, eps(Float64), th)
-        segments = fast_scanning(img, th)
+        th = clamp(th, eps(Float64), 1.)
+        segments = fast_scanning(reinterpret(img.img), th)
         seg = labels_map(segments)
-        reinterpreted = reinterpret.($TT, convert.($StorageType, seg)) # convert Int64 to the correct Normed{StorageType}
-        return SImageND(reinterpreted, S)
+        reinterpreted = convert.($T, seg)
+        return SImageND($PT.(reinterpreted), $S)
     end
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
-        S = CONCT.parameters[1] # Tuple{X,Y}
-        segments = fast_scanning(img, 0.1) # as per documentation
-        seg = labels_map(segments)
-        reinterpreted = reinterpret.($TT, convert.($StorageType, seg)) # convert Int64 to the correct Normed{StorageType}
-        return SImageND(reinterpreted, S)
+    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+        $m1(img, 0.1)
     end
-    ManualDispatcher((m1, m2), :fastscanning_2D)
+    ManualDispatcher((m1, m2), :fastscanning_image2D)
 end
 
 """
 
 TODO TEST
 """
-function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage}
+function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    S1, S2 = S.parameters[1], S.parameters[2]
+    _validate_factory_type(IT)
+    S_ = (S1,S2)
 
-    TT = Base.unwrap_unionall(I).parameters[2]
-    WS_ARGS = Tuple{Float64,Float64,I,Vararg{Any}}
-    _validate_factory_type(TT)
-    StorageType = TT.types[1] # UInt8, UInt16 ...
-    @timeit_debug to "Cr LRU watershed" lru = LRU{WS_ARGS,I}(maxsize = 100_000)
-
+    # WATERSHED WITH TH AND MASK
     m1 = @eval (
         (
             img::CONCT,
-            th_background_foreground::Float64,
-            th_distance::Float64,
+            mask::CONCT,
+            th::Number,
             args::Vararg{Any},
-        ) where {CONCT<:$I}
-    ) -> begin
-        global to
-        @timeit_debug to "Watershed. info" begin
-            @debug cache_info($lru)
-            # Base.summarysize($lru) / 1e+9
-            # @debug "Watershed LRU size in GB : $s"
-        end
-
-        # Example with cellpose img
-        t = @elapsed @timeit_debug to "Watershed. LRU get!" res =
-            get!($lru, (th_background_foreground, th_distance, img, args)) do
-                @timeit_debug to "Watershed. All" begin # println("WATERSHED")
-                    S = CONCT.parameters[1] # Tuple{X,Y}
-                    array_size = (S.parameters[1], S.parameters[2])
-                    background_as_feature = BitArray(undef, array_size)
-                    foreground_as_feature = BitArray(undef, array_size)
-                    dt = zeros(Float64, array_size)
-                    markers = zeros(Int, array_size)
-
-                    @timeit_debug to "Watershed. Clamp th_background_foreground" th_background_foreground_ =
-                        clamp(th_background_foreground, 0.0, 1.0)
-
-                    # Find the markers
-                    ## Normally background is darker than cells.
-                    @timeit_debug to "Watershed. Bg to white" background_as_feature .=
-                        Gray.(img) .< th_background_foreground_ # Background becomes white instances
-                    @timeit_debug to "Watershed. Fg to white" foreground_as_feature .=
-                        1 .- background_as_feature # cells are white, bg black
-
-                    @timeit_debug to "Watershed. DT" dt .= distance_transform(
-                        feature_transform(background_as_feature),
-                    ) # white is farther (higher cost) to bg (true instances) => cells are mountains
-                    inv_dt = dt # reuse the same float array
-                    @timeit_debug to "Watershed. Inv DT" inv_dt .= 1 .- dt # now black is farther to bg => cells are valleys
-                    @timeit_debug to "Watershed. Markers" markers .=
-                        label_components(inv_dt .< th_distance) # get the white markers (hopefully the center of the inv_dt valleys)
-
-                    # Watershed 
-                    @timeit_debug to "Watershed. Watershed" segments =
-                        watershed(inv_dt, markers) # flods the valleys from the markers
-                    flooded = markers
-                    @timeit_debug to "Watershed. Mask the watershed" flooded .=
-                        labels_map(segments) .* foreground_as_feature # masks to get only the segmented cells
-                    @timeit_debug to "Watershed. Reinterpret" reinterpreted =
-                        reinterpret.($TT, convert.($StorageType, flooded)) # convert Int64 to the correct Normed{StorageType}
-                    return SImageND(reinterpreted, S)
-                end
-            end
-        return res
+        ) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
+        th = clamp(th, -1000, 0) 
+        dist = 1 .- distance_transform(feature_transform(reinterpret(img.img))) # black as farther away from background
+        markers = label_components(dist .< th) # blackest points are now white
+        segments = watershed(dist, markers; mask = reinterpret(mask.img)) # mask is bool matrix
+        reinterpreted = convert.($IT, labels_map(segments))
+        return SImageND($PT.(reinterpreted), $S)
     end
-    ManualDispatcher((m1,), :watershed_2D)
+
+    # WATERSHED WITHOUT FINAL MASK
+    m2 = @eval (
+        (
+            img::CONCT,
+            th::Number,
+            args::Vararg{Any}
+        ) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
+        mask = SImageND(BinaryPixel{Bool}.(trues($S_)), $S) # ACCEPT ALL PIXELS
+        $m1(img, mask, th)
+    end
+
+    # WATERSHED WITHOUT TH NOR MASK
+    m3 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
+        $m2(img, -15) # default value
+    end
+
+    # @timeit_debug to "Cr LRU watershed" lru = LRU{WS_ARGS,I}(maxsize = 100_000)
+    # m1 = @eval (
+    #     (
+    #         img::CONCT,
+    #         th_background_foreground::Float64,
+    #         th_distance::Float64,
+    #         args::Vararg{Any},
+    #     ) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+    # ) -> begin
+    #     global to
+    #     @timeit_debug to "Watershed. info" begin
+    #         @debug cache_info($lru)
+    #         # Base.summarysize($lru) / 1e+9
+    #         # @debug "Watershed LRU size in GB : $s"
+    #     end
+
+    #     # Example with cellpose img
+    #     t = @elapsed @timeit_debug to "Watershed. LRU get!" res =
+    #         get!($lru, (th_background_foreground, th_distance, img, args)) do
+    #             @timeit_debug to "Watershed. All" begin # println("WATERSHED")
+    #                 array_size = (S.parameters[1], S.parameters[2])
+    #                 background_as_feature = BitArray(undef, array_size)
+    #                 foreground_as_feature = BitArray(undef, array_size)
+    #                 dt = zeros(Float64, array_size)
+    #                 markers = zeros(Int, array_size)
+
+    #                 @timeit_debug to "Watershed. Clamp th_background_foreground" th_background_foreground_ =
+    #                     clamp(th_background_foreground, 0.0, 1.0)
+
+    #                 # Find the markers
+    #                 ## Normally background is darker than cells.
+    #                 @timeit_debug to "Watershed. Bg to white" background_as_feature .=
+    #                     Gray.(img) .< th_background_foreground_ # Background becomes white instances
+    #                 @timeit_debug to "Watershed. Fg to white" foreground_as_feature .=
+    #                     1 .- background_as_feature # cells are white, bg black
+
+    #                 @timeit_debug to "Watershed. DT" dt .= distance_transform(
+    #                     feature_transform(background_as_feature),
+    #                 ) # white is farther (higher cost) to bg (true instances) => cells are mountains
+    #                 inv_dt = dt # reuse the same float array
+    #                 @timeit_debug to "Watershed. Inv DT" inv_dt .= 1 .- dt # now black is farther to bg => cells are valleys
+    #                 @timeit_debug to "Watershed. Markers" markers .=
+    #                     label_components(inv_dt .< th_distance) # get the white markers (hopefully the center of the inv_dt valleys)
+
+    #                 # Watershed 
+    #                 @timeit_debug to "Watershed. Watershed" segments =
+    #                     watershed(inv_dt, markers) # flods the valleys from the markers
+    #                 flooded = markers
+    #                 @timeit_debug to "Watershed. Mask the watershed" flooded .=
+    #                     labels_map(segments) .* foreground_as_feature # masks to get only the segmented cells
+    #                 @timeit_debug to "Watershed. Reinterpret" reinterpreted =
+    #                     reinterpret.($TT, convert.($StorageType, flooded)) # convert Int64 to the correct Normed{StorageType}
+    #                 return SImageND(reinterpreted, S)
+    #             end
+    #         end
+    #     return res
+    # end
+    ManualDispatcher((m1,m2, m3), :watershed_image2D)
 end
 
 # Factory Methods
@@ -289,15 +308,15 @@ end
 # )
 
 append_method!(
-    bundle_image2D_segmentation_factory,
+    bundle_image2DSegment_segmentation_factory,
     fastscanning_image2D_factory,
-    :fastscanning_2D,
+    :fastscanning_image2D,
 )
 
 append_method!(
-    bundle_image2D_segmentation_factory,
+    bundle_image2DSegment_segmentation_factory,
     watershed_image2D_factory,
-    :watershed_2D,
+    :watershed_image2D,
 )
 
 end

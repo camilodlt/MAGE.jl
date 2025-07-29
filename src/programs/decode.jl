@@ -12,25 +12,25 @@ Unpacks a node giving :
 - connexions
 """
 function extract_fn_connexions_types_from_node(
-    node::AbstractEvolvableNode,
-    library::Library,
-)::Tuple{FunctionWrapper,Vector{CGPElement},Vector{CGPElement}}
+        node::AbstractEvolvableNode,
+        library::Library,
+    )::Tuple{FunctionWrapper, Vector{CGPElement}, Vector{CGPElement}}
 
     # Extract Function
     fn_element = extract_function_from_node(node)
     fn = fn_element.value
     fn = library[fn]
 
-    # Connexions 
+    # Connexions
     connexions = extract_connexions_from_node(node)
     connexions_types = extract_connexions_types_from_node(node)
     return tuple(fn, connexions, connexions_types)
 end
 
 function _validate_connexions(
-    connexions::Vector{CGPElement},
-    connexions_types::Vector{CGPElement},
-)
+        connexions::Vector{CGPElement},
+        connexions_types::Vector{CGPElement},
+    )
     # validate CGP ELEMENTS
     for con in connexions
         @assert con.element_type == CONNEXION
@@ -38,15 +38,14 @@ function _validate_connexions(
     for con_t in connexions_types
         @assert con_t.element_type == TYPE
     end
-    @assert length(connexions) == length(connexions_types)
+    return @assert length(connexions) == length(connexions_types)
 end
 
 
-
 function _operation_input_from_shared_inputs(
-    index_at::Int,
-    model_architecture::modelArchitecture,
-)
+        index_at::Int,
+        model_architecture::modelArchitecture,
+    )
     input_wrapper = InputPromise(index_at)
     #node_type_idx = shared_inputs[index_at].y_position. Not using y_pos since Inputs is uni dim
     type = model_architecture.inputs_types[index_at]
@@ -57,10 +56,10 @@ function _operation_input_from_shared_inputs(
 end
 
 function _operation_input_from_chromosome(
-    concerned_chromosome::AbstractGenome,
-    index_at::Int,
-    model_architecture::modelArchitecture,
-)
+        concerned_chromosome::AbstractGenome,
+        index_at::Int,
+        model_architecture::modelArchitecture,
+    )
 
     node = concerned_chromosome.chromosome[index_at]  # CGP NODE
     node_type_idx = node.y_position
@@ -78,17 +77,17 @@ From node's connections, makes a vector of OperationInput s
 An OperationInput wraps the input, which might be an InputNode or a normal CGPNode
 """
 function inputs_for_node(
-    connexions::Vector{CGPElement},
-    connexions_types::Vector{CGPElement},
-    ut_genome::UTGenome,
-    inputs_wrapper::SharedInput,
-    model_architecture::modelArchitecture,
-)::Vector{OperationInput}
+        connexions::Vector{CGPElement},
+        connexions_types::Vector{CGPElement},
+        ut_genome::UTGenome,
+        inputs_wrapper::SharedInput,
+        model_architecture::modelArchitecture,
+    )::Vector{OperationInput}
     _validate_connexions(connexions, connexions_types)
     # Extract Inputs
     inputs = OperationInput[]
 
-    for idx = 1:length(connexions)
+    for idx in 1:length(connexions)
         # # get the element objs
         connexion_value = get_node_element_value(connexions[idx])
         connexion_type_value = get_node_element_value(connexions_types[idx]) # to filter the utgenome
@@ -134,14 +133,14 @@ Args:
     program (list[Any]): _description_
 """
 function recursive_decode_node!(
-    calling_node::Union{CGPNode,OutputNode},
-    meta_library::MetaLibrary,
-    type_idx::Int,
-    operations_list::Vector{<:AbstractOperation},
-    model_architecture::modelArchitecture,
-    ut_genome::UTGenome,
-    program::Program,
-)
+        calling_node::Union{CGPNode, OutputNode},
+        meta_library::MetaLibrary,
+        type_idx::Int,
+        operations_list::Vector{<:AbstractOperation},
+        model_architecture::modelArchitecture,
+        ut_genome::UTGenome,
+        program::Program,
+    )
 
     fn, connexions, connexions_types = extract_fn_connexions_types_from_node(
         calling_node,
@@ -156,7 +155,7 @@ function recursive_decode_node!(
     )
     fn_name = fn.name
     arg_types = tuple([op.type for op in inputs]...)
-    # check will function will be called 
+    # check will function will be called
     local m = nothing
     try
         m = which(fn.fn, arg_types)
@@ -172,6 +171,27 @@ function recursive_decode_node!(
     inputs = inputs[1:n_used_inputs]
     push!(operations_list, Operation(fn, calling_node, inputs))
 
+    # # 45 is bias
+    # if calling_node isa CGPNode && calling_node.x_position == 44
+    #     if isdefined(Main, :Infiltrator)
+    #         Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+    #     end
+    # end
+
+    # if calling_node isa CGPNode && calling_node.x_position == 46
+    #     if isdefined(Main, :Infiltrator)
+    #         Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+    #     end
+    # end
+
+    # if length(inputs) >= 1
+    #     if inputs[1].input isa CGPNode && inputs[1].input.x_position == 83
+    #         if isdefined(Main, :Infiltrator)
+    #             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+    #         end
+    #     end
+    # end
+
     # TODO EXTRA PARAMS ???
     for operation_input in inputs
         R_next_calling_node =
@@ -181,8 +201,8 @@ function recursive_decode_node!(
             @show program
             throw(ErrorException("Could not get the input node from an operation"))
         end
-        next_type_idx = operation_input.type_idx # op_input is the next 
-        # calling_node. Hence, its type idx is going to be used 
+        next_type_idx = operation_input.type_idx # op_input is the next
+        # calling_node. Hence, its type idx is going to be used
         # to get the function.
         # If the node is InputNode. The recursion will stop for that branch.
         recursive_decode_node!(
@@ -195,12 +215,18 @@ function recursive_decode_node!(
             program,
         )
     end
+    return
 end
 
 """
 The recursion is stopped at InputNode
 """
 function recursive_decode_node!(calling_node::InputNode, args...) end
+
+"""
+The recursion is stopped at ConstantNode
+"""
+function recursive_decode_node!(calling_node::ConstantNode, args...) end
 
 """
     decode_with_output_node(
@@ -217,12 +243,12 @@ Returns a `Program`, which is a series of operations (from last to first) and ho
 in order to change the inputs for the program without decoding again. 
 """
 function decode_with_output_node(
-    ut_genome::UTGenome,
-    output_node::OutputNode,
-    meta_library::MetaLibrary,
-    model_architecture::modelArchitecture,
-    shared_inputs::SharedInput,
-)::Program
+        ut_genome::UTGenome,
+        output_node::OutputNode,
+        meta_library::MetaLibrary,
+        model_architecture::modelArchitecture,
+        shared_inputs::SharedInput,
+    )::Program
     operations = Operation[]
     program = Program(operations, shared_inputs)
     recursive_decode_node!(
@@ -253,11 +279,11 @@ Returns a `IndividualPrograms` struct, which is a vector of `Programs`. The leng
 is equal to the number of output nodes in the genome.
 """
 function decode_with_output_nodes(
-    ut_genome::UTGenome,
-    meta_library::MetaLibrary,
-    model_architecture::modelArchitecture,
-    shared_inputs::SharedInput,
-)::IndividualPrograms
+        ut_genome::UTGenome,
+        meta_library::MetaLibrary,
+        model_architecture::modelArchitecture,
+        shared_inputs::SharedInput,
+    )::IndividualPrograms
     output_nodes = ut_genome.output_nodes
     ind_progs = Program[]
     for output_node in output_nodes

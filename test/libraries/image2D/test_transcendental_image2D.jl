@@ -1,102 +1,96 @@
-# BUNDLE 
-@testset "Image2D Transcendental Bundle" begin
-    @test begin
-        # bundle import
-        using UTCGP: bundle_image2D_transcendental_factory
-        length(bundle_image2D_transcendental_factory) == 3 &&
-            _unique_names_in_bundle(bundle_image2D_transcendental_factory)
-    end
-end
-
 #################
 # Exponential   #
 #################
+@testset "Image2D Transcendental: exp_image2D" begin
+    Bundle = bundle_image2DIntensity_transcendental_factory
+    test_img = generate_binarize_test_image(INTENSITY)
+    fn = Bundle[:exp_image2D]
+    fn = fn.fn(typeof(test_img))
 
-@testset "Image2D Transcendental: exp" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_transcendental_factory[:exp_image2D].fn
-    fn = fac(typeof(img))
-    @testset "Image2D Transcendental: exp(T)" begin
-        @test begin
-            res = fn(img)
-            size(res) == size(img) && res != img
-        end # returns the same size
-        @test_throws MethodError begin # bad type according to specialized image
-            new_img = SImageND(convert.(N0f16, img))
-            res = fn(new_img)
-        end
-    end
-    @testset "Image2D Transcendental: exp(img)" begin
-        @test begin # clamped
-            res = fn(img)
-            all(res .<= 1) && all(res .>= 0)
-        end # returns the same size
-        @test begin
-            example = SImageND(zeros(N0f8, size(img)))
-            res = fn(example)
-            sum(res) == length(img) # since exp(0) == 1
-        end
-    end
+    c1 = sum(test_img .< 0.3)
+    res = fn(test_img)
+    @test eltype(res) == IntensityPixel{N0f8}
+    @test size(res) == size(test_img)
+    @test all(0 .<= res .<= 1)
+    @test res !== test_img
+    c2 = sum(res .< 0.3)
+    @test c1 < c2 # more blacker pixels
 end
 
-#################
-# LOG           #
-#################
+# #################
+# # LOG           #
+# #################
+@testset "Image2D Transcendental: loginv_image2D" begin
+    Bundle = bundle_image2DIntensity_transcendental_factory
+    test_img = generate_binarize_test_image(INTENSITY)
+    fn = Bundle[:loginv_image2D]
+    fn = fn.fn(typeof(test_img))
 
-@testset "Image2D Transcendental: log" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_transcendental_factory[:log_image2D].fn
-    fn = fac(typeof(img))
-    @testset "Image2D Transcendental: log(T)" begin
-        @test begin
-            res = fn(img)
-            size(res) == size(img) && res != img
-        end # returns the same size
-        @test_throws MethodError begin # bad type according to specialized image
-            new_img = SImageND(convert.(N0f16, img))
-            res = fn(new_img)
-        end
-    end
-    @testset "Image2D Transcendental: log(img)" begin
-        @test begin # clamped
-            res = fn(img)
-            all(res .<= 1) && all(res .>= 0)
-        end # returns the same size
-        @test begin
-            example = SImageND(ones(N0f8, size(img)))
-            res = fn(example)
-            sum(res) == 0.0 # since log(1) == 0
-        end
-    end
+    res = fn(test_img)
+    @test eltype(res) == IntensityPixel{N0f8}
+    @test size(res) == size(test_img)
+    @test all(0 .<= res .<= 1)
+    @test res !== test_img
+
+    count_white1 = sum(test_img .== 1)
+    count_white2 = sum(res .== 1)
+    @test count_white2 > count_white1
 end
 
-#################
-# Power Of      #
-#################
+@testset "Image2D Transcendental: log_image2D" begin
+    Bundle = bundle_image2DIntensity_transcendental_factory
+    test_img = generate_binarize_test_image(INTENSITY)
+    fn = Bundle[:log_image2D]
+    fn = fn.fn(typeof(test_img))
 
-@testset "Image2D Transcendental: power_of" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_transcendental_factory[:powerof_image2D].fn
-    fn = fac(typeof(img))
-    @testset "Image2D Transcendental: power_of(T)" begin
-        @test begin
-            res = fn(img, 2.0)
-            size(res) == size(img) && res != img
-        end # returns the same size
-        @test_throws MethodError begin # bad type according to specialized image
-            new_img = SImageND(convert.(N0f16, img))
-            res = fn(new_img, 2)
-        end
-    end
-    @testset "Image2D Transcendental: log(img)" begin
-        @test begin # clamped
-            res = fn(img, 2)
-            all(res .<= 1) && all(res .>= 0)
-        end # returns the same size
-        @test begin
-            example = SImageND(ones(N0f8, size(img)))
-            res = fn(example, -013.3)
-            sum(res) == length(img) # since 1^p == 1
-        end
-    end
+    res = fn(test_img)
+    
+    @test eltype(res) == IntensityPixel{N0f8}
+    @test size(res) == size(test_img)
+    @test all(0 .<= res .<= 1)
+    @test res !== test_img
+
+    m1 = mean(test_img.img)
+    m2 = mean(res.img)
+    @test m2 > m1
+end
+
+# #################
+# # Power Of      #
+# #################
+
+@testset "Image2D Transcendental: powerof_image2D" begin
+    Bundle = bundle_image2DIntensity_transcendental_factory
+    test_img = generate_binarize_test_image(INTENSITY)
+    fn = Bundle[:powerof_image2D]
+    fn = fn.fn(typeof(test_img))
+
+    m1 = mean(test_img.img)
+     
+    res = fn(test_img, 1.)
+    @test eltype(res) == IntensityPixel{N0f8}
+    @test size(res) == size(test_img)
+    @test all(0 .<= res .<= 1)
+    @test res == test_img
+
+    res = fn(test_img, 0)
+    @test eltype(res) == IntensityPixel{N0f8}
+    @test size(res) == size(test_img)
+    @test all(0 .<= res .<= 1)
+    @test all(res .== 1)
+
+    res = fn(test_img, 0.5)
+    m2 = mean(res.img)
+    @test eltype(res) == IntensityPixel{N0f8}
+    @test size(res) == size(test_img)
+    @test all(0 .<= res .<= 1)
+    @test m2 > m1 # image is brighter
+
+    res = fn(test_img, 2.)
+    m2 = mean(res.img)
+    @test eltype(res) == IntensityPixel{N0f8}
+    @test size(res) == size(test_img)
+    @test all(0 .<= res .<= 1)
+    @test m2 < m1 # image is way darker
+    
 end

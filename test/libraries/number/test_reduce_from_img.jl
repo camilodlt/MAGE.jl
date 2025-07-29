@@ -1,199 +1,212 @@
+using Images
+using Statistics
+
+function generate_filter_test_image(::Type{IntensityPixel{T}}, size = (30, 30)) where {T}
+    # Create a gradient image for intensity
+    img = [i / size[1] + j / size[2] for i = 1:size[1], j = 1:size[2]]
+    img = img ./ maximum(img)  # Normalize to range [0, 1]
+    img[20:25, 20:25] .= 1.0
+    img[10:13, 10:13] .= 0.0
+    return SImageND(IntensityPixel{T}.(img))
+end
+
+function generate_filter_test_image(::Type{BinaryPixel{Bool}}, size = (30, 30))
+    # Create a gradient image for intensity
+    img = trues(size[1], size[2])
+    img[10:13, 10:13] .= 0
+    return SImageND(BinaryPixel{Bool}.(img))
+end
+function generate_filter_test_image(::Type{SegmentPixel{Int}}, size = (30, 30))
+    # Create a gradient image for intensity
+    img = zeros(size[1], size[2])
+    img[20:23, 20:23] .= 1
+    img[10:13, 10:13] .= 2
+    return SImageND(SegmentPixel{Int}.(img))
+end
+
+INTENSITY = IntensityPixel{N0f8}
+BINARY = BinaryPixel{Bool}
+SEGMENT = SegmentPixel{Int}
+
 @testset "Reduce Image" begin
-    @test begin
-        # bundle import
-        using UTCGP: bundle_number_reduceFromImg
-        length(bundle_number_reduceFromImg) == 12 &&
-            _unique_names_in_bundle(bundle_number_reduceFromImg)
-    end
+    Bundle = bundle_number_reduceFromImg
+
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_intensity_bad3 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 60))
+    img_binary = generate_filter_test_image(BINARY)
+    img_segment = generate_filter_test_image(SEGMENT)
 
     # Reduce length --- 
-    @test begin
+    @testset "Reduce Length" begin
         fn = bundle_number_reduceFromImg[:reduce_length].fn
-        fn(SImageND(ones(10, 10))) == 10 * 10
-    end
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_length].fn
-        fn(SImageND(ones(2, 10))) == 20
+        @test fn(img_intensity_bad2) == 50 * 50
+        @test fn(img_binary) == 30 * 30
+        @test fn(img_segment) == 30 * 30
     end
 
-    # Reduce Biggest Axis --- 
-    @test begin
+    @testset "Reduce Big axis" begin
         fn = bundle_number_reduceFromImg[:reduce_biggestAxis].fn
-        fn(SImageND(ones(10, 10))) == 10
-    end
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_biggestAxis].fn
-        fn(SImageND(ones(2, 10))) == 10
-    end
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_biggestAxis].fn
-        fn(SImageND(ones(10, 11))) == 11
+        @test fn(img_intensity_bad2) == 50
+        @test fn(img_intensity_bad3) == 60
+        @test fn(img_binary) == 30
+        @test fn(img_segment) == 30
     end
 
-    # Reduce Biggest Axis --- 
-    @test begin
+    @testset "Reduce Small axis" begin
         fn = bundle_number_reduceFromImg[:reduce_smallerAxis].fn
-        fn(SImageND(ones(10, 10, 10))) == 10
+        @test fn(img_intensity_bad2) == 50
+        @test fn(img_intensity_bad3) == 50
+        @test fn(img_binary) == 30
+        @test fn(img_segment) == 30
     end
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_smallerAxis].fn
-        fn(SImageND(ones(2, 10))) == 2
-    end
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_smallerAxis].fn
-        fn(SImageND(ones(10, 11))) == 10
-    end
-end
 
-@testset "Reduce Image HistMode" begin
-    sample_img = [
-        0.33 0.33 0.12
-        0.12 0.10 0.11
-        0.9 0.8 0.33
-    ]
-    sample_img_n0f8 = SImageND(N0f8.(sample_img))
-    @test begin
+    @testset "Reduce Image HistMode" begin
         fn = bundle_number_reduceFromImg[:reduce_histMode].fn
-        res = fn(sample_img_n0f8)
-        res ≈ 0.329411764 && (res isa Float64) # bc N0f8 binned it
-    end
-    sample_img_n0f16 = SImageND(N0f16.(sample_img))
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_histMode].fn
-        res = fn(sample_img_n0f16)
-        res ≈ 0.330006866559 && (res isa Float64) # bc N0f16 binned it
+        @test begin
+            res = fn(img_intensity)
+            res == 1.0 && (res isa Float64)
+        end
+
+        @test begin
+            res = fn(img_binary)
+            res == 1.0 && (res isa Float64) # bc N0f16 binned it
+        end
     end
 
-end
+    @testset "Reduce Image HistMode Count" begin
+        fn = bundle_number_reduceFromImg[:reduce_histModeCount].fn
+        @test begin
+            res = fn(img_intensity)
+            res == 37.0 && (res isa Float64)
+        end
 
-@testset "Reduce Prop White" begin
-    sample_img = [
-        0.0 0.33 0.12
-        0.12 0.10 0.11
-        0.9 0.8 0.33
-    ] # prop white is 1/9
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
+        @test begin
+            res = fn(img_binary)
+            res == 884.0 && (res isa Float64) # bc N0f16 binned it
+        end
+    end
+
+    @testset "Reduce Prop White" begin
         fn = bundle_number_reduceFromImg[:reduce_propWhite].fn
-        res = fn(sample_img)
-        res ≈ (1 / 9) && (res isa Float64)
+        @test begin
+            res = fn(img_binary)
+            res ≈ 0.98222222 && (res isa Float64)
+        end
+        @test_throws MethodError begin
+            fn(img_intensity)
+        end
+        @test_throws MethodError begin
+            fn(img_segment)
+        end
     end
-    sample_img = [
-        0.0 0.0 0.0
-        0.12 0.10 0.11
-        0.9 0.8 0.33
-    ] # prop white is 1/9
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_propWhite].fn
-        res = fn(sample_img)
-        res ≈ (1 / 3) && (res isa Float64)
-    end
-
-end
-
-@testset "Reduce Prop Black" begin
-    sample_img = [
-        1.0 0.33 0.12
-        0.12 0.10 0.11
-        0.9 0.8 0.33
-    ] # prop black is 1/9
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
+    @testset "Reduce Prop Black" begin
         fn = bundle_number_reduceFromImg[:reduce_propBlack].fn
-        res = fn(sample_img)
-        res ≈ (1 / 9) && (res isa Float64)
-    end
-    sample_img = [
-        1.0 1.0 1.0
-        0.12 0.10 0.11
-        0.9 0.8 0.33
-    ] # prop black is 1/3
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
-        fn = bundle_number_reduceFromImg[:reduce_propBlack].fn
-        res = fn(sample_img)
-        res ≈ (1 / 3) && (res isa Float64)
+        @test begin
+            res = fn(img_binary)
+            res ≈ 0.017777777777777778 && (res isa Float64)
+        end
+        @test_throws MethodError begin
+            fn(img_intensity)
+        end
+        @test_throws MethodError begin
+            fn(img_segment)
+        end
     end
 
-end
-
-@testset "Reduce N Colors" begin
-    sample_img = [
-        1 1 1
-        2 2 2
-    ]
-    to_normed = reinterpret(N0f8, UInt8.(sample_img))
-    sample_img = SImageND(to_normed)
-    @test begin
+    @testset "Reduce N Colors" begin
         fn = bundle_number_reduceFromImg[:reduce_nColors].fn
-        res = fn(sample_img)
-        res ≈ 2.0 && (res isa Float64)
+        @test begin
+            res = fn(img_binary)
+            res == 2.0 && (res isa Float64)
+        end
+        @test begin
+            res = fn(img_intensity)
+            res == 63 && (res isa Float64)
+        end
+        @test begin
+            res = fn(img_segment)
+            res == 3 && (res isa Float64)
+        end
     end
-end
 
-@testset "Reduce Mean" begin
-    sample_img = [
-        0 0 0
-        255 255 255
-    ]
-    to_normed = reinterpret(N0f8, UInt8.(sample_img))
-    sample_img = SImageND(to_normed)
-    @test begin
+    @testset "Reduce Mean" begin
         fn = bundle_number_reduceFromImg[:reduce_mean].fn
-        res = fn(sample_img)
-        res ≈ 0.5 && (res isa Float64)
+        @test begin
+            res = fn(img_intensity)
+            res ≈ mean(float(img_intensity)) && (res isa Float64)
+        end
+        @test begin
+            res = fn(img_intensity_bad3)
+            res ≈ mean(float(img_intensity_bad3)) && (res isa Float64)
+        end
+        @test_throws MethodError begin
+            fn(img_binary)
+        end
+        @test_throws MethodError begin
+            fn(img_segment)
+        end
     end
-end
-
-@testset "Reduce median" begin
-    sample_img = [
-        0.1 0.1 0.2
-        0.3 0.3 0.9
-    ]
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
+    @testset "Reduce Median" begin
         fn = bundle_number_reduceFromImg[:reduce_median].fn
-        res = fn(sample_img)
-        res ≈ 0.249019607843 && (res isa Float64)
+        @test begin
+            res = fn(img_intensity)
+            res ≈ median(float(img_intensity)) && (res isa Float64)
+        end
+        @test begin
+            res = fn(img_intensity_bad3)
+            res ≈ median(float(img_intensity_bad3)) && (res isa Float64)
+        end
+        @test_throws MethodError begin
+            fn(img_binary)
+        end
+        @test_throws MethodError begin
+            fn(img_segment)
+        end
     end
-end
-
-@testset "Reduce std" begin
-    sample_img = [
-        0.1 0.1 0.2
-        0.3 0.3 0.9
-    ]
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
+    @testset "Reduce Std" begin
         fn = bundle_number_reduceFromImg[:reduce_std].fn
-        res = fn(sample_img)
-        res ≈ 0.299690130027 && (res isa Float64)
+        @test begin
+            res = fn(img_intensity)
+            res ≈ std(float(img_intensity)) && (res isa Float64)
+        end
+        @test begin
+            res = fn(img_intensity_bad3)
+            res ≈ std(float(img_intensity_bad3)) && (res isa Float64)
+        end
+        @test_throws MethodError begin
+            fn(img_binary)
+        end
+        @test_throws MethodError begin
+            fn(img_segment)
+        end
     end
-end
 
-@testset "Reduce Maximum" begin
-    sample_img = [
-        0.1 0.1 0.2
-        0.3 0.3 0.9
-    ]
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
+    @testset "Reduce Maximum" begin
         fn = bundle_number_reduceFromImg[:reduce_maximum].fn
-        res = fn(sample_img)
-        res ≈ 0.901960784 && (res isa Float64)
+        @test begin
+            res = fn(img_intensity)
+            res ≈ 1.0 && (res isa Float64)
+        end
+        @test_throws MethodError begin
+            fn(img_segment)
+        end
+        @test_throws MethodError begin
+            fn(img_binary)
+        end
     end
-end
-
-@testset "Reduce minimum" begin
-    sample_img = [
-        0.1 0.1 0.2
-        0.3 0.3 0.9
-    ]
-    sample_img = SImageND(N0f8.(sample_img))
-    @test begin
+    @testset "Reduce Minimum" begin
         fn = bundle_number_reduceFromImg[:reduce_minimum].fn
-        res = fn(sample_img)
-        res ≈ 0.10196078431 && (res isa Float64)
+        @test begin
+            res = fn(img_intensity)
+            res ≈ 0.0 && (res isa Float64)
+        end
+        @test_throws MethodError begin
+            fn(img_segment)
+        end
+        @test_throws MethodError begin
+            fn(img_binary)
+        end
     end
 end

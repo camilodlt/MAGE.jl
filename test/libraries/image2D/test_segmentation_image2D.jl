@@ -1,124 +1,133 @@
-###############
-# Felzenswalb #
-###############
+using Images
+using Statistics
 
-@testset "Image2D Segmentation: felzenswalb_image2D_factory(T) " begin
-    @test begin
-        fac = UTCGP.bundle_image2D_segmentation_factory[:felzenswalb_2D].fn
-        dp = fac(SImageND{Tuple{10,10},N0f8,2})
-        ones_ = ones(N0f8, 10, 10)
-        ones_[5, 5] = 0
-        ones_ = SImageND(ones_)
-        size(ones_) == (10, 10)
-    end
+function generate_filter_test_image(::Type{IntensityPixel{T}}, size = (30, 30)) where {T}
+    # Create a gradient image for intensity
+    img = [i / size[1] + j / size[2] for i = 1:size[1], j = 1:size[2]]
+    img = img ./ maximum(img)  # Normalize to range [0, 1]
+    img[20:25, 20:25] .= 1.0
+    img[10:13, 10:13] .= 0.0
+    return SImageND(IntensityPixel{T}.(img))
 end
 
-@testset "Image2D Segmentation: felzenswalb_image2D(img,k) " begin
-    fac = UTCGP.bundle_image2D_segmentation_factory[:felzenswalb_2D].fn
-    img = load_test_image()
-    img_16 = SImageND(convert.(N0f16, img.img))
-    @test begin
-        dp = fac(typeof(img))
-        res = dp(img, 4000)
-        unique(res.img) == [0.004N0f8, 0.008N0f8, 0.012N0f8, 0.016N0f8] &&
-            typeof(res).parameters[2] == N0f8 &&
-            eltype(typeof(res.img)) == N0f8
-    end
-    @test_throws InexactError begin # bc k is not enough, too many different instances for the type
-        dp = fac(typeof(img))
-        res = dp(img, 100)
-    end
-    @test begin # with type Uint16, now we have room for that many segmentations
-        img_16 = SImageND(convert.(N0f16, img.img))
-        dp = fac(typeof(img_16))
-        res = dp(img_16, 100)
-        seg = ImageSegmentation.felzenszwalb(img_16.img, 100)
-        seg = ImageSegmentation.labels_map(seg)
-        convert.(UInt16, seg) == reinterpret.(res)
-    end
-    @test begin # negative k => 1
-        img_16 = SImageND(convert.(N0f16, img.img))
-        dp = fac(typeof(img_16))
-        res = dp(img_16, -100)
-        seg = ImageSegmentation.felzenszwalb(img_16.img, 1)
-        seg = ImageSegmentation.labels_map(seg)
-        convert.(UInt16, seg) == reinterpret.(res)
-    end
-    @test begin # Deterministic
-        dp = fac(typeof(img_16))
-        rs = [dp(img_16, 50) for i = 1:10]
-        all(i -> i == rs[1], rs)
-    end
+function generate_filter_test_image(::Type{BinaryPixel{Bool}}, size = (30, 30))
+    # Create a gradient image for intensity
+    img = trues(size[1], size[2])
+    img[10:13, 10:13] .= 0
+    return SImageND(BinaryPixel{Bool}.(img))
+end
+function generate_filter_test_image(::Type{SegmentPixel{Int}}, size = (30, 30))
+    # Create a gradient image for intensity
+    img = zeros(size[1], size[2])
+    img[20:23, 20:23] .= 1
+    img[10:13, 10:13] .= 2
+    return SImageND(SegmentPixel{Int}.(img))
 end
 
-#################
-# Unseeded Grow #
-#################
+INTENSITY = IntensityPixel{N0f8}
+BINARY = BinaryPixel{Bool}
+SEGMENT = SegmentPixel{Int}
 
-@testset "Image2D Segmentation: unseededgrow_image2D_factory(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_segmentation_factory[:unseededgrow_2D].fn
-    dp = fac(typeof(img))
-    @test begin
-        res = dp(img)
-        size(res) == size(img) && res != img
+################################ INTENSITY ################################
+
+# FASTSCANNING
+
+@testset "Image2D Segmentation: fastscanning(img)" begin
+    Bundle = bundle_image2DSegment_segmentation_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    img_segment = generate_filter_test_image(SEGMENT)
+    fac = Bundle[:fastscanning_image2D]
+    fn = fac.fn(typeof(img_segment))
+
+    @testset for p in [-1, 0, 0.0, 0.5, 0.9, 2.]
+        res = fn(img_intensity, p)
+        @test eltype(res) == SEGMENT
+        @test size(res) == size(img_intensity)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2)
+        end
     end
-    @test_throws MethodError begin
-        res = dp(SImageND(convert.(N0f16, img)))
-        size(res) == size(img) && res != img
+    @testset for p in [-1, 0, 0.0, 0.5, 0.9, 2.]
+        res = fn(img_binary, p)
+        @test eltype(res) == SEGMENT
+        @test size(res) == size(img_intensity)
+        @test typeof(res) <: SImageND
+        @test res != img_binary
     end
+    
+    res = fn(img_intensity, 0.1)
+    @test length(unique(res)) == 8 # segments
+
+    res = fn(img_binary, 0.1)
+    @test length(unique(res)) == 2 # segments
+
+    
+    fac_to_binary = bundle_image2DBinary_basic_factory[:experimental_tobinary_image2D]
+    fn_to_binary = fac_to_binary.fn(typeof(img_binary))
+    res_binary = fn_to_binary(res)
+    length(unique(reinterpret(res_binary.img))) == 2
+
+    fac_to_intensity = bundle_image2DIntensity_basic_factory[:experimental_tointensity_image2D]
+    fn_to_intensity = fac_to_intensity.fn(typeof(img_intensity))
+    res_intensity = fn_to_intensity(res)
+    length(unique(reinterpret(res_intensity.img))) == 2
+
 end
+ 
+@testset "Image2D Segmentation: watershed(img, mask, p)" begin
+    Bundle = bundle_image2DSegment_segmentation_factory
+    coins = load(download("http://docs.opencv.org/3.1.0/water_coins.jpg")); 
+    coins_binary = Gray.(coins) .> 0.5 #coins black
+    img = SImageND(BinaryPixel{Bool}.(coins_binary))
+    s = size(coins_binary)
 
-@testset "Image2D Segmentation: unseededgrow_image2D(img,th)" begin
-    img = load_test_image()
-    img_16 = SImageND(convert.(N0f16, img))
-    fac = UTCGP.bundle_image2D_segmentation_factory[:unseededgrow_2D].fn
-    dp = fac(typeof(img))
-    dp_16 = fac(typeof(img_16))
-    @test begin # th in range
-        res = dp(img, 0.1)
-        cond1 = size(res) == size(img) && res != img
-        seg = ImageSegmentation.unseeded_region_growing(Gray.(img.img), 0.1)
-        seg = ImageSegmentation.labels_map(seg)
-        cond1 && convert.(UInt8, seg) == reinterpret.(res)
-    end
-    @test begin # th not in range so -0.0 turned to eps(Float64)
-        res = dp_16(img_16, -0.0)
-        cond1 = size(res) == size(img_16) && res != img_16
-        seg = ImageSegmentation.unseeded_region_growing(Gray.(img_16.img), eps(Float64))
-        seg = ImageSegmentation.labels_map(seg)
-        cond1 && convert.(UInt16, seg) == reinterpret.(res)
-    end
-end
+    img_intensity_bad1 = generate_filter_test_image(INTENSITY, s) # bad type
+    img_binary_bad1 = generate_filter_test_image(BINARY, (50, 50)) # bad size
+    img_binary = generate_filter_test_image(BINARY, s)
+    img_segment = generate_filter_test_image(SEGMENT,s)
+    fac = Bundle[:watershed_image2D]
+    fn = fac.fn(typeof(img_segment))
 
-@testset "Image2D Segmentation: unseededgrow_image2D(img)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_segmentation_factory[:unseededgrow_2D].fn
-    dp = fac(typeof(img))
-    @test begin # no th => 0.3
-        res = dp(img)
-        cond1 = size(res) == size(img) && res != img
-        seg = ImageSegmentation.unseeded_region_growing(Gray.(img.img), 0.3)
-        seg = ImageSegmentation.labels_map(seg)
-        cond1 && convert.(UInt8, seg) == reinterpret.(res)
-    end
-    @test begin # Deterministic
-        rs = [dp(img) for i = 1:10]
-        all(i -> i == rs[1], rs)
-    end
-end
+    @testset for p in [-30, -15, 0, 0.0, 0.5, 0.9, 2.]
+        res = fn(img, p)
+        @test eltype(res) == SEGMENT
+        @test size(res) == size(img)
+        @test typeof(res) <: SImageND
+        @test res != img
 
-###############
-# Mean shift   #
-###############
-
-@testset "Image2D Segmentation: meanshift_image2D_factory(T) " begin
-    @test begin
-        fac = UTCGP.bundle_image2D_segmentation_factory[:meanshift_2D].fn
-        dp = fac(SImageND{Tuple{10,10},N0f8,2})
-        ones_ = ones(N0f8, 10, 10)
-        ones_[5, 5] = 0
-        ones_ = SImageND(ones_)
-        size(ones_) == (10, 10)
+        @test_throws MethodError begin
+            fn(img_intensity_bad1,p)
+            true
+        end
+        @test_throws MethodError begin
+            fn(img_binary_bad1,p)
+        end
     end
+
+    mask_all = SImageND(BinaryPixel{Bool}.(trues(s)))    
+    mask_none = SImageND(BinaryPixel{Bool}.(falses(s)))    
+
+    res = fn(img, mask_none, -15)
+    @test length(unique(res)) > 1 # returns the markers
+
+    res = fn(img, mask_all, -15)
+    @test res == fn(img, -15) # default mask is all 
+
+    @test fn(img) == fn(img, -15) == fn(img, mask_all, -15)
+
+    mask = Gray.(coins) .< 0.5 #coins white
+    mask = SImageND(BinaryPixel{Bool}.(mask ))
+    res_cropped = fn(img, mask, -15)
+    @test res_cropped != res
+    @test length(unique(res_cropped)) == 25
 end

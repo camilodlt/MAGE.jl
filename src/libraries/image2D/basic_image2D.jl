@@ -9,9 +9,6 @@ Exports :
     - `zeros_2D`
 
 """
-
-# We use the Array View for images
-
 module image2D_basic
 
 using ImageCore: clamp01nan!, Normed, float64
@@ -26,49 +23,28 @@ import UTCGP:
     _positive_params,
     _ceil_positive_params
 using ImageCore: N0f8, Normed
+using Statistics: mean, std
 using ..UTCGP:
-    SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type
+    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type, 
+    IntensityPixel, BinaryPixel, SegmentPixel
+
 fallback(args...) = return nothing
-bundle_image2D_basic = FunctionBundle(fallback)
-bundle_image2D_basic_factory = FunctionBundle(fallback)
-
-# using ExprTools
-# function _change_type_in_expr!(expr::Expr, T::DataType, to_change::Symbol = :MAGE_TYPE)
-#     for (i, arg) in enumerate(expr.args)
-#         if arg == to_change
-#             expr.args[i] = Symbol(T)
-#         end
-#         if arg isa Expr
-#             _MAGE_CHANGE!(arg)
-#         end
-#     end
-# end
-# function _get_fn_name_in_expr(expr::Expr)::Symbol
-#     s = splitdef(expr)
-#     return s[:name]
-# end
-
-# macro specialize_(fn, T)
-#     return quote
-#         q = $fn
-#         q = deepcopy(q) # The expr of the fn
-#         _change_type_in_expr!(q, $T) # replaces MAGE_TYPE by T
-#         fn_name = _get_fn_name_in_expr(q)
-#         eval(q)
-#     end
-# end
+bundle_image2DIntensity_basic_factory = FunctionBundle(fallback)
+bundle_image2DSegment_basic_factory = FunctionBundle(fallback)
+bundle_image2DBinary_basic_factory = FunctionBundle(fallback)
 
 # ################### #
 # IDENTITY            #
 # ################### #
 """
-    identity_image2D(img::Array{T,2}, args...)::Array{T,2} where {T<:Number}
+    identity_image2D_factory(I::Type{<:SI}) where {SI<:SizedImage{S, T}} where {S,T} 
 
-    Returns the identity of the img.
+    Works for all types of pixels.
+    Returns the identity of the img.   
 """
-function identity_image2D_factory(I::Type{<:SI}) where {SI<:SizedImage}
+function identity_image2D_factory(I::Type{<:SI}) where {SI<:SizedImage{S, T}} where {S,T}
     return @eval function (img::$I, args::Vararg{Any})
-        return identity(img)
+       return identity(img)
     end
 end
 
@@ -78,147 +54,186 @@ end
 
 """
     ones_2D_factory(T::Type{<:Normed})
-    
-    
+      
 """
-function ones_2D_factory(i::Type{I}) where {I<:SizedImage}
-
-    TT = Base.unwrap_unionall(I).parameters[2]
-    _validate_factory_type(TT)
+function ones_2D_factory(i::Type{I}) where {I<:SizedImage2D{SIZE}} where SIZE
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    S1, S2 = S.parameters[1], S.parameters[2]
+    _validate_factory_type(IT)
 
     """
-        ones_(img::Array{T,2}, args...)::Array{T,2}
-
-    Returns a matrix of ones in N0f8.
+    Returns a matrix of ones.
     """
-    m1 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
-        T = _get_image_type(CONCT)
-        # s = size(img)
-        s = _get_image_tuple_size(CONCT)
-        dim1::Int = s.parameters[1]
-        dim2::Int = s.parameters[2]
-        return SImageND(ones(T, dim1, dim2))
+    m1 = @eval (args::Vararg{Any},) -> begin
+        return SImageND($PT.(ones($IT, $S1, $S2)))
     end
-
-    """
-        ones_(k1::Int,k2, args...)::Array{UInt8,2}
-
-    Returns a matrix of ones in N0f8 with size `(k,k)`.
-    """
-    # m2 = @eval (k1_n::Number, k2_n::Number, args::Vararg{Any}) -> begin
-    #     k1 = round(Int, k1_n)
-    #     k2 = round(Int, k2_n)
-    #     k1, k2 = _positive_params(k1, k2)
-    #     if CONSTRAINED[]
-    #         k1, k2 = _ceil_positive_params(k1, k2)
-    #     end
-    #     return SImageND(ones($TT, k1, k2))
-    # end
-
-    """
-        ones_(k::Integer, args...)::Array{N0f8,2}
-
-    Returns a matrix of ones in N0f8 with size `(k,k)`.
-    """
-    # m3 = @eval (k::Int, args::Vararg{Any}) -> begin
-    #     k, = _positive_params(k) # dim cannot be less than 1
-    #     if CONSTRAINED[]
-    #         k, = _ceil_positive_params(k)
-    #     end
-    #     return SImageND(ones($TT, k, k))
-    # end
-    return ManualDispatcher((m1,), :ones_2D)
+    return m1
 end
 
 # ################### #
 # ZEROS               #
 # ################### #
 
-function zeros_2D_factory(i::Type{I}) where {I<:SizedImage}
+function zeros_2D_factory(i::Type{I}) where {I<:SizedImage2D}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    S1, S2 = S.parameters[1], S.parameters[2]
+    _validate_factory_type(IT)
 
-    TT = Base.unwrap_unionall(I).parameters[2]
-    _validate_factory_type(TT)
-
-    """function (x,y)::T
-        zeros_(img::Array{T,2}, args...)::Array{T,2} where {T<:Number}
-
-    Returns a matrix of zeros in N0f8.
     """
-    m1 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
-        T = _get_image_type(CONCT) # returns specific
-        # s = size(img)
-        s = _get_image_tuple_size(CONCT)
-        dim1::Int = s.parameters[1]
-        dim2::Int = s.parameters[2]
-        return SImageND(zeros(T, dim1, dim2))
+        zeros_(img::Array{T,2}, args...)::Array{T,2}
+
+    Returns a matrix of zeros in the type needed.
+    """
+    return @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+        return SImageND($PT.(zeros($IT, $S1, $S2)))
     end
-
-    """
-        zeros_(k1::Integer, k2::Integer, args...)::Array{N0f8,2}
-
-    Returns a matrix of zeros in N0f8 with size `(k,k)`.
-    """
-    # m2 = @eval (k1_n::Number, k2_n::Number, args...) -> begin
-    #     k1 = round(Int, k1_n)
-    #     k2 = round(Int, k2_n)
-    #     k1, k2, = _positive_params(k1, k2)
-    #     if CONSTRAINED[]
-    #         k1, k2, = _ceil_positive_params(k1, k2)
-    #     end
-    #     return SImageND(zeros($TT, k1, k2))
-    # end
-
-    """
-        ones_(k::Integer, args...)::Array{UInt8,2}
-
-    Returns a matrix of zeros in N0f8 with size `(k,k)`.
-    """
-    # m3 = @eval (k::Int, args...) -> begin
-    #     k, = _positive_params(k)
-    #     if CONSTRAINED[]
-    #         k, = _ceil_positive_params(k)
-    #     end
-    #     return SImageND(zeros($TT, k, k))
-    # end
-
-    ManualDispatcher((m1,), :zeros_2D)
 end
 
 # ################### #
 # INVERT #
 # ################### #
 """
-    experimental_image2D(img::Array{T,2}, args...)::Array{T,2} where {T<:Number}
+    experimental_invert_image2D(img::Array{T,2}, args...)::Array{T,2} where {T<:Number}
 
 """
 function experimental_invert_image2D_factory(i::Type{I}) where {I<:SizedImage}
-    TT = Base.unwrap_unionall(I).parameters[2]
-    _validate_factory_type(TT)
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    # S1, S2 = S.parameters[1], S.parameters[2]
+    _validate_factory_type(IT)
     return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        S = CONCT.parameters[1] # Tuple{X,Y}
         inv_ = abs.(1.0 .- float64.(img))
-        return SImageND($TT.(inv_))
+        clamp01nan!(inv_)
+        return SImageND($PT.(inv_), $S)
     end
 end
 
-# # Factory Methods
-append_method!(bundle_image2D_basic_factory, identity_image2D_factory, :identity_image2D)
-append_method!(bundle_image2D_basic_factory, ones_2D_factory, :ones_2D)
-append_method!(bundle_image2D_basic_factory, zeros_2D_factory, :zeros_2D)
-append_method!(
-    bundle_image2D_basic_factory,
-    experimental_invert_image2D_factory,
-    :experimental_invert_2D,
-)
+# ################### #
+# Normalize           #
+# ################### #
 
-# Default
+function _sanitize_img!(img::AbstractArray)
+    replace!(img, NaN => 0.)
+    replace!(img, Inf => 0.)
+    replace!(img, -Inf => 0.)
+end
 
-Default = SImageND{<:Tuple,N0f8,2} # to the Any size
-identity_image2D_def = identity_image2D_factory(Default)
-ones_2D = ones_2D_factory(Default) # Dispatcher
-zeros_2D = zeros_2D_factory(Default) # Dispatcher
+function _standardise_img(img::AbstractArray)
+    img_f = float.(img)
+    _sanitize_img!(img_f)
+    μ = mean(img_f)
+    σ = std(img_f)
+    img_f .= (img_f .- μ)./σ
+    img_f
+end
+function _normalize_img(img::AbstractArray)
+    img_f = float.(img)
+    _sanitize_img!(img_f)
+    min_, max_ = minimum(img_f), maximum(img_f)
+    img_f .= (img_f .- min_)./ (max_ - min_) 
+    img_f
+end
 
-append_method!(bundle_image2D_basic, identity_image2D_def, :identity_image2D)
-append_method!(bundle_image2D_basic, ones_2D)
-append_method!(bundle_image2D_basic, zeros_2D)
+"""
+    experimental_normalize_image2D(img::Array{T,2}, args...)::Array{T,2} where {T<:Number}
+
+"""
+function experimental_normalize_image2D_factory(i::Type{I}) where {I<:SizedImage}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    _validate_factory_type(IT)
+    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+        normalized_img = _normalize_img(img)
+        clamp01nan!(normalized_img)
+        return SImageND($PT.(normalized_img), $S)
+    end
+end
+
+function experimental_standardize_image2D_factory(i::Type{I}) where {I<:SizedImage}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    _validate_factory_type(IT)
+    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+        normalized_img = _standardise_img(img)
+        clamp01nan!(normalized_img)
+        return SImageND($PT.(normalized_img), $S)
+    end
+end
+
+# Easy access to other pixels
+
+# intensity => binary
+# segment => binary
+function _to_binary(img::SizedImage{S,IntensityPixel{T}}, th::Float64=0.) where {S, T}
+    BinaryPixel.(reinterpret(img.img) .> th)
+end
+function _to_binary(img::SizedImage{S,SegmentPixel{T}}, th::Float64=0.) where {S, T}
+    background_segment = minimum(unique(reinterpret(img.img)))
+    BinaryPixel.(reinterpret(img.img) .!= background_segment)
+end
+
+function experimental_tobinary_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE}} where {SIZE}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    _validate_factory_type(IT)
+    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <: Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1,T2}
+        r = _to_binary(img)
+        return SImageND(r, $S)
+    end
+end
+
+
+# binary => intensity
+# segment => intensity
+
+function _to_intensity(img::SizedImage{S,BinaryPixel{T}}, TOTYPE) where {S,T}
+    IntensityPixel.(TOTYPE.(Int.(img)))
+end
+function _to_intensity(img::SizedImage{S,SegmentPixel{T}}, TOTYPE) where {S,T}
+    r = float.(img)
+    max_ = maximum(r)
+    r .= r ./ max_
+    r_typed = TOTYPE.(r)
+    IntensityPixel.(r_typed)
+end
+function experimental_tointensity_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE}} where {SIZE}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    _validate_factory_type(IT)
+    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel{T1}, SegmentPixel{T2}}}} where {T1,T2}
+        r = _to_intensity(img, $(IT))
+        return SImageND(r, $S)
+    end
+end
+
+# binary => segment
+function _to_segment(img::SizedImage{S,BinaryPixel{T}}, TOTYPE) where {S,T}
+    SegmentPixel.(TOTYPE.(Int.(img)))
+end
+function experimental_tosegment_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,SegmentPixel{ST}}} where {SIZE, ST}
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    _validate_factory_type(IT)
+    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), BinaryPixel{T}}} where {T}
+        r = _to_segment(img, $IT)
+        return SImageND(r, $S)
+    end
+end
+
+# Factory Intensity
+append_method!(bundle_image2DIntensity_basic_factory, identity_image2D_factory, :identity_image2D)
+append_method!(bundle_image2DIntensity_basic_factory, ones_2D_factory, :ones_2D)
+append_method!(bundle_image2DIntensity_basic_factory, zeros_2D_factory, :zeros_2D)
+append_method!(bundle_image2DIntensity_basic_factory, experimental_invert_image2D_factory, :experimental_invert_2D)
+append_method!(bundle_image2DIntensity_basic_factory,experimental_normalize_image2D_factory, :experimental_normalize_2D)
+append_method!(bundle_image2DIntensity_basic_factory, experimental_standardize_image2D_factory, :experimental_standardize_2D)
+append_method!(bundle_image2DIntensity_basic_factory, experimental_tointensity_image2D_factory, :experimental_tointensity_image2D)
+
+# Factory Binary
+append_method!(bundle_image2DBinary_basic_factory, identity_image2D_factory, :identity_image2D)
+append_method!(bundle_image2DBinary_basic_factory, ones_2D_factory, :ones_2D)
+append_method!(bundle_image2DBinary_basic_factory, zeros_2D_factory, :zeros_2D)
+append_method!(bundle_image2DBinary_basic_factory, experimental_invert_image2D_factory, :experimental_invert_2D)
+append_method!(bundle_image2DBinary_basic_factory, experimental_tobinary_image2D_factory, :experimental_tobinary_image2D)
+
+# Factory Segment
+append_method!(bundle_image2DSegment_basic_factory, identity_image2D_factory, :identity_image2D)
+append_method!(bundle_image2DSegment_basic_factory, ones_2D_factory, :ones_2D)
+append_method!(bundle_image2DSegment_basic_factory, zeros_2D_factory, :zeros_2D)
+append_method!(bundle_image2DSegment_basic_factory, experimental_tosegment_image2D_factory, :experimental_tosegment_image2D)
+
 end

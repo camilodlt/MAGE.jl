@@ -1,313 +1,878 @@
 using ImageView
 using ImageBinarization
+using ImageCore
+using Statistics
+
+function generate_binarize_test_image(::Type{IntensityPixel{T}}, size = (10, 10)) where {T}
+    # Create a gradient image for intensity
+    img = [i / size[1] + j / size[2] for i = 1:size[1], j = 1:size[2]]
+    img = img ./ maximum(img)  # Normalize to range [0, 1]
+    return SImageND(IntensityPixel{T}.(img))
+end
+
+function generate_binarize_test_image(::Type{BinaryPixel{Bool}}, size = (10, 10))
+    # Create a gradient image for intensity
+    return SImageND(BinaryPixel{Bool}.(trues(10,10)))
+end
+
+INTENSITY = IntensityPixel{N0f8}
+BINARY = BinaryPixel{Bool}
+
 
 #####################
 # Adaptive Threshold #
 #####################
+@testset "Image2D Binarize: binarizeAdaptive(img, w, p) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
 
-# DEFAULT #
-@testset "Image2D Binarize: binarize_adaptive2D(img) Default" begin
-    @test begin
-        dp = UTCGP.bundle_image2D_binarize[:binarize_adaptive2D].fn
-        img = load_test_image() # from basic
-        @show typeof(img)
-        binarized = dp(img)
-        f = AdaptiveThreshold(img.img)
-        bimg = binarize(img.img, f)
-        binarized == bimg
-        # res == expected_res && res.img == expected_res.img
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_adaptive2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different combinations of parameters
+        for (w, p) in [(9, 50), (10.5, 25), (15, 100), (20, 75)]
+            res = fn(test_img, w, p)
+
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+
+        res1 = fn(test_img, 5, 30.)
+        res2 = fn(test_img, 5., 50)
+
+        @test sum(float(res1).== 0) > sum(float(res2).==0) # p = 30 is less restrictive so more background pixels than with p = 50
     end
 end
 
-@testset "Image2D Binarize: binarize_adaptive2D(img,w) Default" begin
-    @test begin
-        dp = UTCGP.bundle_image2D_binarize[:binarize_adaptive2D].fn
-        img = load_test_image() # from basic
-        @show typeof(img)
-        binarized = dp(img, 100)
-        f = AdaptiveThreshold(window_size = 100)
-        bimg = binarize(img.img, f)
-        binarized == bimg
-        # res == expected_res && res.img == expected_res.img
-    end
-end
-@testset "Image2D Binarize: binarize_adaptive2D(img,w,p) Default" begin
-    @test begin
-        dp = UTCGP.bundle_image2D_binarize[:binarize_adaptive2D].fn
-        img = load_test_image() # from basic
-        @show typeof(img)
-        binarized = dp(img, 100, 80)
-        f = AdaptiveThreshold(window_size = 100, percentage = 80)
-        bimg = binarize(img.img, f)
-        binarized == bimg
-        # res == expected_res && res.img == expected_res.img
-    end
-end
+@testset "Image2D Binarize: binarizeAdaptive(img, w) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
 
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_adaptive2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
 
-# FACTORY #
-@testset "Image2D Binarize: binarize_adaptive2D(img) Factory" begin
-    img = load_test_image
+        # Test with different window sizes
+        for w in [5, 10.5, 15, 20]
+            res = fn(test_img, w)
 
-    # TEST THE TYPE
-    @test_throws MethodError begin  # the factory works with N0f16
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(N0f16)
-        fn(img) # fails because image is N0f8
-    end
-    @test begin # works with Float64 if specialized to it
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,Float64})
-        res = fn(SImageND(ones(Float64, 10, 10)))
-        size(res) == (10, 10)
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+
+        res1 = fn(test_img, 100)
+        res2 = fn(test_img, 3.)
+
+        @test sum(float(res1).== 0) > sum(float(res2).==0) # p = 30 is less restrictive so more background pixels than with p = 50
     end
 end
 
-# TEST THE FACTORY : img
-@testset "Image2D Binarize: binarize_adaptive2D(img, w) Factory" begin
-    img = load_test_image()
+@testset "Image2D Binarize: binarizeAdaptive(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
 
-    # TEST THE TYPE
-    @test_throws MethodError begin  # the factory works with N0f16
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(N0f16)
-        fn(img, 10) # fails because image is N0f8
-    end
-    @test begin # works with Float64 if specialized to it
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,Float64})
-        res = fn(SImageND(ones(Float64, 10, 10)), 10)
-        size(res) == (10, 10)
-    end
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_adaptive2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
 
-    # Test that the window is capped at [9, img_size]
-    @test begin # works with Float64 if specialized to it
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,N0f8})
-        res = fn(img, -1000)
-        f = AdaptiveThreshold(window_size = 9)
-        bimg = binarize(img.img, f)
-        bimg == res.img
-    end
+        # Test without parameters
+        res = fn(test_img)
 
-    # Test that the window is capped at [9, img_size]
-    @test begin # works with Float64 if specialized to it
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,N0f8})
-        res = fn(img, 10000000)
-        s = size(img)
-        w = min(s[1], s[2])
-        f = AdaptiveThreshold(window_size = w)
-        bimg = binarize(img.img, f)
-        bimg == res.img
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
     end
 end
 
-# TEST THE FACTORY : img
-@testset "Image2D Binarize: binarize_adaptive2D(img, w) Factory" begin
-    img = load_test_image()
+# ####################
+# # NIBLACK          #
+# ####################
 
-    # TEST THE TYPE
-    @test_throws MethodError begin  # the factory works with N0f16
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(N0f16)
-        fn(img, 10, 100) # fails because image is N0f8
-    end
-    @test begin # works with Float64 if specialized to it
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,Float64})
-        res = fn(SImageND(ones(Float64, 10, 10)), 10, 100)
-        size(res) == (10, 10)
-    end
+@testset "Image2D Binarize: binarizeNiblack(img, w, b) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
 
-    # Test that the window is capped at [9, img_size]
-    @test begin # works with Float64 if specialized to it
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,N0f8})
-        res = fn(img, -1000, 10)
-        f = AdaptiveThreshold(window_size = 9, percentage = 10)
-        bimg = binarize(img.img, f)
-        bimg == res.img
-    end
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_niblack2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
 
-    # Test that the window is capped at [9, img_size]
-    @test begin # works with Float64 if specialized to it
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,N0f8})
-        res = fn(img, 10000000, 10)
-        s = size(img)
-        w = min(s[1], s[2])
-        f = AdaptiveThreshold(window_size = w, percentage = 10)
-        bimg = binarize(img.img, f)
-        bimg == res.img
-    end
+        # Test with different combinations of parameters
+        for (w, b) in [(5, -0.2), (10.5, 0.5), (15, -1000), (20, 1000)]
+            res = fn(test_img, w, b)
 
-    # Percentage is also clamped
-    @test begin # p = -1282 => 0
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,N0f8})
-        res = fn(img, 30, -1282)
-        f = AdaptiveThreshold(window_size = 30, percentage = 0)
-        bimg = binarize(img.img, f)
-        bimg == res.img
-    end
-    @test begin # p = 1282 => 0
-        factory = UTCGP.bundle_image2D_binarize_factory[:binarize_adaptive2D].fn
-        fn = factory(SImageND{<:Tuple,N0f8})
-        res = fn(img, 30, 1282)
-        f = AdaptiveThreshold(window_size = 30, percentage = 100)
-        bimg = binarize(img.img, f)
-        bimg == res.img
-    end
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
 
-end
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
 
-####################
-# MANUAL BINARIZER #
-####################
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
 
-# DEFAULT # 
-@testset "Image2D Binarize: manual_binarizer(img) Default" begin
-    dp = UTCGP.bundle_image2D_binarize[:binarize_manual2D].fn
-    img = load_test_image() # from basic
-    @test begin
-        binarized = dp(img)
-        expected = img .> 0.5
-        binarized == expected
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+        res1 = fn(test_img, 5, 0.1)
+        res2 = fn(test_img, 5, 0.9)
+        @test res1 != res2 
     end
 end
 
-@testset "Image2D Binarize: manual_binarizer(img, t::Int) Default" begin
-    dp = UTCGP.bundle_image2D_binarize[:binarize_manual2D].fn
-    img = load_test_image() # from basic
-    @test begin
-        binarized = dp(img, 50) # turns to 0.5
-        expected = img .> 0.5
-        binarized == expected
+@testset "Image2D Binarize: binarizeNiblack(img, w) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_niblack2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different window sizes
+        for w in [5, 10.5, 15, 20]
+            res = fn(test_img, w)
+
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+
+        res1 = fn(test_img, 5)
+        res2 = fn(test_img, 100)
+        @test res1 != res2 
     end
 end
 
-@testset "Image2D Binarize: manual_binarizer(img, t::Float64) Default" begin
-    dp = UTCGP.bundle_image2D_binarize[:binarize_manual2D].fn
-    img = load_test_image() # from basic
-    @test begin
-        binarized = dp(img, 0.2)
-        expected = img .> 0.2
-        binarized == expected
+@testset "Image2D Binarize: binarizeNiblack(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_niblack2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test without parameters
+        res = fn(test_img)
+
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
     end
 end
 
-@testset "Image2D Binarize: manual_binarizer(img, img) Default" begin
-    dp = UTCGP.bundle_image2D_binarize[:binarize_manual2D].fn
-    img = load_test_image() # from basic
-    @test begin
-        sizes_ = size(img)
-        second_img = SImageND(ones(N0f8, sizes_[1], sizes_[2]))
-        binarized = dp(img, second_img)
-        expected = img .> 1.0
-        binarized == expected
+# ####################
+# # Polysegment      #
+# ####################
+@testset "Image2D Binarize: binarizePolysegment(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_polysegment2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test without parameters
+        res = fn(test_img)
+
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
     end
 end
 
-# FACTORY #  
+# ####################
+# # SAUVOLA          #
+# ####################
+@testset "Image2D Binarize: binarizeSauvola(img, w, p) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
 
-@testset "Image2D Binarize: manual_binarizer(img) Factory" begin
-    factory = UTCGP.bundle_image2D_binarize_factory[:binarize_manual2D].fn
-    dp = factory(SImageND{<:Tuple,N0f16,2})
-    img = load_test_image() # from basic
-    img2 = SImageND(convert.(N0f16, img))
-    @test_throws MethodError begin # accepts only N0f8
-        binarized = dp(img)
-    end
-    @test begin # accepts only N0f8
-        binarized = dp(img2)
-        expected = img2 .> 0.5
-        binarized == expected
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_sauvola2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different combinations of parameters
+        for (w, p) in [(5, -0.1), (10.5, 0.5), (15, 1.0)]
+            res = fn(test_img, w, p)
+
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+
+        res1 = fn(test_img, 5, 0.1)
+        res2 = fn(test_img, 5, 0.9)
+        @test res1 != res2 
     end
 end
 
-@testset "Image2D Binarize: manual_binarizer(img, img) Factory" begin
-    factory = UTCGP.bundle_image2D_binarize_factory[:binarize_manual2D].fn
-    dp = factory(SImageND{<:Tuple,N0f16,2})
-    img = load_test_image() # from basic
-    img2 = SImageND(convert.(N0f16, img))
-    @test_throws MethodError begin # accepts only N0f8
-        binarized = dp(img, img)
-    end
-    @test begin # accepts only N0f8
-        binarized = dp(img2, img2)
-        th = mean(img2)
-        expected = img2 .> th
-        binarized == expected
+@testset "Image2D Binarize: binarizeSauvola(img, w) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_sauvola2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different window sizes
+        for w in [5, 10.5, 15]
+            res = fn(test_img, w)
+
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+
+        res1 = fn(test_img, 100)
+        res2 = fn(test_img, 5)
+        @test res1 != res2 
     end
 end
 
-@testset "Image2D Binarize: manual_binarizer(img, t::Int) Factory" begin
-    factory = UTCGP.bundle_image2D_binarize_factory[:binarize_manual2D].fn
-    dp = factory(SImageND{<:Tuple,N0f16,2})
-    img = load_test_image() # from basic
-    img2 = SImageND(convert.(N0f16, img))
-    @test_throws MethodError begin # accepts only N0f8
-        binarized = dp(img, 50)
-    end
-    @test begin # 100/100 => 1
-        binarized = dp(img2, 100)
-        expected = img2 .> 1.0
-        binarized == expected
-    end
-    @test begin # 101 is clamped at 1
-        binarized = dp(img2, 101)
-        expected = img2 .> 1.0
-        binarized == expected
-    end
-    @test begin # 0/100 => 0
-        binarized = dp(img2, 0)
-        expected = img2 .> 0
-        binarized == expected
-    end
-    @test begin # -1 is clamped at 0
-        binarized = dp(img2, -1)
-        expected = img2 .> 0
-        binarized == expected
-    end
-end
+@testset "Image2D Binarize: binarizeSauvola(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
 
-@testset "Image2D Binarize: manual_binarizer(img, t::Float64) Factory" begin
-    factory = UTCGP.bundle_image2D_binarize_factory[:binarize_manual2D].fn
-    dp = factory(SImageND{<:Tuple,N0f16,2})
-    img = load_test_image() # from basic
-    img2 = SImageND(convert.(N0f16, img))
-    @test_throws MethodError begin # accepts only N0f8
-        binarized = dp(img, 0.5)
-    end
-    @test begin # 100/100 => 1
-        binarized = dp(img2, 1.0)
-        expected = img2 .> 1.0
-        binarized == expected
-    end
-    @test begin # 101 is clamped at 1
-        binarized = dp(img2, 1.1)
-        expected = img2 .> 1.0
-        binarized == expected
-    end
-    @test begin # 0/100 => 0
-        binarized = dp(img2, 0.0)
-        expected = img2 .> 0
-        binarized == expected
-    end
-    @test begin # 0.002 => ok
-        binarized = dp(img2, 0.002)
-        expected = img2 .> 0.002
-        binarized == expected
-    end
-    @test begin # -1 is clamped at 0
-        binarized = dp(img2, -1.0)
-        expected = img2 .> 0.0
-        binarized == expected
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_sauvola2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test without parameters
+        res = fn(test_img)
+
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
     end
 end
 
 
-####################
-# OTSU Binarizer   #
-####################
+# ####################
+# # OTSU             #
+# ####################
+
+@testset "Image2D Binarize: binarizeOtsu(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_otsu2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different number of bins
+        for nbins in [-30, 100, 256, 500.189361]
+            res = fn(test_img, nbins)
+
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeOtsu(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_otsu2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test without specifying the number of bins
+        res = fn(test_img)
+
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
+        res1 = fn(test_img)
+        res2 = fn(test_img, 256)
+        @test res1 == res2 
+    end 
+end
+
+# MINIMUM INTERMODES
+
+@testset "Image2D Binarize: binarizeMinimumIntermodes(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_minimumintermodes2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different number of bins
+        for nbins in [-30, 100, 256, 500.13]
+            res = fn(test_img, nbins)
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeMinimumIntermodes(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_minimumintermodes2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test without specifying the number of bins
+        res = fn(test_img)
+
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
+
+        res1 = fn(test_img)
+        res2 = fn(test_img, 256)
+        @test res1 == res2 
+    end
+end
+
+# ####################
+# # INTERMODES       #
+# ####################
+@testset "Image2D Binarize: binarizeIntermodes(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_intermodes2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different number of bins
+        for nbins in [-30, 100, 256, 500.6]
+            res = fn(test_img, nbins)
+
+            # Check that the result is of the correct type (BinaryPixel)
+            @test eltype(res) == BinaryPixel{Bool}
+
+            # Check that the result has the same size as the input image
+            @test size(res) == size(test_img)
+
+            # Check that the image is binarized (only 0 and 1 values)
+            @test all(x -> x == 0 || x == 1, res)
+
+            # Check that all values are clamped between 0 and 1
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeIntermodes(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_intermodes2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test without specifying the number of bins
+        res = fn(test_img)
+
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
+
+        res1 = fn(test_img)
+        res2 = fn(test_img, 256)
+        @test res1 == res2 
+    end
+end
+
+
+# ####################
+# # MINIMUM ERROR    #
+# ####################
+@testset "Image2D Binarize: binarizeMinimumError(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_minimumerror2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test with different number of bins
+        for nbins in [-30, 100, 256.2, 500]
+            res = fn(test_img, nbins)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeMinimumError(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        # Create a test image with a known pattern
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+
+        # Get the function for the specific image type
+        fn = Bundle[:binarize_minimumerror2D]
+        fn = fn.fn(typeof(as_img)) # It's in the lib of BINARY img
+
+        # Test without specifying the number of bins
+        res = fn(test_img)
+
+        # Check that the result is of the correct type (BinaryPixel)
+        @test eltype(res) == BinaryPixel{Bool}
+
+        # Check that the result has the same size as the input image
+        @test size(res) == size(test_img)
+
+        # Check that the image is binarized (only 0 and 1 values)
+        @test all(x -> x == 0 || x == 1, res)
+
+        # Check that all values are clamped between 0 and 1
+        @test all(0 .<= res .<= 1)
+
+        res1 = fn(test_img)
+        res2 = fn(test_img, 256)
+        @test res1 == res2 
+    end
+end
+
+# ####################
+# # MANUAL BINARIZER #
+# ####################
+@testset "Image2D Binarize: binarizeMoments(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_moments2D]
+        fn = fn.fn(typeof(as_img))
+
+        for nbins in [-30, 100, 256, 500.13]
+            res = fn(test_img, nbins)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeMoments(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_moments2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
+        @test eltype(res) == BinaryPixel{Bool}
+        @test size(res) == size(test_img)
+        @test all(x -> x == 0 || x == 1, res)
+        @test all(0 .<= res .<= 1)
+
+        res1 = fn(test_img)
+        res2 = fn(test_img, 256)
+        @test res1 == res2 
+    end
+end
+
+# ####################
+# # UNIMODAL ROSIN   #
+# ####################
+@testset "Image2D Binarize: binarizeUnimodalRosin(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_unimodalrosin2D]
+        fn = fn.fn(typeof(as_img))
+
+        for nbins in [30, 100, -256, 500.1783]
+            res = fn(test_img, nbins)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeUnimodalRosin(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_unimodalrosin2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
+        @test eltype(res) == BinaryPixel{Bool}
+        @test size(res) == size(test_img)
+        @test all(x -> x == 0 || x == 1, res)
+        @test all(0 .<= res .<= 1)
+
+        res1 = fn(test_img)
+        res2 = fn(test_img, 256)
+        @test res1 == res2 
+    end
+end
+ 
+# ####################
+# # ENTROPY          #
+# ####################
+@testset "Image2D Binarize: binarizeEntropy(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_entropy2D]
+        fn = fn.fn(typeof(as_img))
+
+        for nbins in [30, 100, 256, 500.1]
+            res = fn(test_img, nbins)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeEntropy(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_entropy2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
+        @test eltype(res) == BinaryPixel{Bool}
+        @test size(res) == size(test_img)
+        @test all(x -> x == 0 || x == 1, res)
+        @test all(0 .<= res .<= 1)
+        
+        res1 = fn(test_img)
+        res2 = fn(test_img, 256)
+        @test res1 == res2 
+    end
+end
+
+# ####################
+# # BALANCED         #
+# ####################
+@testset "Image2D Binarize: binarizeBalanced(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_balanced2D]
+        fn = fn.fn(typeof(as_img))
+
+        for nbins in [30, 100, 256, 500]
+            res = fn(test_img, nbins)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeBalanced(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_balanced2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
+        @test eltype(res) == BinaryPixel{Bool}
+        @test size(res) == size(test_img)
+        @test all(x -> x == 0 || x == 1, res)
+        @test all(0 .<= res .<= 1)
+    end
+end
+
+# ####################
+# # YEN              #
+# ####################
+@testset "Image2D Binarize: binarizeYen(img, nbins) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_yen2D]
+        fn = fn.fn(typeof(as_img))
+
+        for nbins in [30, 100, 256, 500]
+            res = fn(test_img, nbins)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeYen(img) Default" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_yen2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
+        @test eltype(res) == BinaryPixel{Bool}
+        @test size(res) == size(test_img)
+        @test all(x -> x == 0 || x == 1, res)
+        @test all(0 .<= res .<= 1)
+    end
+end
+
+# ####################
+# # MANUAL BINARIZER #
+# ####################
+
+@testset "Image2D Binarize: binarizeManual(img, t) with Number" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_manual2D]
+        fn = fn.fn(typeof(as_img))
+
+        for t in [0, 128, 200, 255]
+            res = fn(test_img, t)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+            if t == 255 # none is gr
+                sum(float(res.img)) == 0
+            end
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeManual(img, t) with Float64" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_manual2D]
+        fn = fn.fn(typeof(as_img))
+
+        for t in [0.0, 0.3, 0.5, 0.8, 1.0]
+            res = fn(test_img, t)
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img)
+            @test all(x -> x == 0 || x == 1, res)
+            @test all(0 .<= res .<= 1)
+            if t == 1. # none is gr
+                sum(float(res.img)) == 0
+            end
+            if t == 0. # all are gr
+                sum(float(res.img)) == 10*10
+            end
+        end
+    end
+end
+
+@testset "Image2D Binarize: binarizeManual(img1, img2)" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img1 = generate_binarize_test_image(INTENSITY)
+        test_img2 = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_manual2D]
+        fn = fn.fn(typeof(as_img))
+
+        res = fn(test_img1, test_img2)
+        @test eltype(res) == BinaryPixel{Bool}
+        @test size(res) == size(test_img1)
+        @test all(x -> x == 0 || x == 1, res)
+        @test all(0 .<= res .<= 1)
+
+
+        mean_img = mean(float(test_img2))
+        res2 = fn(test_img1, mean_img)
+        @test res == res2
+    end
+end
+
+@testset "Image2D Binarize: binarizeManual(img)" begin
+    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    @testset begin
+        test_img = generate_binarize_test_image(INTENSITY)
+        as_img = generate_binarize_test_image(BINARY)
+        fn = Bundle[:binarize_manual2D]
+        fn = fn.fn(typeof(as_img))
+
+        res = fn(test_img)
+        @test eltype(res) == BinaryPixel{Bool}
+        @test size(res) == size(test_img)
+        @test all(x -> x == 0 || x == 1, res)
+        @test all(0 .<= res .<= 1)
+    end
+end

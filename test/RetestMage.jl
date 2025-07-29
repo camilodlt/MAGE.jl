@@ -20,13 +20,18 @@ include("fitters/test_ga.jl")
 
 # Image
 
-include("libraries/number/test_reduce_from_img.jl")
-include("libraries/image2D/tests_image2D.jl")
+include("libraries/image2D/test_basic_image2D.jl")
 include("libraries/image2D/test_morph_image2D.jl")
 include("libraries/image2D/test_binarize_image2D.jl")
-include("libraries/image2D/test_segmentation_image2D.jl")
 include("libraries/image2D/test_arithmetic_image2D.jl")
 include("libraries/image2D/test_barithmetic_image2D.jl")
 include("libraries/image2D/test_transcendental_image2D.jl")
 include("libraries/image2D/test_filtering_image2D.jl")
+include("libraries/image2D/test_segmentation_image2D.jl")
+
+# IMAGE to NB
+include("libraries/number/test_reduce_from_img.jl")
+
+# GLCM
+# GRAPH
 end

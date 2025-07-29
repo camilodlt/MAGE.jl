@@ -14,7 +14,7 @@ struct NodeMaterial
         return new(Vector{CGPElement}())
     end
     function NodeMaterial(material_list::Vector{<:AbstractElement})
-        new(material_list)
+        return new(material_list)
     end
 end
 
@@ -27,7 +27,7 @@ Base.setindex!(node_elements::NodeMaterial, value, i::Int) =
 
 
 ################
-# ABSTRACT NODE 
+# ABSTRACT NODE
 ################
 
 abstract type AbstractNode end #All nodes
@@ -56,14 +56,15 @@ function initialize_node!(node::AbstractEvolvableNode)
     for node_element in node
         initialize_node_element!(node_element)
     end
+    return
 end
 
 function reset_node_value!(node::AbstractNode)
-    node.value = nothing
+    return node.value = nothing
 end
 
 function set_node_value!(node::AbstractNode, val::Any)
-    node.value = val
+    return node.value = val
 end
 function get_node_value(node::AbstractNode)::Any
     return node.value
@@ -72,7 +73,7 @@ end
 function extract_connexions_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     connexions = [
         element for
-        element in node.node_material.material if element.element_type == CONNEXION
+            element in node.node_material.material if element.element_type == CONNEXION
     ]
     return connexions
 end
@@ -80,7 +81,7 @@ end
 function extract_parameters_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     params = [
         element for
-        element in node.node_material.material if element.element_type == PARAMETER
+            element in node.node_material.material if element.element_type == PARAMETER
     ]
     return params
 end
@@ -95,12 +96,12 @@ end
 function extract_function_from_node(node::AbstractEvolvableNode)::CGPElement
     function_element = [
         element for
-        element in node.node_material.material if element.element_type == FUNCTION
+            element in node.node_material.material if element.element_type == FUNCTION
     ]
     return function_element[1]
 end
 
-# TODO 
+# TODO
 """
 """
 function node_to_vector(node::AbstractNode)::Vector{<:Number}
@@ -153,13 +154,13 @@ mutable struct InputNode <: AbstractNonEvolvableNode
 end
 
 function get_node_value(x::InputNode)
-    get_node_value(x.value)
+    return get_node_value(x.value)
 end
-function get_node_value(x::SubArray{InputNode,0})
-    x[1].value
+function get_node_value(x::SubArray{InputNode, 0})
+    return x[1].value
 end
 function get_node_value(x::Any)
-    x
+    return x
 end
 
 mutable struct CGPNode <: AbstractGenomeNode
@@ -184,7 +185,7 @@ mutable struct CGPNode <: AbstractGenomeNode
     function CGPNode(nm::NodeMaterial, value::Any, x_pos::Int, x_real_pos::Int, y_pos::Int)
         id = "nd ($x_pos,$y_pos)"
         return new(
-            nm,# empty node material
+            nm, # empty node material
             value,
             x_pos,
             x_real_pos,
@@ -214,17 +215,61 @@ mutable struct OutputNode <: AbstractOutputNode
         )
     end
     function OutputNode(
-        nm::NodeMaterial,
-        value::Any,
-        x_pos::Int,
-        x_real_pos::Int,
-        y_pos::Int,
-    )
+            nm::NodeMaterial,
+            value::Any,
+            x_pos::Int,
+            x_real_pos::Int,
+            y_pos::Int,
+        )
         id = "node ($x_pos,$y_pos)"
         return new(nm, value, x_pos, x_real_pos, y_pos, id)
     end
 end
 
+
+####################################
+# CONSTANT NODE
+####################################
+
+mutable struct ConstantNode <: AbstractGenomeNode
+    node_material::NodeMaterial
+    value::Ref
+    x_position::Int
+    x_real_position::Int
+    y_position::Int
+    id::String
+
+    function ConstantNode(value::T, x_pos::Int, x_real_pos::Int, y_pos::Int) where {T}
+        id = "nd ($x_pos,$y_pos)"
+        return new(
+            NodeMaterial(), # empty node material
+            Ref{T}(value),
+            x_pos,
+            x_real_pos,
+            y_pos,
+            id,
+        )
+    end
+    # function ConstantNode(
+    #         nm::NodeMaterial,
+    #         value::Any,
+    #         x_pos::Int,
+    #         x_real_pos::Int,
+    #         y_pos::Int,
+    #     )
+    #     id = "node ($x_pos,$y_pos)"
+    #     return new(nm, value, x_pos, x_real_pos, y_pos, id)
+    # end
+end
+
+function get_node_value(node::ConstantNode)
+    return node.value[]
+end
+
+# constant nodes are not resetted
+function reset_node_value!(node::ConstantNode)
+    return
+end
 
 ####################################
 # PARAMETRIC NODES
@@ -244,11 +289,11 @@ struct InputNodeP{T} <: AbstractParametricInputNode{T}
     id::String
 
     function InputNodeP(
-        value::Ref{T},
-        x_pos::Int,
-        x_real_pos::Int,
-        y_pos::Int,
-    ) where {T<:DataType}
+            value::Ref{T},
+            x_pos::Int,
+            x_real_pos::Int,
+            y_pos::Int,
+        ) where {T <: DataType}
         id = "inp ($x_pos,$y_pos)"
         return new{T}(
             NodeMaterial(), # empty node material
@@ -272,15 +317,15 @@ struct CGPNodeP{T} <: AbstractParametricGenomeNode{T}
     id::String
 
     function CGPNodeP(
-        nm::NodeMaterial,
-        value::Ref{T},
-        x_pos::Int,
-        x_real_pos::Int,
-        y_pos::Int,
-    ) where {T}
+            nm::NodeMaterial,
+            value::Ref{T},
+            x_pos::Int,
+            x_real_pos::Int,
+            y_pos::Int,
+        ) where {T}
         id = "nd ($x_pos,$y_pos)"
         return new{T}(
-            nm,# empty node material
+            nm, # empty node material
             Ref{Bool}(false),
             value,
             x_pos,
@@ -306,12 +351,12 @@ struct OutputNodeP{T} <: AbstractParametricOutputNode{T}
     id::String
 
     function OutputNodeP(
-        nm::NodeMaterial,
-        value::Ref{T},
-        x_pos::Int,
-        x_real_pos::Int,
-        y_pos::Int,
-    ) where {T}
+            nm::NodeMaterial,
+            value::Ref{T},
+            x_pos::Int,
+            x_real_pos::Int,
+            y_pos::Int,
+        ) where {T}
         id = "node ($x_pos,$y_pos)"
         return new{T}(nm, Ref{Bool}(false), value, x_pos, x_real_pos, y_pos, id)
     end
@@ -323,19 +368,19 @@ end
 
 # API
 function get_node_value(node::AbstractParametricNode{T})::T where {T}
-    node.is_set[] ? node.value[] : nothing
+    return node.is_set[] ? node.value[] : nothing
 end
 
-function get_node_value(x::SubArray{InputNodeP{T},0})::T where {T}
-    get_node_value(x[1])
+function get_node_value(x::SubArray{InputNodeP{T}, 0})::T where {T}
+    return get_node_value(x[1])
 end
 
 function reset_node_value!(node::AbstractParametricNode{T}) where {T}
-    node.is_set[] = nothing
+    return node.is_set[] = nothing
 end
 
 function set_node_value!(node::AbstractParametricNode{T}, val::T) where {T}
-    if node.is_set[]
+    return if node.is_set[]
         node.value[] = val
     else
         @warn "Node was set so set_node_value! was omitted"

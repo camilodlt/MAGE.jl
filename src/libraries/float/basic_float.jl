@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """ Basic Int functions
 
 Exports :
@@ -36,6 +34,16 @@ function ret_1(args...)
     return 1.0
 end
 
+
+function tanh_(x::Float64, args...)
+    return tanh(x)
+end
+function relu_(x::Float64, args...)
+    return ifelse(x > 0, x, 0)
+end
+
 append_method!(bundle_float_basic, identity_float)
 append_method!(bundle_float_basic, ret_1)
+append_method!(bundle_float_basic, tanh_, :tanh)
+append_method!(bundle_float_basic, relu_, :relu)
 end

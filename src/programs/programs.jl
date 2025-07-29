@@ -1,4 +1,4 @@
-# UTILS --- 
+# UTILS ---
 function print_node__(io, node; kw...)
     theme::Term.Theme = Term.TERM_THEME[]
     styled = if (node isa AbstractString || node isa Number)
@@ -7,11 +7,11 @@ function print_node__(io, node; kw...)
         styled = Term.highlight(typeof(node); theme = theme)
     end
     reshaped = Term.reshape_text(styled, theme.tree_max_leaf_width)
-    print(io, reshaped)
+    return print(io, reshaped)
 end
 
 # -------------------------------------------------#
-# OPERATION: a function call to make in a program. # 
+# OPERATION: a function call to make in a program. #
 # -------------------------------------------------#
 
 abstract type AbstractOperation end
@@ -39,7 +39,7 @@ The Input of an Operation is either a CGPNode, or a InputPromise.
 In addition, the OperationInput should know the `type` of its input.
 """
 struct OperationInput
-    input::Union{CGPNode,InputPromise}
+    input::Union{CGPNode, ConstantNode, InputPromise}
     type_idx::Int
     type::Type
 end
@@ -52,7 +52,11 @@ end
 Returns the `CGPNode`, as is.
 """
 function _extract_input_node_from_operationInput(_::SharedInput, node::CGPNode)
-    some(node)
+    return some(node)
+end
+
+function _extract_input_node_from_operationInput(_::SharedInput, node::ConstantNode)
+    return some(node)
 end
 
 """
@@ -60,9 +64,9 @@ end
 
 Warns and returns none. 
 """
-function _bad_opInput_extraction(i::Int)::ResultConstructor{Nothing,Err}
+function _bad_opInput_extraction(i::Int)::ResultConstructor{Nothing, Err}
     @warn "Tried to index program input's at bad index ($i)"
-    none
+    return none
 end
 
 """
@@ -73,12 +77,12 @@ Bounds are checked:
 - Ok case : returns the corresponding  
 """
 function _extract_input_node_from_operationInput(
-    program_inputs::SharedInput,
-    promise::InputPromise,
-)::Option{InputNode}
+        program_inputs::SharedInput,
+        promise::InputPromise,
+    )::Option{InputNode}
     A = program_inputs.inputs
     i = promise.index_at
-    checkbounds(Bool, A, i) ? some(A[i]) : _bad_opInput_extraction(i)
+    return checkbounds(Bool, A, i) ? some(A[i]) : _bad_opInput_extraction(i)
 end
 
 """
@@ -89,10 +93,10 @@ Extract the real input holder from a `OperationInput`. The input holder might be
 - CGPNode 
 """
 function _extract_input_node_from_operationInput(
-    program_inputs::SharedInput,
-    operation_input::OperationInput,
-)::Option{Union{CGPNode,InputNode}}
-    _extract_input_node_from_operationInput(program_inputs, operation_input.input)
+        program_inputs::SharedInput,
+        operation_input::OperationInput,
+    )::Option{Union{CGPNode, ConstantNode, InputNode}}
+    return _extract_input_node_from_operationInput(program_inputs, operation_input.input)
 end
 
 
@@ -135,7 +139,7 @@ function Base.show(_::IO, op::Operation)
     ins = []
     Base.insert!(ins, 1, string(op.fn.name))
     op_dict[node_name] = ins
-    println(Term.Tree(op_dict, print_node_function = print_node__))
+    return println(Term.Tree(op_dict, print_node_function = print_node__))
 end
 
 function show_program()
@@ -170,7 +174,7 @@ end
 Resets the 
 """
 function _reset_operation!(operation::AbstractOperation)
-    reset_node_value!(operation.calling_node)
+    return reset_node_value!(operation.calling_node)
 end
 
 # -------------------------------------#
@@ -185,16 +189,16 @@ mutable struct Program <: AbstractDecodedProgram
     is_reversed::Bool
     function Program(ops::Vector{<:AbstractOperation}, ins::SharedInput)
         new_ins = similar(ins)
-        new(ops, new_ins, false)
+        return new(ops, new_ins, false)
     end
     function Program(ins::SharedInput)
         new_ins = similar(ins)
-        new(AbstractOperation[], new_ins, false)
+        return new(AbstractOperation[], new_ins, false)
     end
 end
 
 
-#~~~ API ~~~#  
+#~~~ API ~~~#
 
 """
     Base.size(program::Program)
@@ -242,10 +246,10 @@ Flags the program as reversed (`is_reversed` field).
 function Base.reverse!(decoded_program::Program)
     @assert decoded_program.is_reversed == false "Tried reversing an already reversed program"
     reverse!(decoded_program.program)
-    decoded_program.is_reversed = true
+    return decoded_program.is_reversed = true
 end
 
-#~~~ CHANGING THE PROGRAM INPUTS ~~~# 
+#~~~ CHANGING THE PROGRAM INPUTS ~~~#
 
 
 """
@@ -261,7 +265,7 @@ Useful when we want all programs to point to a shared location.
 function replace_shared_inputs!(program::Program, new_inputs::Vector{A}) where {A}
     si = program.program_inputs
     @assert length(si) == length(new_inputs) "There must be the same number of inputs it order to replace them. $(length(si)) vs $(length(new_inputs)) "
-    replace_shared_inputs!(program.program_inputs, new_inputs)
+    return replace_shared_inputs!(program.program_inputs, new_inputs)
 end
 
 """
@@ -274,9 +278,8 @@ This op mutates the `program_inputs` property inplace so that the `SharedInput` 
 Useful when we want all programs to point to a shared location.
 """
 function replace_shared_inputs!(program::Program, new_inputs::Vector{InputNode})
-    replace_shared_inputs!(program.program_inputs, new_inputs)
+    return replace_shared_inputs!(program.program_inputs, new_inputs)
 end
-
 
 
 """
@@ -287,7 +290,7 @@ Replaces the internal sharedInput with another one, thereby, linking them.
 Useful when we want all programs to point to a unique location.
 """
 function replace_shared_inputs!(program::Program, ref_inputs::SharedInput)
-    program.program_inputs = ref_inputs
+    return program.program_inputs = ref_inputs
 end
 
 """
@@ -296,7 +299,7 @@ end
 Resets all the `calling_nodes` values inside the program.
 """
 function reset_program!(program::Program)
-    _reset_operation!.(program)
+    return _reset_operation!.(program)
 end
 
 
@@ -316,7 +319,7 @@ struct IndividualPrograms <: AbstractIndividualPrograms
     programs::Vector{<:AbstractProgram}
 end
 
-#~~~ API ~~~# 
+#~~~ API ~~~#
 Base.size(ind_progs::IndividualPrograms) = length(ind_progs.programs)
 Base.length(ind_progs::IndividualPrograms) = length(ind_progs.programs)
 Base.getindex(ind_progs::IndividualPrograms, i::Int) = ind_progs.programs[i]
@@ -328,6 +331,7 @@ function Base.reverse!(individual_programs::IndividualPrograms)
     for program in individual_programs
         reverse!(program)
     end
+    return
 end
 
 
@@ -340,10 +344,10 @@ end
 As `replace_shared_inputs!` for a single `Program`. It applies the function to all Programs inside that constitute the `IndividualPrograms`.
 """
 function replace_shared_inputs!(
-    programs::IndividualPrograms,
-    new_inputs::Vector{A},
-) where {A}
-    replace_shared_inputs!.(programs, Ref(new_inputs))
+        programs::IndividualPrograms,
+        new_inputs::Vector{A},
+    ) where {A}
+    return replace_shared_inputs!.(programs, Ref(new_inputs))
 end
 
 """
@@ -352,7 +356,7 @@ end
 As `replace_shared_inputs!` for a single `Program`. It applies the function to all Programs inside that constitute the `IndividualPrograms`.
 """
 function replace_shared_inputs!(programs::IndividualPrograms, new_inputs::Vector{InputNode})
-    replace_shared_inputs!.(programs, Ref(new_inputs))
+    return replace_shared_inputs!.(programs, Ref(new_inputs))
 end
 
 
@@ -362,7 +366,7 @@ end
 As `replace_shared_inputs!` for a single `Program`. It applies the function to all Programs inside that constitute the `IndividualPrograms`.
 """
 function replace_shared_inputs!(programs::IndividualPrograms, ref_inputs::SharedInput)
-    replace_shared_inputs!.(programs, Ref(ref_inputs))
+    return replace_shared_inputs!.(programs, Ref(ref_inputs))
 end
 
 """
@@ -371,7 +375,7 @@ end
 Resets all the `calling_nodes` values inside all programs.
 """
 function reset_programs!(ind_programs::IndividualPrograms)
-    reset_program!.(ind_programs)
+    return reset_program!.(ind_programs)
 end
 
 
@@ -453,10 +457,10 @@ As `replace_shared_inputs!` for a single `IndividualPrograms`.
 It applies the function to all Programs inside that constitute the `PopulationPrograms`.
 """
 function replace_shared_inputs!(
-    pop_programs::PopulationPrograms,
-    new_inputs::Vector{A},
-) where {A}
-    replace_shared_inputs!.(pop_programs, Ref(new_inputs))
+        pop_programs::PopulationPrograms,
+        new_inputs::Vector{A},
+    ) where {A}
+    return replace_shared_inputs!.(pop_programs, Ref(new_inputs))
 end
 
 """
@@ -467,10 +471,10 @@ As `replace_shared_inputs!` for a single `IndividualPrograms`.
 It applies the function to all Programs inside that constitute the `PopulationPrograms`.
 """
 function replace_shared_inputs!(
-    pop_programs::PopulationPrograms,
-    new_inputs::Vector{InputNode},
-)
-    replace_shared_inputs!.(pop_programs, Ref(new_inputs))
+        pop_programs::PopulationPrograms,
+        new_inputs::Vector{InputNode},
+    )
+    return replace_shared_inputs!.(pop_programs, Ref(new_inputs))
 end
 
 
@@ -482,7 +486,7 @@ As `replace_shared_inputs!` for a single `IndividualPrograms`.
 It applies the function to all Programs inside that constitute the `PopulationPrograms`.
 """
 function replace_shared_inputs!(pop_programs::PopulationPrograms, ref_inputs::SharedInput)
-    replace_shared_inputs!.(pop_programs, Ref(ref_inputs))
+    return replace_shared_inputs!.(pop_programs, Ref(ref_inputs))
 end
 
 """
@@ -491,5 +495,5 @@ end
 Resets all the `calling_nodes` values inside all programs.
 """
 function reset_programs!(pop_programs::PopulationPrograms)
-    reset_programs!.(pop_programs)
+    return reset_programs!.(pop_programs)
 end

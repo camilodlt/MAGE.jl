@@ -1,4 +1,3 @@
-
 abstract type AbstractGenome end
 abstract type AbstractMetaGenome end
 abstract type AbstractGenomeInputs end
@@ -51,7 +50,7 @@ The new inputs must have the same size as the SharedInput
 function replace_shared_inputs!(si::SharedInput, new_inputs::Vector{InputNode})
     @assert length(si) == length(new_inputs) "There must be the same number of inputs it order to replace them. $(length(si)) vs $(length(new_inputs)) "
     empty!(si.inputs)
-    push!(si.inputs, new_inputs...)
+    return push!(si.inputs, new_inputs...)
 end
 
 """
@@ -63,6 +62,7 @@ function replace_shared_inputs!(si::SharedInput, new_inputs::Vector{A}) where {A
     for (old_input, new_input) in zip(si.inputs, new_inputs)
         set_node_value!(old_input, new_input)
     end
+    return
 end
 
 """
@@ -76,11 +76,11 @@ function Base.similar(lazy_inputs::SharedInput)
         set_node_value!(empty_node, @view lazy_inputs.inputs[input_ith])
         push!(ins, empty_node)
     end
-    SharedInput(ins)
+    return SharedInput(ins)
 end
 
 ################
-# SINGLE GENOME 
+# SINGLE GENOME
 ################
 
 """
@@ -127,8 +127,10 @@ Indexes the internal vector of nodes at multiple indices.
 """
 Base.getindex(genome::AbstractGenome, i::Vector{<:Int}) = genome.chromosome[i]
 
+Base.setindex!(nodes::UTCGP.SingleGenome, v::UTCGP.AbstractGenomeNode, i::Int) = nodes.chromosome[i] = v
+
 ################
-# UTGENOME 
+# UTGENOME
 ################
 struct UTGenome <: AbstractMetaGenome
     genomes::Vector{<:AbstractGenome}
@@ -162,4 +164,3 @@ Base.getindex(genome::AbstractMetaGenome, i::Int) = genome.genomes[i]
 Indexes the internal vector of nodes at multiple indices.
 """
 Base.getindex(genome::AbstractMetaGenome, i::Vector{<:Int}) = genome.genomes[i]
-

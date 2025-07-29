@@ -1,136 +1,297 @@
+function generate_binarize_test_image(::Type{IntensityPixel{T}}, size = (10, 10)) where {T}
+    # Create a gradient image for intensity
+    img = [i / size[1] + j / size[2] for i = 1:size[1], j = 1:size[2]]
+    img = img ./ maximum(img)  # Normalize to range [0, 1]
+    return SImageND(IntensityPixel{T}.(img))
+end
 
-#################
-#  subtract_img #
-#################
+function generate_binarize_test_image(::Type{BinaryPixel{Bool}}, size = (10, 10))
+    # Create a gradient image for intensity
+    return SImageND(BinaryPixel{Bool}.(trues(10, 10)))
+end
 
-@testset "Image2D Arithmetic: subtract_img2D(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_arithmetic_factory[:subtract_img2D].fn
-    fn = fac(typeof(img))
-    @test begin
-        res = fn(img, img)
-        size(res) == size(img) && res != img
+INTENSITY = IntensityPixel{N0f8}
+BINARY = BinaryPixel{Bool}
+
+@testset "Image2D Arithmetic: subtract_image2D" begin
+
+    @testset "Binary Result" begin
+        Bundle = bundle_image2DBinary_arithmetic_factory
+        test_img1 = generate_binarize_test_image(BINARY)
+        test_img2 = generate_binarize_test_image(BINARY)
+        test_img3 = generate_binarize_test_image(INTENSITY)
+        fn = Bundle[:subtract_img2D]
+        fn = fn.fn(typeof(test_img1))
+
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img1)
+            @test all(x -> x == 0 || x == 1, res)
+            if ith == 1 || ith == 3 || ith == 4
+                @test all(res .== 0) # all clamped to 0
+            else # some values will be rounded to 1 even after sub
+                @test sum(res .== 0) < 100
+            end
+        end
     end
-    @test_throws MethodError begin # bad type according to specialized image
-        new_img = SImageND(convert.(N0f16, img))
-        res = fn(new_img, new_img)
+
+    @testset "Intensity Result" begin
+        Bundle = bundle_image2DBinary_arithmetic_factory
+        test_img1 = generate_binarize_test_image(BINARY)
+        test_img2 = generate_binarize_test_image(BINARY)
+        test_img3 = generate_binarize_test_image(INTENSITY)
+        fn = Bundle[:subtract_img2D]
+        fn = fn.fn(typeof(test_img3))
+
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == INTENSITY
+            @test size(res) == size(test_img1)
+            @test all(0 .<= res .<= 1)
+            if ith == 1 || ith == 3 || ith == 4
+                @test all(res .== 0) # all clamped to 0
+            else # not a single value can be 1 bc every pixel was subtracted an amount
+                @test sum(res .== 1) == 0
+            end
+        end
     end
 end
 
-@testset "Image2D Arithmetic: subtract_img(img,img)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_arithmetic_factory[:subtract_img2D].fn
-    fn = fac(typeof(img))
-    @test begin
-        res = fn(img, img)
-        expected = clamp01nan.(float(img) - float(img))
-        cond1 = size(res) == size(img) && res != img
-        cond2 = res == expected
-        cond1 && cond2
-    end
-    @test begin
-        ones_ = SImageND(ones(N0f8, size(img)))
-        zeros_ = SImageND(zeros(N0f8, size(img)))
-        res = fn(zeros_, ones_) # is clamped at 0
-        unique(res)[1] == 0.0
-    end
-    @test_throws MethodError begin # BC images of diff size
-        img2_of_diff_size = ones(N0f8, 10, 10)
-        res = fn(img, img2_of_diff_size)
-    end
-    @test_throws MethodError begin # BC images of diff Type
-        img2_of_diff_size = convert.(N0f16, img)
-        res = fn(img, img2_of_diff_size)
-    end
-end
+@testset "Image2D Arithmetic: add_image2D" begin
 
-#################
-#  add_img2D    #
-#################
+    @testset "Binary Result" begin
+        Bundle = bundle_image2DBinary_arithmetic_factory
+        test_img1 = generate_binarize_test_image(BINARY)
+        test_img2 = generate_binarize_test_image(BINARY)
+        test_img3 = generate_binarize_test_image(INTENSITY)
+        fn = Bundle[:add_img2D]
+        fn = fn.fn(typeof(test_img1))
 
-@testset "Image2D Arithmetic: add_img2D(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_arithmetic_factory[:add_img2D].fn
-    fn = fac(typeof(img))
-    @test begin
-        res = fn(img, img)
-        size(res) == size(img) && res != img
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img1)
+            @test all(x -> x == 0 || x == 1, res)
+            if ith == 1 || ith == 2 || ith == 3
+                @test all(res .== 1) # all clamped to 1
+            else
+                @test sum(float(res) .== 0) > 5 # some pixels even if added are rounded to 0
+            end
+        end
     end
-    @test_throws MethodError begin # bad type according to specialized image
-        new_img = SImageND(convert.(N0f16, img))
-        res = fn(new_img, new_img)
-    end
-end
 
-@testset "Image2D Arithmetic: add_img2D(img,img)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_arithmetic_factory[:add_img2D].fn
-    fn = fac(typeof(img))
-    @test begin
-        res = fn(img, img)
-        expected = clamp01nan.(float(img) + float(img))
-        cond1 = size(res) == size(img) && res != img
-        cond2 = res == expected
-        cond1 && cond2
-    end
-    @test begin
-        ones_ = SImageND(ones(N0f8, size(img)))
-        res = fn(ones_, ones_) # is clamped at 1
-        unique(res)[1] == 1.0
-    end
-    @test_throws MethodError begin # BC images of diff size
-        img2_of_diff_size = ones(N0f8, 10, 10)
-        res = fn(img, img2_of_diff_size)
-    end
-    @test_throws MethodError begin # BC images of diff Type
-        img2_of_diff_size = convert.(N0f16, img)
-        res = fn(img, img2_of_diff_size)
+    @testset "Intensity Result" begin
+        Bundle = bundle_image2DBinary_arithmetic_factory
+        test_img1 = generate_binarize_test_image(BINARY)
+        test_img2 = generate_binarize_test_image(BINARY)
+        test_img3 = generate_binarize_test_image(INTENSITY)
+        fn = Bundle[:add_img2D]
+        fn = fn.fn(typeof(test_img3))
+
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == IntensityPixel{N0f8}
+            @test size(res) == size(test_img1)
+            @test all(0 .<= res .<= 1)
+            if ith == 1 || ith == 2 || ith == 3
+                @test all(res .== 1) # all clamped to 1
+            else
+                @test sum(float(res) .<= 0.31) == 3 # some pixels even if added are less than 0.3
+            end
+        end
     end
 end
 
 
-#################
-#  mult_img2D   #
-#################
+@testset "Image2D Arithmetic: mult_image2D" begin
 
-@testset "Image2D Arithmetic: mult_img2D(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_arithmetic_factory[:mult_img2D].fn
-    fn = fac(typeof(img))
-    @test begin
-        res = fn(img, img)
-        size(res) == size(img) && res != img
+    @testset "Binary Result" begin
+        Bundle = bundle_image2DBinary_arithmetic_factory
+        test_img1 = generate_binarize_test_image(BINARY)
+        test_img1.img[5, 5] = 0
+        test_img2 = generate_binarize_test_image(BINARY)
+        test_img3 = generate_binarize_test_image(INTENSITY)
+        fn = Bundle[:mult_img2D]
+        fn = fn.fn(typeof(test_img1))
+
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img1)
+            @test all(x -> x == 0 || x == 1, res)
+            if ith == 1 || ith == 2 || ith == 3
+                @test res.img[5, 5] == 0 # Because * is like logical and.
+            else
+                @test res.img[5, 5] == 0 # bc rounded
+                @test res.img[end-1] == 1  # bc rounded
+            end
+        end
     end
-    @test_throws MethodError begin # bad type according to specialized image
-        new_img = SImageND(convert.(N0f16, img))
-        res = fn(new_img, new_img)
+
+    @testset "Intensity Result" begin
+        Bundle = bundle_image2DBinary_arithmetic_factory
+        test_img1 = generate_binarize_test_image(BINARY)
+        test_img1.img[5, 5] = 0
+        test_img2 = generate_binarize_test_image(BINARY)
+        test_img3 = generate_binarize_test_image(INTENSITY)
+        fn = Bundle[:mult_img2D]
+        fn = fn.fn(typeof(test_img3))
+
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == IntensityPixel{N0f8}
+            @test size(res) == size(test_img1)
+            @test all(0 .<= res .<= 1)
+            if ith == 1 || ith == 2 || ith == 3
+                @test res.img[5, 5] == 0 # Because * is like logical and.
+            else
+                @test res.img[5, 5] != 0 && res.img[5, 5] != test_img3.img[5, 5]
+            end
+        end
     end
 end
 
-@testset "Image2D Arithmetic: mult_img2D(img,img)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_arithmetic_factory[:mult_img2D].fn
-    fn = fac(typeof(img))
-    @test begin
-        res = fn(img, img)
-        expected = clamp01nan.(float(img) * float(img))
-        cond1 = size(res) == size(img) && res != img
-        cond2 = res == expected
-        cond1 && cond2
+# MAX
+@testset "Image2D Arithmetic: max_image2D" begin
+    Bundle = bundle_image2DBinary_arithmetic_factory
+    test_img1 = generate_binarize_test_image(BINARY)
+    test_img1.img[5, 5] = 0
+    test_img2 = generate_binarize_test_image(BINARY)
+    test_img3 = generate_binarize_test_image(INTENSITY)
+    test_img3.img[5, 5] = 0.51
+
+    @testset "Binary Result" begin
+        fn = Bundle[:max_img2D]
+        fn = fn.fn(typeof(test_img1))
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img1)
+            @test all(x -> x == 0 || x == 1, res)
+            if ith == 4
+                @test sum(res .== 0) > 5 && sum(res .== 1) > 5
+            else
+                @test all(res .== 1) # All pixels should be 1 either by rounding or 1
+            end
+        end
     end
-    @test begin
-        ones_ = SImageND(ones(N0f8, size(img)))
-        zeros_ = SImageND(zeros(N0f8, size(img)))
-        res = fn(ones_, zeros_)
-        sum(res) == 0.0
-    end
-    @test_throws MethodError begin # BC images of diff size
-        img2_of_diff_size = ones(N0f8, 10, 10)
-        res = fn(img, img2_of_diff_size)
-    end
-    @test_throws MethodError begin # BC images of diff Type
-        img2_of_diff_size = convert.(N0f16, img)
-        res = fn(img, img2_of_diff_size)
+
+    test_img3.img[5, 5] = 0.51
+    test_img1.img[5, 5] = 0
+    @testset "Intensity Result" begin
+        fn = Bundle[:max_img2D]
+        fn = fn.fn(typeof(test_img3))
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == IntensityPixel{N0f8}
+            @test size(res) == size(test_img1)
+            @test all(0 .<= res .<= 1)
+            if ith == 1
+                @test all(res .== 1)
+            elseif ith == 2 || ith == 3
+                @test sum(res .== 1) == 99
+                @test res.img[5, 5] == N0f8(0.51)
+            else
+                @test res.img[5, 5] == N0f8(0.51)
+            end
+        end
     end
 end
 
+@testset "Image2D Arithmetic: min_image2D" begin
+    Bundle = bundle_image2DBinary_arithmetic_factory
+    test_img1 = generate_binarize_test_image(BINARY)
+    test_img1.img[5, 5] = 0
+    test_img2 = generate_binarize_test_image(BINARY)
+    test_img3 = generate_binarize_test_image(INTENSITY)
+    test_img3.img[5, 5] = 0.51
+
+    @testset "Binary Result" begin
+        fn = Bundle[:min_img2D]
+        fn = fn.fn(typeof(test_img1))
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == BinaryPixel{Bool}
+            @test size(res) == size(test_img1)
+            @test all(x -> x == 0 || x == 1, res)
+            if ith == 4
+                @test sum(res .== 0) > 5 && sum(res .== 1) > 5
+            elseif ith == 1
+                @test sum(res .== 0) == 1
+            elseif ith == 2 || ith == 3
+                @test sum(res .== 0) > 30
+            end
+        end
+    end
+
+    test_img3.img[5, 5] = 0.51
+    test_img1.img[5, 5] = 0
+    @testset "Intensity Result" begin
+        fn = Bundle[:min_img2D]
+        fn = fn.fn(typeof(test_img3))
+        @testset for (ith, pack) in enumerate([
+            [test_img1, test_img2],
+            [test_img1, test_img3],
+            [test_img3, test_img1],
+            [test_img3, test_img3],
+        ])
+            res = fn(pack[1], pack[2])
+            @test eltype(res) == IntensityPixel{N0f8}
+            @test size(res) == size(test_img1)
+            @test all(0 .<= res .<= 1)
+            if ith == 1
+                @test sum(res .== 0) == 1
+            elseif ith == 2 || ith == 3
+                @test res.img[5, 5] == N0f8(0) # the min with the binary with has 0
+            else
+                @test res.img[5, 5] == N0f8(0.51)
+            end
+        end
+    end
+end

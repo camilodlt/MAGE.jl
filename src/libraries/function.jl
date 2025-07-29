@@ -1,4 +1,3 @@
-
 function _get_parent_module_symbol(f::Function)
     return Symbol(parentmodule(f))
 end
@@ -8,28 +7,28 @@ function _get_parent_module_symbol(f::AbstractManualDispatcher)
 end
 
 function _get_name_from_likefn(f::Function)
-    Symbol(f)
+    return Symbol(f)
 end
 function _get_name_from_likefn(dp::AbstractManualDispatcher)
-    dp.name
+    return dp.name
 end
 
 mutable struct FunctionWrapper{T} <: AbstractFunction
     name::Symbol
     parent_module::Symbol
     fn::LikeFunction
-    caster::Union{Function,Nothing}
+    caster::Union{Function, Nothing}
     fallback::Function
 
     """
     Function Wrapper with caster and fallback
     """
     function FunctionWrapper(
-        fn::T,
-        name::Symbol,
-        caster::Union{Function,Nothing},
-        fallback::Function,
-    ) where {T<:LikeFunction}
+            fn::T,
+            name::Symbol,
+            caster::Union{Function, Nothing},
+            fallback::Function,
+        ) where {T <: LikeFunction}
         p_mod = _get_parent_module_symbol(fn)
         return new{T}(name, p_mod, fn, caster, fallback)
     end
@@ -39,10 +38,10 @@ end
 Function Wrapper with caster and fallback
 """
 function FunctionWrapper(
-    fn::T,
-    caster::Union{Function,Nothing},
-    fallback::Function,
-) where {T<:LikeFunction}
+        fn::T,
+        caster::Union{Function, Nothing},
+        fallback::Function,
+    ) where {T <: LikeFunction}
     name = _get_name_from_likefn(fn)
     return FunctionWrapper(fn, name, caster, fallback)
 end
@@ -51,12 +50,12 @@ end
 """
 Function Wrapper with fallback.
 """
-function FunctionWrapper(fn::T, fallback::Function) where {T<:LikeFunction}
+function FunctionWrapper(fn::T, fallback::Function) where {T <: LikeFunction}
     return FunctionWrapper(fn, nothing, fallback)
 end
 
 # from https://discourse.julialang.org/t/performance-of-hasmethod-vs-try-catch-on-methoderror/99827/23
-const SafeFunctions = Dict{Type,IsGood}()
+const SafeFunctions = Dict{Type, IsGood}()
 const SafeFunctionsLock = Base.ReentrantLock()
 println("RECORD OF FNS : $SafeFunctions")
 
@@ -66,7 +65,7 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
 
     F = typeof(f)
     T = typeof(x)
-    status = get(SafeFunctions, Tuple{F,T}, Undefined)
+    status = get(SafeFunctions, Tuple{F, T}, Undefined)
     if status == Good
         try
             tmp = f.fn(x...)
@@ -97,9 +96,9 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
         fn_name = Symbol(f)
         @debug "Holding safe call lock for $(fn_name) by $(tid). $(now())"
         if output[2]
-            SafeFunctions[Tuple{F,T}] = Good
+            SafeFunctions[Tuple{F, T}] = Good
         else
-            SafeFunctions[Tuple{F,T}] = Bad
+            SafeFunctions[Tuple{F, T}] = Bad
         end
         @debug "Unlocking safe call lock for $(fn_name) by $(tid). $(now())"
         return output
@@ -151,9 +150,9 @@ end
 # FASTER
 # Base.@nospecializeinfer function evaluate_fn_wrapper( # not avail in 1.9.3
 function evaluate_fn_wrapper(
-    @nospecialize(fn_wrapper::FunctionWrapper),
-    @nospecialize(inputs_::Vector{<:Any})
-)
+        @nospecialize(fn_wrapper::FunctionWrapper),
+        @nospecialize(inputs_::Vector{<:Any})
+    )
     # slow
     # @timeit_debug to "Eval fn. slow" begin
     #     output, flag = (nothing, false)
@@ -179,13 +178,22 @@ function evaluate_fn_wrapper(
                 output, flag = safe_call(fn_wrapper, (inputs_...,))
             else
                 output = try
-                    @timeit_debug to "Eval fn Ok $(fn_wrapper.name)" call_fn_wrap(
+                    t = @elapsed @timeit_debug to "Eval fn Ok $(fn_wrapper.name)" res = call_fn_wrap(
                         fn_wrapper,
                         inputs_,
                         Val(cast),
                     )
+                    if t > 2
+                        if isdefined(Main, :Infiltrator)
+                            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                        end
+                    end
+                    res
                 catch e
                     if e isa MethodError
+                        if isdefined(Main, :Infiltrator)
+                            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                        end
                         @warn "$(fn_wrapper.name) got a MethodError with inputs of type $(typeof.(inputs_))"
                     end
                     @timeit_debug to "Eval fn Nok $(fn_wrapper.name)" fn_wrapper.fallback()
@@ -197,24 +205,30 @@ function evaluate_fn_wrapper(
 end
 
 @inline function call_fn_wrap(
-    @nospecialize(fn_wrapper::FunctionWrapper),
-    @nospecialize(inputs),
-    ::Val{true},
-)
+        @nospecialize(fn_wrapper::FunctionWrapper),
+        @nospecialize(inputs),
+        ::Val{true},
+    )
     @debug "Running fn : $(fn_wrapper.name)"
-    o = fn_wrapper.caster(fn_wrapper.fn(inputs...))
+    pre = fn_wrapper.fn(inputs...)
+    if isnothing(pre)
+        if isdefined(Main, :Infiltrator)
+            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+        end
+    end
+    o = fn_wrapper.caster(pre)
     @debug "End Running fn : $(fn_wrapper.name)"
-    o
+    return o
 end
 @inline function call_fn_wrap(
-    @nospecialize(fn_wrapper::FunctionWrapper),
-    @nospecialize(inputs),
-    ::Val{false},
-)
+        @nospecialize(fn_wrapper::FunctionWrapper),
+        @nospecialize(inputs),
+        ::Val{false},
+    )
     @debug "Running fn : $(fn_wrapper.name)"
     o = fn_wrapper.fn(inputs...)
     @debug "End Running fn : $(fn_wrapper.name)"
-    o
+    return o
 end
 
 # function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})

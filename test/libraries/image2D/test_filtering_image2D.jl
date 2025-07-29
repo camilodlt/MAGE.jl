@@ -1,475 +1,708 @@
+using ImageView
+using ImageBinarization
+using ImageCore
+using Statistics
+
+function generate_filter_test_image(::Type{IntensityPixel{T}}, size = (30, 30)) where {T}
+    # Create a gradient image for intensity
+    img = [i / size[1] + j / size[2] for i = 1:size[1], j = 1:size[2]]
+    img = img ./ maximum(img)  # Normalize to range [0, 1]
+    img[20:25, 20:25] .= 1.0
+    img[10:13, 10:13] .= 0.0
+    return SImageND(IntensityPixel{T}.(img))
+end
+
+function generate_filter_test_image(::Type{BinaryPixel{Bool}}, size = (30, 30))
+    # Create a gradient image for intensity
+    img = trues(size[1], size[2])
+    img[10:13, 10:13] .= 0
+    return SImageND(BinaryPixel{Bool}.(img))
+end
+
+INTENSITY = IntensityPixel{N0f8}
+BINARY = BinaryPixel{Bool}
+
+################################ INTENSITY ################################
+
+
 ######################
-# SOBEL X FILTERING  #
+# Test Fns 2 kernels  #
 ######################
 
 # API
-@testset "Image2D filtering: sobelx_image2D(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:sobelx_image2D].fn
-    dp = fac(typeof(img))
-    # sobelx(img)
-    @test begin
-        res = dp(img)
-        typeof(res) <: SImageND && size(res) == size(img) && res != img
+@testset "Image2D filtering: kernels_X(img)" for KERNEL_METHOD in [
+    :sobelx_image2D,
+    :sobely_image2D,
+    :sobelm_image2D,
+    :ando3x_image2D,
+    :ando3y_image2D,
+    :ando3m_image2D,
+    :ando4x_image2D,
+    :ando4y_image2D,
+    :ando4m_image2D,
+    :ando5x_image2D,
+    :ando5y_image2D,
+    :ando5m_image2D,
+    :bickleyx_image2D,
+    :bickleyy_image2D,
+    :bickleym_image2D,
+    :prewittx_image2D,
+    :prewitty_image2D,
+    :prewittm_image2D,
+    :scharrx_image2D,
+    :scharry_image2D,
+    :scharrm_image2D,
+]
+    Bundle = bundle_image2DIntensity_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_intensity))
+
+    @testset for p in [-1, 0, 0.0, 2.0]
+        res = fn(img_intensity, p)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2)
+        end
     end
-    @test_throws MethodError begin # bad type according to specialized image
-        new_img = SImageND(convert.(N0f16, img))
-        res = dp(new_img, 5)
+    @testset for p in [-1, 0, 0.0, 2.0]
+        res = fn(img_binary, p)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_binary
     end
-    # sobelx(img,b)
-    @test begin
-        res = dp(img, 5)
-        size(res) == size(img) && res != img
+
+    default = fn(img_intensity)
+    expected = fn(img_intensity, 0)
+    @test default == expected
+
+    @test fn(img_intensity, 1) != fn(img_intensity, 0) # different border   
+end
+@testset "Image2D filtering: compare kernels" begin
+    ks = [
+        :sobelx_image2D,
+        :sobely_image2D,
+        :sobelm_image2D,
+        :ando3x_image2D,
+        :ando3y_image2D,
+        :ando3m_image2D,
+        :ando4x_image2D,
+        :ando4y_image2D,
+        :ando4m_image2D,
+        :ando5x_image2D,
+        :ando5y_image2D,
+        :ando5m_image2D,
+        :bickleyx_image2D,
+        :bickleyy_image2D,
+        :bickleym_image2D,
+        :prewittx_image2D,
+        :prewitty_image2D,
+        :prewittm_image2D,
+        :scharrx_image2D,
+        :scharry_image2D,
+        :scharrm_image2D,
+    ]
+    Bundle = bundle_image2DIntensity_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fns = []
+    for k in ks
+        fac = Bundle[k]
+        fn = fac.fn(typeof(img_intensity))
+        push!(fns, fn)
+    end
+
+    @testset for p in [-1, 0, 0.0, 2.0]
+        results = [fn(img_intensity, p) for fn in fns]
+        @test img_intensity != results[1] != results[2] != results[3] != results[4] != results[5] != results[6] != results[7] != results[8] != results[9]
     end
 end
 
-# sobelx(img) && sobelx(img, b) Innerworkings --- 
-@testset "Image2D filtering: sobelx_image2D(img,b)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:sobelx_image2D].fn
-    fn = fac(typeof(img))
-    ysobel, xsobel = Kernel.sobel()
-    @testset "Image2D filtering: sobelx_image2D(img)" begin
-        # sobelx(img) using replicate by default
-        @test begin
-            res = fn(img)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(xsobel), "replicate")))
-            size(res) == size(img) && res == expected
-        end
-
-        # sobelx(img) using replicate by default. Xsobel so diff than ysobel
-        @test begin
-            res = fn(img)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(ysobel), "replicate")))
-            size(res) == size(img) && res != expected
-        end
-    end
-
-    @testset "Image2D filtering: sobelx_image2D(img,b)" begin
-        # sobelx(img,b) using circular by default
-        @test begin
-            res = fn(img, -1)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(xsobel), "circular")))
-            size(res) == size(img) && res == expected
-        end
-        # sobelx(img,b) using replicate by default
-        @test begin
-            res = fn(img, 0.0)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(xsobel), "replicate")))
-            size(res) == size(img) && res == expected
-        end
-        # sobelx(img,b) using reflect by default
-        @test begin
-            res = fn(img, 1)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(xsobel), "reflect")))
-            size(res) == size(img) && res == expected
-        end
-        # sobelx(img,b) diff than ysobel with the same reflect
-        @test begin
-            res = fn(img, 1)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(ysobel), "reflect")))
-            size(res) == size(img) && res != expected
-        end
-    end
-end
 
 ######################
-# SOBEL Y FILTERING  #
+# ONE KERNEL         #
 ######################
+@testset "Image2D filtering: ONEKERNEL(img)" for KERNEL_METHOD in [
+    :gaussian5_image2D,
+    :gaussian9_image2D,
+    :gaussian13_image2D,
+    :gaussian17_image2D,
+    :gaussian25_image2D,
+    :laplacian3_image2D,
+]
+    Bundle = bundle_image2DIntensity_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_intensity))
 
-# API (Same as Xsobel) 
-@testset "Image2D filtering: sobely_image2D(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:sobely_image2D].fn
-    dp = fac(typeof(img))
+    @testset for p in [-1, 0, 0.0, 2.0] # border type
+        res = fn(img_intensity, p)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
 
-    # sobely(img)
-    @test begin
-        res = dp(img)
-        typeof(res) <: SImageND && size(res) == size(img) && res != img
+        @test begin
+            fn(img_intensity_bad1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2)
+        end
     end
-    @test_throws MethodError begin # bad type according to specialized image
-        new_img = SImageND(convert.(N0f16, img))
-        res = dp(new_img, 5)
+    @testset for p in [-1, 0, 0.0, 2.0]
+        res = fn(img_binary, p)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_binary
     end
-    # sobely(img,b)
-    @test begin
-        res = dp(img, 5)
-        size(res) == size(img) && res != img
+
+    default = fn(img_intensity)
+    expected = fn(img_intensity, 0)
+    @test default == expected
+
+    @test fn(img_intensity, 1) != fn(img_intensity, 0) # different border   
+end
+
+@testset "Image2D filtering: compare kernels" begin
+    ks = [
+        :gaussian5_image2D,
+        :gaussian9_image2D,
+        :gaussian13_image2D,
+        :gaussian17_image2D,
+        :gaussian25_image2D,
+        :laplacian3_image2D,
+    ]
+    Bundle = bundle_image2DIntensity_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fns = []
+    for k in ks
+        fac = Bundle[k]
+        fn = fac.fn(typeof(img_intensity))
+        push!(fns, fn)
+    end
+
+    @testset for p in [-1, 0, 0.0, 2.0]
+        results = [fn(img_intensity, p) for fn in fns]
+        @test img_intensity != results[1] != results[2] != results[3] != results[4] != results[5] != results[6] 
     end
 end
 
-# sobely(img) && sobely(img, b) Innerworkings --- 
-@testset "Image2D filtering: sobely_image2D(img,b)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:sobely_image2D].fn
-    fn = fac(typeof(img))
-    ysobel, xsobel = Kernel.sobel()
-
-    @testset "Image2D filtering: sobely_image2D(img)" begin
-        # sobely(img) using replicate by default
-        @test begin
-            res = fn(img)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(ysobel), "replicate")))
-            size(res) == size(img) && res == expected
-        end
-
-        # sobely(img) using replicate by default. Ysobel so diff than xsobel
-        @test begin
-            res = fn(img)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(xsobel), "replicate")))
-            size(res) == size(img) && res != expected
-        end
-    end
-
-    @testset "Image2D filtering: sobely_image2D(img,b)" begin
-        # sobely(img,b) using circular by default
-        @test begin
-            res = fn(img, -1)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(ysobel), "circular")))
-            size(res) == size(img) && res == expected
-        end
-        # sobely(img,b) using replicate by default
-        @test begin
-            res = fn(img, 0.0)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(ysobel), "replicate")))
-            size(res) == size(img) && res == expected
-        end
-        # sobely(img,b) using reflect by default
-        @test begin
-            res = fn(img, 1)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(ysobel), "reflect")))
-            size(res) == size(img) && res == expected
-        end
-        # sobely(img,b) diff than xsobel with the same reflect
-        @test begin
-            res = fn(img, 1)
-            expected =
-                convert.(N0f8, clamp01nan.(imfilter(img, reflect(xsobel), "reflect")))
-            size(res) == size(img) && res != expected
-        end
-    end
-end
 
 ######################
-# SOBEL M FILTERING  #
+# SPECIAL KERNEL     #
 ######################
 
-# API (Same as Xsobel) 
-@testset "Image2D filtering: sobelm_image2D(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:sobelm_image2D].fn
-    dp = fac(typeof(img))
+@testset "Image2D filtering: moffatX(img)" for KERNEL_METHOD in [
+    :moffat5_image2D,
+    :moffat13_image2D,
+    :moffat25_image2D,
+]
+    Bundle = bundle_image2DIntensity_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_intensity))
 
-    # sobelm(img)
-    @test begin
-        res = dp(img)
-        typeof(res) <: SImageND && size(res) == size(img) && res != img
-    end
-    @test_throws MethodError begin # bad type according to specialized image
-        new_img = SImageND(convert.(N0f16, img))
-        res = dp(new_img, 5)
-    end
-    # sobelm(img,b)
-    @test begin
-        res = dp(img, 5)
-        size(res) == size(img) && res != img
-    end
-end
-@testset "Image2D filtering: sobelm_image2D(img,b)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:sobelm_image2D].fn
-    fn = fac(typeof(img))
-    ysobel, xsobel = Kernel.sobel()
-    function _helper_sobel(img, k1, k2, b)
-        x1 = imfilter(img, reflect(k1), b)
-        x2 = imfilter(img, reflect(k2), b)
-        y = sqrt.(x1 .^ 2 .+ x2 .^ 2)
-        convert.(N0f8, clamp01nan.(y))
-    end
-    @testset "Image2D filtering: sobelm_image2D(img)" begin
-        # sobelm(img) using replicate by default
-        @test begin
-            res = fn(img)
-            expected = _helper_sobel(img, xsobel, ysobel, "replicate")
-            size(res) == size(img) && res == expected
-        end
+    @testset for (p1,p2) in zip(
+                [-1, -0.5, 2., 101.],
+                [-1, -0.5, 2., 101.],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
 
-        # sobelm(img) using replicate by default. msobel so diff than using xsobel 2 times
         @test begin
-            res = fn(img)
-            expected = _helper_sobel(img, ysobel, ysobel, "replicate")
-            size(res) == size(img) && res != expected
+            fn(img_intensity_bad1, 1,1)
+            true
         end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2,1,1)
+        end
+    end
+    @testset for (p1,p2) in zip(
+                [-1, -0.5, 2., 101.],
+                [-1, -0.5, 2., 101.],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
     end
 
-    @testset "Image2D filtering: sobelm_image2D(img,b)" begin
-        # sobelm(img,b) using circular by default
-        @test begin
-            res = fn(img, -1)
-            expected = _helper_sobel(img, xsobel, ysobel, "circular")
-            size(res) == size(img) && res == expected
-        end
-        # sobelm(img,b) using replicate by default
-        @test begin
-            res = fn(img, 0.0)
-            expected = _helper_sobel(img, xsobel, ysobel, "replicate")
-            size(res) == size(img) && res == expected
-        end
-        # sobelm(img,b) using reflect by default
-        @test begin
-            res = fn(img, 1)
-            expected = _helper_sobel(img, xsobel, ysobel, "reflect")
-            size(res) == size(img) && res == expected
-        end
-        # sobelm(img,b) diff than xsobel 2 times with the same reflect
-        @test begin
-            res = fn(img, 1)
-            expected = _helper_sobel(img, xsobel, xsobel, "reflect")
-            size(res) == size(img) && res != expected
-        end
+    @testset begin
+        res = fn(img_binary, 1., 1.)
+        @test res != img_binary
+        @test eltype(res) == INTENSITY
     end
+
+    @test fn(img_intensity, 1,2) != fn(img_intensity, 100,100) # different values  
+    @test fn(img_intensity, 100,100) == fn(img_intensity, 101,101.) # clamped   
 end
 
-#######################
-# GAUSSIAN FILTERING  #
-#######################
+
+@testset "Image2D filtering: DoGX(img)" for KERNEL_METHOD in [
+    :dog_image2D,
+]
+    Bundle = bundle_image2DIntensity_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_intensity))
+
+    @testset for (p1,p2) in zip(
+                [-1, -0.5, 2., 101.],
+                [-1, -0.5, 2., 101.],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1, 1,1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2,1,1)
+        end
+    end
+    @testset for p1 in [-1, -0.5, 2., 101.]
+        res = fn(img_intensity, p1)
+        @test eltype(res) == INTENSITY
+        @test size(res) == size(img_intensity)
+        @test all(0 .<= res .<= 1)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+    end
+
+    @testset begin
+        res = fn(img_binary,1.)
+        @test res != img_binary
+        @test eltype(res) == INTENSITY
+    end
+
+    @test fn(img_intensity, 1) == fn(img_intensity, 1,1) # same val 
+    @test fn(img_binary, 1) == fn(img_binary, 1,1) # same val & for binary
+    @test fn(img_intensity, 100,100) == fn(img_intensity, 101,101.) # clamped   
+end
+
+
+################################ BINARY ################################
+
+######################
+# Test Fns 2 kernels  #
+######################
 
 # API
-@testset "Image2D filtering: gaussian_image2D(T)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:gaussian_image2D].fn
-    dp = fac(typeof(img))
+@testset "Image2D filtering: kernels_X(img)" for KERNEL_METHOD in [
+    :sobelx_image2D,
+    :sobely_image2D,
+    :sobelm_image2D,
+    :ando3x_image2D,
+    :ando3y_image2D,
+    :ando3m_image2D,
+    :ando4x_image2D,
+    :ando4y_image2D,
+    :ando4m_image2D,
+    :ando5x_image2D,
+    :ando5y_image2D,
+    :ando5m_image2D,
+    :bickleyx_image2D,
+    :bickleyy_image2D,
+    :bickleym_image2D,
+    :prewittx_image2D,
+    :prewitty_image2D,
+    :prewittm_image2D,
+    :scharrx_image2D,
+    :scharry_image2D,
+    :scharrm_image2D,
+]
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_binary))
 
-    # gaussian(img) # returns the same type and size
-    @test begin
-        res = dp(img)
-        typeof(res) == typeof(img) && size(res) == size(img) && res != img
+    @testset for p in [-1, 0, 0.0, 2.0]
+        res = fn(img_intensity, p)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2)
+        end
     end
-    @test begin
-        res = dp(img, 1)
-        typeof(res) == typeof(img) && size(res) == size(img) && res != img
-    end
-    @test begin
-        res = dp(img, 1, 2)
-        typeof(res) == typeof(img) && size(res) == size(img) && res != img
+    @testset for p in [-1, 0, 0.0, 2.0]
+        res = fn(img_binary, p)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_binary
     end
 
-    # Strong typing
-    @test_throws MethodError begin # bad type according to specialized image
-        new_img = SImageND(convert.(N0f16, img))
-        res = dp(new_img)
+    default = fn(img_intensity)
+    expected = fn(img_intensity, 0)
+    @test default == expected
+end
+
+@testset "Image2D filtering: compare kernels" begin
+    ks = [
+        :sobelx_image2D,
+        :sobely_image2D,
+        :sobelm_image2D,
+        :ando3x_image2D,
+        :ando3y_image2D,
+        :ando3m_image2D,
+        :ando4x_image2D,
+        :ando4y_image2D,
+        :ando4m_image2D,
+        :ando5x_image2D,
+        :ando5y_image2D,
+        :ando5m_image2D,
+        :bickleyx_image2D,
+        :bickleyy_image2D,
+        :bickleym_image2D,
+        :prewittx_image2D,
+        :prewitty_image2D,
+        :prewittm_image2D,
+        :scharrx_image2D,
+        :scharry_image2D,
+        :scharrm_image2D,
+    ]
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fns = []
+    for k in ks
+        fac = Bundle[k]
+        fn = fac.fn(typeof(img_binary ))
+        push!(fns, fn)
+    end
+
+    @testset for p in [-1, 0, 0.0, 2.0]
+        results = [fn(img_intensity, p) for fn in fns]
+        @test img_intensity != results[1] != results[2] != results[3] != results[4] != results[5] != results[6] != results[7] != results[8] != results[9]
     end
 end
 
-# Blur img with defaults
-@testset "Image2D filtering: gaussian_image2D(img)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:gaussian_image2D].fn
-    dp = fac(typeof(img))
 
-    # blur img with default kernel and default padding
-    @test begin
-        res = dp(img)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(1)), "replicate")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
+######################
+# ONE KERNEL         #
+######################
+@testset "Image2D filtering: ONEKERNEL(img)" for KERNEL_METHOD in [
+    :gaussian5_image2D,
+    :gaussian9_image2D,
+    :gaussian13_image2D,
+    :gaussian17_image2D,
+    :gaussian25_image2D,
+    :laplacian3_image2D,
+]
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_binary))
+
+    @testset for p in [-1, 0, 0.0, 2.0] # border type
+        res = fn(img_intensity, p)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2)
+        end
+    end
+    @testset for p in [-1, 0, 0.0, 2.0]
+        res = fn(img_binary, p)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+    end
+
+    default = fn(img_intensity)
+    expected = fn(img_intensity, 0)
+    @test default == expected
+end
+
+@testset "Image2D filtering: compare kernels" begin
+    ks = [
+        :gaussian5_image2D,
+        :gaussian9_image2D,
+        :gaussian13_image2D,
+        :gaussian17_image2D,
+        :gaussian25_image2D,
+        :laplacian3_image2D,
+    ]
+
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fns = []
+    for k in ks
+        fac = Bundle[k]
+        fn = fac.fn(typeof(img_binary))
+        push!(fns, fn)
+    end
+
+    @testset for p in [-1, 0, 0.0, 2.0]
+        results = [fn(img_intensity, p) for fn in fns]
+        @test img_intensity != results[1]
+        @test img_intensity != results[3]
+        @test results[2] != results[4] 
+        @test results[2] != results[5]
+        @test results[2] != results[6]  
     end
 end
 
-# Blur img and choose padding
-@testset "Image2D filtering: gaussian_image2D(img, pad)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:gaussian_image2D].fn
-    dp = fac(typeof(img))
 
-    # blur img "Replicate"
-    @test begin
-        res = dp(img, 0)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(1)), "replicate")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
+######################
+# SPECIAL KERNEL     #
+######################
+
+@testset "Image2D filtering: moffatX(img)" for KERNEL_METHOD in [
+    :moffat5_image2D,
+    :moffat13_image2D,
+    :moffat25_image2D,
+]
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_binary))
+
+    @testset for (p1,p2) in zip(
+                [-1, -0.5, 2., 101.],
+                [-1, -0.5, 2., 101.],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1, 1,1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2,1,1)
+        end
+    end
+    @testset for (p1,p2) in zip(
+                [-1, -0.5, 2., 101.],
+                [-1, -0.5, 2., 101.],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
     end
 
-    # blur img "circular"
-    @test begin
-        res = dp(img, -0.01)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(1)), "circular")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
-    end
-
-    # blur img "reflect"
-    @test begin
-        res = dp(img, 1)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(1)), "reflect")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
-    end
+    @test fn(img_intensity, 1,2) != fn(img_intensity, 100,100) # different values  
+    @test fn(img_intensity, 100,100) == fn(img_intensity, 101,101.) # clamped   
 end
 
-# Blur img, choose padding && kernel size
-@testset "Image2D filtering: gaussian_image2D(img, pad, ksize)" begin
-    img = load_test_image()
-    fac = UTCGP.bundle_image2D_filtering_factory[:gaussian_image2D].fn
-    dp = fac(typeof(img))
 
-    ################## ### 5X5 ### ################
+@testset "Image2D filtering: DoGX(img)" for KERNEL_METHOD in [
+    :dog_image2D,
+]
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[KERNEL_METHOD]
+    fn = fac.fn(typeof(img_binary))
 
-    # blur img. 5x5 "Replicate"
-    @test begin
-        res = dp(img, 0, -1)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(1)), "replicate")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
+    @testset for (p1,p2) in zip(
+                [-1, -0.5, 2., 101.],
+                [-1, -0.5, 2., 101.],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1, 1,1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2,1,1)
+        end
     end
-    # blur img. 5x5 "circular"
-    @test begin
-        res = dp(img, -1, -1)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(1)), "circular")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
-    end
-    # blur img. 5x5 "reflect"
-    @test begin
-        res = dp(img, 1, -1)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(1)), "reflect")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
+    @testset for p1 in [-1, -0.5, 2., 101.]
+        res = fn(img_intensity, p1)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
     end
 
-    ################## ### 9X9 ### ################
-    # blur img. 9x9 "Replicate"
-    @test begin
-        res = dp(img, 0, 0)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(2)), "replicate")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
-    end
-    # blur img. 9x9 "circular"
-    @test begin
-        res = dp(img, -1.0, 0)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(2)), "circular")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
-    end
-    # blur img. 9x9 "reflect"
-    @test begin
-        res = dp(img, 2, 0)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(2)), "reflect")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
-    end
+    @test fn(img_intensity, 1) == fn(img_intensity, 1,1) # same val 
+    @test fn(img_intensity, 100,100) == fn(img_intensity, 101,101.) # clamped   
+end
 
-    ################## ### 12X12 ### ################
-    # blur img. 12x12 "Replicate"
-    @test begin
-        res = dp(img, 0, 2)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(3)), "replicate")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
+
+# FIND LOCAL
+@testset "Image2D filtering: findlocal_minima(img)" begin 
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[:findlocalminima_image2D]
+    fn = fac.fn(typeof(img_binary))
+
+    @testset for (p1,p2) in zip(
+                [-1, 3, 25., 26],
+                [-1, 3, 25., 26],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1, 1,1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2,1,1)
+        end
     end
-    # blur img. 12x12 "circular"
-    @test begin
-        res = dp(img, -1, 2)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(3)), "circular")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
+    @testset for p1 in [-1, 3, 25., 26]
+        res = fn(img_intensity, p1)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
     end
-    # blur img. 12x12 "reflect"
-    @test begin
-        res = dp(img, 1, 2)
-        expected = SImageND(
-            convert.(
-                N0f8,
-                clamp01nan.(
-                    imfilter(img, reflect(ImageFiltering.Kernel.gaussian(3)), "reflect")
-                ),
-            ),
-        )
-        typeof(expected) == typeof(res) && res == expected
+    @testset begin 
+        res = fn(img_intensity)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+    end
+end
+@testset "Image2D filtering: findlocal_maxima(img)" begin 
+
+    Bundle = bundle_image2DBinary_filtering_factory
+    img_intensity = generate_filter_test_image(INTENSITY)
+    img_intensity_bad1 = generate_filter_test_image(IntensityPixel{N0f16})
+    img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
+    img_binary = generate_filter_test_image(BINARY)
+    fac = Bundle[:findlocalmaxima_image2D]
+    fn = fac.fn(typeof(img_binary))
+
+    @testset for (p1,p2) in zip(
+                [-1, 3, 25., 26],
+                [-1, 3, 25., 26],
+            )
+        res = fn(img_intensity, p1,p2)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+
+        @test begin
+            fn(img_intensity_bad1, 1,1)
+            true
+        end
+        @test_throws MethodError begin #diff size is a pb
+            fn(img_intensity_bad2,1,1)
+        end
+    end
+    @testset for p1 in [-1, 3, 25., 26]
+        res = fn(img_intensity, p1)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
+    end
+    @testset begin 
+        res = fn(img_intensity)
+        @test eltype(res) == BINARY
+        @test size(res) == size(img_intensity)
+        @test all(x -> x == 0 || x == 1, res)
+        @test typeof(res) <: SImageND
+        @test res != img_intensity
     end
 end

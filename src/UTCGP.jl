@@ -385,6 +385,10 @@ include("libraries/float/GLCM.jl")
 import .experimental_GLCM: experimental_bundle_float_glcm_factory
 export experimental_bundle_float_glcm_factory
 
+include("libraries/float/image_graph.jl")
+import .imagegraph_basic: bundle_float_imagegraph
+export bundle_float_imagegraph
+
 # -- INTEGER
 
 include("libraries/integer/basic_integer.jl")
@@ -403,63 +407,61 @@ include("libraries/integer/cond.jl")
 import .integer_cond: bundle_integer_cond
 export bundle_integer_cond
 
-# 2D IMAGES Basic 
+# 2D IMAGES Basic #  
 
 export SImageND, SizedImage, SizedImage2D, SizedImage3D
 export SImage2D, SImage3D
+export BinaryPixel, SegmentPixel, IntensityPixel
 
 include("libraries/image2D/basic_image2D.jl")
-import .image2D_basic: bundle_image2D_basic
-export bundle_image2D_basic
-import .image2D_basic: bundle_image2D_basic_factory
-export bundle_image2D_basic_factory
+import .image2D_basic:
+    bundle_image2DIntensity_basic_factory,
+    bundle_image2DBinary_basic_factory,
+    bundle_image2DSegment_basic_factory
+export bundle_image2DIntensity_basic_factory,
+    bundle_image2DBinary_basic_factory, bundle_image2DSegment_basic_factory
 
 # 2D IMAGES Morph
 include("libraries/image2D/morph_image2D.jl")
-import .image2D_morph: bundle_image2D_morph
-export bundle_image2D_morph
-import .image2D_morph: bundle_image2D_morph_factory
-export bundle_image2D_morph_factory
+import .image2D_morph: bundle_image2DIntensity_morph_factory, bundle_image2DBinary_morph_factory 
+export bundle_image2DIntensity_morph_factory, bundle_image2DBinary_morph_factory 
 
 # 2D IMAGES Binarize
 include("libraries/image2D/binarize_image2D.jl")
-import .image2D_binarize: bundle_image2D_binarize
-export bundle_image2D_binarize
-import .image2D_binarize: bundle_image2D_binarize_factory
-export bundle_image2D_binarize_factory
-
-# 2D IMAGES Segmentation
-include("libraries/image2D/segmentation_image2D.jl")
-import .image2D_segmentation: bundle_image2D_segmentation_factory
-export bundle_image2D_segmentation_factory
+import .image2D_binarize: bundle_image2DBinary_binarize_factory 
+export bundle_image2DBinary_binarize_factory 
 
 # 2D IMAGES Arithmetic
 include("libraries/image2D/arithmetic_image2D.jl")
-import .image2D_arithmetic: bundle_image2D_arithmetic_factory
-export bundle_image2D_arithmetic_factory
-
+import .image2D_arithmetic: bundle_image2DBinary_arithmetic_factory, bundle_image2DIntensity_arithmetic_factory 
+export bundle_image2DBinary_arithmetic_factory, bundle_image2DIntensity_arithmetic_factory 
 include("libraries/image2D/barithmetic_image2D.jl")
-import .image2D_barithmetic: bundle_image2D_barithmetic_factory
-export bundle_image2D_barithmetic_factory
+import .image2D_barithmetic: bundle_image2DIntensity_barithmetic_factory
+export bundle_image2DIntensity_barithmetic_factory
 
-# 2D IMAGES Segmentation
+#2D IMAGES TRANSCENDENTAL
 include("libraries/image2D/transcendental_image2D.jl")
-import .image2D_transcendental: bundle_image2D_transcendental_factory
-export bundle_image2D_transcendental_factory
+import .image2D_transcendental: bundle_image2DIntensity_transcendental_factory
+export bundle_image2DIntensity_transcendental_factory
 
 # 2D IMAGES Filtering
 include("libraries/image2D/filtering_image2D.jl")
-import .image2D_filtering: bundle_image2D_filtering_factory
-export bundle_image2D_filtering_factory
+import .image2D_filtering: bundle_image2DIntensity_filtering_factory, bundle_image2DBinary_filtering_factory
+export bundle_image2DIntensity_filtering_factory, bundle_image2DBinary_filtering_factory
+ 
+# 2D IMAGES Segmentation
+include("libraries/image2D/segmentation_image2D.jl")
+import .image2D_segmentation: bundle_image2DSegment_segmentation_factory
+export bundle_image2DSegment_segmentation_factory
 
-# 2D IMAGES Filtering
-include("libraries/image2D/mask_image2D.jl")
-import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
-export experimental_bundle_image2D_mask_factory
-import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
-export experimental_bundle_image2D_maskregion_factory
-import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_relative_factory
-export experimental_bundle_image2D_maskregion_relative_factory
+# 2D IMAGES MASK
+# include("libraries/image2D/mask_image2D.jl")
+# import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
+# export experimental_bundle_image2D_mask_factory
+# import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
+# export experimental_bundle_image2D_maskregion_factory
+# import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_relative_factory
+# export experimental_bundle_image2D_maskregion_relative_factory
 
 # DEFAULT CALLBAKCS 
 include("fitters/default_callbacks.jl")

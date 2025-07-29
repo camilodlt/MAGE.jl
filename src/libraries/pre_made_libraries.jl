@@ -341,29 +341,37 @@ function get_string_bundles()
     return string_bundles
 end
 
-"""
-
-Image Bundles
-"""
-
-function get_image2D_factory_bundles()
+# IMAGES --- 
+function get_image2Dintensity_factory_bundles()
     bundle_images = [
-        bundle_image2D_basic_factory,
-        bundle_image2D_morph_factory,
-        bundle_image2D_binarize_factory,
-        bundle_image2D_segmentation_factory,
-        bundle_image2D_arithmetic_factory,
-        bundle_image2D_barithmetic_factory,
-        bundle_image2D_transcendental_factory,
-        bundle_image2D_filtering_factory,
+        bundle_image2DIntensity_basic_factory,
+        bundle_image2DIntensity_morph_factory, 
+        bundle_image2DIntensity_arithmetic_factory,
+        bundle_image2DIntensity_barithmetic_factory,
+        bundle_image2DIntensity_filtering_factory,
+        bundle_image2DIntensity_transcendental_factory,
         bundle_element_conditional_factory,
     ]
+    return deepcopy(bundle_images)
+end
 
-    # Update Casters && Fallbacks
-    # for b in bundle_images
-    # update_caster!(b, ())
-    # update_fallback!(b, () -> SImageND)
-    # end
+function get_image2Dbinary_factory_bundles()
+    bundle_images = [
+        bundle_image2DBinary_basic_factory,
+        bundle_image2DBinary_arithmetic_factory,
+        bundle_image2DBinary_binarize_factory,
+        bundle_image2DBinary_filtering_factory,
+        bundle_image2DBinary_morph_factory,
+        bundle_element_conditional_factory,
+    ]
+    return deepcopy(bundle_images)
+end
+
+function get_image2Dsegment_factory_bundles()
+    bundle_images = [
+        bundle_image2DSegment_basic_factory,
+        bundle_image2DSegment_segmentation_factory,
+    ]
     return deepcopy(bundle_images)
 end
 

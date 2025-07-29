@@ -1,416 +1,171 @@
+using Images
+using Statistics
+
 function load_test_image()
     test_img = UTCGP._convert_image_to_channel_view(testimage("mandrill"))
     test_img = test_img[1, :, :]
     return SImageND(test_img)
 end
 
+types_and_bundles = [
+    [IntensityPixel{N0f8}, BinaryPixel{Bool}, SegmentPixel{UInt8}],
+    [
+        bundle_image2DIntensity_basic_factory,
+        bundle_image2DBinary_basic_factory,
+        bundle_image2DSegment_basic_factory,
+    ],
+]
+types_and_bundles2 = [
+    [IntensityPixel{N0f8}, BinaryPixel{Bool}],
+    [bundle_image2DIntensity_basic_factory, bundle_image2DBinary_basic_factory],
+]
+
 @testset "Image2D Basic : Identity Factory" begin
-    @test begin
-        fn = UTCGP.bundle_image2D_basic_factory[:identity_image2D]
-        fn = fn.fn(SImageND{<:Tuple,N0f32,2})
-        expected_res = SImageND(ones(N0f32, 3, 3))
-        res = fn(expected_res)
-        res == expected_res
-    end
-    @test_throws MethodError begin # fails because wrong type
-        fn = UTCGP.bundle_image2D_basic_factory[:identity_image2D]
-        fn = fn.fn(SImageND{<:Tuple,N0f32,2})
-        expected_res = ones(N0f8, 3, 3)
-        res = fn(SImageND(expected_res))
-    end
-end
-
-@testset "Image2D Basic : Identity Factory Specific Size" begin
-    # TODO move to test SImageND
-    @test begin
-        fn = UTCGP.bundle_image2D_basic_factory[:identity_image2D]
-        fn = fn.fn(SImageND{Tuple{100,100},N0f32,2})
-        expected_res = ones(N0f32, 100, 100)
-        res = fn(SImageND(expected_res))
-        res == expected_res
-    end
-    @test_throws MethodError begin # fails because wrong type
-        fn = UTCGP.bundle_image2D_basic_factory[:identity_image2D]
-        fn = fn.fn(SImageND{Tuple{100,100},N0f32,2})
-        expected_res = SImageND(ones(N0f8, 3, 3))
-        res = fn(expected_res)
-    end
-end
-
-@testset "Image 2D Basic : Identity Default" begin
-    @test begin
-        # bundle import
-        using UTCGP: bundle_image2D_basic
-        length(bundle_image2D_basic) == 3 && _unique_names_in_bundle(bundle_image2D_basic)
-    end
-
-    # IDENTITY 
-    @test begin
-        test_img = load_test_image()
-        fn = bundle_image2D_basic[:identity_image2D].fn
-        UTCGP._verify_last_arg_is_vararg!(fn)
+    @testset for (ImageType, Bundle) in zip(types_and_bundles...)
+        test_img = UTCGP._generate_test_image(ImageType)
+        fn = Bundle[:identity_image2D]
+        fn = fn.fn(typeof(test_img))
         res = fn(test_img)
-        res == test_img
-    end
-
-end
-
-# ###################
-# # ONES            #
-# ###################
-@testset "Images 2D Ones(Img) Default" begin
-
-    dp = bundle_image2D_basic[:ones_2D].fn
-    # ONES AS
-    @test begin
-        test_img = load_test_image()
-        fn = which(dp, (typeof(test_img),))
-        UTCGP._verify_last_arg_is_vararg!(fn)
-        res = dp((test_img,))
-        size_ok = size(res) == size(test_img)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = eltype(nbs) == eltype(test_img)
-        size_ok && length_ok && type_ok
+        @test res == test_img
     end
 end
 
-@testset "Images 2D Ones(Img) Factory" begin
-
-    fn = bundle_image2D_basic_factory[:ones_2D].fn
-    dp = fn(SImageND{<:Tuple,N0f32,2})
-
-    # ONES AS errors bc img is N0F8
-    @test_throws MethodError begin
-        test_img = load_test_image()
-        fn = which(dp, (typeof(test_img),))
-        UTCGP._verify_last_arg_is_vararg!(fn)
-        res = dp((test_img,))
-    end
-
-    @test begin # now the type is correct
-        test_img = load_test_image()
-        test_img = SImageND(convert.(N0f32, test_img.img))
-        fn = which(dp, (typeof(test_img),))
-        UTCGP._verify_last_arg_is_vararg!(fn)
-        res = dp((test_img,))
-        size_ok = size(res) == size(test_img)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = eltype(nbs) == eltype(test_img)
-        size_ok && length_ok && type_ok
+@testset "Image2D Basic : Ones Factory" begin
+    @testset for (ImageType, Bundle) in zip(types_and_bundles...)
+        test_img = UTCGP._generate_test_image(ImageType)
+        fn = Bundle[:ones_2D]
+        fn = fn.fn(typeof(test_img))
+        res = fn(test_img)
+        @test all(res .== 1)
     end
 end
 
-@testset "Images 2D Ones(k) Default" begin
-
-    dp = bundle_image2D_basic[:ones_2D].fn # N0f8
-
-    # ONES(K) :: Integer
-    @test begin
-        res = dp((3,)) # for int gives 255
-        size_ok = size(res) == (3, 3)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = reinterpret(UInt8, nbs[1]) == 0xff # 255
-        size_ok && type_ok && length_ok
+@testset "Image2D Basic : Zeros Factory" begin
+    @testset for (ImageType, Bundle) in zip(types_and_bundles...)
+        test_img = UTCGP._generate_test_image(ImageType)
+        fn = Bundle[:zeros_2D]
+        fn = fn.fn(typeof(test_img))
+        res = fn(test_img)
+        @test all(res .== 0)
     end
+end
 
-    @test begin # check args
-        fn = which(dp, (typeof(3),))
-        UTCGP._verify_last_arg_is_vararg!(fn)
-        true
+@testset "Image2D Basic : Invert Factory" begin
+    @testset for (ImageType, Bundle) in zip(types_and_bundles2...)
+        test_img = UTCGP._generate_test_image(ImageType)
+        fn = Bundle[:experimental_invert_2D]
+        fn = fn.fn(typeof(test_img))
+        res = fn(test_img)
+
+        # Convert test_img to float64 and apply the inversion and clamping
+        expected_res = abs.(1.0 .- float64.(test_img))
+        clamp01nan!(expected_res)
+        expected_res = ImageType.(expected_res)
+
+        # Compare the result with the expected result
+        @test all(res .== expected_res)
     end
+end
 
-    # ONES(K) Clamped at floor
-    @test begin
-        res = dp((-1,)) # not allowed -
-        size(res) == (1, 1) && sum(res) == 1
+@testset "Image2D Basic : Normalize Factory" begin
+    @testset begin
+        test_img = UTCGP._generate_test_image(IntensityPixel{N0f8})
+        fn = bundle_image2DIntensity_basic_factory[:experimental_normalize_2D]
+        fn = fn.fn(typeof(test_img))
+        res = fn(test_img)
+        @test all(0 .<= res .<= 1)
     end
+end
 
-    # ONES(K) Clamped by globals
-    @test begin
-        prev = UTCGP.MAX_INT[]
-        prev_c = UTCGP.CONSTRAINED[]
-        UTCGP.MAX_INT[] = 3
-        UTCGP.CONSTRAINED[] = true
-        cond = false
-        try
-            res = dp((100,)) # not allowed -
-            cond = size(res) == (3, 3) && sum(res) == 3 * 3
-        catch e
-            cond = false
-            throw(e)
-        finally
-            UTCGP.MAX_INT[] = prev
-            UTCGP.CONSTRAINED[] = prev_c
+@testset "Image2D Basic : Standardize Factory" begin
+    @testset begin
+        test_img = UTCGP._generate_test_image(IntensityPixel{N0f8})
+        fn = bundle_image2DIntensity_basic_factory[:experimental_standardize_2D]
+        fn = fn.fn(typeof(test_img))
+        res = fn(test_img)
+        old_mean = mean(test_img)
+        new_mean = mean(res)
+        @test old_mean != new_mean
+    end
+end
+
+@testset "Image2D Basic : ToBinary Factory" begin
+    @testset for ImageType in [IntensityPixel{N0f8}, SegmentPixel{UInt8}]
+        t = BinaryPixel{Bool}
+        as_img = UTCGP._generate_test_image(t)
+        test_img = UTCGP._generate_test_image(ImageType)
+        fn = bundle_image2DBinary_basic_factory[:experimental_tobinary_image2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
+        if ImageType == IntensityPixel{N0f8}
+            @test all(res .== BinaryPixel.(test_img .> 0))
+        else
+            @test all(res .== BinaryPixel.(test_img .!= 1))
         end
-        cond
-    end
-
-end
-
-@testset "Images 2D Ones(k) Factory" begin
-
-    fn = bundle_image2D_basic_factory[:ones_2D].fn
-    dp = fn(SImageND{<:Tuple,N0f32,2})
-
-    @test_throws ArgumentError begin
-        res = dp((3,)) # for int gives 255
-        size_ok = size(res) == (3, 3)
-        nbs = unique(res)
-        reinterpret(UInt8, nbs[1]) # errors bc return is N0F32
-    end
-
-    # ONES(K) expected return is N0f32
-    @test begin
-        res = dp((3,)) # for int gives 255
-        size_ok = size(res) == (3, 3)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = reinterpret(UInt32, nbs[1]) == 0xffffffff # bc N0F32
-        size_ok && type_ok && length_ok
     end
 end
 
-@testset "Images 2D Ones(k,k) Default" begin
+@testset "Image2D Basic : ToIntensity Factory" begin
+    @testset begin
+        from = SegmentPixel{UInt8}
+        to = IntensityPixel{N0f8}
+        as_img = UTCGP._generate_test_image(to)
+        test_img = UTCGP._generate_test_image(from)
 
-    dp = bundle_image2D_basic[:ones_2D].fn
+        fn = bundle_image2DIntensity_basic_factory[:experimental_tointensity_image2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
 
-    # ONES(K,K)
+        # Calculate the expected result by normalizing the segment values
+        r = float.(test_img)
+        max_ = maximum(r)
+        r .= r ./ max_
+        expected_res = IntensityPixel{N0f8}.(r)
+
+        # Compare the result with the expected normalized intensity values
+        @test all(res .== expected_res)
+    end
     @test begin
-        res = dp((3, 10)) # for int gives 255
-        size_ok = size(res) == (3, 10)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = reinterpret(UInt8, nbs[1]) == 0xff # 255
-        size_ok && type_ok && length_ok
-    end
+        from = BinaryPixel{Bool}
+        to = IntensityPixel{N0f8}
+        as_img = UTCGP._generate_test_image(to)
+        test_img = UTCGP._generate_test_image(from)
 
-    @test begin # check args
-        fn = which(dp, (Int, Int))
-        UTCGP._verify_last_arg_is_vararg!(fn)
-        true
-    end
+        fn = bundle_image2DIntensity_basic_factory[:experimental_tointensity_image2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
 
-    # ONES(K,K) Clamped at floor
-    @test begin
-        res = dp((-1, -1)) # not allowed -
-        size(res) == (1, 1) && sum(res) == 1
-    end
+        # Check that the result is of the correct type
+        @test eltype(res) == IntensityPixel{N0f8}
 
-    # ONES(K,K) Clamped by globals
-    @test begin
-        prev = UTCGP.MAX_INT[]
-        prev_c = UTCGP.CONSTRAINED[]
-        UTCGP.MAX_INT[] = 3
-        UTCGP.CONSTRAINED[] = true
-        cond = false
-        try
-            res = dp((100, 2)) # not allowed -
-            cond = size(res) == (3, 2) && sum(res) == 3 * 2
-        catch e
-            cond = false
-            throw(e)
-        finally
-            UTCGP.MAX_INT[] = prev
-            UTCGP.CONSTRAINED[] = prev_c
-        end
-        cond
-    end
+        # Check that all values in the result are either 0 or 1
+        @test all(x -> x == 0 || x == 1, res)
 
-end
-
-###################
-# ZEROS           #
-###################
-
-@testset "Images 2D zeros(img) Default" begin
-
-    dp = bundle_image2D_basic[:zeros_2D].fn
-
-    # ZEROS AS
-    @test begin
-        test_img = load_test_image()
-        res = dp((test_img,))
-        size_ok = size(res) == size(test_img)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = eltype(nbs) == eltype(test_img)
-        size_ok && length_ok && type_ok && sum(res) == 0
-    end
-
-    @test begin # check args
-        fn = which(dp, (Int, Int))
-        UTCGP._verify_last_arg_is_vararg!(fn)
+        # Check that the binary structure is preserved
+        @test all(res .=== IntensityPixel{N0f8}.(Int.(test_img)))
         true
     end
 end
 
-@testset "Images 2D zeros(img) Factory" begin
+@testset "Image2D Basic : ToSegment Factory" begin
+    @testset begin
+        from = BinaryPixel{Bool}
+        to = SegmentPixel{UInt8}
+        as_img = UTCGP._generate_test_image(to)
+        test_img = UTCGP._generate_test_image(from)
 
-    fn = bundle_image2D_basic_factory[:zeros_2D].fn
-    dp = fn(SImageND{<:Tuple,N0f32,2})
+        fn = bundle_image2DSegment_basic_factory[:experimental_tosegment_image2D]
+        fn = fn.fn(typeof(as_img))
+        res = fn(test_img)
 
-    # ZEROS AS
-    @test_throws MethodError begin # expected N0f32
-        test_img = load_test_image()
-        res = dp((test_img,))
-    end
-    @test begin
-        test_img = load_test_image()
-        test_img = SImageND(convert.(N0f32, test_img.img))
-        res = dp((test_img,))
-        size_ok = size(res) == size(test_img)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = eltype(nbs) == eltype(test_img)
-        size_ok && length_ok && type_ok && sum(res) == 0
-    end
+        # Check that the result is of the correct type
+        @test eltype(res) == SegmentPixel{UInt8}
 
-end
+        # Check that all values in the result are either 0 or 1
+        @test all(x -> x == 0 || x == 1, res)
 
-@testset "Images 2D zeros(K) Default" begin
-
-    dp = bundle_image2D_basic[:zeros_2D].fn
-
-    # ZEROS(K) :: Integer
-    @test begin
-        res = dp((3,)) # for int gives 0
-        size_ok = size(res) == (3, 3)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = reinterpret(UInt8, nbs[1]) == 0x00 # 0
-        size_ok && type_ok && length_ok
-    end
-
-    @test begin # check args
-        fn = which(dp, (Int,))
-        UTCGP._verify_last_arg_is_vararg!(fn)
+        # Check that the binary structure is preserved
+        @test all(res .=== SegmentPixel{UInt8}.(Int.(test_img)))
         true
-    end
-
-    # ZEROS(K) Clamped at floor
-    @test begin
-        res = dp((-1,)) # not allowed -
-        size(res) == (1, 1) && sum(res) == 0
-    end
-
-    # ZEROS(K) Clamped by globals
-    @test begin
-        prev = UTCGP.MAX_INT[]
-        prev_c = UTCGP.CONSTRAINED[]
-        UTCGP.MAX_INT[] = 3
-        UTCGP.CONSTRAINED[] = true
-        cond = false
-        try
-            res = dp((100,)) # not allowed -
-            cond = size(res) == (3, 3) && sum(res) == 0
-        catch e
-            cond = false
-            throw(e)
-        finally
-            UTCGP.MAX_INT[] = prev
-            UTCGP.CONSTRAINED[] = prev_c
-        end
-        cond
-    end
-
-end
-
-@testset "Image 2D zeros(K) Factory" begin
-
-    fn = bundle_image2D_basic_factory[:zeros_2D].fn
-    dp = fn(SImageND{<:Tuple,N0f32,2})
-
-    # ZEROS(K) erros bc type is UInt32
-    @test_throws ArgumentError begin
-        res = dp((3,)) # for int gives 0
-        size_ok = size(res) == (3, 3)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        reinterpret(UInt8, nbs[1])
-    end
-
-    # ZEROS(K) type is ok
-    @test begin
-        res = dp((3,)) # for int gives 0
-        size_ok = size(res) == (3, 3)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = reinterpret(UInt32, nbs[1]) == 0x00000000 # 0
-        size_ok && length_ok && type_ok
-    end
-end
-
-@testset "Image 2D zeros(K,k) Default" begin
-
-    dp = bundle_image2D_basic[:zeros_2D].fn # default is N0f8
-
-    # ZEROS(K,K)
-    @test begin
-        res = dp((3, 10)) # for int gives 0
-        size_ok = size(res) == (3, 10)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = reinterpret(UInt8, nbs[1]) == 0x00 # 255
-        size_ok && type_ok && length_ok
-    end
-
-    @test begin # check args
-        fn = which(dp, (Int, Int))
-        UTCGP._verify_last_arg_is_vararg!(fn)
-        true
-    end
-
-    # ZEROS(K,K) Clamped at floor
-    @test begin
-        res = dp((-1, -1)) # not allowed -
-        size(res) == (1, 1) && sum(res) == 0
-    end
-
-    # ZEROS(K,K) Clamped by globals
-    @test begin
-        prev = UTCGP.MAX_INT[]
-        prev_c = UTCGP.CONSTRAINED[]
-        UTCGP.MAX_INT[] = 3
-        UTCGP.CONSTRAINED[] = true
-        cond = false
-        try
-            res = dp((100, 2)) # not allowed -
-            cond = size(res) == (3, 2) && sum(res) == 0
-        catch e
-            cond = false
-            throw(e)
-        finally
-            UTCGP.MAX_INT[] = prev
-            UTCGP.CONSTRAINED[] = prev_c
-        end
-        cond
-    end
-end
-
-@testset "Image 2D zeros(K,k) Factory" begin
-
-    fn = bundle_image2D_basic_factory[:zeros_2D].fn
-    dp = fn(SImageND{<:Tuple,N0f32,2})
-
-    # ZEROS(K,K)
-    @test_throws ArgumentError begin # errors bc type is not UINT8
-        res = dp((3, 10)) # for int gives 0
-        size_ok = size(res) == (3, 10)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        reinterpret(UInt8, nbs[1])
-    end
-
-    # ZEROS(K,K)
-    @test begin
-        res = dp((3, 10)) # for int gives 0
-        size_ok = size(res) == (3, 10)
-        nbs = unique(res)
-        length_ok = length(nbs) == 1
-        type_ok = reinterpret(UInt32, nbs[1]) == 0x00000000
-        size_ok && length_ok && type_ok
     end
 end

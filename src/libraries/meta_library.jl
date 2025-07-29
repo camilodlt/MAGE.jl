@@ -20,15 +20,15 @@ struct Library <: AbstractLibrary
     library::Vector{FunctionWrapper}
 
     @doc """
-         Library(bundles::Vector{FunctionBundle})
+        Library(bundles::Vector{FunctionBundle})
 
-     Creates a library adding all function bundles. 
+    Creates a library adding all function bundles. 
 
-     The vector of FunctionBundles is `deepcopy`ed so that changes to that vector 
-     don't affect the Library. 
+    The vector of FunctionBundles is `deepcopy`ed so that changes to that vector 
+    don't affect the Library. 
 
-     The internal library of FunctionWrappers is empty.
-     """
+    The internal library of FunctionWrappers is empty.
+    """
     function Library(bundles::Vector{FunctionBundle})
         return new(deepcopy(bundles), [])
     end
@@ -83,6 +83,19 @@ function Base.getindex(library::AbstractLibrary, name::Symbol)
             return fn
         end
     end
+    return
+end
+
+function get_index_from_symbol(library::AbstractLibrary, name::Symbol)
+    idx = 1
+    for fn in library
+        if fn.name == name
+            return idx
+        end
+        idx += 1
+    end
+    throw("Fn $name not found")
+    return
 end
 
 """
@@ -135,9 +148,9 @@ Useful for reproducibility.
 The vector can be asked as a vector of strings or a vector of symbols. 
 """
 function list_functions_names(
-    library::Library;
-    symbol::Bool = false,
-)::Union{Vector{Symbol},Vector{String}}
+        library::Library;
+        symbol::Bool = false,
+    )::Union{Vector{Symbol}, Vector{String}}
     names = []
     for fn in library.library
         name_ = fn.name
@@ -163,7 +176,6 @@ end
 #     end
 #     throw(KeyError("Library does not have $name function"))
 # end # TODO doc and test
-
 
 
 ####################
@@ -253,5 +265,3 @@ Iterates over all libraries in the MetaLibrary
 """
 Base.iterate(ml::AbstractMetaLibrary, state = 1) =
     state > length(ml.libraries) ? nothing : (ml.libraries[state], state + 1)
-
-
