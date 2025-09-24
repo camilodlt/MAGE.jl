@@ -23,7 +23,7 @@ import UTCGP:
     _positive_params,
     _ceil_positive_params
 using ..UTCGP:
-    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type, 
+    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel, SegmentPixel
 
 using Images, ImageSegmentation, Statistics
@@ -32,29 +32,41 @@ using ImageSegmentation, Statistics
 using DelaunayTriangulation
 using Graphs
 using Random
+using DispatchDoctor
 # using GraphPlot, Colors
 
 function make_graph_from_binary_img(img)
     labelized = label_components(img)
     labels = unique(labelized)
 
+    if length(labels) <= 2
+        throw(DimensionMismatch("Only two centers for triangulation"))
+    end
+
     centroids = Dict()
     centroids_mapping = Dict()
-    for (i,label) in enumerate(labels)
-       # Find all pixels with this label
-       indices = findall(labelized .== label)
-       # Convert to row, column coordinates
-       coords = [(ind[1], ind[2]) for ind in indices]
-       # Calculate centroid
-       y_coords = [c[1] for c in coords]
-       x_coords = [c[2] for c in coords]
-       centroids[label] = (mean(y_coords), mean(x_coords))
-       centroids_mapping[i] = label
-   end
+    for (i, label) in enumerate(labels)
+        # Find all pixels with this label
+        indices = findall(labelized .== label)
+        # Convert to row, column coordinates
+        coords = [(ind[1], ind[2]) for ind in indices]
+        # Calculate centroid
+        y_coords = [c[1] for c in coords]
+        x_coords = [c[2] for c in coords]
+        centroids[label] = (mean(y_coords), mean(x_coords))
+        centroids_mapping[i] = label
+    end
     cell_centers = collect(values(centroids))
     n_cells = length(cell_centers)
     points = [(Float64(p[1]), Float64(p[2])) for p in cell_centers]
-    tri = triangulate(points; rng=Xoshiro(0), predicates=DelaunayTriangulation.FastKernel())
+    t = @elapsed tri = triangulate(points; rng = Xoshiro(0), predicates = DelaunayTriangulation.FastKernel())
+    if n_cells > 100
+        @warn "A lot of points $n_cells : time $t"
+
+        if isdefined(Main, :Infiltrator)
+            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+        end
+    end
 
     # Extract edges from triangulation to create a graph
     edges = Set{Tuple{Int, Int}}()
@@ -70,11 +82,14 @@ function make_graph_from_binary_img(img)
         Graphs.add_edge!(g, i, j)
     end
 
-    g, centroids, centroids_mapping, cell_centers, labelized
+    if isdefined(Main, :Infiltrator)
+        Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+    end
+    return g, centroids, centroids_mapping, cell_centers, labelized
 end
 
 
-fallback(args...) = return 0.
+fallback(args...) = return 0.0
 
 bundle_float_imagegraph = FunctionBundle(fallback)
 
@@ -93,72 +108,84 @@ fns = [
     stress_centrality,
     local_clustering_coefficient,
     triangles,
-    eccentricity
+    eccentricity,
 ]
 for metric in fns
     for (stat_name, stat) in zip(
-                                 ["mean", "median", "minimum", "maximum", "std"],
-                                 [mean, median, minimum, maximum, std]
-                             )
+            ["mean", "median", "minimum", "maximum", "std"],
+            [mean, median, minimum, maximum, std]
+        )
         name = Symbol("$(stat_name)$(metric)_float_factory")
         @show name
-        @eval function $name(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-               g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-               $metric(g) |> $(stat_name)
+        @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+            t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+            t2 = @elapsed res = $metric(g) |> $(stat)
+            return res
         end
     end
 
     name = Symbol("xCoorArgmax$(metric)_float_factory")
     @show name
-    @eval function $name(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-           g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-           which = $metric(g) |> argmax
-           centers[which][1]
+    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+        t2 = @elapsed which = $metric(g) |> argmax
+        res = centers[which][1]
+        return res
     end
-    
+
     name = Symbol("yCoorArgmax$(metric)_float_factory")
     @show name
-    @eval function $name(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-           g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-           which = $metric(g) |> argmax
-           centers[which][2]
+    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+        t2 = @elapsed which = $metric(g) |> argmax
+        return centers[which][2]
     end
 
     name = Symbol("xCoorArgmin$(metric)_float_factory")
     @show name
-    @eval function $name(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-           g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-           which = $metric(g) |> argmin
-           centers[which][1]
+    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+        t2 = @elapsed which = $metric(g) |> argmin
+        res = centers[which][1]
+        return res
     end
-    
+
     name = Symbol("yCoorArgmin$(metric)_float_factory")
     @show name
-    @eval function $name(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-           g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-           which = $metric(g) |> argmin
-           centers[which][2]
+    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+        t2 = @elapsed which = $metric(g) |> argmin
+        res = centers[which][2]
+        return res
     end
 end
 
 # SOME COEFFS ---
-function assortativity_float_factory(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-       g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-       assortativity(g)
+@stable function assortativity_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+    t2 = @elapsed res = assortativity(g)
+
+    return res
 end
-function global_clustering_coefficient_float_factory(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-       g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-       global_clustering_coefficient(g)
+@stable function global_clustering_coefficient_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+    t2 = @elapsed res = global_clustering_coefficient(g)
+
+    return res
 end
-function diameter_float_factory(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-       g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-       diameter(g)
+@stable function diameter_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+    t2 = @elapsed res = diameter(g)
+
+    return res
 end
 
 # SPECIAL COMMUNITIES
-function label_propagation_factory(img::SizedImage{S,<:BinaryPixel}, args::Vararg{Any}) where S
-       g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-       label_propagation(g)[1] |> unique |> length # nb of communities
+@stable function label_propagation_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
+    t2 = @elapsed res = label_propagation(g)[1] |> unique |> length # nb of communities
+
+    return res
 end
 
 # BUNDLES --- ---
@@ -242,25 +269,25 @@ append_method!(bundle_float_imagegraph, yCoorArgmaxstress_centrality_float_facto
 append_method!(bundle_float_imagegraph, xCoorArgminstress_centrality_float_factory, :xcoorargminstresscentrality)
 append_method!(bundle_float_imagegraph, yCoorArgminstress_centrality_float_factory, :ycoorargminstresscentrality)
 
-append_method!(bundle_float_imagegraph, meanlocal_clustering_coefficient_float_factory,:meanclusteringcoefficient)
-append_method!(bundle_float_imagegraph, medianlocal_clustering_coefficient_float_factory,:medianclusteringcoefficient)
-append_method!(bundle_float_imagegraph, minimumlocal_clustering_coefficient_float_factory,:minimumclusteringcoefficient)
-append_method!(bundle_float_imagegraph, maximumlocal_clustering_coefficient_float_factory,:maximumclusteringcoefficient)
-append_method!(bundle_float_imagegraph, stdlocal_clustering_coefficient_float_factory,:stdclusteringcoefficient)
-append_method!(bundle_float_imagegraph, xCoorArgmaxlocal_clustering_coefficient_float_factory,:xcoorargmaxclusteringcoefficient)
-append_method!(bundle_float_imagegraph, yCoorArgmaxlocal_clustering_coefficient_float_factory,:ycoorargmaxclusteringcoefficient)
-append_method!(bundle_float_imagegraph, xCoorArgminlocal_clustering_coefficient_float_factory,:xcoorargminclusteringcoefficient)
-append_method!(bundle_float_imagegraph, yCoorArgminlocal_clustering_coefficient_float_factory,:ycoorargminclusteringcoefficient)
+append_method!(bundle_float_imagegraph, meanlocal_clustering_coefficient_float_factory, :meanclusteringcoefficient)
+append_method!(bundle_float_imagegraph, medianlocal_clustering_coefficient_float_factory, :medianclusteringcoefficient)
+append_method!(bundle_float_imagegraph, minimumlocal_clustering_coefficient_float_factory, :minimumclusteringcoefficient)
+append_method!(bundle_float_imagegraph, maximumlocal_clustering_coefficient_float_factory, :maximumclusteringcoefficient)
+append_method!(bundle_float_imagegraph, stdlocal_clustering_coefficient_float_factory, :stdclusteringcoefficient)
+append_method!(bundle_float_imagegraph, xCoorArgmaxlocal_clustering_coefficient_float_factory, :xcoorargmaxclusteringcoefficient)
+append_method!(bundle_float_imagegraph, yCoorArgmaxlocal_clustering_coefficient_float_factory, :ycoorargmaxclusteringcoefficient)
+append_method!(bundle_float_imagegraph, xCoorArgminlocal_clustering_coefficient_float_factory, :xcoorargminclusteringcoefficient)
+append_method!(bundle_float_imagegraph, yCoorArgminlocal_clustering_coefficient_float_factory, :ycoorargminclusteringcoefficient)
 
 append_method!(bundle_float_imagegraph, meantriangles_float_factory, :meantriangles)
 append_method!(bundle_float_imagegraph, mediantriangles_float_factory, :mediantriangles)
-append_method!(bundle_float_imagegraph, minimumtriangles_float_factory,:minimumtriangles)
-append_method!(bundle_float_imagegraph, maximumtriangles_float_factory,:maximumtriangles)
-append_method!(bundle_float_imagegraph, stdtriangles_float_factory,:stdtriangles)
-append_method!(bundle_float_imagegraph, xCoorArgmaxtriangles_float_factory,:xcoorargmaxtriangles)
-append_method!(bundle_float_imagegraph, yCoorArgmaxtriangles_float_factory,:ycoorargmaxtriangles)
-append_method!(bundle_float_imagegraph, xCoorArgmintriangles_float_factory,:xcoorargmintriangles)
-append_method!(bundle_float_imagegraph, yCoorArgmintriangles_float_factory,:ycoorargmintriangles)
+append_method!(bundle_float_imagegraph, minimumtriangles_float_factory, :minimumtriangles)
+append_method!(bundle_float_imagegraph, maximumtriangles_float_factory, :maximumtriangles)
+append_method!(bundle_float_imagegraph, stdtriangles_float_factory, :stdtriangles)
+append_method!(bundle_float_imagegraph, xCoorArgmaxtriangles_float_factory, :xcoorargmaxtriangles)
+append_method!(bundle_float_imagegraph, yCoorArgmaxtriangles_float_factory, :ycoorargmaxtriangles)
+append_method!(bundle_float_imagegraph, xCoorArgmintriangles_float_factory, :xcoorargmintriangles)
+append_method!(bundle_float_imagegraph, yCoorArgmintriangles_float_factory, :ycoorargmintriangles)
 
 append_method!(bundle_float_imagegraph, meaneccentricity_float_factory, :meaneccentricity)
 append_method!(bundle_float_imagegraph, medianeccentricity_float_factory, :medianeccentricity)
@@ -277,13 +304,13 @@ append_method!(bundle_float_imagegraph, assortativity_float_factory, :assortativ
 append_method!(bundle_float_imagegraph, global_clustering_coefficient_float_factory, :clustering_coefficient)
 append_method!(bundle_float_imagegraph, diameter_float_factory, :diameter)
 
-# COMMUNITIES --- 
+# COMMUNITIES ---
 append_method!(bundle_float_imagegraph, label_propagation_factory, :label_propagation)
 
 end
 
 
-# GRAPH BUT FOR IMAGE --- TODO 
+# GRAPH BUT FOR IMAGE --- TODO
 # fns = [
 #     betweenness_centrality,
 #     closeness_centrality,
@@ -299,13 +326,13 @@ end
 # ]
 # FOR BINARY LIB
 
-# KEEP IF ABOVE 
+# KEEP IF ABOVE
 # mask = eigenvector_centrality(g) .> 0.1
 # keep = collect(1:length(vertices(g)))[mask]
 # segments = [centroids_mapping[k] for k in keep]
 # remove other segments
 # for (ith_p, p) in enumerate(labelized)
-#     if !(p in segments) 
+#     if !(p in segments)
 #         labelized[ith_p] = 0
 #     end
 # end
@@ -317,14 +344,14 @@ end
 # segments = [centroids_mapping[k] for k in keep]
 # remove other segments
 # for (ith_p, p) in enumerate(labelized)
-#     if !(p in segments) 
+#     if !(p in segments)
 #         labelized[ith_p] = 0
 #     end
 # end
 # tobin :SImageND(BinaryPixel.(labelized .> 1))
 
-# KEEP IF 
-# periphery # => keep highest eccentricity 
+# KEEP IF
+# periphery # => keep highest eccentricity
 # center # => keep smallest eccentricity
 
 # COMMUNITY DETECTION

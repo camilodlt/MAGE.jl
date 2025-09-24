@@ -68,8 +68,8 @@ end
 Mutates the whole population
 """
 function me_numbered_new_material_mutation_callback(
-    args::Abstract_ME_MUTATION_ARGS,
-)::Option{Population}
+        args::Abstract_ME_MUTATION_ARGS,
+    )::Option{Population}
     Config = args.run_config
     # fs = fieldnames(typeof(Config))
     Pop = args.population
@@ -101,22 +101,22 @@ function me_decoding_callback(decode_args::ME_DECODE_ARGS)::PopulationPrograms
 end
 
 function me_decoding_callback(
-    population::Population,
-    generation::Int,
-    run_config::AbstractRunConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-)::PopulationPrograms
+        population::Population,
+        generation::Int,
+        run_config::AbstractRunConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+    )::PopulationPrograms
     # Decoding all programs
     population_programs = [
         decode_with_output_nodes(
-            individual,
-            meta_library,
-            model_architecture,
-            shared_inputs,
-        ) for individual in population
+                individual,
+                meta_library,
+                model_architecture,
+                shared_inputs,
+            ) for individual in population
     ]
 
     return PopulationPrograms(population_programs)
@@ -129,10 +129,10 @@ end
 """
 """
 function _make_me_population(
-    me_args::ME_POP_ARGS,
-    population_callbacks,
-    args...,
-)::Option{Tuple{Population,Float64}}
+        me_args::ME_POP_ARGS,
+        population_callbacks,
+        args...,
+    )::Option{Tuple{Population, Float64}}
     t = []
     for population_callback in population_callbacks
         fn = get_fn_from_symbol(population_callback)
@@ -150,10 +150,10 @@ end
 """
 """
 function _make_me_mutations!(
-    me_args::ME_MUTATION_ARGS,
-    mutation_callbacks,
-    args...,
-)::Option{Tuple{Population,Float64}}
+        me_args::ME_MUTATION_ARGS,
+        mutation_callbacks,
+        args...,
+    )::Option{Tuple{Population, Float64}}
     t = []
     for mutation_callback in mutation_callbacks
         fn = get_fn_from_symbol(mutation_callback)
@@ -167,22 +167,23 @@ function _make_me_mutations!(
 end
 
 function _make_epoch_callbacks_calls(
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
-    archive::MapelitesRepertoire,
-    population::Population,
-    generation::Int,
-    run_config::AbstractRunConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-    programs::PopulationPrograms,
-    best_loss::Union{Nothing,Float64,Vector{Float64}},
-    best_program::Union{Nothing,IndividualPrograms,Vector{IndividualPrograms}},
-    elite_idx::Union{Nothing,Int,Vector{Int}},
-    Batch::Union{SubArray,Nothing},
-    epoch_callbacks::FN_TYPE,
-)::Float64
+        ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}},
+        archive::MapelitesRepertoire,
+        population::Population,
+        generation::Int,
+        run_config::AbstractRunConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+        programs::PopulationPrograms,
+        best_loss::Union{Nothing, Float64, Vector{Float64}},
+        best_program::Union{Nothing, IndividualPrograms, Vector{IndividualPrograms}},
+        elite_idx::Union{Nothing, Int, Vector{Int}},
+        Batch::Union{SubArray, Nothing},
+        epoch_callbacks::FN_TYPE;
+        extras::Dict = Dict()
+    )::Float64
     t = []
     for epoch_callback in epoch_callbacks
         fn = epoch_callback isa Symbol ? get_fn_from_symbol(epoch_callback) : epoch_callback
@@ -200,7 +201,8 @@ function _make_epoch_callbacks_calls(
             best_loss,
             best_program,
             elite_idx,
-            Batch,
+            Batch;
+            extras = extras
         )
         push!(t, t_e)
     end
@@ -290,5 +292,3 @@ end
 #     @info "Eval Budget. Curr budget : $(obj.cur_budget)"
 #     return decision
 # end
-
-

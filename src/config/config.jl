@@ -13,11 +13,11 @@ struct nodeConfig
     arity::Int
     offset_by::Int
     function nodeConfig(
-        n_nodes::Int,
-        connection_temperature::Int,
-        arity::Int,
-        offset_by::Int,
-    )
+            n_nodes::Int,
+            connection_temperature::Int,
+            arity::Int,
+            offset_by::Int,
+        )
         @assert connection_temperature >= 1
         @assert arity >= 1
         @assert offset_by >= 1
@@ -45,17 +45,17 @@ case is rare
         outputs_types_idx::Vector{Int})
 """
 struct modelArchitecture
-    inputs_types::Vector{<:T} where {T<:Type}
+    inputs_types::Vector{<:T} where {T <: Type}
     inputs_types_idx::Vector{Int}
-    chromosomes_types::Vector{<:T} where {T<:Type}
-    outputs_types::Vector{<:T} where {T<:Type}
+    chromosomes_types::Vector{<:T} where {T <: Type}
+    outputs_types::Vector{<:T} where {T <: Type}
     outputs_types_idx::Vector{Int}
 end
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 # ################# RUN CONF ################### #
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ # 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
 abstract type AbstractRunConf end
 abstract type AbstractRunConfTrait end
@@ -82,15 +82,15 @@ end
 function _verif_config_ga(n_elite::Int, n_new::Int, tournament_size::Int)::Option{Int}
     @assert n_elite >= 1 "The elite truncation needs to involve more than 1 individual"
     @assert n_new >= 1 "The 'extra' population has to be > 1"
-    @assert tournament_size <= n_elite "The tournament has to involve at most the number of elite individuals ($tournament_size should be <= $n_elite)"
+    # @assert tournament_size <= n_elite "The tournament has to involve at most the number of elite individuals ($tournament_size should be <= $n_elite)"
     @assert tournament_size >= 1 "The tournament has to involve at least one elite individual"
-    some(1)
+    return some(1)
 end
 
 function _info_config_ga(n_elite::Int, n_new::Int, tournament_size::Int)
     pop = n_elite + n_new
     @info "Run conf with a pop of $pop (Elite: $n_elite, Other : $n_new)."
-    @info "Run conf with tournament size of $tournament_size"
+    return @info "Run conf with tournament size of $tournament_size"
 end
 
 """
@@ -113,17 +113,17 @@ struct RunConfGA <: AbstractRunConf
     output_mutation_rate::Float64
     generations::Int
     function RunConfGA(
-        n_elite::Int,
-        n_new::Int,
-        tournament_size::Int,
-        mutation_rate::Float64,
-        output_mutation_rate::Float64,
-        generations::Int,
-    )
+            n_elite::Int,
+            n_new::Int,
+            tournament_size::Int,
+            mutation_rate::Float64,
+            output_mutation_rate::Float64,
+            generations::Int,
+        )
         _verif_config_ga(n_elite, n_new, tournament_size)
         _info_config_ga(n_elite, n_new, tournament_size)
         @assert generations >= 1 "At least one iteration"
-        new(
+        return new(
             n_elite,
             n_new,
             tournament_size,
@@ -162,22 +162,22 @@ struct RunConfCrossOverGA <: AbstractRunConf
     output_mutation_rate::Float64
     generations::Int
     function RunConfCrossOverGA(
-        n_elite::Int,
-        n_new::Int,
-        tournament_size::Int,
-        mutation_n_active_nodes::Int,
-        mutation_prob::Float64,
-        crossover_prob::Float64,
-        output_mutation_rate::Float64,
-        generations::Int,
-    )
+            n_elite::Int,
+            n_new::Int,
+            tournament_size::Int,
+            mutation_n_active_nodes::Int,
+            mutation_prob::Float64,
+            crossover_prob::Float64,
+            output_mutation_rate::Float64,
+            generations::Int,
+        )
         _verif_config_ga(n_elite, n_new, tournament_size)
         _info_config_ga(n_elite, n_new, tournament_size)
         @assert 0.0 < mutation_prob <= 1.0 "Mutation Prob has to be greater than 0 and at most 1. Got $mutation_prob "
         @assert mutation_n_active_nodes >= 1 "Mutation_n_active_nodes has to be greater than 1. Got $(mutation_n_active_nodes)"
         @assert 0.0 < crossover_prob <= 1.0 "Crossover Prob has to be greater than 0 and at most 1. Got $(crossover_prob)"
         @assert generations >= 1 "At least one iteration"
-        new(
+        return new(
             n_elite,
             n_new,
             tournament_size,
@@ -228,18 +228,18 @@ struct RunConfNSGA2 <: AbstractRunConf
     output_mutation_rate::Float64
     generations::Int
     function RunConfNSGA2(
-        pop_size::Int,
-        tournament_size::Int,
-        mutation_rate::Float64,
-        output_mutation_rate::Float64,
-        generations::Int,
-    )
+            pop_size::Int,
+            tournament_size::Int,
+            mutation_rate::Float64,
+            output_mutation_rate::Float64,
+            generations::Int,
+        )
         @assert tournament_size >= 1 "The tournament has to involve at least one individual"
         @assert tournament_size < pop_size "Tournament size must be smaller than population size"
         @assert generations >= 1 "At least one iteration"
         @info "Run conf with a pop of $pop_size"
         @info "Run conf with tournament size of $tournament_size"
-        new(pop_size, tournament_size, mutation_rate, output_mutation_rate, generations)
+        return new(pop_size, tournament_size, mutation_rate, output_mutation_rate, generations)
     end
 end
 
@@ -262,14 +262,14 @@ struct RunConfME <: AbstractRunConf
     output_mutation_rate::Float64
     generations::Int
     function RunConfME(
-        centroids::Vector{Vector{Float64}},
-        sample_size::Int,
-        mutation_rate::Float64,
-        output_mutation_rate::Float64,
-        generations::Int,
-    )
+            centroids::Vector{Vector{Float64}},
+            sample_size::Int,
+            mutation_rate::Float64,
+            output_mutation_rate::Float64,
+            generations::Int,
+        )
         @assert generations >= 1 "At least one iteration"
-        new(centroids, sample_size, mutation_rate, output_mutation_rate, generations)
+        return new(centroids, sample_size, mutation_rate, output_mutation_rate, generations)
     end
 end
 
@@ -281,15 +281,15 @@ struct RunConfSTN <: AbstractRunConf
     output_mutation_rate::Float64
     generations::Int
     function RunConfSTN(
-        sample_size::Int,
-        behavior_col::String,
-        serialization_col::String,
-        mutation_rate::Float64,
-        output_mutation_rate::Float64,
-        generations::Int,
-    )
+            sample_size::Int,
+            behavior_col::String,
+            serialization_col::String,
+            mutation_rate::Float64,
+            output_mutation_rate::Float64,
+            generations::Int,
+        )
         @assert generations >= 1 "At least one iteration"
-        new(
+        return new(
             sample_size,
             behavior_col,
             serialization_col,

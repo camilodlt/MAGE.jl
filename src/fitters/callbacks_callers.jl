@@ -6,15 +6,15 @@ abstract type CallbackParameters end
 CALLBACKS_FNS = Tuple{Symbol}
 
 function _make_population(
-    genome::UTGenome,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    population_callbacks::CALLBACKS_FNS,
-    args...,
-)::Tuple{Population,Float64}
+        genome::UTGenome,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        population_callbacks::CALLBACKS_FNS,
+        args...,
+    )::Tuple{Population, Float64}
     """
     Make the population based on first/elite genome
 
@@ -41,16 +41,16 @@ function _make_population(
 end
 
 function _make_mutations(
-    population::Population,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-    mutation_callbacks::Mandatory_FN,
-    args...,
-)::Tuple{Population,Float64}
+        population::Population,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+        mutation_callbacks::Mandatory_FN,
+        args...,
+    )::Tuple{Population, Float64}
     """
 
     Mutate the population
@@ -78,15 +78,15 @@ function _make_mutations(
 end
 
 function _make_output_mutations(
-    population::Population,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    output_mutation_callbacks::CALLBACKS_FNS,
-    args...,
-)::Tuple{Population,Float64}
+        population::Population,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        output_mutation_callbacks::CALLBACKS_FNS,
+        args...,
+    )::Tuple{Population, Float64}
     """
     Mutate the ouput nodes of ALL the population
 
@@ -113,16 +113,16 @@ end
 
 
 function _make_decoding(
-    population::Population,
-    generation::Int,
-    run_config::AbstractRunConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-    decoding_callbacks::FN_TYPE,
-    args...,
-)::Tuple{PopulationPrograms,Float64}
+        population::Population,
+        generation::Int,
+        run_config::AbstractRunConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+        decoding_callbacks::FN_TYPE,
+        args...,
+    )::Tuple{PopulationPrograms, Float64}
     """
     Decode the graph of ALL the POP.
 
@@ -135,7 +135,7 @@ function _make_decoding(
 
     t = []
     first_callback = decoding_callbacks[1]
-    # FIRST CALL TO CREATE PROGRAMS 
+    # FIRST CALL TO CREATE PROGRAMS
     fn = get_fn_from_symbol(first_callback)
     t_e = @elapsed programs = fn(
         population,
@@ -148,7 +148,7 @@ function _make_decoding(
     )
     push!(t, t_e)
 
-    # CONSECUTIVE CALLS 
+    # CONSECUTIVE CALLS
 
     for decoding_callback in decoding_callbacks[2:end]
         fn = get_fn_from_symbol(decoding_callback)
@@ -170,17 +170,17 @@ function _make_decoding(
 end
 
 function _make_elite_selection(
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
-    population::Population,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    programs::PopulationPrograms,
-    elite_selection_callbacks::CALLBACKS_FNS,
-    args...,
-)::Tuple{Int,Float64}
+        ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}},
+        population::Population,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        programs::PopulationPrograms,
+        elite_selection_callbacks::CALLBACKS_FNS,
+        args...,
+    )::Tuple{Int, Float64}
     """
     Selects the best individual in the population.
     Return its index.
@@ -192,7 +192,7 @@ function _make_elite_selection(
 
     t = []
     first_callback = elite_selection_callbacks[1]
-    # FIRST CALL TO CREATE PROGRAMS 
+    # FIRST CALL TO CREATE PROGRAMS
     fn = get_fn_from_symbol(first_callback)
     t_e = @elapsed elite_idx = fn(
         ind_performances,
@@ -206,7 +206,7 @@ function _make_elite_selection(
     )
     push!(t, t_e)
 
-    # CONSECUTIVE CALLS 
+    # CONSECUTIVE CALLS
 
     for elite_selection_callback in elite_selection_callbacks[2:end]
         fn = get_fn_from_symbol(elite_selection_callback)
@@ -234,7 +234,7 @@ end
 The normal parameters accepted for an epoch callback.
 """
 mutable struct ParametersStandardEpoch <: CallbackParameters
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}}
+    ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}}
     population::Population
     generation::Int
     run_config::AbstractRunConf
@@ -246,25 +246,26 @@ mutable struct ParametersStandardEpoch <: CallbackParameters
     best_loss::Float64
     best_program::IndividualPrograms
     elite_idx::Int
-    other::Union{Nothing,Any}
+    other::Union{Nothing, Any}
 end
 
 function _make_epoch_callbacks_calls(
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
-    population::Population,
-    generation::Int,
-    run_config::AbstractRunConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-    programs::PopulationPrograms,
-    best_loss::Union{Float64,Vector{Float64}},
-    best_program::Union{IndividualPrograms,Vector{IndividualPrograms}},
-    elite_idx::Union{Int,Vector{Int}},
-    Batch::SubArray,
-    epoch_callbacks::FN_TYPE,
-)::Float64
+        ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}},
+        population::Population,
+        generation::Int,
+        run_config::AbstractRunConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+        programs::PopulationPrograms,
+        best_loss::Union{Float64, Vector{Float64}},
+        best_program::Union{IndividualPrograms, Vector{IndividualPrograms}},
+        elite_idx::Union{Int, Vector{Int}},
+        Batch::SubArray,
+        epoch_callbacks::FN_TYPE;
+        extras::Dict = Dict()
+    )::Float64
     t = []
     for epoch_callback in epoch_callbacks
         fn = epoch_callback isa Symbol ? get_fn_from_symbol(epoch_callback) : epoch_callback
@@ -281,7 +282,8 @@ function _make_epoch_callbacks_calls(
             best_loss,
             best_program,
             elite_idx,
-            Batch,
+            Batch;
+            extras = extras
         )
         push!(t, t_e)
     end
@@ -289,22 +291,22 @@ function _make_epoch_callbacks_calls(
 end
 
 function _make_early_stop_callbacks_calls(
-    generation_loss_tracker::GenerationLossTracker,
-    ind_loss_tracker::AbstractIndLossTracker,
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
-    population::Population,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-    programs::PopulationPrograms,
-    best_loss::Float64,
-    best_program::IndividualPrograms,
-    elite_idx::Int,
-    early_stop_callbacks::Tuple{Vararg{T where {T<:Union{Symbol,<:AbstractCallable}}}},
-)::Bool
+        generation_loss_tracker::GenerationLossTracker,
+        ind_loss_tracker::AbstractIndLossTracker,
+        ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}},
+        population::Population,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+        programs::PopulationPrograms,
+        best_loss::Float64,
+        best_program::IndividualPrograms,
+        elite_idx::Int,
+        early_stop_callbacks::Tuple{Vararg{T where {T <: Union{Symbol, <:AbstractCallable}}}},
+    )::Bool
     decisions = []
     t = []
     for early_stop_callback in early_stop_callbacks
@@ -346,7 +348,7 @@ end
 # ~~~~~~~~~~~~~ PRE CALLBACKS ~~~~~~~~~~~~~ #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 function _make_pre_callbacks_calls(pre_callbacks::Optional_FN)
-    if !isnothing(pre_callbacks) && length(pre_callbacks) > 1
+    return if !isnothing(pre_callbacks) && length(pre_callbacks) > 1
         for pre_callback in pre_callbacks
             pre_callback()
         end

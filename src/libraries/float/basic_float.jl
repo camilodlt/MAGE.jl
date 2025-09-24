@@ -8,6 +8,7 @@ Exports :
 """
 module float_basic
 
+using DispatchDoctor
 using ..UTCGP: FunctionBundle, append_method!
 
 # ################### #
@@ -23,22 +24,22 @@ bundle_float_basic = FunctionBundle(fallback)
 """
     identity_float(from::Int, args...)
 """
-function identity_float(from::Float64, args...)
+@stable function identity_float(from::Float64, args...)
     return identity(from)
 end
 
 """
     ret_1(args...)
 """
-function ret_1(args...)
+@stable function ret_1(args...)
     return 1.0
 end
 
 
-function tanh_(x::Float64, args...)
+@stable function tanh_(x::Float64, args...)
     return tanh(x)
 end
-function relu_(x::Float64, args...)
+@stable function relu_(x::Float64, args...)
     return ifelse(x > 0, x, 0)
 end
 

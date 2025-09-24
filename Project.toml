@@ -79,6 +79,8 @@ MAGE_RADIOMICS = "MAGE_RADIOMICS_EXT"
 
 [compat]
 DataFlowTasks = ">=0.2.0"
+DelaunayTriangulation = ">=1.6.4"
+DispatchDoctor = "0.4.26"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

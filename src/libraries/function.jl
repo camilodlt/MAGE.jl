@@ -183,7 +183,7 @@ function evaluate_fn_wrapper(
                         inputs_,
                         Val(cast),
                     )
-                    if t > 2
+                    if t > 4
                         if isdefined(Main, :Infiltrator)
                             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
                         end

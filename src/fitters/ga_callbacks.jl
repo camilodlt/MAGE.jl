@@ -17,21 +17,23 @@ struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
     node_config::nodeConfig
     meta_library::MetaLibrary
     fitnesses::Vector{Float64}
+    elite_idx::Vector{Int}
     extras::Dict
 
     function GA_POP_ARGS(
-        population::Population,
-        generation::Int,
-        run_config::RunConfGA,
-        model_architecture::modelArchitecture,
-        node_config::nodeConfig,
-        meta_library::MetaLibrary,
-        fitnesses::Vector{Float64};
-        extras::Dict = Dict(),
-    )
+            population::Population,
+            generation::Int,
+            run_config::RunConfGA,
+            model_architecture::modelArchitecture,
+            node_config::nodeConfig,
+            meta_library::MetaLibrary,
+            fitnesses::Vector{Float64},
+            elite_idx::Vector{Int};
+            extras::Dict = Dict(),
+        )
         @assert length(fitnesses) == length(population) "The nb of fitnesses (per elite ind.) do not correspond to the number of individuals in the population. $(length(fitnesses)) vs $(length(population))"
 
-        new(
+        return new(
             population,
             generation,
             run_config,
@@ -39,17 +41,18 @@ struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
             node_config,
             meta_library,
             fitnesses,
+            elite_idx,
             extras,
         )
     end
 end
 
 function tournament_selection(
-    population::Population,
-    tournament_size::Int,
-    fitnesses::Vector{Float64};
-    return_idx = false,
-)::Union{Option{UTGenome},Tuple{Option{UTGenome},Option{Int}}}
+        population::Population,
+        tournament_size::Int,
+        fitnesses::Vector{Float64};
+        return_idx = false,
+    )::Union{Option{UTGenome}, Tuple{Option{UTGenome}, Option{Int}}}
     # Sample the elite
     indices = 1:length(population) # to sort both vectors (fitnesses and pop)
     subset = sample(indices, tournament_size, replace = false) # sample a portion of the elite population
@@ -57,13 +60,12 @@ function tournament_selection(
     # Select among the subset
     f_subset = fitnesses[subset] # the fitnesses of the subset
     index_best = subset[argmin(f_subset)] # which individual it represent
-    if return_idx
+    return if return_idx
         some(population[index_best]), some(index_best)
     else
         some(population[index_best])
     end
 end
-
 
 
 """
@@ -73,22 +75,24 @@ function ga_population_callback(pop_args::GA_POP_ARGS)::Option{Population}
     Config = pop_args.run_config
     Pop = pop_args.population
     n_elite = Config.n_elite
-    @assert length(Pop) == n_elite "While making new pop. More individuals in the population than needed. Actual $(length(Pop)) vs Needed (by the config) : $(n_elite)"
     pop_size = n_elite + Config.n_new
     inds = Vector{UTCGP.UTGenome}(undef, pop_size)
 
+    @show pop_args.elite_idx
+    @show length(Pop)
+
     # Truncation
-    for (elite_ith, elite_ind) in enumerate(pop_args.population)
-        inds[elite_ith] = deepcopy(elite_ind)
+    for (elite_ith, elite_ind) in enumerate(pop_args.elite_idx)
+        inds[elite_ith] = Pop[elite_ind]
     end
 
-    # Tournament 
-    for ith_new = 1:Config.n_new
+    # Tournament
+    for ith_new in 1:Config.n_new
         new_index = n_elite + ith_new
         winner =
             @unwrap_or tournament_selection(Pop, Config.tournament_size, pop_args.fitnesses) throw(
-                "Tournament could not take place with config : $(Config) and fitnesses : $pop_args.fitnesses",
-            )
+            "Tournament could not take place with config : $(Config) and fitnesses : $pop_args.fitnesses",
+        )
         inds[new_index] = deepcopy(winner)
     end
     return some(Population(inds))
@@ -168,16 +172,16 @@ struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
     extras::Dict
 
     function GA_MUTATION_ARGS(
-        population::Population,
-        generation::Int,
-        run_config::RunConfGA,
-        model_architecture::modelArchitecture,
-        node_config::nodeConfig,
-        meta_library::MetaLibrary,
-        shared_inputs::SharedInput;
-        extras = Dict(),
-    )
-        new(
+            population::Population,
+            generation::Int,
+            run_config::RunConfGA,
+            model_architecture::modelArchitecture,
+            node_config::nodeConfig,
+            meta_library::MetaLibrary,
+            shared_inputs::SharedInput;
+            extras = Dict(),
+        )
+        return new(
             population,
             generation,
             run_config,
@@ -191,13 +195,13 @@ struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
 end
 
 function ga_numbered_new_material_mutation_callback(
-    args::Abstract_GA_MUTATION_ARGS,
-)::Option{Population}
+        args::Abstract_GA_MUTATION_ARGS,
+    )::Option{Population}
     Config = args.run_config
     fs = fieldnames(typeof(Config))
     :n_elite in fs ? n_elite = Config.n_elite : (return none)
     Pop = args.population
-    Pop_subset = @view Pop.pop[n_elite+1:end] # only mutate the rest of the population, not the elite, truncated, part.
+    Pop_subset = @view Pop.pop[(n_elite + 1):end] # only mutate the rest of the population, not the elite, truncated, part.
     for individual in Pop_subset
         new_material_mutation!(
             individual,
@@ -216,7 +220,7 @@ function (rm::racing_mutation)(args::Abstract_GA_MUTATION_ARGS)::Option{Populati
     fs = fieldnames(typeof(Config))
     :n_elite in fs ? n_elite = Config.n_elite : none
     Pop = args.population
-    Pop_subset = @view Pop.pop[n_elite+1:end] # only mutate the rest of the population, not the elite, truncated, part.
+    Pop_subset = @view Pop.pop[(n_elite + 1):end] # only mutate the rest of the population, not the elite, truncated, part.
     for (i, individual) in enumerate(Pop_subset)
         @info "Racing ind $i"
         racing_mutation!(
@@ -314,11 +318,11 @@ function ga_output_mutation_callback(args::Abstract_GA_MUTATION_ARGS)::Option{Po
     fs = fieldnames(typeof(Config))
     :n_elite in fs ? n_elite = Config.n_elite : return none
     Pop = args.population
-    Pop_subset = @view Pop.pop[n_elite+1:end] # only mutate the rest of the population, not the elite, truncated, part.
+    Pop_subset = @view Pop.pop[(n_elite + 1):end] # only mutate the rest of the population, not the elite, truncated, part.
     for individual in Pop_subset
         for output_node in individual.output_nodes
             :output_mutation_rate in fieldnames(typeof(Config)) ?
-            μ = Config.output_mutation_rate : return none
+                μ = Config.output_mutation_rate : return none
             if rand() < μ
                 mutate_one_element_from_node!(output_node)
             end
@@ -388,7 +392,7 @@ end
 abstract type Abstract_GA_SELECTION_ARGS end
 
 struct GA_SELECTION_ARGS <: Abstract_GA_SELECTION_ARGS
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}}
+    ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}}
     population::Population
     generation::Int
     run_config::AbstractRunConf
@@ -425,7 +429,6 @@ function ga_elite_selection_callback(args::Abstract_GA_SELECTION_ARGS)::Option{V
 end
 
 
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #                 CALLBACK CALLERS FOR GA                    #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -436,10 +439,10 @@ abstract type CallbackParameters end
 """
 """
 function _make_ga_population(
-    ga_args::GA_POP_ARGS,
-    population_callbacks,
-    args...,
-)::Option{Tuple{Population,Float64}}
+        ga_args::GA_POP_ARGS,
+        population_callbacks,
+        args...,
+    )::Option{Tuple{Population, Float64}}
     t = []
     for population_callback in population_callbacks
         fn = get_fn_from_symbol(population_callback)
@@ -461,10 +464,10 @@ Mutate the population
 Returns the population and the time it took to make the final population
 """
 function _make_ga_mutations!(
-    ga_args::GA_MUTATION_ARGS,
-    mutation_callbacks,
-    args...,
-)::Option{Tuple{Population,Float64}}
+        ga_args::GA_MUTATION_ARGS,
+        mutation_callbacks,
+        args...,
+    )::Option{Tuple{Population, Float64}}
     t = []
     for mutation_callback in mutation_callbacks
         fn = get_fn_from_symbol(mutation_callback)
@@ -485,10 +488,10 @@ Mutate the ouput nodes of ALL the population
 Returns the population and the time it took to make the final population
 """
 function _make_ga_output_mutations!(
-    ga_args::GA_MUTATION_ARGS,
-    output_mutation_callbacks::FN_TYPE,
-    args...,
-)::Option{Tuple{Population,Float64}}
+        ga_args::GA_MUTATION_ARGS,
+        output_mutation_callbacks::FN_TYPE,
+        args...,
+    )::Option{Tuple{Population, Float64}}
     t = []
     for output_callback in output_mutation_callbacks
         fn = get_fn_from_symbol(output_callback)
@@ -504,7 +507,7 @@ function _make_ga_output_mutations!(
     return some(tuple(ga_args.population, tt))
 end
 
-# Decoding as 1 + \lambda 
+# Decoding as 1 + \lambda
 
 
 """
@@ -516,13 +519,13 @@ The output will be reinjected in following calls
 Either way, all calls have to return the elite_idx
 """
 function _make_ga_elite_selection(
-    ga_args::GA_SELECTION_ARGS,
-    elite_selection_callbacks,
-    args...,
-)::Option{Tuple{Vector{Int},Float64}}
+        ga_args::GA_SELECTION_ARGS,
+        elite_selection_callbacks,
+        args...,
+    )::Option{Tuple{Vector{Int}, Float64}}
     t = []
 
-    # FIRST CALL TO CREATE PROGRAMS 
+    # FIRST CALL TO CREATE PROGRAMS
     first_callback = elite_selection_callbacks[1]
     fn = get_fn_from_symbol(first_callback)
     t_e = @elapsed elite_indices_result = fn(ga_args)
@@ -530,7 +533,7 @@ function _make_ga_elite_selection(
         @unwrap_or elite_indices_result throw(ErrorException("Problem in selection"))
     push!(t, t_e)
 
-    # CONSECUTIVE CALLS 
+    # CONSECUTIVE CALLS
     for elite_selection_callback in elite_selection_callbacks[2:end]
         fn = get_fn_from_symbol(elite_selection_callback)
         t_e = @elapsed elite_idx = fn(ga_args, elite_indices)
@@ -551,7 +554,7 @@ end
 struct GA_EARLYSTOP_ARGS <: Abstract_GA_SELECTION_ARGS
     generation_loss_tracker::GenerationLossTracker
     ind_loss_tracker::AbstractIndLossTracker # either for MultiT or not
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}}
+    ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}}
     population::Population
     generation::Int
     run_config::RunConfGA
@@ -569,9 +572,9 @@ end
 Make Early stop Calls
 """
 function _make_ga_early_stop_callbacks_calls(
-    early_stop_args::GA_EARLYSTOP_ARGS,
-    early_stop_callbacks::FN_TYPE,
-)::Bool
+        early_stop_args::GA_EARLYSTOP_ARGS,
+        early_stop_callbacks::FN_TYPE,
+    )::Bool
     decisions = []
     t = []
     for early_stop_callback in early_stop_callbacks
@@ -607,5 +610,3 @@ function (obj::eval_budget_early_stop)(ga_early_stop_args::GA_EARLYSTOP_ARGS)::B
     @info "Eval Budget. Curr budget : $(obj.cur_budget)"
     return decision
 end
-
-

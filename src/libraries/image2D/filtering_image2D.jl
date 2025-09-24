@@ -78,7 +78,7 @@ using LoopVectorization
 using TimerOutputs
 using ImageFiltering
 using ..UTCGP: image2D_basic
-using ..UTCGP:image2D_morph
+using ..UTCGP: image2D_morph
 using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
@@ -91,7 +91,7 @@ import UTCGP:
     _ceil_positive_params
 using ImageCore: N0f8, Normed, clamp01nan!, clamp01nan, float64, Gray, FixedPoint
 using ..UTCGP:
-    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type, 
+    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel, SegmentPixel
 
 cast = image2D_morph.cast
@@ -121,8 +121,8 @@ diff_ = ImageFiltering.Kernel.Laplacian((true, true))
 const laplacian3 = reflect(convert(AbstractArray, diff_))
 
 ### SPECIAL ###
-kdog = ImageFiltering.Kernel.moffat(1., 0.1, 11) # 2 params # min 0 for both, max 100 for both
-kmoffat = ImageFiltering.Kernel.moffat(1., 0.1, 11) # two params
+kdog = ImageFiltering.Kernel.moffat(1.0, 0.1, 11) # 2 params # min 0 for both, max 100 for both
+kmoffat = ImageFiltering.Kernel.moffat(1.0, 0.1, 11) # two params
 
 # also findlocalmaxima
 # also findlocalminima
@@ -135,7 +135,7 @@ function _border_type(border_index::Real)
     elseif border_index > 0
         how = "reflect" # abcdef | fedc (mirrors edge)
     end
-    how
+    return how
 end
 
 abstract type _GradientAxis end
@@ -156,7 +156,7 @@ struct _Bickley <: KernelMethod end
 struct _Prewitt <: KernelMethod end
 struct _Scharr <: KernelMethod end
 
-# One kernel# 
+# One kernel#
 struct _Gaussian5 <: KernelMethod end
 struct _Gaussian9 <: KernelMethod end
 struct _Gaussian13 <: KernelMethod end
@@ -172,42 +172,43 @@ struct _Moffat <: KernelMethod end
 # CONV X,Y,M kernels  #
 # ################### #
 
-for (KTYPE,XK, YK) in zip([_Sobel, _Ando3, _Ando4, _Ando5, _Bickley, _Prewitt, _Scharr],
-                          [_xsobel,_xando3, _xando4,_xando5,_xbickley,_xprewitt, _xscharr],
-                          [_ysobel,_yando3, _yando4,_yando5,_ybickley,_yprewitt, _yscharr]
-                      )
-    @eval @inline function _conv_dispatcher!(
-        img::Matrix{Float64},
-        out::Matrix{Float64},
-        b::Real,
-        which::Type{_Xaxis},
-        which_k::Type{$KTYPE}
+for (KTYPE, XK, YK) in zip(
+        [_Sobel, _Ando3, _Ando4, _Ando5, _Bickley, _Prewitt, _Scharr],
+        [_xsobel, _xando3, _xando4, _xando5, _xbickley, _xprewitt, _xscharr],
+        [_ysobel, _yando3, _yando4, _yando5, _ybickley, _yprewitt, _yscharr]
     )
-        conv!(img, out, b, $XK)
+    @eval @inline function _conv_dispatcher!(
+            img::Matrix{Float64},
+            out::Matrix{Float64},
+            b::Real,
+            which::Type{_Xaxis},
+            which_k::Type{$KTYPE}
+        )
+        return conv!(img, out, b, $XK)
     end
 
     @eval @inline function _conv_dispatcher!(
-        img::Matrix{Float64},
-        out::Matrix{Float64},
-        b::Real,
-        which::Type{_Yaxis},
-        which_k::Type{$KTYPE}
+            img::Matrix{Float64},
+            out::Matrix{Float64},
+            b::Real,
+            which::Type{_Yaxis},
+            which_k::Type{$KTYPE}
         )
-        conv!(img, out, b, $YK)
+        return conv!(img, out, b, $YK)
     end
 
     @eval function _conv_dispatcher!(
-        img::Matrix{Float64},
-        out::Matrix{Float64},
-        b::Real,
-        ::Type{_Maxis},
-        which_k::Type{$KTYPE}
-    )
+            img::Matrix{Float64},
+            out::Matrix{Float64},
+            b::Real,
+            ::Type{_Maxis},
+            which_k::Type{$KTYPE}
+        )
         out_x = similar(img)
         out_y = similar(img)
         _conv_dispatcher!(img, out_x, b, _Xaxis, which_k)
         _conv_dispatcher!(img, out_y, b, _Yaxis, which_k)
-        @timeit_debug to "turbo with x" @inbounds @turbo for i in eachindex(out)
+        return @timeit_debug to "turbo with x" @inbounds @turbo for i in eachindex(out)
             x = out_x[i]^2
             x += out_y[i]^2
             out[i] = sqrt(x)
@@ -220,13 +221,13 @@ end
 # ################### #
 
 function conv!(
-    img::Matrix{Float64},
-    out::Matrix{Float64},
-    b::Real,
-    K::AbstractArray,
-)::Matrix{Float64}
+        img::Matrix{Float64},
+        out::Matrix{Float64},
+        b::Real,
+        K::AbstractArray,
+    )::Matrix{Float64}
     border = _border_type(b)
-    imfilter!(out, img, K, border)
+    return imfilter!(out, img, K, border)
 end
 
 ### Factory of factories for kernels with X,Y and M 🏭 ###
@@ -241,119 +242,149 @@ Second function accepts an image but defaults to `replicate` border type.
 """
 function XYM_filter_image2D_factory(axis::Type{<:_GradientAxis}, which_kernel::Type{<:KernelMethod}, name::String)
     fn_name = Symbol(name * string(axis) * "_image2D")
-     
-    # The factory below creates specialized versions based on a specific image type 
-    factory = ((i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T1}, IntensityPixel{T2}}}} where {SIZE, T1, T2}) -> begin
-            IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
-            S1, S2 = S.parameters[1], S.parameters[2]
-            _validate_factory_type(IT)
-            FUNCTION_NAME = fn_name
 
-            # COMMENT: Possible improvement
-            # if is Binary
-                # accepts BinaryPixel => Always will be Bool
-                # accepts any intensity pixel
-            # if is Intensity
-                # accepts BinaryPixel => Always will be Bool
-                # accepts IntensityPixel of the orig type
-            m1 = @eval ((img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{Bool}, IntensityPixel}}} ) -> begin
-                    # global to
-                    ax, km = $axis, $which_kernel
-                    s = ($S1, $S2)
-                    img_as_float = Matrix{Float64}(undef, s)
-                    img_as_float .= float64.(img)
-                    out_float = Matrix{Float64}(undef, s)
-                    _conv_dispatcher!(
-                        img_as_float,
-                        out_float,
-                        b,
-                        ax,
-                        km
-                    )
-                    out_float = image2D_basic._normalize_img(out_float)
-                    clamp01nan!(out_float)
-                    return SImageND($PT.(cast($IT, out_float)), $S)
-                end
+    # The factory below creates specialized versions based on a specific image type
+    factory = ((i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixel{T1}, IntensityPixel{T2}}}} where {SIZE, T1, T2}) -> begin
+        IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+        S1, S2 = S.parameters[1], S.parameters[2]
+        _validate_factory_type(IT)
+        FUNCTION_NAME = fn_name
 
-            m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-                $m1(img, 0.0, args)
-            end
-
-            ManualDispatcher((m1, m2), fn_name)
+        # COMMENT: Possible improvement
+        # if is Binary
+        # accepts BinaryPixel => Always will be Bool
+        # accepts any intensity pixel
+        # if is Intensity
+        # accepts BinaryPixel => Always will be Bool
+        # accepts IntensityPixel of the orig type
+        m1 = @eval ((img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{Bool}, IntensityPixel}}}) -> begin
+            # global to
+            ax, km = $axis, $which_kernel
+            s = ($S1, $S2)
+            img_as_float = Matrix{Float64}(undef, s)
+            img_as_float .= float64.(img)
+            out_float = Matrix{Float64}(undef, s)
+            _conv_dispatcher!(
+                img_as_float,
+                out_float,
+                b,
+                ax,
+                km
+            )
+            out_float = image2D_basic._normalize_img(out_float)
+            clamp01nan!(out_float)
+            return SImageND($PT.(cast($IT, out_float)), $S)
         end
+
+        m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+            $m1(img, 0.0, args)
+        end
+
+        ManualDispatcher((m1, m2), fn_name)
+    end
     return factory
 end
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# ################# ONE KERNEL ############### # 
+# ################# ONE KERNEL ############### #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 for (KTYPE, K) in zip(
-                      [_Gaussian5, _Gaussian9, _Gaussian13, _Gaussian17, _Gaussian25, _Laplacian3],
-                      [gaussian5, gaussian9, gaussian13, gaussian17, gaussian25, laplacian3]
-                      )
-    @eval @inline function _conv_dispatcher!(
-        img::Matrix{Float64},
-        out::Matrix{Float64},
-        b::Real,
-        which_k::Type{$KTYPE}
+        [_Gaussian5, _Gaussian9, _Gaussian13, _Gaussian17, _Gaussian25, _Laplacian3],
+        [gaussian5, gaussian9, gaussian13, gaussian17, gaussian25, laplacian3]
     )
-        conv!(img, out, b, $K)
+    @eval @inline function _conv_dispatcher!(
+            img::Matrix{Float64},
+            out::Matrix{Float64},
+            b::Real,
+            which_k::Type{$KTYPE}
+        )
+        return conv!(img, out, b, $K)
     end
 end
 
 function one_filter_image2D_factory(which_kernel::Type{<:KernelMethod}, name::String)
     fn_name = Symbol(name * "_image2D")
-     
-    # The factory below creates specialized versions based on a specific image type 
-    factory = ((i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}) -> begin
-            IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
-            S1, S2 = S.parameters[1], S.parameters[2]
-            _validate_factory_type(IT)
-            FUNCTION_NAME = fn_name
-            m1 = @eval ((img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-                    # global to
-                    km = $which_kernel
-                    s = ($S1, $S2)
-                    img_as_float = Matrix{Float64}(undef, s)
-                    img_as_float .= float64.(img)
-                    out_float = Matrix{Float64}(undef, s)
-                    _conv_dispatcher!(
-                        img_as_float,
-                        out_float,
-                        b,
-                        km
-                    )
-                    out_float = image2D_basic._normalize_img(out_float)
-                    clamp01nan!(out_float)
-                    return SImageND($PT.(cast($IT, out_float)), $S)
-                end
 
-            m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-                $m1(img, 0.0, args)
-            end
-
-            ManualDispatcher((m1, m2), fn_name)
+    # The factory below creates specialized versions based on a specific image type
+    factory = ((i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE, T}) -> begin
+        IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+        S1, S2 = S.parameters[1], S.parameters[2]
+        _validate_factory_type(IT)
+        FUNCTION_NAME = fn_name
+        m1 = @eval ((img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+            # global to
+            km = $which_kernel
+            s = ($S1, $S2)
+            img_as_float = Matrix{Float64}(undef, s)
+            img_as_float .= float64.(img)
+            out_float = Matrix{Float64}(undef, s)
+            _conv_dispatcher!(
+                img_as_float,
+                out_float,
+                b,
+                km
+            )
+            out_float = image2D_basic._normalize_img(out_float)
+            clamp01nan!(out_float)
+            return SImageND($PT.(cast($IT, out_float)), $S)
         end
+
+        m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+            $m1(img, 0.0, args)
+        end
+
+        ManualDispatcher((m1, m2), fn_name)
+    end
     return factory
 end
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# ############### SPECIAL KERNEL ########### # 
+# ############### SPECIAL KERNEL ########### #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# 
+#
 
-function dog_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+function dog_factory(i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE, T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
     m1 = @eval ((img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+        s = ($S1, $S2)
+        p1, p2 = convert(Float64, clamp(p1_, 0.1, 100)), convert(Float64, clamp(p1_, 0.1, 100))
+        img_as_float = Matrix{Float64}(undef, s)
+        img_as_float .= float64.(img)
+        out_float = Matrix{Float64}(undef, s)
+        kernel = ImageFiltering.Kernel.DoG((p1, p2))
+        conv!(
+            img_as_float,
+            out_float,
+            0.0,
+            reflect(kernel)
+        )
+        out_float = image2D_basic._normalize_img(out_float)
+        clamp01nan!(out_float)
+        return SImageND($PT.(cast($IT, out_float)), $S)
+    end
+
+    m2 = @eval ((img::CONCT, p1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+        $m1(img, p1_, p1_, args)
+    end
+
+    return ManualDispatcher((m1, m2), :dog_image2D)
+end
+
+function moffat_factories(ksize::Int)
+    factory = ((i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE, T}) -> begin
+        IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+        S1, S2 = S.parameters[1], S.parameters[2]
+        _validate_factory_type(IT)
+        m1 = @eval ((img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
             s = ($S1, $S2)
             p1, p2 = convert(Float64, clamp(p1_, 0.1, 100)), convert(Float64, clamp(p1_, 0.1, 100))
             img_as_float = Matrix{Float64}(undef, s)
             img_as_float .= float64.(img)
             out_float = Matrix{Float64}(undef, s)
-            kernel = ImageFiltering.Kernel.DoG((p1, p2))
+            kernel = ImageFiltering.Kernel.moffat(p1, p2, $ksize)
             conv!(
                 img_as_float,
                 out_float,
@@ -365,36 +396,6 @@ function dog_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{
             return SImageND($PT.(cast($IT, out_float)), $S)
         end
 
-    m2 = @eval ((img::CONCT, p1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        $m1(img, p1_, p1_, args)
-    end
-    
-    ManualDispatcher((m1, m2), :dog_image2D)
-end
-
-function moffat_factories(ksize::Int)
-    factory = ((i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}) -> begin 
-        IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
-        S1, S2 = S.parameters[1], S.parameters[2]
-        _validate_factory_type(IT)
-        m1 = @eval ((img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-                s = ($S1, $S2)
-                p1, p2 = convert(Float64, clamp(p1_, 0.1, 100)), convert(Float64, clamp(p1_, 0.1, 100))
-                img_as_float = Matrix{Float64}(undef, s)
-                img_as_float .= float64.(img)
-                out_float = Matrix{Float64}(undef, s)
-                kernel = ImageFiltering.Kernel.moffat(p1, p2, $ksize)
-                conv!(
-                    img_as_float,
-                    out_float,
-                    0.,
-                    reflect(kernel)
-                )
-                out_float = image2D_basic._normalize_img(out_float)
-                clamp01nan!(out_float)
-                return SImageND($PT.(cast($IT, out_float)), $S)
-            end
-
         return m1
     end
     return factory
@@ -403,57 +404,57 @@ end
 
 ## ## ONLY ON BINARY BUNDLE
 
-function findlocalminima_factory(i::Type{I}) where {I<:SizedImage{SIZE, BinaryPixel{T}}} where {SIZE,T}
+function findlocalminima_factory(i::Type{I}) where {I <: SizedImage{SIZE, BinaryPixel{T}}} where {SIZE, T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
     m1 = @eval ((img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-            s = ($S1, $S2)
-            w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
-            minimums = findlocalminima(reinterpret(img.img); window = (w1,w2))
-            canvas = zeros($IT, s)
-            canvas[minimums] .= 1.
-            return SImageND($PT.(cast($IT, canvas)), $S)
-        end
+        s = ($S1, $S2)
+        w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
+        minimums = findlocalminima(reinterpret(img.img); window = (w1, w2))
+        canvas = zeros($IT, s)
+        canvas[minimums] .= 1.0
+        return SImageND($PT.(cast($IT, canvas)), $S)
+    end
 
     m2 = @eval ((img::CONCT, w1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-            $m1(img, w1_, w1_, args)
-        end
+        $m1(img, w1_, w1_, args)
+    end
 
     m3 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
         $m1(img, 3, 3, args)
     end
-    
-    ManualDispatcher((m1, m2, m3), :findlocalminima_image2D)
+
+    return ManualDispatcher((m1, m2, m3), :findlocalminima_image2D)
 end
 
-function findlocalmaxima_factory(i::Type{I}) where {I<:SizedImage{SIZE, BinaryPixel{T}}} where {SIZE,T}
+function findlocalmaxima_factory(i::Type{I}) where {I <: SizedImage{SIZE, BinaryPixel{T}}} where {SIZE, T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
     m1 = @eval ((img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-            s = ($S1, $S2)
-            w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
-            maximums = findlocalmaxima(reinterpret(img.img); window = (w1,w2))
-            canvas = zeros($IT, s)
-            canvas[maximums] .= 1.
-            return SImageND($PT.(cast($IT, canvas)), $S)
-        end
+        s = ($S1, $S2)
+        w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
+        maximums = findlocalmaxima(reinterpret(img.img); window = (w1, w2))
+        canvas = zeros($IT, s)
+        canvas[maximums] .= 1.0
+        return SImageND($PT.(cast($IT, canvas)), $S)
+    end
 
     m2 = @eval ((img::CONCT, w1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-            $m1(img, w1_, w1_, args)
-        end
+        $m1(img, w1_, w1_, args)
+    end
 
     m3 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
         $m1(img, 3, 3, args)
     end
-    
-    ManualDispatcher((m1, m2, m3), :findlocalmaxima_image2D)
+
+    return ManualDispatcher((m1, m2, m3), :findlocalmaxima_image2D)
 end
 
 ### BUNDLES ###
 
-# X,Y,M kernels --- 
+# X,Y,M kernels ---
 sobelx_image2D_factory = XYM_filter_image2D_factory(_Xaxis, _Sobel, "sobel")
 sobely_image2D_factory = XYM_filter_image2D_factory(_Yaxis, _Sobel, "sobel")
 sobelm_image2D_factory = XYM_filter_image2D_factory(_Maxis, _Sobel, "sobel")
@@ -480,7 +481,7 @@ scharrx_image2D_factory = XYM_filter_image2D_factory(_Xaxis, _Scharr, "scharr")
 scharry_image2D_factory = XYM_filter_image2D_factory(_Yaxis, _Scharr, "scharr")
 scharrm_image2D_factory = XYM_filter_image2D_factory(_Maxis, _Scharr, "scharr")
 
-# One kernel --- 
+# One kernel ---
 gaussian5_image2D_factory = one_filter_image2D_factory(_Gaussian5, "gaussian5")
 gaussian9_image2D_factory = one_filter_image2D_factory(_Gaussian9, "gaussian9")
 gaussian13_image2D_factory = one_filter_image2D_factory(_Gaussian13, "gaussian13")
@@ -488,7 +489,7 @@ gaussian17_image2D_factory = one_filter_image2D_factory(_Gaussian17, "gaussian17
 gaussian25_image2D_factory = one_filter_image2D_factory(_Gaussian25, "gaussian25")
 laplacian3_image2D_factory = one_filter_image2D_factory(_Laplacian3, "laplacian3")
 
-# Special  
+# Special
 moffat5_image2D_factory = moffat_factories(5)
 moffat13_image2D_factory = moffat_factories(13)
 moffat25_image2D_factory = moffat_factories(25)
@@ -532,7 +533,6 @@ append_method!(bundle_image2DIntensity_filtering_factory, dog_factory, :dog_imag
 append_method!(bundle_image2DIntensity_filtering_factory, moffat5_image2D_factory, :moffat5_image2D)
 append_method!(bundle_image2DIntensity_filtering_factory, moffat13_image2D_factory, :moffat13_image2D)
 append_method!(bundle_image2DIntensity_filtering_factory, moffat25_image2D_factory, :moffat25_image2D)
-
 
 
 # BUNDLE BINARY ---
@@ -579,4 +579,3 @@ append_method!(bundle_image2DBinary_filtering_factory, findlocalminima_factory, 
 append_method!(bundle_image2DBinary_filtering_factory, findlocalmaxima_factory, :findlocalmaxima_image2D)
 
 end
-
