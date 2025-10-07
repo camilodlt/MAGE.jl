@@ -665,10 +665,6 @@ function fit_ga_meanbatch_mt(
         end
         ind_performances = mean(Repetitions_loss_tracker, dims = 2)[:] # average over the 2nd dim => the repetitions
 
-        # if isdefined(Main, :Infiltrator)
-        #     Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-        # end
-
         # final step call...
         if !isnothing(final_step_callbacks)
             for final_step_callback in final_step_callbacks

@@ -155,6 +155,7 @@ function recursive_decode_node!(
     )
     fn_name = fn.name
     arg_types = tuple([op.type for op in inputs]...)
+
     # check will function will be called
     local m = nothing
     try
@@ -170,27 +171,6 @@ function recursive_decode_node!(
     n_used_inputs = m.nargs - 2 # - the fn - the varargs
     inputs = inputs[1:n_used_inputs]
     push!(operations_list, Operation(fn, calling_node, inputs))
-
-    # # 45 is bias
-    # if calling_node isa CGPNode && calling_node.x_position == 44
-    #     if isdefined(Main, :Infiltrator)
-    #         Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-    #     end
-    # end
-
-    # if calling_node isa CGPNode && calling_node.x_position == 46
-    #     if isdefined(Main, :Infiltrator)
-    #         Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-    #     end
-    # end
-
-    # if length(inputs) >= 1
-    #     if inputs[1].input isa CGPNode && inputs[1].input.x_position == 83
-    #         if isdefined(Main, :Infiltrator)
-    #             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-    #         end
-    #     end
-    # end
 
     # TODO EXTRA PARAMS ???
     for operation_input in inputs

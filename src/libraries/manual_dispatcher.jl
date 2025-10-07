@@ -9,7 +9,7 @@ abstract type AbstractFunction end
     Undefined
 end
 
-LikeFunction = Union{Function, <:AbstractManualDispatcher}
+LikeFunction = Union{Function, <:AbstractManualDispatcher, AbstractFunction}
 # FunctionTypePair = Tuple{<:LikeFunction,<:Tuple{Vararg{Type}}}
 ArgsTypes = Tuple{Vararg{<:Type}}
 
@@ -129,11 +129,7 @@ error_fn(args...) = throw(error("No function with that signature found in Manual
 
 function is_ok(x, lk, types)
     type_acceptance = _pre_update_fn_lookup(lk, x, types)
-    if type_acceptance == Good
-        return true
-    else
-        return false
-    end
+    return type_acceptance == Good
 end
 
 roll(::Tuple{}, lk, types) = error_fn

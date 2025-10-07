@@ -17,6 +17,7 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Debugger = "31a5f54b-26ea-5ae9-a837-f05ce5417438"
+Delaunator = "466f8f70-d5e3-4806-ac0b-a54b75a91218"
 DelaunayTriangulation = "927a84f5-c5f4-47a5-9785-b46e178433df"
 DispatchDoctor = "8d63f2c5-f18a-4cf2-ba9d-b3f60fc568c8"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
@@ -79,6 +80,7 @@ MAGE_RADIOMICS = "MAGE_RADIOMICS_EXT"
 
 [compat]
 DataFlowTasks = ">=0.2.0"
+Delaunator = "0.1.2"
 DelaunayTriangulation = ">=1.6.4"
 DispatchDoctor = "0.4.26"
 

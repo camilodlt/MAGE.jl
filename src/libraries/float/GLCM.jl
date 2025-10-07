@@ -20,7 +20,7 @@ module experimental_GLCM
 
 using Statistics
 using ImageCore: N0f8, Normed, clamp01nan!
-using ..UTCGP: FunctionBundle, append_method!, ManualDispatcher
+using ..UTCGP: FunctionBundle, append_method!
 import ..UTCGP:
     CONSTRAINED,
     MIN_INT,
@@ -76,22 +76,7 @@ function glcm_dispatcher(property::Function, operation::Function, name) #
         return $name(img, 1, 16)
     end
 
-    @show fn
-    @show methods(fn)
     return fn
-
-    # m2 = @eval @stable ( # dist of 1
-    #     (img::CONCT, matrix_size::Number, args::Vararg{Any}) where {CONCT <: $InputType}
-    # ) -> begin
-    #     $m1(img, 1, matrix_size)
-    # end
-
-    # m3 = @eval @stable ( # dist of 1 and matrix of 16
-    #     (img::CONCT, args::Vararg{Any}) where {CONCT <: $InputType}
-    # ) -> begin
-    #     $m1(img, 1, 16)
-    # end
-    # return ManualDispatcher((m1, m2, m3), name)
 end
 
 

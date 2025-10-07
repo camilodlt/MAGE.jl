@@ -33,39 +33,99 @@ using DelaunayTriangulation
 using Graphs
 using Random
 using DispatchDoctor
+using Statistics
+using LinearAlgebra
+import Delaunator
+
+function DelaunayTriangulation.get_triangles(tri::Delaunator.Triangulation)
+    return collect(Delaunator.triangles(tri))
+end
+
 # using GraphPlot, Colors
 
-function make_graph_from_binary_img(img)
-    labelized = label_components(img)
+"""
+is_collinear(points; reltol=1e-12)
+
+Check if a set of 2D points (2×N matrix) is approximately collinear.
+
+"""
+function is_collinear(points::AbstractMatrix{Float64}; reltol = 1.0e-12)
+    N = size(points, 2)
+    @assert size(points, 1) == 2 "Input must be 2×N matrix"
+
+    if N <= 2
+        return true, collect(1:N)
+    end
+
+    # Center points
+    meanP = mean(points, dims = 2)
+    C = points .- meanP
+
+    # Use SVD to get principal axis
+    s = svd(C).S
+    if s[end] < reltol * (s[1] + eps())   # smallest singular value small → nearly collinear
+        ## Project onto first principal axis for ordering
+        #V = svd(C).V[:,1]
+        #t = vec(V' * C)       # scalar projection of each point
+        #ord = sortperm(t)
+        return true, s
+    else
+        return false, s
+    end
+end
+
+function make_graph_from_binary_img(img, r = 1)
+    labelized = label_components(img, strel_box(img; r = r))
     labels = unique(labelized)
 
-    if length(labels) <= 2
+    if length(labels) <= 3
         throw(DimensionMismatch("Only two centers for triangulation"))
     end
 
-    centroids = Dict()
-    centroids_mapping = Dict()
-    for (i, label) in enumerate(labels)
-        # Find all pixels with this label
-        indices = findall(labelized .== label)
-        # Convert to row, column coordinates
-        coords = [(ind[1], ind[2]) for ind in indices]
-        # Calculate centroid
-        y_coords = [c[1] for c in coords]
-        x_coords = [c[2] for c in coords]
-        centroids[label] = (mean(y_coords), mean(x_coords))
-        centroids_mapping[i] = label
-    end
-    cell_centers = collect(values(centroids))
-    n_cells = length(cell_centers)
-    points = [(Float64(p[1]), Float64(p[2])) for p in cell_centers]
-    t = @elapsed tri = triangulate(points; rng = Xoshiro(0), predicates = DelaunayTriangulation.FastKernel())
-    if n_cells > 100
-        @warn "A lot of points $n_cells : time $t"
+    # centroids = Dict()
+    # centroids_mapping = Dict()
+    # for (i, label) in enumerate(labels)
+    #     # Find all pixels with this label
+    #     indices = findall(labelized .== label)
+    #     # Convert to row, column coordinates
+    #     coords = [(ind[1], ind[2]) for ind in indices]
+    #     # Calculate centroid
+    #     y_coords = [c[1] for c in coords]
+    #     x_coords = [c[2] for c in coords]
+    #     centroids[label] = (mean(y_coords), mean(x_coords))
+    #     centroids_mapping[i] = label
+    # end
+    # cell_centers = collect(values(centroids))
+    # n_cells = length(cell_centers) # LEGACY SINCE components_centroids does that
 
-        if isdefined(Main, :Infiltrator)
-            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-        end
+    cell_centers = collect(component_centroids(labelized))[2:end]
+    n_cells = length(cell_centers)
+    if n_cells > 1000
+        # if isdefined(Main, :Infiltrator)
+        #     Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+        # end
+        @warn "A lot of cells $n_cells"
+    end
+    points = [(Float64(p[1]), Float64(p[2])) for p in cell_centers]
+    # points_matrix = round.(reshape(reduce(vcat, collect.(points)), (2, :)), digits = 0)
+    points_matrix = reshape(reduce(vcat, collect.(points)), (2, :))
+    points_matrix .+= randn(Xoshiro(0), size(points_matrix)) * 1.0e-8
+
+    failed, s = is_collinear(points_matrix; reltol = 1.0e-8)
+    if failed
+        # if isdefined(Main, :Infiltrator)
+        #     Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+        # end
+        @warn "Not triangulating because possibly degenerate $s"
+        DomainError("colinear") |> throw
+    end
+
+    # println(points_matrix)
+    # print(failed)
+    t = @elapsed tri = Delaunator.triangulate(Delaunator.PointsFromMatrix(points_matrix))
+    # t = @elapsed tri = triangulate(points_matrix; rng = Xoshiro(0), predicates = DelaunayTriangulation.FastKernel(), randomise = false, delete_ghosts = true)
+    if t > 0.1
+        @warn "Triangulation was costly $t"
     end
 
     # Extract edges from triangulation to create a graph
@@ -82,10 +142,7 @@ function make_graph_from_binary_img(img)
         Graphs.add_edge!(g, i, j)
     end
 
-    if isdefined(Main, :Infiltrator)
-        Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-    end
-    return g, centroids, centroids_mapping, cell_centers, labelized
+    return g, centroids, centroids_mapping, cell_centers, labelized, tri
 end
 
 
@@ -117,44 +174,50 @@ for metric in fns
         )
         name = Symbol("$(stat_name)$(metric)_float_factory")
         @show name
-        @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-            t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-            t2 = @elapsed res = $metric(g) |> $(stat)
+        @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+            g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+            res = $metric(g) |> $(stat)
+            return res
+        end
+        @eval function $name(img::SizedImage{S, <:BinaryPixel}, r::Number, args::Vararg{Any}) where {S}
+            r_ = r > 0 ? 1 : 2
+            g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img, r_)
+            res = $metric(g) |> $(stat)
             return res
         end
     end
 
     name = Symbol("xCoorArgmax$(metric)_float_factory")
     @show name
-    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-        t2 = @elapsed which = $metric(g) |> argmax
+    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+        which = $metric(g) |> argmax
         res = centers[which][1]
         return res
     end
 
     name = Symbol("yCoorArgmax$(metric)_float_factory")
     @show name
-    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-        t2 = @elapsed which = $metric(g) |> argmax
+    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+        which = $metric(g) |> argmax
         return centers[which][2]
     end
 
     name = Symbol("xCoorArgmin$(metric)_float_factory")
     @show name
-    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-        t2 = @elapsed which = $metric(g) |> argmin
+    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+        which = $metric(g) |> argmin
         res = centers[which][1]
         return res
     end
 
     name = Symbol("yCoorArgmin$(metric)_float_factory")
     @show name
-    @eval @stable function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-        t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-        t2 = @elapsed which = $metric(g) |> argmin
+    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+        which = $metric(g) |> argmin
         res = centers[which][2]
         return res
     end
@@ -162,29 +225,25 @@ end
 
 # SOME COEFFS ---
 @stable function assortativity_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-    t2 = @elapsed res = assortativity(g)
-
+    g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+    res = assortativity(g)
     return res
 end
 @stable function global_clustering_coefficient_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-    t2 = @elapsed res = global_clustering_coefficient(g)
-
+    g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+    res = global_clustering_coefficient(g)
     return res
 end
 @stable function diameter_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-    t2 = @elapsed res = diameter(g)
-
+    g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+    res = diameter(g)
     return res
 end
 
 # SPECIAL COMMUNITIES
 @stable function label_propagation_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
-    t = @elapsed g, centroids, centroids_mapping, centers, labelized = make_graph_from_binary_img(img)
-    t2 = @elapsed res = label_propagation(g)[1] |> unique |> length # nb of communities
-
+    g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
+    res = label_propagation(g)[1] |> unique |> length # nb of communities
     return res
 end
 

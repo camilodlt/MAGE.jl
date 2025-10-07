@@ -35,7 +35,7 @@ import UTCGP:
     _positive_params,
     _ceil_positive_params
 using ..UTCGP:
-    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type, 
+    SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel, SegmentPixel
 
 # ################### #
@@ -50,7 +50,7 @@ bundle_number_relativeCoordinatesFromImg = FunctionBundle(fallback)
 
 # FUNCTIONS ---
 
-## Reduce Length --- 
+## Reduce Length ---
 
 """
     reduce_length(from::SImageND, args...)
@@ -61,7 +61,7 @@ function reduce_length(from::SImageND, args...)
     return length(from)
 end
 
-## Reduce Biggest Axis --- 
+## Reduce Biggest Axis ---
 
 """
     reduce_biggestAxis(from::SImageND, args...)
@@ -72,7 +72,7 @@ function reduce_biggestAxis(from::SImageND, args...)
     return maximum(size(from))
 end
 
-## Reduce Smaller Axis --- 
+## Reduce Smaller Axis ---
 
 """
     reduce_smallerAxis(from::SImageND, args...)
@@ -83,14 +83,14 @@ function reduce_smallerAxis(from::SImageND, args...)
     return minimum(size(from))
 end
 
-# Reduce HistMode --- 
+# Reduce HistMode ---
 
 """
     reduce_histMode(from::SImageND, args...)
 
 Returns the most common pixel value.
 """
-function reduce_histMode(from::SImageND{S,T,D,C}, args...) where {S,T<:Union{IntensityPixel, BinaryPixel},D,C}
+function reduce_histMode(from::SImageND{S, T, D, C}, args...) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
     cm = countmap(reinterpret(from.img))
     highest_v = 0
     k_of_highest_v = 0
@@ -100,10 +100,10 @@ function reduce_histMode(from::SImageND{S,T,D,C}, args...) where {S,T<:Union{Int
             k_of_highest_v = k
         end
     end
-    return float64(k_of_highest_v) 
+    return float64(k_of_highest_v)
 end
 
-function reduce_histModeCount(from::SImageND{S,T,D,C}, args...) where {S,T<:Union{IntensityPixel, BinaryPixel},D,C}
+function reduce_histModeCount(from::SImageND{S, T, D, C}, args...) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
     cm = countmap(reinterpret(from.img))
     highest_v = 0
     k_of_highest_v = 0
@@ -113,97 +113,97 @@ function reduce_histModeCount(from::SImageND{S,T,D,C}, args...) where {S,T<:Unio
             k_of_highest_v = k
         end
     end
-    return float64(highest_v) 
+    return float64(highest_v)
 end
 
 
-# Reduce Prop White --- 
+# Reduce Prop White ---
 
 """
     reduce_propWhite(from::SImageND, args...)
 
 Returns the proportion of white pixels
 """
-function reduce_propWhite(from::SImageND{S,T,D,C}, args...) where {S,T<:BinaryPixel,D,C}
+function reduce_propWhite(from::SImageND{S, T, D, C}, args...) where {S, T <: BinaryPixel, D, C}
     n_pixels = length(from)
-    white_pixels = count(reinterpret(from.img) .== 1.)
+    white_pixels = count(reinterpret(from.img) .== 1.0)
     return white_pixels / n_pixels
 end
 
-# Reduce Prop Black --- 
+# Reduce Prop Black ---
 
 """
     reduce_propBlack(from::SImageND, args...)
 
 Returns the proportion of black pixels
 """
-function reduce_propBlack(from::SImageND{S,T,D,C}, args...) where {S,T<:BinaryPixel,D,C}
+function reduce_propBlack(from::SImageND{S, T, D, C}, args...) where {S, T <: BinaryPixel, D, C}
     n_pixels = length(from)
-    black_pixels = count(reinterpret(from.img) .== 0.)
+    black_pixels = count(reinterpret(from.img) .== 0.0)
     return black_pixels / n_pixels
 end
 
-# Reduce N Colors --- 
+# Reduce N Colors ---
 
 """
     reduce_nColors(from::SImageND, args...)
 
 Returns the number of unique colors in the image.
 """
-function reduce_nColors(from::SImageND{S,T,D,C}, args...) where {S,T<:Union{IntensityPixel, BinaryPixel, SegmentPixel},D,C}
+function reduce_nColors(from::SImageND{S, T, D, C}, args...) where {S, T <: Union{IntensityPixel, BinaryPixel, SegmentPixel}, D, C}
     return Float64(length(unique(from.img)))
 end
 
 
-# Reduce Mean --- 
+# Reduce Mean ---
 
 """
     reduce_mean(from::SImageND, args...)
 
 Return the mean of the image
 """
-function reduce_mean(from::SImageND{S,T,D,C}, args...) where {S,T<:IntensityPixel,D,C}
+function reduce_mean(from::SImageND{S, T, D, C}, args...) where {S, T <: IntensityPixel, D, C}
     return Float64(mean(float(from)))
 end
 
-# Reduce Median --- 
+# Reduce Median ---
 
 """
     reduce_median(from::SImageND, args...)
 
 Return the median of the image
 """
-function reduce_median(from::SImageND{S,T,D,C}, args...) where {S,T<:IntensityPixel,D,C}
+function reduce_median(from::SImageND{S, T, D, C}, args...) where {S, T <: IntensityPixel, D, C}
     return Float64(median(float(from)))
 end
 
-# Reduce std --- 
+# Reduce std ---
 """
     reduce_std(from::SImageND, args...)
 
 Return the std of the image
 """
-function reduce_std(from::SImageND{S,T,D,C}, args...) where {S,T<:IntensityPixel,D,C}
+function reduce_std(from::SImageND{S, T, D, C}, args...) where {S, T <: IntensityPixel, D, C}
     return Float64(std(float(from)))
 end
 
-# Reduce Max --- 
+# Reduce Max ---
 """
     reduce_maximum(from::SImageND, args...)
 
 Return the max of the image
 """
-function reduce_maximum(from::SImageND{S,T,D,C}, args...) where {S,T<:IntensityPixel,D,C}
+function reduce_maximum(from::SImageND{S, T, D, C}, args...) where {S, T <: IntensityPixel, D, C}
     return Float64(maximum(float(from)))
 end
 
-# Reduce Min --- 
+# Reduce Min ---
 """
     reduce_minmum(from::SImageND, args...)
 
 Return the min of the image
 """
-function reduce_minimum(from::SImageND{S,T,D,C}, args...) where {S,T<:IntensityPixel,D,C}
+function reduce_minimum(from::SImageND{S, T, D, C}, args...) where {S, T <: IntensityPixel, D, C}
     return Float64(minimum(float(from)))
 end
 
@@ -213,9 +213,9 @@ end
 Return the y coordinate where the image has it max value
 """
 function experimental_vertical_argmax(
-    from::SImageND{S,T,D,C},
-    args...,
-) where {S,T<:Union{IntensityPixel, BinaryPixel},D,C}
+        from::SImageND{S, T, D, C},
+        args...,
+    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
     argmax_values = argmax(float(from))
     return argmax_values[1] |> Float64
 end
@@ -226,9 +226,9 @@ end
 Return the x coordinate where the image has it max value
 """
 function experimental_horizontal_argmax(
-    from::SImageND{S,T,D,C},
-    args...,
-) where {S,T<:Union{IntensityPixel, BinaryPixel},D,C}
+        from::SImageND{S, T, D, C},
+        args...,
+    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
     argmax_values = argmax(float(from))
     return argmax_values[2] |> Float64
 end
@@ -239,9 +239,9 @@ end
 Return the y coordinate where the image has it max value, divided by the image height
 """
 function experimental_vertical_relative_argmax(
-    from::SImageND{S,T,D,C},
-    args...,
-) where {S,T<:Union{IntensityPixel, BinaryPixel},D,C}
+        from::SImageND{S, T, D, C},
+        args...,
+    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
     argmax_values = argmax(float(from))
     return Float64(argmax_values[1] / size(from)[1])
 end
@@ -252,9 +252,9 @@ end
 Return the x coordinate where the image has it max value, divided by the image width
 """
 function experimental_horizontal_relative_argmax(
-    from::SImageND{S,T,D,C},
-    args...,
-) where {S,T<:Union{IntensityPixel, BinaryPixel},D,C}
+        from::SImageND{S, T, D, C},
+        args...,
+    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
     argmax_values = argmax(float(from))
     return Float64(argmax_values[2] / size(from)[2])
 end
@@ -262,7 +262,7 @@ end
 # Vertical center of mass
 # """
 #     experimental_vertical_center_of_mass()
-# Return the y coordinate of the center of mass of the image 
+# Return the y coordinate of the center of mass of the image
 # """
 # function experimental_vertical_center_of_mass(
 #     from::SImageND{S,T,D,C},
@@ -278,7 +278,7 @@ end
 # # Horizontal center of mass
 # """
 #     experimental_horizontal_center_of_mass()
-# Return the x coordinate of the center of mass of the image 
+# Return the x coordinate of the center of mass of the image
 # """
 # function experimental_horizontal_center_of_mass(
 #     from::SImageND{S,T,D,C},
@@ -291,7 +291,7 @@ end
 #     return x_cms
 # end
 
-# APPEND FUNCTIONS --- 
+# APPEND FUNCTIONS ---
 append_method!(bundle_number_reduceFromImg, reduce_length)
 append_method!(bundle_number_reduceFromImg, reduce_biggestAxis)
 append_method!(bundle_number_reduceFromImg, reduce_smallerAxis)
@@ -320,4 +320,3 @@ append_method!(
 # append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_center_of_mass)
 # append_method!(bundle_number_coordinatesFromImg, experimental_vertical_center_of_mass)
 end
-

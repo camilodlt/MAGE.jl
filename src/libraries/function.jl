@@ -1,3 +1,7 @@
+function _get_parent_module_symbol(f::AbstractFunction)
+    return typeof(f) |> parentmodule |> Symbol
+end
+
 function _get_parent_module_symbol(f::Function)
     return Symbol(parentmodule(f))
 end
@@ -183,11 +187,28 @@ function evaluate_fn_wrapper(
                         inputs_,
                         Val(cast),
                     )
-                    if t > 4
-                        if isdefined(Main, :Infiltrator)
-                            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-                        end
+                    if t > 0.5
+                        @warn "Function $(fn_wrapper.name) took $t"
                     end
+                    # if t > 0.05
+                    #     t2 =
+                    #         @elapsed call_fn_wrap(
+                    #         fn_wrapper,
+                    #         inputs_,
+                    #         Val(cast),
+                    #     )
+                    #     if t2 > 0.2
+                    #         @warn "Function $(fn_wrapper.name) took $t2"
+                    #         if isdefined(Main, :Infiltrator)
+                    #             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                    #         end
+                    #     end
+                    #     if t2 > 0.05
+                    #         if isdefined(Main, :Infiltrator)
+                    #             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+                    #         end
+                    #     end
+                    # end
                     res
                 catch e
                     if e isa MethodError

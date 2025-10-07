@@ -188,16 +188,19 @@ function evaluate_program(
         program::Program,
         chromosomes_types::Vector{<:T},
         metalibrary::MetaLibrary,
+        safe::Bool = true
     )::Any where {T <: Type}
     calling_node = nothing
     @assert length(program) > 0
     @debug "Program Length $(length(program))"
-
     @timeit_debug to "Eval Prog. loop" begin
-        # _run_op.(program, Ref(program.program_inputs))
         si = program.program_inputs
         for operation in program
-            _run_op(operation, si)
+            return_type = Any
+            if safe
+                return_type = chromosomes_types[operation.calling_node.y_position]
+            end
+            _run_op(operation, si, return_type)
         end
         calling_node = program.program[end].calling_node
     end
@@ -206,11 +209,11 @@ function evaluate_program(
     return get_node_value(calling_node)
 end
 
-function _run_op(::AbstractOperation, ::SharedInput)
+function _run_op(::AbstractOperation, ::SharedInput, return_type::Type{T}) where {T}
     throw("NOT IMPLEMENTED")
 end
 
-function _run_op(operation::Operation, program_inputs::SharedInput)
+function _run_op(operation::Operation, program_inputs::SharedInput, return_type::Type{T}) where {T}
     # operation = program[idx_op]
     fn, calling_node, inputs = (operation.fn, operation.calling_node, operation.inputs)
     return if calling_node.value === nothing
@@ -220,19 +223,13 @@ function _run_op(operation::Operation, program_inputs::SharedInput)
         fname = fn.name
         @debug "Evaluating $fname"
 
-        # if inputs_values == [Any[]]
-        # if isdefined(Main, :Infiltrator)
-        # Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-        # end
-        # end
         @timeit_debug to "Calc res" res = evaluate_fn_wrapper(fn, inputs_values)
-
-        if res != "" && eltype(res) != String && eltype(res) != Int && res isa Vector
+        @assert res isa return_type "$(fname) $(typeof.(inputs_values))"
+        if !(res isa return_type)
             if isdefined(Main, :Infiltrator)
                 Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
             end
         end
-
         @timeit_debug to "Calc set res" t = @elapsed set_node_value!(calling_node, res)
     end
 end
@@ -258,19 +255,11 @@ function evaluate_individual_programs(
         individual_programs::IndividualPrograms,
         chromosomes_types::Vector{<:T},
         metalibrary::MetaLibrary,
+        safe::Bool = true
     )::Vector{<:Any} where {T <: Type}
-    # slow
-    # @timeit_debug to "eval_ind_progs. slow" begin
-    #     outputs = []
-    #     for (ith_program, program) in enumerate(individual_programs)
-    #         output = evaluate_program(program, chromosomes_types, metalibrary)
-    #         push!(outputs, output)
-    #     end
-    #     outputs = identity.(outputs)
-    # end
     @timeit_debug to "eval_ind_progs. eval each prog" @inbounds begin
         outs = ntuple(
-            i -> evaluate_program(individual_programs[i], chromosomes_types, metalibrary),
+            i -> evaluate_program(individual_programs[i], chromosomes_types, metalibrary, safe),
             length(individual_programs.programs),
         )
         ind_outputs = collect(outs)
@@ -283,12 +272,14 @@ function eval_and_reset(
         population_programs::PopulationPrograms,
         model_architecture::modelArchitecture,
         metalibrary::MetaLibrary,
+        safe::Bool = true
     )
     ind_p = population_programs[idx_ind]
     o = evaluate_individual_programs(
         ind_p,
         model_architecture.chromosomes_types,
         metalibrary,
+        safe
     )
     reset_programs!(ind_p)
     return o
@@ -298,12 +289,14 @@ function eval_and_reset_with_time(
         population_programs::PopulationPrograms,
         model_architecture::modelArchitecture,
         metalibrary::MetaLibrary,
+        safe::Bool = true
     )
     ind_p = population_programs[idx_ind]
     t = @elapsed o = evaluate_individual_programs(
         ind_p,
         model_architecture.chromosomes_types,
         metalibrary,
+        safe
     )
     reset_programs!(ind_p)
     return (o, t)
@@ -313,6 +306,7 @@ function evaluate_population_programs(
         population_programs::PopulationPrograms,
         model_architecture::modelArchitecture,
         metalibrary::MetaLibrary,
+        safe::Bool = true
     )
     n_individuals = length(population_programs)
     @assert n_individuals > 0 "No individuals to evaluate"
@@ -332,6 +326,7 @@ function evaluate_population_programs_with_time(
         population_programs::PopulationPrograms,
         model_architecture::modelArchitecture,
         metalibrary::MetaLibrary,
+        safe::Bool = true
     )
     n_individuals = length(population_programs)
     @assert n_individuals > 0 "No individuals to evaluate"
@@ -342,6 +337,7 @@ function evaluate_population_programs_with_time(
                 population_programs,
                 model_architecture,
                 metalibrary,
+                safe
             ),
             length(population_programs),
         )

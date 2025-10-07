@@ -20,7 +20,7 @@ To make the graph, connections the which function is used.
 
 struct FunctionBundle <: AbstractFunctionBundle
     functions::Vector{FunctionWrapper}
-    caster::Union{Function,Nothing}
+    caster::Union{Function, Nothing}
     fallback::Function
     last_fallback::Function # deprecate it TODO
     function FunctionBundle(caster::Function, fallback::Function, last_fallback::Function)
@@ -42,6 +42,7 @@ function Base.getindex(bundle::FunctionBundle, name::Symbol)
             return fnw
         end
     end
+    return
 end
 
 Base.iterate(bundle::FunctionBundle, state = 1) =
@@ -58,32 +59,39 @@ function _verify_last_arg_is_vararg!(fn::Function)
         end
         @assert sig.types[end] == Vararg{Any} "$fn"
     end
+    return
 end
 function _verify_last_arg_is_vararg!(m::Method)
     sig = m.sig
     if sig isa UnionAll
         sig = Base.unwrap_unionall(sig)
     end
-    @assert sig.types[end] == Vararg{Any} "$fn"
+    return @assert sig.types[end] == Vararg{Any} "$m"
 end
 function _verify_last_arg_is_vararg!(m::ManualDispatcher)
     fns = m.functions
     for fn in fns
         _verify_last_arg_is_vararg!(fn)
     end
+    return
+end
+function _verify_last_arg_is_vararg!(m::AbstractFunction)
+    methods_ = methods(m)
+    _verify_last_arg_is_vararg!.(methods_)
+    return
 end
 
 function append_method!(bundle::FunctionBundle, fn::LikeFunction)
     fn_wrapped = FunctionWrapper(fn, bundle.caster, bundle.fallback)
-    push!(bundle.functions, fn_wrapped)
+    return push!(bundle.functions, fn_wrapped)
 end
 function append_method!(bundle::FunctionBundle, fn::LikeFunction, name::Symbol)
     fn_wrapped = FunctionWrapper(fn, name, bundle.caster, bundle.fallback)
-    push!(bundle.functions, fn_wrapped)
+    return push!(bundle.functions, fn_wrapped)
 end
 function append_method!(bundle::FunctionBundle, dp::AbstractManualDispatcher)
     fn_wrapped = FunctionWrapper(dp, dp.name, bundle.caster, bundle.fallback)
-    push!(bundle.functions, fn_wrapped)
+    return push!(bundle.functions, fn_wrapped)
 end
 
 function _unique_names_in_bundle(b::FunctionBundle)::Bool
@@ -96,14 +104,16 @@ function update_caster!(b::FunctionBundle, new_caster::Function)
     for fn in b.functions
         fn.caster = new_caster
     end
+    return
 end
 function update_fallback!(b::FunctionBundle, new_fallback::Function)
     _validate_bundle(b)
     for fn in b.functions
         fn.fallback = new_fallback
     end
+    return
 end
 
 function _validate_bundle(b::FunctionBundle)
-    @assert length(b) > 0 "Bundle is empty!"
+    return @assert length(b) > 0 "Bundle is empty!"
 end

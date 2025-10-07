@@ -4,35 +4,33 @@ using Debugger
 using Term
 using ErrorTypes
 
-# using Infiltrator
-
 ### FIT API ###
 
 function fit(
-    X::Any,
-    Y::Union{Any,Nothing},
-    shared_inputs::SharedInput,
-    genome::UTGenome,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    run_config::runConf,
-    meta_library::MetaLibrary,
-    # Callbacks before training
-    pre_callbacks::UTCGP.Optional_FN,
-    # Callbacks before step (before looping through data)
-    population_callbacks::UTCGP.Mandatory_FN,
-    mutation_callbacks::UTCGP.Mandatory_FN,
-    output_mutation_callbacks::UTCGP.Mandatory_FN,
-    decoding_callbacks::UTCGP.Mandatory_FN,
-    # Callbacks per step (while looping through data)
-    endpoint_callback::Union{Type{<:UTCGP.BatchEndpoint},<:UTCGP.BatchEndpoint},
-    final_step_callbacks::UTCGP.Optional_FN,
-    # Callbacks after step ::
-    elite_selection_callbacks::UTCGP.Mandatory_FN,
-    epoch_callbacks::UTCGP.Optional_FN,
-    early_stop_callbacks::UTCGP.Optional_FN,
-    last_callback::UTCGP.Optional_FN,
-) # Tuple{UTGenome, IndividualPrograms, GenerationLossTracker}::
+        X::Any,
+        Y::Union{Any, Nothing},
+        shared_inputs::SharedInput,
+        genome::UTGenome,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        run_config::runConf,
+        meta_library::MetaLibrary,
+        # Callbacks before training
+        pre_callbacks::UTCGP.Optional_FN,
+        # Callbacks before step (before looping through data)
+        population_callbacks::UTCGP.Mandatory_FN,
+        mutation_callbacks::UTCGP.Mandatory_FN,
+        output_mutation_callbacks::UTCGP.Mandatory_FN,
+        decoding_callbacks::UTCGP.Mandatory_FN,
+        # Callbacks per step (while looping through data)
+        endpoint_callback::Union{Type{<:UTCGP.BatchEndpoint}, <:UTCGP.BatchEndpoint},
+        final_step_callbacks::UTCGP.Optional_FN,
+        # Callbacks after step ::
+        elite_selection_callbacks::UTCGP.Mandatory_FN,
+        epoch_callbacks::UTCGP.Optional_FN,
+        early_stop_callbacks::UTCGP.Optional_FN,
+        last_callback::UTCGP.Optional_FN,
+    ) # Tuple{UTGenome, IndividualPrograms, GenerationLossTracker}::
 
     local early_stop = false
     local best_program = nothing
@@ -46,7 +44,7 @@ function fit(
     end
 
     M_gen_loss_tracker = GenerationLossTracker()
-    for iteration = 1:run_config.generations
+    for iteration in 1:run_config.generations
         if early_stop
             break
         end
@@ -107,7 +105,7 @@ function fit(
         @info "Time Decoding $time_pop_prog"
 
         @warn "Graphs evals"
-        for ith_x = 1:length(X)
+        for ith_x in 1:length(X)
             # unpack input nodes
             if isnothing(Y) # X is dataloader
                 x, y = X[ith_x]
@@ -116,10 +114,10 @@ function fit(
             end
             input_nodes = [
                 InputNode(value, pos, pos, model_architecture.inputs_types_idx[pos]) for
-                (pos, value) in enumerate(x)
+                    (pos, value) in enumerate(x)
             ]
             # append input nodes to pop
-            replace_shared_inputs!(population_programs, input_nodes) # update 
+            replace_shared_inputs!(population_programs, input_nodes) # update
             @bp
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
@@ -251,7 +249,7 @@ function fit(
                     styled = Term.highlight(typeof(node); theme = theme)
                 end
                 reshaped = Term.reshape_text(styled, theme.tree_max_leaf_width)
-                print(io, reshaped)
+                return print(io, reshaped)
 
             end
 
@@ -267,9 +265,9 @@ function fit(
                     op_dict = Dict()
                     ins = [
                         UTCGP._extract_input_node_from_operationInput(
-                            shared_inputs,
-                            inp,
-                        ).id for inp in op.inputs
+                                shared_inputs,
+                                inp,
+                            ).id for inp in op.inputs
                     ]
                     Base.insert!(ins, 1, string(op.fn.name))
                     op_dict[node_name] = ins
@@ -282,7 +280,7 @@ function fit(
         end
 
     end
-    # LAST CALLBACK 
+    # LAST CALLBACK
     # if !isnothing(last_callback)
     #     last_callback(
     #         ind_performances,
@@ -298,7 +296,7 @@ function fit(
     #         elite_idx,
     #     )
     # end
-    # LAST PRINT 
+    # LAST PRINT
     # println("LAST OUTPUTS")
     # time_test_inference = @elapsed for ith_x = 1:length(X)
     #     reset_genome!(population[elite_idx])
@@ -310,7 +308,7 @@ function fit(
     #         (pos, value) in enumerate(x)
     #     ]
     #     # append input nodes to pop
-    #     replace_shared_inputs!(shared_inputs, input_nodes) # update 
+    #     replace_shared_inputs!(shared_inputs, input_nodes) # update
     #     outputs = evaluate_individual_programs(
     #         best_program,
     #         model_architecture.chromosomes_types,
@@ -333,7 +331,7 @@ function fit(
             styled = Term.highlight(typeof(node); theme = theme)
         end
         reshaped = Term.reshape_text(styled, theme.tree_max_leaf_width)
-        print(io, reshaped)
+        return print(io, reshaped)
 
     end
 
@@ -348,9 +346,9 @@ function fit(
             op_dict = Dict()
             ins = [
                 unwrap_or(
-                    UTCGP._extract_input_node_from_operationInput(shared_inputs, inp),
-                    nothing,
-                ).id for inp in op.inputs
+                        UTCGP._extract_input_node_from_operationInput(shared_inputs, inp),
+                        nothing,
+                    ).id for inp in op.inputs
             ]
             Base.insert!(ins, 1, string(op.fn.name))
             op_dict[node_name] = ins
@@ -361,4 +359,3 @@ function fit(
     println(Term.Tree(tree_dict, print_node_function = print_node_))
     return (genome, best_program, M_gen_loss_tracker)
 end
-

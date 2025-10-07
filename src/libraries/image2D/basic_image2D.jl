@@ -183,10 +183,6 @@ function experimental_tobinary_th_image2D_factory(i::Type{I}) where {I <: SizedI
     _validate_factory_type(IT)
     return @eval function (img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
         r = _to_binary(img, th)
-        if isdefined(Main, :Infiltrator)
-            Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-        end
-
         return SImageND(r, $S)
     end
 end

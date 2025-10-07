@@ -18,14 +18,14 @@ labelized = label_components(binary_nuclei)
 labels = unique(labelized)
 centroids = Dict()
 for label in labels
-   # Find all pixels with this label
-   indices = findall(labelized .== label)
-   # Convert to row, column coordinates
-   coords = [(ind[1], ind[2]) for ind in indices]
-   # Calculate centroid
-   y_coords = [c[1] for c in coords]
-   x_coords = [c[2] for c in coords]
-   centroids[label] = (mean(y_coords), mean(x_coords))
+    # Find all pixels with this label
+    indices = findall(labelized .== label)
+    # Convert to row, column coordinates
+    coords = [(ind[1], ind[2]) for ind in indices]
+    # Calculate centroid
+    y_coords = [c[1] for c in coords]
+    x_coords = [c[2] for c in coords]
+    centroids[label] = (mean(y_coords), mean(x_coords))
 end
 cell_centers = collect(values(centroids))
 n_cells = length(cell_centers)
@@ -46,40 +46,52 @@ for (i, j) in edges
     Graphs.add_edge!(g, i, j)
 end
 
+
+using Images, ImageSegmentation, Statistics
+using ImageView
+using ImageSegmentation, Statistics
+using DelaunayTriangulation
+using Graphs
+using GraphPlot, Colors
+using UTCGP
+
+using Graphs
+using ImageDraw
+using ImageView
 function visualize_cell_graph(img, cell_centers, g, lightup = [])
     # Display the original image
     img_to_display = RGB{N0f8}.(img)
-    
+
     # Overlay graph
     for e in Graphs.edges(g)
         src = cell_centers[Graphs.src(e)]
         dst = cell_centers[Graphs.dst(e)]
-        p1 = Point(Int(round(src[2])), Int(round(src[1])))
-        p2 = Point(Int(round(dst[2])), Int(round(dst[1]))) 
+        p1 = ImageDraw.Point(Int(round(src[2])), Int(round(src[1])))
+        p2 = ImageDraw.Point(Int(round(dst[2])), Int(round(dst[1])))
 
-        if e.src in lightup 
+        if e.src in lightup
             @show e.src
-            draw!(img_to_display , Ellipse(CirclePointRadius(p1,10)), RGB{N0f8}(0.1,0.5,0.7))
+            ImageDraw.draw!(img_to_display, Ellipse(CirclePointRadius(p1, 1)), RGB{N0f8}(0.1, 0.5, 0.7))
         end
-        if e.dst in lightup 
+        if e.dst in lightup
             @show e.dst
-            draw!(img_to_display , Ellipse(CirclePointRadius(p2,10)), RGB{N0f8}(0.1,0.5,0.7))
+            ImageDraw.draw!(img_to_display, Ellipse(CirclePointRadius(p2, 1)), RGB{N0f8}(0.1, 0.5, 0.7))
         end
-        draw!(img_to_display, LineSegment(p1, p2), RGB{N0f8}(0,0,1))
-        # draw!(img_to_display , Ellipse(CirclePointRadius(p1,2)), RGB{N0f8}(1,0,1))
+        ImageDraw.draw!(img_to_display, ImageDraw.LineSegment(p1, p2), RGB{N0f8}(0.2, 0.2, 0.2))
+        # ImageDraw.draw!(img_to_display, Ellipse(CirclePointRadius(p1, 2)), RGB{N0f8}(1, 0, 1))
         # draw!(img_to_display , Ellipse(CirclePointRadius(p2,2)), RGB{N0f8}(1,0,1))
     end
-    
+
     # Mark cell centers
-    # for center in cell_centers        
+    # for center in cell_centers
     #     @show center
     #     p1 = Int(round(center[1]))
     #     p2 = Int(round(center[2]))
     #     p = Point(p1, p2)
     #     draw!(img_to_display , Ellipse(CirclePointRadius(p,10)), RGB{N0f8}(1,0,1))
     # end
-    
-    return img_to_display 
+
+    return img_to_display
 end
 result = visualize_cell_graph(img, cell_centers, g)
 # save("cell_graph.png", result)
