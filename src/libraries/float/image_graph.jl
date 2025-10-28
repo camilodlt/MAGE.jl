@@ -27,7 +27,6 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 using Images, ImageSegmentation, Statistics
-# using ImageView
 using ImageSegmentation, Statistics
 using DelaunayTriangulation
 using Graphs

@@ -1,18 +1,17 @@
-using ImageView
 using ImageBinarization
 using ImageCore
 using Statistics
 
 function generate_binarize_test_image(::Type{IntensityPixel{T}}, size = (10, 10)) where {T}
     # Create a gradient image for intensity
-    img = [i / size[1] + j / size[2] for i = 1:size[1], j = 1:size[2]]
+    img = [i / size[1] + j / size[2] for i in 1:size[1], j in 1:size[2]]
     img = img ./ maximum(img)  # Normalize to range [0, 1]
     return SImageND(IntensityPixel{T}.(img))
 end
 
 function generate_binarize_test_image(::Type{BinaryPixel{Bool}}, size = (10, 10))
     # Create a gradient image for intensity
-    return SImageND(BinaryPixel{Bool}.(trues(10,10)))
+    return SImageND(BinaryPixel{Bool}.(trues(10, 10)))
 end
 
 INTENSITY = IntensityPixel{N0f8}
@@ -50,10 +49,10 @@ BINARY = BinaryPixel{Bool}
             @test all(0 .<= res .<= 1)
         end
 
-        res1 = fn(test_img, 5, 30.)
-        res2 = fn(test_img, 5., 50)
+        res1 = fn(test_img, 5, 30.0)
+        res2 = fn(test_img, 5.0, 50)
 
-        @test sum(float(res1).== 0) > sum(float(res2).==0) # p = 30 is less restrictive so more background pixels than with p = 50
+        @test sum(float(res1) .== 0) > sum(float(res2) .== 0) # p = 30 is less restrictive so more background pixels than with p = 50
     end
 end
 
@@ -86,9 +85,9 @@ end
         end
 
         res1 = fn(test_img, 100)
-        res2 = fn(test_img, 3.)
+        res2 = fn(test_img, 3.0)
 
-        @test sum(float(res1).== 0) > sum(float(res2).==0) # p = 30 is less restrictive so more background pixels than with p = 50
+        @test sum(float(res1) .== 0) > sum(float(res2) .== 0) # p = 30 is less restrictive so more background pixels than with p = 50
     end
 end
 
@@ -153,7 +152,7 @@ end
         end
         res1 = fn(test_img, 5, 0.1)
         res2 = fn(test_img, 5, 0.9)
-        @test res1 != res2 
+        @test res1 != res2
     end
 end
 
@@ -187,7 +186,7 @@ end
 
         res1 = fn(test_img, 5)
         res2 = fn(test_img, 100)
-        @test res1 != res2 
+        @test res1 != res2
     end
 end
 
@@ -283,7 +282,7 @@ end
 
         res1 = fn(test_img, 5, 0.1)
         res2 = fn(test_img, 5, 0.9)
-        @test res1 != res2 
+        @test res1 != res2
     end
 end
 
@@ -317,7 +316,7 @@ end
 
         res1 = fn(test_img, 100)
         res2 = fn(test_img, 5)
-        @test res1 != res2 
+        @test res1 != res2
     end
 end
 
@@ -411,8 +410,8 @@ end
         @test all(0 .<= res .<= 1)
         res1 = fn(test_img)
         res2 = fn(test_img, 256)
-        @test res1 == res2 
-    end 
+        @test res1 == res2
+    end
 end
 
 # MINIMUM INTERMODES
@@ -471,7 +470,7 @@ end
 
         res1 = fn(test_img)
         res2 = fn(test_img, 256)
-        @test res1 == res2 
+        @test res1 == res2
     end
 end
 
@@ -536,7 +535,7 @@ end
 
         res1 = fn(test_img)
         res2 = fn(test_img, 256)
-        @test res1 == res2 
+        @test res1 == res2
     end
 end
 
@@ -594,7 +593,7 @@ end
 
         res1 = fn(test_img)
         res2 = fn(test_img, 256)
-        @test res1 == res2 
+        @test res1 == res2
     end
 end
 
@@ -634,7 +633,7 @@ end
 
         res1 = fn(test_img)
         res2 = fn(test_img, 256)
-        @test res1 == res2 
+        @test res1 == res2
     end
 end
 
@@ -674,10 +673,10 @@ end
 
         res1 = fn(test_img)
         res2 = fn(test_img, 256)
-        @test res1 == res2 
+        @test res1 == res2
     end
 end
- 
+
 # ####################
 # # ENTROPY          #
 # ####################
@@ -711,10 +710,10 @@ end
         @test size(res) == size(test_img)
         @test all(x -> x == 0 || x == 1, res)
         @test all(0 .<= res .<= 1)
-        
+
         res1 = fn(test_img)
         res2 = fn(test_img, 256)
-        @test res1 == res2 
+        @test res1 == res2
     end
 end
 
@@ -829,11 +828,11 @@ end
             @test size(res) == size(test_img)
             @test all(x -> x == 0 || x == 1, res)
             @test all(0 .<= res .<= 1)
-            if t == 1. # none is gr
+            if t == 1.0 # none is gr
                 sum(float(res.img)) == 0
             end
-            if t == 0. # all are gr
-                sum(float(res.img)) == 10*10
+            if t == 0.0 # all are gr
+                sum(float(res.img)) == 10 * 10
             end
         end
     end

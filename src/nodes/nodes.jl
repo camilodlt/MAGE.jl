@@ -250,16 +250,6 @@ mutable struct ConstantNode <: AbstractGenomeNode
             id,
         )
     end
-    # function ConstantNode(
-    #         nm::NodeMaterial,
-    #         value::Any,
-    #         x_pos::Int,
-    #         x_real_pos::Int,
-    #         y_pos::Int,
-    #     )
-    #     id = "node ($x_pos,$y_pos)"
-    #     return new(nm, value, x_pos, x_real_pos, y_pos, id)
-    # end
 end
 
 function get_node_value(node::ConstantNode)
