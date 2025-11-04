@@ -81,7 +81,7 @@ Pkg.build("PyCall")
     @testset "Casters" begin
         include("libraries/casters.jl")
     end
-    # LIBS 
+    # LIBS
     @testset "String" begin
         include("libraries/string/grep.jl")
         include("libraries/string/paste.jl")
@@ -159,28 +159,28 @@ Pkg.build("PyCall")
         include("problem_specific/test_basement.jl") #basement
         include("problem_specific/test_bouncing_balls.jl") #bouncing balls
         #bowling
-        include("problem_specific/test_camel_case.jl")#camel case 
-        include("problem_specific/test_coin_sums.jl")# coin sums 
+        include("problem_specific/test_camel_case.jl") #camel case
+        include("problem_specific/test_coin_sums.jl") # coin sums
         include("problem_specific/test_cut_vector.jl") # cutvector
-        include("problem_specific/test_dice_game.jl")#dice game
-        include("problem_specific/test_find_pair.jl")#find pair
-        include("problem_specific/test_fizz_buzz.jl")#fizz buzz
-        include("problem_specific/test_fuel_cost.jl")#fuel cost
-        include("problem_specific/test_gcd.jl")#CGD
-        include("problem_specific/test_indices_of_substring.jl")#Indices of substring
-        include("problem_specific/test_leaders.jl")#leaders 
-        include("problem_specific/test_luhn.jl")#Luhn
-        include("problem_specific/test_mastermind.jl")#Mastermind
-        include("problem_specific/test_middle_character.jl")#MiddleCharacter
-        include("problem_specific/test_paired_digits.jl")#PairedDigits
-        include("problem_specific/test_shopping_list.jl")#Shopping list
-        include("problem_specific/test_snow_day.jl")#SnowDay
-        include("problem_specific/test_solve_booleans.jl")#solve boolean 
-        include("problem_specific/test_spin_words.jl")#spin worlds 
-        include("problem_specific/test_square_digits.jl")#square digits 
-        include("problem_specific/test_substitution_cipher.jl")#substitution cipher
-        include("problem_specific/test_twitter.jl")#twitter 
-        include("problem_specific/test_vec_dist.jl")#vector distance
+        include("problem_specific/test_dice_game.jl") #dice game
+        include("problem_specific/test_find_pair.jl") #find pair
+        include("problem_specific/test_fizz_buzz.jl") #fizz buzz
+        include("problem_specific/test_fuel_cost.jl") #fuel cost
+        include("problem_specific/test_gcd.jl") #CGD
+        include("problem_specific/test_indices_of_substring.jl") #Indices of substring
+        include("problem_specific/test_leaders.jl") #leaders
+        include("problem_specific/test_luhn.jl") #Luhn
+        include("problem_specific/test_mastermind.jl") #Mastermind
+        include("problem_specific/test_middle_character.jl") #MiddleCharacter
+        include("problem_specific/test_paired_digits.jl") #PairedDigits
+        include("problem_specific/test_shopping_list.jl") #Shopping list
+        include("problem_specific/test_snow_day.jl") #SnowDay
+        include("problem_specific/test_solve_booleans.jl") #solve boolean
+        include("problem_specific/test_spin_words.jl") #spin worlds
+        include("problem_specific/test_square_digits.jl") #square digits
+        include("problem_specific/test_substitution_cipher.jl") #substitution cipher
+        include("problem_specific/test_twitter.jl") #twitter
+        include("problem_specific/test_vec_dist.jl") #vector distance
     end
 
     # SN LOGGER
@@ -188,4 +188,8 @@ Pkg.build("PyCall")
         include("search_network/test_sn_writer_init_utils.jl")
         include("search_network/sn_test.jl")
     end
+
 end
+
+# EXT
+include("ext/cma.jl")

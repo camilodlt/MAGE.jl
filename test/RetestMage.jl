@@ -34,4 +34,7 @@ include("libraries/number/test_reduce_from_img.jl")
 
 # GLCM
 # GRAPH
+
+# cma
+include("ext/cma.jl")
 end

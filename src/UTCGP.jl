@@ -555,4 +555,10 @@ module UTCGP
     #    @error "MAGE_RADIOMICS_EXT must be loaded to use"
     #end
     #export _FOS_MeanFeatureValue
-end #
+
+    export ConstantNode
+
+    # EXT PYCMA
+    include("ext.jl")
+    export make_cma_nodes!, get_cma_nodes, mutate_cma!
+end
