@@ -23,49 +23,49 @@ struct repeatJsonTracker <: AbstractCallable
 end
 
 function (json_tracker::jsonTracker)(
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
-    population::Population,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-    programs::PopulationPrograms,
-    best_loss::Float64,
-    best_program::IndividualPrograms,
-    elite_idx::Int,
-)
+        ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}},
+        population::Population,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+        programs::PopulationPrograms,
+        best_loss::Float64,
+        best_program::IndividualPrograms,
+        elite_idx::Int,
+    )
     l = convert(Float32, best_loss)
     json_tracker.train_metrics[generation] = l
     s = Dict("data" => "train", "iteration" => generation, "loss" => l)
-    write(json_tracker.file, JSON.json(s), "\n")
+    return write(json_tracker.file, JSON.json(s), "\n")
 end
 
 function (json_test_tracker::jsonTestTracker)(
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
-    population::Population,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    shared_inputs::SharedInput,
-    programs::PopulationPrograms,
-    best_loss::Float64,
-    best_program::IndividualPrograms,
-    elite_idx::Int,
-)
+        ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}},
+        population::Population,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        shared_inputs::SharedInput,
+        programs::PopulationPrograms,
+        best_loss::Float64,
+        best_program::IndividualPrograms,
+        elite_idx::Int,
+    )
     M_individual_loss_tracker = IndividualLossTracker()
-    for ith_x = 1:length(json_test_tracker.x_test)
+    for ith_x in 1:length(json_test_tracker.x_test)
         # unpack input nodes
         x, y = json_test_tracker.x_test[ith_x], json_test_tracker.y_test[ith_x]
         input_nodes = [
             InputNode(value, pos, pos, model_architecture.inputs_types_idx[pos]) for
-            (pos, value) in enumerate(x)
+                (pos, value) in enumerate(x)
         ]
         # append input nodes to pop
-        replace_shared_inputs!(shared_inputs, input_nodes) # update 
+        replace_shared_inputs!(shared_inputs, input_nodes) # update
         outputs = evaluate_individual_programs(
             best_program,
             model_architecture.chromosomes_types,
@@ -82,22 +82,22 @@ function (json_test_tracker::jsonTestTracker)(
     json_test_tracker.tracker.test_metrics[generation] = ind_performances
     @warn "Test Fitness : $ind_performances"
     s = Dict("data" => "test", "iteration" => generation, "loss" => ind_performances)
-    write(json_test_tracker.tracker.file, JSON.json(s), "\n")
+    return write(json_test_tracker.tracker.file, JSON.json(s), "\n")
 end
 
 function (json_tracker::repeatJsonTracker)(
-    ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
-    population::Population,
-    generation::Int,
-    run_config::runConf,
-    model_architecture::modelArchitecture,
-    node_config::nodeConfig,
-    meta_library::MetaLibrary,
-    programs::PopulationPrograms,
-    best_loss::Float64,
-    best_program::IndividualPrograms,
-    elite_idx::Int,
-)
+        ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}},
+        population::Population,
+        generation::Int,
+        run_config::runConf,
+        model_architecture::modelArchitecture,
+        node_config::nodeConfig,
+        meta_library::MetaLibrary,
+        programs::PopulationPrograms,
+        best_loss::Float64,
+        best_program::IndividualPrograms,
+        elite_idx::Int,
+    )
     total_gens = run_config.generations
     left = total_gens - generation
     last_loss = best_loss
@@ -113,9 +113,10 @@ function (json_tracker::repeatJsonTracker)(
         write(json_tracker.tracker.file, JSON.json(s_train), "\n")
         write(json_tracker.tracker.file, JSON.json(s_test), "\n")
     end
+    return
 end
 
 function save_json_tracker(tracker::jsonTracker)
     s = Dict("params" => tracker.run)
-    write(tracker.file, JSON.json(s))
+    return write(tracker.file, JSON.json(s), "\n")
 end
