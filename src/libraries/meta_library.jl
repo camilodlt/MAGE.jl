@@ -18,6 +18,7 @@ the internal library.
 struct Library <: AbstractLibrary
     bundles::Vector{FunctionBundle}
     library::Vector{FunctionWrapper}
+    cache_config::AbstractCacheConfig
 
     @doc """
         Library(bundles::Vector{FunctionBundle})
@@ -29,8 +30,14 @@ struct Library <: AbstractLibrary
 
     The internal library of FunctionWrappers is empty.
     """
-    function Library(bundles::Vector{FunctionBundle})
-        return new(deepcopy(bundles), [])
+    function Library(
+            bundles::Vector{FunctionBundle};
+            cache_config::AbstractCacheConfig = NoCacheConfig()
+        )
+        if cache_config isa CacheConfig
+            @info "Cache Config is not empty. A cache will be added to each function wrapper at unpacking unless the wrapper already has one"
+        end
+        return new(deepcopy(bundles), [], cache_config)
     end
 end
 
@@ -61,6 +68,18 @@ Iterates the internal library.
 Base.iterate(library::AbstractLibrary, state = 1) =
     state > length(library.library) ? nothing : (library.library[state], state + 1)
 
+
+"""
+Logs Cache state for all functions in the library
+"""
+function _log_cache_state(library::AbstractLibrary)
+    for fnw in library.library
+        if !isnothing(fnw.cache)
+            @info "Fn $(fnw.name) cache info : $(cache_info(fnw.cache))"
+        end
+    end
+    return
+end
 
 """
     add_bundle_to_library!(library::AbstractLibrary, bundle::FunctionBundle)::Int
@@ -134,9 +153,27 @@ function unpack_bundles_in_library!(library::AbstractLibrary)::Int
         empty!(library.library)
         push!(library.library, new_lib...) # Keep the same obj vector
     end
+    # add cache to every fn id needed
+    _add_cache_to_all_library!(library, library.cache_config)
     return n_fn
 end
 
+function _add_cache_to_all_library!(library::AbstractLibrary, cache_config::CacheConfig)
+    for fnw in library.library
+        if isnothing(fnw.cache)
+            fnw.cache = _create_fn_cache(cache_config) # bc fnw is mutable
+            @info "Cache added to $(fnw.name): $(fnw.cache)"
+        else
+            @info "Cache not added to $(fnw.name) because it already had one"
+        end
+    end
+    return
+end
+
+function _add_cache_to_all_library!(library::AbstractLibrary, cache_config::NoCacheConfig)
+    @info "Library with no cache."
+    return
+end
 
 """
     list_functions_names(library::Library;symbol::Bool = false)
@@ -161,22 +198,6 @@ function list_functions_names(
     end
     return identity.(names)
 end
-
-
-# def wrap_fns_in_cache(lib: Library):  # TODO LIBRARY WITH CACHE ANOTHER CLASS
-#     for ith_fn, fn in enumerate(lib.library):
-#         lib.library[ith_fn].fn = big_cache(fn.fn)
-
-
-# function get_fn_idx_from_lib(library::Library, name::Symbol)::Int
-#     for (fn_idx, fn) in enumerate(library)
-#         if fn.name == name
-#             return fn_idx
-#         end
-#     end
-#     throw(KeyError("Library does not have $name function"))
-# end # TODO doc and test
-
 
 ####################
 # METALIBRARY
@@ -265,3 +286,11 @@ Iterates over all libraries in the MetaLibrary
 """
 Base.iterate(ml::AbstractMetaLibrary, state = 1) =
     state > length(ml.libraries) ? nothing : (ml.libraries[state], state + 1)
+
+
+"""
+Logs Cache state for all functions in each lib
+"""
+function _log_cache_state(ml::AbstractMetaLibrary)
+    return _log_cache_state.(ml.libraries)
+end

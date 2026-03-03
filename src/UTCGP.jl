@@ -120,6 +120,9 @@ module UTCGP
     export set_node_element_value!
     export extract_parameters_from_node
 
+    # Cache Config for function wrappers
+    include("libraries/cache.jl")
+
     # DISPATCHER FOR ANONYMOUS METHODS
     include("libraries/manual_dispatcher.jl")
     export ManualDispatcher

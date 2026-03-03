@@ -1,3 +1,6 @@
+#################### FUNCTION WRAPPER ######################
+# wraps a function with it's caster, fallback and cache
+
 function _get_parent_module_symbol(f::AbstractFunction)
     return typeof(f) |> parentmodule |> Symbol
 end
@@ -23,18 +26,19 @@ mutable struct FunctionWrapper{T} <: AbstractFunction
     fn::LikeFunction
     caster::Union{Function, Nothing}
     fallback::Function
-
-    """
-    Function Wrapper with caster and fallback
-    """
+    cache::Union{Nothing, <:LRU}
     function FunctionWrapper(
-            fn::T,
             name::Symbol,
+            parent_module::Symbol,
+            fn::T,
             caster::Union{Function, Nothing},
             fallback::Function,
+            cache::Union{Nothing, <:LRU}
         ) where {T <: LikeFunction}
-        p_mod = _get_parent_module_symbol(fn)
-        return new{T}(name, p_mod, fn, caster, fallback)
+        if !isnothing(cache)
+            @info "Using Cache $cache for fn $name"
+        end
+        return new{T}(name, parent_module, fn, caster, fallback, cache)
     end
 end
 
@@ -43,19 +47,38 @@ Function Wrapper with caster and fallback
 """
 function FunctionWrapper(
         fn::T,
+        name::Symbol,
         caster::Union{Function, Nothing},
-        fallback::Function,
+        fallback::Function;
+        cache_config::AbstractCacheConfig = NoCacheConfig(),
+    ) where {T <: LikeFunction}
+    p_mod = _get_parent_module_symbol(fn)
+    cache = _create_fn_cache(cache_config) # nothing if NoCacheConfig
+    return FunctionWrapper(name, p_mod, fn, caster, fallback, cache)
+end
+
+"""
+Function Wrapper with caster and fallback
+"""
+function FunctionWrapper(
+        fn::T,
+        caster::Union{Function, Nothing},
+        fallback::Function;
+        cache_config::AbstractCacheConfig = NoCacheConfig(),
     ) where {T <: LikeFunction}
     name = _get_name_from_likefn(fn)
-    return FunctionWrapper(fn, name, caster, fallback)
+    return FunctionWrapper(fn, name, caster, fallback; cache_config)
 end
 
 
 """
-Function Wrapper with fallback.
+Function Wrapper with fallback (no caster)
 """
-function FunctionWrapper(fn::T, fallback::Function) where {T <: LikeFunction}
-    return FunctionWrapper(fn, nothing, fallback)
+function FunctionWrapper(
+        fn::T, fallback::Function;
+        cache_config::AbstractCacheConfig = NoCacheConfig(),
+    ) where {T <: LikeFunction}
+    return FunctionWrapper(fn, nothing, fallback; cache_config)
 end
 
 # from https://discourse.julialang.org/t/performance-of-hasmethod-vs-try-catch-on-methoderror/99827/23
@@ -109,71 +132,12 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
     end
 end
 
-# function safe_call(f::F, x::T) where {F<:FunctionWrapper,T<:Tuple}
-#     global SafeFunctions, SafeFunctionsLock
-#     status = get(SafeFunctions, Tuple{F,T}, Undefined)
-#     if status == Good
-#         try
-#             tmp = f.fn(x...)
-#             if !isnothing(f.caster)
-#                 tmp = f.caster(tmp)
-#             end
-#             return (tmp, true) # types are ok but might still error out bc of other pbs
-#         catch
-#             return (f.fallback(), true)
-#         end
-#     end
-#     status == Bad && return (f.fallback(), false) # If types are nok, always return fallback
-#     output = try
-#         tmp = f.fn(x...)
-#         if !isnothing(f.caster)
-#             tmp = f.caster(tmp)
-#         end
-#         (tmp, true)
-#     catch e
-#         if !isa(e, MethodError)
-#             (f.fallback(), true) # The method produced another runtime error, but arguments where accepted
-#         else
-#             (f.fallback(), false)
-#         end
-#     end
-#     return lock(SafeFunctionsLock) do
-#         tid = Threads.threadid()
-#         fn_name = Symbol(f)
-#         @debug "Holding safe call lock for $(fn_name) by $(tid). $(now())"
-#         if output[2]
-#             SafeFunctions[Tuple{F,T}] = Good
-#         else
-#             SafeFunctions[Tuple{F,T}] = Bad
-#         end
-#         @debug "Unlocking safe call lock for $(fn_name) by $(tid). $(now())"
-#         return output
-#     end
-# end
-
 # FASTER
 # Base.@nospecializeinfer function evaluate_fn_wrapper( # not avail in 1.9.3
 function evaluate_fn_wrapper(
         @nospecialize(fn_wrapper::FunctionWrapper),
         @nospecialize(inputs_::Vector{<:Any})
     )
-    # slow
-    # @timeit_debug to "Eval fn. slow" begin
-    #     output, flag = (nothing, false)
-    #     if SAFE_CALL[]
-    #         output, flag = safe_call(fn_wrapper, (inputs_...,))
-    #     else
-    #         output, flag = try
-    #             tmp = fn_wrapper.fn(inputs_...)
-    #             if !isnothing(fn_wrapper.caster)
-    #                 tmp = fn_wrapper.caster(tmp)
-    #             end
-    #             (tmp, true) # types are ok but might still error out bc of other pbs
-    #         catch
-    #             (fn_wrapper.fallback(), true)
-    #         end
-    #     end
-    # end
     @timeit_debug to "Eval fn. fast" begin
         output, flag = (nothing, false)
         cast = !isnothing(fn_wrapper.caster)
@@ -182,34 +146,29 @@ function evaluate_fn_wrapper(
                 output, flag = safe_call(fn_wrapper, (inputs_...,))
             else
                 output = try
-                    t = @elapsed @timeit_debug to "Eval fn Ok $(fn_wrapper.name)" res = call_fn_wrap(
-                        fn_wrapper,
-                        inputs_,
-                        Val(cast),
-                    )
-                    if t > 0.5
-                        @warn "Function $(fn_wrapper.name) took $t"
+                    if !isnothing(fn_wrapper.cache)
+                        get!(fn_wrapper.cache, hash(inputs_)) do
+                            t = @elapsed @timeit_debug to "Eval fn Ok $(fn_wrapper.name)" res = call_fn_wrap(
+                                fn_wrapper,
+                                inputs_,
+                                Val(cast),
+                            )
+                            if t > 0.5
+                                @warn "Function $(fn_wrapper.name) took $t"
+                            end
+                            res
+                        end
+                    else
+                        t = @elapsed @timeit_debug to "Eval fn Ok $(fn_wrapper.name)" res = call_fn_wrap(
+                            fn_wrapper,
+                            inputs_,
+                            Val(cast),
+                        )
+                        if t > 0.5
+                            @warn "Function $(fn_wrapper.name) took $t"
+                        end
+                        res
                     end
-                    # if t > 0.05
-                    #     t2 =
-                    #         @elapsed call_fn_wrap(
-                    #         fn_wrapper,
-                    #         inputs_,
-                    #         Val(cast),
-                    #     )
-                    #     if t2 > 0.2
-                    #         @warn "Function $(fn_wrapper.name) took $t2"
-                    #         if isdefined(Main, :Infiltrator)
-                    #             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-                    #         end
-                    #     end
-                    #     if t2 > 0.05
-                    #         if isdefined(Main, :Infiltrator)
-                    #             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
-                    #         end
-                    #     end
-                    # end
-                    res
                 catch e
                     if e isa MethodError
                         if isdefined(Main, :Infiltrator)
@@ -251,9 +210,3 @@ end
     @debug "End Running fn : $(fn_wrapper.name)"
     return o
 end
-
-# function evaluate_fn_wrapper(fn_wrapper::FunctionWrapper, inputs_::Vector{<:Any})
-#     # inputs = deepcopy(inputs_) # safety
-#     output = safe_call(fn_wrapper, (inputs_...,))
-#     return output[1]
-# end
