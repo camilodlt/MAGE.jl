@@ -1,7 +1,6 @@
 # MAGE.jl
 
-[![Docs](https://img.shields.io/badge/docs-source-blue.svg)](docs/)
-[![Reference](https://img.shields.io/badge/docs-reference-4f81bd.svg)](docs/reference.qmd)
+[![Docs Dev](https://img.shields.io/badge/docs-dev-4f81bd.svg)](https://camilodlt.github.io/MAGE.jl/dev/)
 [![Build Status](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/camilodlt/MAGE.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/camilodlt/MAGE.jl)
 
