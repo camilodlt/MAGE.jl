@@ -6,12 +6,13 @@ DocMeta.setdocmeta!(UTCGP, :DocTestSetup, :(using UTCGP); recursive = true)
 makedocs(;
     modules = [UTCGP],
     authors = "Camilo De La Torre <camilo.de-la-torre@ut-capitole.fr> and contributors",
-    # repo = "https://github.com/camilodlt/UTCGP.jl/blob/{commit}{path}#{line}",
+    repo = "https://github.com/camilodlt/MAGE.jl/blob/{commit}{path}#{line}",
     sitename = "MAGE.jl",
     checkdocs = :none, #:exports,
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://camilodlt.github.io/UTCGP.jl",
+        canonical = "https://camilodlt.github.io/MAGE.jl",
+        repolink = "https://github.com/camilodlt/MAGE.jl",
         edit_link = "main",
         assets = String[],
     ),
@@ -34,4 +35,4 @@ makedocs(;
     ],
 )
 
-# deploydocs(; repo = "github.com/camilodlt/UTCGP.jl.git", devbranch = "main")
+deploydocs(; repo = "github.com/camilodlt/MAGE.jl.git", devbranch = "main")

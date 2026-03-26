@@ -106,7 +106,7 @@ julia> sum_vector([1,2,3],[-1,-2,-3])
 ```
 ```jldoctest
 julia> sum_vector([1,2,3],[-1,-2])
-ERROR: DimensionMismatch: dimensions must match: a has dims (Base.OneTo(3),), b has dims (Base.OneTo(2),), mismatch at 1
+ERROR: DimensionMismatch: a has size (3,), b has size (2,), mismatch at dim 1
 [...]
 ```
 
