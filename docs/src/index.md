@@ -4,7 +4,7 @@ CurrentModule = UTCGP
 
 # MAGE.jl
 
-Documentation for [MAGE.jl](https://github.com/camilo/UTCGP.jl).
+Documentation for [MAGE.jl](https://github.com/camilodlt/MAGE.jl).
 
 MAGE.jl is a type-safe extension of Cartesian Genetic Programming (CGP), 
 designed for multimodal evolutionary computation. 
@@ -26,4 +26,3 @@ MAGE.jl provides a robust framework for evolving adaptive, structured programs w
 
 ```@index
 ```
-
