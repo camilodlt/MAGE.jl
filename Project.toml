@@ -78,6 +78,7 @@ MAGE_PYCMA = "f841c201-f6fd-4ce3-a497-54af563fbcd3"
 MAGE_PYCMA_EXT = "MAGE_PYCMA"
 
 [compat]
+julia = "1.10"
 DataFlowTasks = ">=0.2.0"
 Delaunator = ">=0.1.2"
 DelaunayTriangulation = ">=1.6.4"
