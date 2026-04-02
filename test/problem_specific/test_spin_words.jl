@@ -1,6 +1,10 @@
-using UTCGP.str_paste: paste_list_string
+using UTCGP.str_paste: paste_list_string, paste_space_list_string
 using UTCGP.listinteger_string
 using UTCGP: liststring_broadcast
+using UTCGP.liststring_split: split_string_to_vector
+using UTCGP.listinteger_iscond: greater_than_broadcast
+using UTCGP.listgeneric_subset: subset_by_mask
+using UTCGP.listgeneric_where: replace_vec_at
 """
 Text from paper: 
 
@@ -9,7 +13,7 @@ Given a string of one or more words
 or more letters long and return the resulting string.
 """
 
-train_data = [
+spin_words_train_data = [
     [[""], [""]],
     [["a"], ["a"]],
     [["this is a test"], ["this is a test"]],
@@ -78,12 +82,12 @@ function spin_worlds_algo(x, y)
 end
 
 @testset "Spin Words" begin
+    train_data = spin_words_train_data
     for (x, y) in train_data
         @test begin
             spin_worlds_algo(x, y)
         end
     end
 end
-
 
 

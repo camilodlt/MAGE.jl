@@ -7,7 +7,11 @@ struct NumberedMutationArgs <: AbstractNumberedMutationArgs
     mutation_n_active_nodes::Int64
     function NumberedMutationArgs(mutation_n_active_nodes::Number)
         @assert mutation_n_active_nodes >= 1.0 "Mutation should be > 1."
-        new(Int64(mutation_n_active_nodes))
+        floored_mutation_n_active_nodes = floor(Int, mutation_n_active_nodes)
+        if mutation_n_active_nodes != floored_mutation_n_active_nodes
+            @info "Numbered mutation count $mutation_n_active_nodes is not an integer. Flooring to $floored_mutation_n_active_nodes."
+        end
+        new(floored_mutation_n_active_nodes)
     end
 end
 

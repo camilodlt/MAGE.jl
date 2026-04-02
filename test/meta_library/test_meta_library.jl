@@ -1,7 +1,6 @@
 
 
 using UTCGP
-using Test
 
 
 @testset "MetaLibrary" begin

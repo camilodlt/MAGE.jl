@@ -19,12 +19,12 @@ end
     # --- SINGLE GENOME ---
     @test begin # the same obj should serialize to the same 
         g1 = make_evolvable_single_genome(1, 1, 1, 1, 1, 2, 2)
-        hash_by(g1, basic_serializer) == hash_by(g1, basic_serializer)
+        general_hasher_sha(g1) == general_hasher_sha(g1)
     end
     @test begin # to obj with the same params should be the same
         g1 = make_evolvable_single_genome(1, 1, 1, 1, 1, 2, 2)
         g2 = make_evolvable_single_genome(1, 1, 1, 1, 1, 2, 2)
-        hash_by(g1, basic_serializer) == hash_by(g2, basic_serializer)
+        general_hasher_sha(g1) == general_hasher_sha(g2)
     end
     # --- FULL UT GENOME --- 
     @test begin # SAME  UTGENOME
@@ -33,7 +33,7 @@ end
         initialize_genome!(ut_genome)
         shared_inputs.inputs[1].value = "b.e.g.i.n"
         shared_inputs.inputs[2].value = "."
-        hash_by(ut_genome, basic_serializer) == hash_by(ut_genome, basic_serializer)
+        general_hasher_sha(ut_genome) == general_hasher_sha(ut_genome)
     end
     @test begin # 2 independent genome but they have the same values
         ma, ml, nc = get_test_env()
@@ -59,7 +59,7 @@ end
             end
         end
         # Now they should be the same ...
-        hash_by(ut_genome_1, basic_serializer) == hash_by(ut_genome_2, basic_serializer)
+        general_hasher_sha(ut_genome_1) == general_hasher_sha(ut_genome_2)
     end
     @test begin
         # 2 independent genomes. One has a value in a node that the other does not have => We test for inequality of the hashes
@@ -93,11 +93,11 @@ end
         # so they are not the same any longer
         ut_genome_1[1][2].value = "adazdzadazda"
         cond1 =
-            hash_by(ut_genome_1, basic_serializer) != hash_by(ut_genome_2, basic_serializer)
+            general_hasher_sha(ut_genome_1) != general_hasher_sha(ut_genome_2)
         # But if we set the node value to the same in the other genome it should be the same again
         ut_genome_2[1][2].value = ut_genome_1[1][2].value
         cond2 =
-            hash_by(ut_genome_1, basic_serializer) == hash_by(ut_genome_2, basic_serializer)
+            general_hasher_sha(ut_genome_1) == general_hasher_sha(ut_genome_2)
         cond1 && cond2
     end
 end
@@ -132,25 +132,25 @@ end
         end
 
         # DECODE UT 1
-        program_1_ut1 = decode_with_output_node(
+        program_1_ut1 = UTCGP.decode_with_output_node(
             ut_genome_1,
-            ut_genome.output_nodes[1],
+            ut_genome_1.output_nodes[1],
             ml,
             ma,
             shared_inputs,
         )
 
         # DECODE UT 2
-        program_1_ut2 = decode_with_output_node(
+        program_1_ut2 = UTCGP.decode_with_output_node(
             ut_genome_2,
-            ut_genome.output_nodes[1],
+            ut_genome_1.output_nodes[1],
             ml,
             ma,
             shared_inputs,
         )
 
         # BOTH PROGRAMS SHOULD BE THE SAME
-        hash_by(program_1_ut1, basic_serializer) == hash_by(program_1_ut2, basic_serializer)
+        general_hasher_sha(program_1_ut1) == general_hasher_sha(program_1_ut2)
     end
 
     @test begin # 2 genomes don't have the same genotype, but they have the same phenotype
@@ -185,24 +185,23 @@ end
         ut_genome_1[2][1].value = 2
         ut_genome_2[2][1].value = 3
         genotypes_not_equal =
-            hash_by(ut_genome_1, basic_serializer) !=
-            basic_serializer(ut_genome_2, basic_serializer)
+            general_hasher_sha(ut_genome_1) != general_hasher_sha(ut_genome_2)
 
         # The phenotype should remain unchanged
         # So they should be equal
         # DECODE UT 1
-        program_1_ut1 = decode_with_output_node(
+        program_1_ut1 = UTCGP.decode_with_output_node(
             ut_genome_1,
-            ut_genome.output_nodes[1],
+            ut_genome_1.output_nodes[1],
             ml,
             ma,
             shared_inputs,
         )
 
         # DECODE UT 2
-        program_1_ut2 = decode_with_output_node(
+        program_1_ut2 = UTCGP.decode_with_output_node(
             ut_genome_2,
-            ut_genome.output_nodes[1],
+            ut_genome_1.output_nodes[1],
             ml,
             ma,
             shared_inputs,
@@ -210,8 +209,8 @@ end
 
         # BOTH PROGRAMS SHOULD BE THE SAME
         phenotypes_equal =
-            hash_by(program_1_ut1, basic_serializer) ==
-            hash_by(program_1_ut2, basic_serializer)
+            general_hasher_sha(program_1_ut1) ==
+            general_hasher_sha(program_1_ut2)
         genotypes_not_equal && phenotypes_equal
     end
 

@@ -8,7 +8,7 @@ Text from the paper:
 Given a string of digits, return the sum
 of the digits whose following digit is the same.
 """
-train_data = [
+paired_digits_train_data = [
     [["99"], [9]],
     [["88"], [8]],
     [["77"], [7]],
@@ -75,6 +75,7 @@ function paired_digits_algo(x, y)
 end
 
 @testset "Paired Digits" begin
+    train_data = paired_digits_train_data
     for (x, y) in train_data
         @test begin
             paired_digits_algo(x, y)

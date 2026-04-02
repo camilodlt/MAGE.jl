@@ -15,7 +15,7 @@ of coin as a separate output.
 
 """
 
-train_data = [
+coin_sums_train_data = [
     [[1], [1, 0, 0, 0]],
     [[2], [2, 0, 0, 0]],
     [[3], [3, 0, 0, 0]],
@@ -107,9 +107,11 @@ end
 
 
 @testset "Coin sums" begin
+    train_data = coin_sums_train_data
     for (x, y) in train_data
         @test begin
             algo_coin_sums(x, y)
         end
     end
 end
+

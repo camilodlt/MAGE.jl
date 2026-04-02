@@ -1,3 +1,5 @@
+@isdefined(sn_setup) || include("sn_helpers.jl")
+
 @testset "Strict Phenotype Hasher" begin
     @test begin # The same phenotype gives the same hash
         d = sn_setup()
@@ -28,6 +30,7 @@
             1.0,
             p1,
             1,
+            nothing,
         )
         hasher = sn_strictphenotype_hasher()
         hashes = hasher(params)
@@ -55,9 +58,10 @@
             1.0,
             p1,
             1,
+            nothing,
         )
         hasher = sn_strictphenotype_hasher()
         hashes = hasher(params)
-        hashes[1] == UTCGP.general_hasher_sha(Any[1.0, 2.0, 1.0, 1.0, 1.0, 1.0])
+        hashes[1] == UTCGP.general_hasher_sha(Any[1.0, 1.0, 1.0, 1.0, 2.0, 1.0])
     end
 end

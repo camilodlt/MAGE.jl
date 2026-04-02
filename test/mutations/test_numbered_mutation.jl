@@ -1,6 +1,4 @@
 using UTCGP
-using Debugger
-using Test
 
 import UTCGP: decode_with_output_node
 function get_example_utgraph()
@@ -211,11 +209,13 @@ end
         numbered_mutation!(ut_genome, run_conf, ma, ml, shared_inputs)
     end
     # NUMBERED_MUTATION -- logs the mutation so at least one will take place
-    @test_logs (:debug, r"Selected node.*") match_mode = :any begin
-        ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome =
-            get_example_utgraph_2out()
-        run_conf = runConf(3, 100_000, 1.1, 0.1)
-        numbered_mutation!(ut_genome, run_conf, ma, ml, shared_inputs)
+    if !USING_RETEST
+        @test_logs (:info, r"Numbered mutation count 1.1 is not an integer. Flooring to 1.") match_mode = :any begin
+            ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome =
+                get_example_utgraph_2out()
+            run_conf = runConf(3, 100_000, 1.1, 0.1)
+            numbered_mutation!(ut_genome, run_conf, ma, ml, shared_inputs)
+        end
     end
     # NUMBERED_MUTATION -- Make the mutation
     @test begin

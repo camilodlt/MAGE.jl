@@ -1,6 +1,5 @@
 
 using UTCGP
-using Test
 
 
 bundles_generic = [bundle_listgeneric_basic]
@@ -81,16 +80,20 @@ bundles_generic = [bundle_listgeneric_basic]
         names_fns == [:identity_list, :new_list, :reverse_list]
     end
     # Abnormal
-    @test_logs (:warn, r"Library had functions in the library.*") match_mode = :any begin
-        # Library had already fns so the unpacking will override that lib.
-        l = Library(bundles_generic)
-        unpack_bundles_in_library!(l)
-        unpack_bundles_in_library!(l)
+    if !USING_RETEST
+        @test_logs (:warn, r"Library had functions in the library.*") match_mode = :any begin
+            # Library had already fns so the unpacking will override that lib.
+            l = Library(bundles_generic)
+            unpack_bundles_in_library!(l)
+            unpack_bundles_in_library!(l)
+        end
     end
 
-    @test_logs (:warn, r"empty list of functions") match_mode = :any begin
-        # The bundles combined had 0 fns.
-        l = Library(FunctionBundle[])
-        unpack_bundles_in_library!(l)
+    if !USING_RETEST
+        @test_logs (:warn, r"empty list of functions") match_mode = :any begin
+            # The bundles combined had 0 fns.
+            l = Library(FunctionBundle[])
+            unpack_bundles_in_library!(l)
+        end
     end
 end

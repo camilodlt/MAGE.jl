@@ -7,7 +7,7 @@ using UTCGP.number_reduce: reduce_sum
 using UTCGP.number_reduce: reduce_length
 using UTCGP.number_arithmetic: number_div
 
-train_data = [
+dice_game_train_data = [
     [[1, 2], [0.0]],
     [[2, 1], [0.5]],
     [[99, 100], [0.49]],
@@ -83,6 +83,7 @@ function dice_game_example_algo(x, y)
 end
 
 @testset "Dice algo" begin
+    train_data = dice_game_train_data
     for (x, y) in train_data
         @test begin
             res = dice_game_example_algo(x, y)
@@ -90,3 +91,4 @@ end
         end
     end
 end
+

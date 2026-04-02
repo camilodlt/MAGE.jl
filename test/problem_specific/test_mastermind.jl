@@ -1,10 +1,13 @@
 using UTCGP.listinteger_iscond: compare_two_vectors
+using UTCGP.listinteger_iscond: inverse_mask
+using UTCGP.listgeneric_subset: subset_by_mask
 using UTCGP.listgeneric_utils: sort_list
 using UTCGP.listgeneric_set: left_join
-using UTCGP.number_reduce: reduce_length
+using UTCGP.number_reduce: reduce_length, reduce_sum, reduce_min
 using UTCGP.listgeneric_makelist: make_list_from_two_elements
+using UTCGP.liststring_split: split_string_to_vector
 
-train_data = [
+mastermind_train_data = [
     [["RRRR", "RRRR"], [0, 4]],
     [["BOYG", "GYOB"], [4, 0]],
     [["WYYW", "BBOG"], [0, 0]],
@@ -102,6 +105,7 @@ end
 
 
 @testset "Mastermind" begin
+    train_data = mastermind_train_data
     for (x, y) in train_data
         @test begin
             algo_mastermind(x, y)

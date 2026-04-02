@@ -1,6 +1,3 @@
-using Debugger
-using Test
-
 @testset "Number arithmetic" begin
 
     @test begin

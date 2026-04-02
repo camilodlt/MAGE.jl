@@ -96,9 +96,6 @@ end
 Returns the length of the vector
 """
 function reduce_length(from::Vector{<:Any}, args...)
-    if isempty(from)
-        throw(ArgumentError("vector is empty"))
-    end
     return length(from)
 end
 
@@ -108,9 +105,6 @@ end
 Return the length of the string.
 """
 function reduce_length(from::String, args...)
-    if isempty(from)
-        throw(ArgumentError("vector is empty"))
-    end
     return length(from)
 end
 

@@ -8,7 +8,7 @@
 
     @test begin # pi
         fn_wrapped = bundle_number_transcendental[1]
-        UTCGP.evaluate_fn_wrapper(fn_wrapped, [collect(1:10)...]) == pi
+        UTCGP.evaluate_fn_wrapper(fn_wrapped, [collect(1:10)...]) == Float64(pi)
     end
     @test begin # exp
         fn_wrapped = bundle_number_transcendental[2]

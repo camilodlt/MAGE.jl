@@ -53,7 +53,7 @@ SEGMENT = SegmentPixel{Int}
             fn(img_intensity_bad1)
             true
         end
-        @test_throws MethodError begin #diff size is a pb
+        @test_throws ErrorException begin # diff size is rejected by ManualDispatcher
             fn(img_intensity_bad2)
         end
     end
@@ -86,7 +86,7 @@ end
  
 @testset "Image2D Segmentation: watershed(img, mask, p)" begin
     Bundle = bundle_image2DSegment_segmentation_factory
-    coins = load(download("http://docs.opencv.org/3.1.0/water_coins.jpg")); 
+    coins = load(joinpath(@__DIR__, "../../../assets/water_coins.jpg"))
     coins_binary = Gray.(coins) .> 0.5 #coins black
     img = SImageND(BinaryPixel{Bool}.(coins_binary))
     s = size(coins_binary)
@@ -105,11 +105,11 @@ end
         @test typeof(res) <: SImageND
         @test res != img
 
-        @test_throws MethodError begin
+        @test_throws ErrorException begin
             fn(img_intensity_bad1,p)
             true
         end
-        @test_throws MethodError begin
+        @test_throws ErrorException begin
             fn(img_binary_bad1,p)
         end
     end

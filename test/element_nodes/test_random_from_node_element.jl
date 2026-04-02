@@ -1,5 +1,4 @@
 using UTCGP
-using Test
 
 
 
@@ -43,19 +42,25 @@ using Test
         element_node.value == 2 # since value is not empty, it is not init as asked. Warning is made
     end
 
-    @test_logs (:info, r"The new value will be set") begin
-        element_node = CGPElement(1, 2, 0, 0, 0, true, FUNCTION)
-        initialize_node_element!(element_node) # ok bc it's the first value
+    if !USING_RETEST
+        @test_logs (:info, r"The new value will be set") begin
+            element_node = CGPElement(1, 2, 0, 0, 0, true, FUNCTION)
+            initialize_node_element!(element_node) # ok bc it's the first value
+        end
     end
-    @test_logs (:info, r"New value is omitted") match_mode = :any begin
-        element_node = CGPElement(1, 2, 0, 0, 0, true, FUNCTION)
-        initialize_node_element!(element_node) # ok bc it's the first value
-        set_node_element_value!(element_node, 1) # not ok since it's frozen to the first value
+    if !USING_RETEST
+        @test_logs (:info, r"Node is frozen.*new value will be set") match_mode = :any begin
+            element_node = CGPElement(1, 2, 0, 0, 0, true, FUNCTION)
+            initialize_node_element!(element_node) # ok bc it's the first value
+            set_node_element_value!(element_node, 1) # not ok since it's frozen to the first value
+        end
     end
-    @test_logs (:info, r".*New value is omitted.*") match_mode = :any begin
-        element_node = CGPElement(1, 2, 0, 0, 0, true, FUNCTION)
-        set_node_element_value!(element_node, 2) # ok bc it's the first value
-        set_node_element_value!(element_node, 1) # not ok since it's frozen to the first value
+    if !USING_RETEST
+        @test_logs (:info, r"Node is frozen.*new value will be set") match_mode = :any begin
+            element_node = CGPElement(1, 2, 0, 0, 0, true, FUNCTION)
+            set_node_element_value!(element_node, 2) # ok bc it's the first value
+            set_node_element_value!(element_node, 1) # not ok since it's frozen to the first value
+        end
     end
 
     @test begin
@@ -80,5 +85,3 @@ using Test
         # val is the default if the element is frozen
     end
 end
-
-

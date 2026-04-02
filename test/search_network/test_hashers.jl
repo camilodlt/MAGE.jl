@@ -1,3 +1,5 @@
+@isdefined(sn_setup) || include("sn_helpers.jl")
+
 @testset "Serializer" begin
     @test begin # serialize a genome
         d = sn_setup()
@@ -49,6 +51,7 @@ end
             1.0,
             p1,
             1,
+            nothing,
         )
         genotype_hasher = sn_genotype_hasher()
         hashes = genotype_hasher(params)
@@ -78,6 +81,7 @@ end
             1.0,
             p1,
             1,
+            nothing,
         )
         genotype_hasher = sn_genotype_hasher()
         hashes = genotype_hasher(params)
@@ -115,6 +119,7 @@ end
             1.0,
             p1,
             1,
+            nothing,
         )
         softphenotype_hasher = sn_softphenotype_hasher()
         hashes = softphenotype_hasher(params)
@@ -151,6 +156,7 @@ end
             1.0,
             p1,
             1,
+            nothing,
         )
         softphenotype_hasher = sn_softphenotype_hasher()
         hashes = softphenotype_hasher(params)
@@ -185,6 +191,7 @@ end
             1.0,
             p1,
             1,
+            nothing,
         )
         fitness_hasher = sn_fitness_hasher()
         hashes = fitness_hasher(params)

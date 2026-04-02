@@ -24,9 +24,34 @@
         # Wrong : not the same type
         listtuple_mappings.mappings_a_to_b([1, 2, "3"], [4, 5, 6])
     end
-    @test_throws AssertionError begin
-        # Wrong : too long
-        listtuple_mappings.mappings_a_to_b(collect(1:2_000_000), [4, 5, 6])
+    let old_constrained = get(ENV, "UTCGP_CONSTRAINED", nothing),
+        old_small_array = get(ENV, "UTCGP_SMALL_ARRAY", nothing),
+        old_constrained_ref = UTCGP.CONSTRAINED[],
+        old_small_array_ref = UTCGP.SMALL_ARRAY[]
+
+        try
+            ENV["UTCGP_CONSTRAINED"] = "yes"
+            ENV["UTCGP_SMALL_ARRAY"] = "100"
+            UTCGP.__init__()
+
+            @test_throws AssertionError begin
+                # Wrong : too long in constrained mode
+                listtuple_mappings.mappings_a_to_b(collect(1:2_000_000), [4, 5, 6])
+            end
+        finally
+            if isnothing(old_constrained)
+                delete!(ENV, "UTCGP_CONSTRAINED")
+            else
+                ENV["UTCGP_CONSTRAINED"] = old_constrained
+            end
+            if isnothing(old_small_array)
+                delete!(ENV, "UTCGP_SMALL_ARRAY")
+            else
+                ENV["UTCGP_SMALL_ARRAY"] = old_small_array
+            end
+            UTCGP.CONSTRAINED[] = old_constrained_ref
+            UTCGP.SMALL_ARRAY[] = old_small_array_ref
+        end
     end
     # Factory
     @test begin

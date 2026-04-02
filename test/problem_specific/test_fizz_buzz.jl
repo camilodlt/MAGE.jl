@@ -9,7 +9,7 @@ is divisible by 3 and 5, and a string version of 𝑥 if none of
 the above hold. [54]
 """
 
-train_data = (
+fizz_buzz_train_data = (
     (49999, "49999"),
     (12, "Fizz"),
     (18, "Fizz"),
@@ -53,9 +53,11 @@ function algo_fb(x, y)
 end
 
 @testset "Fizz buzz" begin
+    train_data = fizz_buzz_train_data
     for (x, y) in train_data
         @test begin
             algo_fb(x, y)
         end
     end
 end
+

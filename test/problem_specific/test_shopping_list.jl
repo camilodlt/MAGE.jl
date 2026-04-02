@@ -9,7 +9,7 @@ goods, return the total price of the shopping trip after ap-
 plying the discount to each item.
 """
 
-train_data = [
+shopping_list_train_data = [
     [[[50.0], [100.0]], [0.0]],
     [[[50.0], [10.0]], [45.0]],
     [[[20.0, 20.0], [100.0, 50.0]], [10.0]],
@@ -829,9 +829,11 @@ function shopping_algo(x, y)
 end
 
 @testset "Shopping list" begin
+    train_data = shopping_list_train_data
     for (x, y) in train_data
         @test begin
             shopping_algo(x, y)
         end
     end
 end
+

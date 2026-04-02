@@ -1,4 +1,8 @@
 
+edge_index_fn = UTCGP._mock_edge_prop_getter()
+node_fn = UTCGP._mock_node_hash_function()
+edge_fn = UTCGP._mock_edge_prop_getter()
+
 @testset "SN writer Instantiation" begin
     ### WRITER INSTANTIATION ###
 

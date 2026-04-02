@@ -1,3 +1,13 @@
+using UTCGP.number_reduce: reduce_length
+using UTCGP.listgeneric_makelist: make_list_from_one_element, make_list_from_two_elements
+using UTCGP.listinteger_iscond: greater_than_broadcast
+using UTCGP.element_pick: pick_element_from_vector
+using UTCGP.str_basic: number_to_string
+using UTCGP.listgeneric_basic: append_to_list
+using UTCGP.str_paste: paste_space_list_string
+using UTCGP.str_conditional: if_else_string
+using UTCGP.integer_cond: str_is_empty
+
 """
 Text from paper: 
 
@@ -10,7 +20,7 @@ Otherwise, return "Your tweet has X characters", where
 the 𝑋 is the number of characters in the tweet.
 """
 
-train_data = [
+twitter_train_data = [
     [[""], ["You didn't type anything"]],
     [["1"], ["Your tweet has 1 characters"]],
     [
@@ -289,13 +299,11 @@ function twitter_algo(x, y)
 end
 
 @testset "Twitter" begin
+    train_data = twitter_train_data
     for (x, y) in train_data
         @test begin
             twitter_algo(x, y)
         end
     end
 end
-
-
-
 

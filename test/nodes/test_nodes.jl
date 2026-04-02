@@ -1,7 +1,6 @@
 # push!(LOAD_PATH, "/home/irit/Documents/Camilo/utcgp/utcgp_julia/utcgp")
 # using Revise
 using UTCGP
-using Test
 
 
 fn_element = CGPElement(1, 1, 0, 0, 0, false, FUNCTION)
