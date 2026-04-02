@@ -200,6 +200,7 @@ module UTCGP
 
     # IMAGE UTILS
     include("libraries/image/image_utils.jl")
+    include("libraries/image/image_pool.jl")
 
     # FUNCTIONS
 
@@ -423,6 +424,15 @@ module UTCGP
         bundle_image2DSegment_basic_factory
     export bundle_image2DIntensity_basic_factory,
         bundle_image2DBinary_basic_factory, bundle_image2DSegment_basic_factory
+
+    # 2D IMAGES Pooling
+    import .image_pool:
+        bundle_image2DIntensity_pool_factory,
+        bundle_image2DBinary_pool_factory,
+        bundle_image2DSegment_pool_factory
+    export bundle_image2DIntensity_pool_factory,
+        bundle_image2DBinary_pool_factory,
+        bundle_image2DSegment_pool_factory
 
     # 2D IMAGES Morph
     include("libraries/image2D/morph_image2D.jl")

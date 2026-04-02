@@ -1,4 +1,4 @@
-using UTCGP.str_grep: match_with_overlap
+using UTCGP.listinteger_string: match_with_overlap
 # TODO REMOVE
 
 @testset "Grep" begin

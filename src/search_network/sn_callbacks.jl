@@ -84,6 +84,7 @@ function (writer::SN_writer)(
         best_loss,
         best_program,
         elite_idx,
+        nothing,
     )
     # Hash all individuals (NODES)
     all_hash_rows = _get_rows_by_running_all_fns(epoch_params, writer, sn.Abstract_Nodes)
@@ -154,7 +155,6 @@ export SN_writer
 #         return new(con, hashers)
 #     end
 # end
-
 
 
 

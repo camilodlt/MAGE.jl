@@ -9,7 +9,7 @@ tors in 𝑛-dimensional space.
 
 """
 
-train_data = [
+vec_dist_train_data = [
     [
         [
             [
@@ -1233,6 +1233,7 @@ function distance_algo(x, y)
 end
 
 @testset "Vector Distance" begin
+    train_data = vec_dist_train_data
     for (x, y) in train_data
         @test begin
             distance_algo(x, y)

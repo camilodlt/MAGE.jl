@@ -2,7 +2,7 @@
     @test begin
         # bundle import
         using UTCGP: bundle_integer_cond
-        length(bundle_integer_cond) == 2 && _unique_names_in_bundle(bundle_integer_cond)
+        length(bundle_integer_cond) == 5 && _unique_names_in_bundle(bundle_integer_cond)
     end
     @test begin
         # two ints 
@@ -32,6 +32,18 @@
         # not empty
         using UTCGP.integer_cond
         integer_cond.str_is_empty("1") == 0
+    end
+    @test begin
+        using UTCGP.integer_cond
+        integer_cond.experimental_is_gt(3, 2) == 1 && integer_cond.experimental_is_gt(2, 3) == 0
+    end
+    @test begin
+        using UTCGP.integer_cond
+        integer_cond.experimental_is_lt(2, 3) == 1 && integer_cond.experimental_is_lt(3, 2) == 0
+    end
+    @test begin
+        using UTCGP.integer_cond
+        integer_cond.experimental_not(0) == 1 && integer_cond.experimental_not(1) == 0
     end
 
 end

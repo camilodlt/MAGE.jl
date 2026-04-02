@@ -1,8 +1,14 @@
 using UTCGP: integer_cond
-using UTCGP.number_arithmetic: number_minus
+using UTCGP.number_arithmetic: number_minus, number_div, number_sum
+using UTCGP.integer_modulo: modulo
 using UTCGP.listgeneric_utils: append_to_list, unique_in_list
 using UTCGP.listgeneric_basic: reverse_list
 using UTCGP.listgeneric_subset: subset_by_indices
+using UTCGP.number_reduce: reduce_length, reduce_max
+using UTCGP.listgeneric_makelist: make_list_from_one_element, make_list_from_two_elements
+using UTCGP.element_conditional: if_else_multiplexer
+using UTCGP.liststring_split: split_string_to_vector
+using UTCGP.str_paste: paste_list_string
 
 """
 Text from the paper: 
@@ -11,7 +17,7 @@ Middle Character (CW) Given a string, return the middle
 character as a string if it is odd length; return the two middle
 characters as a string if it is even length.
 """
-train_data = [
+middle_character_train_data = [
     [["Q"], ["Q"]],
     [[" "], [" "]],
     [["\$"], ["\$"]],
@@ -127,6 +133,7 @@ function middle_character_algo(x, y)
 end
 
 @testset "Middle Character" begin
+    train_data = middle_character_train_data
     for (x, y) in train_data
         @test begin
             middle_character_algo(x, y)

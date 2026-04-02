@@ -12,7 +12,7 @@ The program must apply this cipher to the third string and
 return the deciphered message.
 """
 
-train_data = [
+substitution_cipher_train_data = [
     [["", "", ""], [""]],
     [["a", "a", "a"], ["a"]],
     [["j", "h", "j"], ["h"]],
@@ -179,6 +179,7 @@ function cipher_algo(x, y)
 end
 
 @testset "Substitution Cipher" begin
+    train_data = substitution_cipher_train_data
     for (x, y) in train_data
         @test begin
             cipher_algo(x, y)

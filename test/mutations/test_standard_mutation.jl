@@ -1,4 +1,3 @@
-using Test
 using UTCGP
 using Random
 rng = Random.seed!(123)

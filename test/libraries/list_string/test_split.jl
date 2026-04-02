@@ -1,5 +1,4 @@
 using UTCGP
-using Test
 
 @testset "Split" begin
     @test begin

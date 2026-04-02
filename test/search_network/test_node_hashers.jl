@@ -1,3 +1,5 @@
+@isdefined(sn_setup) || include("sn_helpers.jl")
+
 @testset "SN Node Hasher" begin
     # HASHING BY GENOME ---
     @test begin # 2 individuals with the same genome
@@ -23,8 +25,9 @@
             1.0,
             p1,
             1,
+            nothing,
         )
-        hashes = sn_genotype_hasher(params)
+        hashes = sn_genotype_hasher()(params)
         hashes[1] == hashes[2]
     end
     @test begin # 2 individuals with different genome (inactive part)
@@ -51,8 +54,9 @@
             1.0,
             p1,
             1,
+            nothing,
         )
-        hashes = sn_genotype_hasher(params)
+        hashes = sn_genotype_hasher()(params)
         hashes[1] != hashes[2]
     end
 
@@ -87,8 +91,9 @@
             1.0,
             p1,
             1,
+            nothing,
         )
-        hashes = sn_softphenotype_hasher(params)
+        hashes = sn_softphenotype_hasher()(params)
         hashes[1] == hashes[2]
     end
     @test begin # The program is different because we changed a node that 
@@ -122,8 +127,9 @@
             1.0,
             p1,
             1,
+            nothing,
         )
-        hashes = sn_softphenotype_hasher(params)
+        hashes = sn_softphenotype_hasher()(params)
         hashes[1] != hashes[2]
     end
 
@@ -155,8 +161,9 @@
             1.0,
             p1,
             1,
+            nothing,
         )
-        hashes = sn_fitness_hasher(params)
+        hashes = sn_fitness_hasher()(params)
         hashes == [1.0, 2.0, 3.0]
     end
 end

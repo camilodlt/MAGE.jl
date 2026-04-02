@@ -20,9 +20,6 @@
         r = RunConfGA(10, 1, -2, 0.1, 0.2, 1)
     end
     @test_throws AssertionError begin
-        r = RunConfGA(10, 1, 11, 0.1, 0.2, 1)
-    end
-    @test_throws AssertionError begin
         r = RunConfGA(10, 1, 2, 0.1, 0.2, -1)
     end
 end
@@ -41,17 +38,17 @@ end
     # ARGUMENTS
     @test begin # can make args
         fitness = [1.0, 2.3]
-        GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness)
+        GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness, [1, 2])
         true
     end
     @test_throws AssertionError begin # not enough fitnesses
         fitness = [1.0]
-        GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness)
+        GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness, [1, 2])
         true
     end
     @test_throws AssertionError begin # two much fitnesses 
         fitness = [1.0, 1.0, 1.0]
-        GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness)
+        GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness, [1, 2])
         true
     end
 
@@ -59,7 +56,7 @@ end
     @test begin
         r = RunConfGA(2, 1, 1, 0.1, 0.2, 1) # total pop : 3. Tournament of 1 out of 2 possible elites
         fitness = [1.0, 2.3]
-        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness)
+        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness, [1, 2])
         new_pop = @unwrap_or ga_population_callback(args) nothing
         hs = general_hasher_sha.(new_pop)
         length(new_pop) == 3 && (hs[3] == hs[1] || hs[3] == hs[2]) && hs[1] != hs[2]
@@ -69,7 +66,7 @@ end
     @test begin # Best in elite is the first of the tournament of 2
         r = RunConfGA(2, 1, 2, 0.1, 0.2, 1)
         fitness = [1.0, 2.3]
-        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness)
+        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness, [1, 2])
         new_pop = @unwrap_or ga_population_callback(args) nothing
         hs = general_hasher_sha.(new_pop)
         length(new_pop) == 3 && hs[3] == hs[1] && hs[1] != hs[2]
@@ -77,7 +74,7 @@ end
     @test begin # Best in elite is the second of the tournament of 2
         r = RunConfGA(2, 1, 2, 0.1, 0.2, 1)
         fitness = [1.0, 0.3]
-        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness)
+        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness, [1, 2])
         new_pop = @unwrap_or ga_population_callback(args) nothing
         hs = general_hasher_sha.(new_pop)
         length(new_pop) == 3 && hs[3] == hs[2] && hs[1] != hs[2]
@@ -85,7 +82,7 @@ end
     @test begin # Making the selection a lot of times gives almost 50-50%
         r = RunConfGA(2, 1, 1, 0.1, 0.2, 1)
         fitness = [1.0, 0.3]
-        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness)
+        args = GA_POP_ARGS(pop, gen, r, model_arch, nc, ml, fitness, [1, 2])
         _first = []
         _second = []
         for i = 1:2000

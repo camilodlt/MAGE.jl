@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.7"
+julia_version = "1.11.9"
 manifest_format = "2.0"
-project_hash = "fb7cbf11e4d9f1ab69047cb7fd9f7480d683b0b5"
+project_hash = "918ab5677d8c8f39ab50ea2d39d31809fba36252"
 
 [[deps.ANSIColoredPrinters]]
 git-tree-sha1 = "574baf8110975760d391c710b6341da1afa48d8c"
@@ -346,12 +346,6 @@ deps = ["Serialization", "Sockets"]
 git-tree-sha1 = "d9d26935a0bcffc87d2613ce14c527c99fc543fd"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.5.0"
-
-[[deps.CondaPkg]]
-deps = ["JSON3", "Markdown", "MicroMamba", "Pidfile", "Pkg", "Preferences", "Scratch", "TOML", "pixi_jll"]
-git-tree-sha1 = "bd491d55b97a036caae1d78729bdb70bf7dababc"
-uuid = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
-version = "0.2.33"
 
 [[deps.ConstructionBase]]
 git-tree-sha1 = "b4b092499347b18a015186eae3042f72267106cb"
@@ -1236,18 +1230,6 @@ git-tree-sha1 = "31e996f0a15c7b280ba9f76636b3ff9e2ae58c9a"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.4"
 
-[[deps.JSON3]]
-deps = ["Dates", "Mmap", "Parsers", "PrecompileTools", "StructTypes", "UUIDs"]
-git-tree-sha1 = "411eccfe8aba0814ffa0fdf4860913ed09c34975"
-uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
-version = "1.14.3"
-
-    [deps.JSON3.extensions]
-    JSON3ArrowExt = ["ArrowTypes"]
-
-    [deps.JSON3.weakdeps]
-    ArrowTypes = "31f734f8-188a-4ce0-8406-c8a06bd891cd"
-
 [[deps.JpegTurbo]]
 deps = ["CEnum", "FileIO", "ImageCore", "JpegTurbo_jll", "TOML"]
 git-tree-sha1 = "9496de8fb52c224a2e3f9ff403947674517317d9"
@@ -1497,14 +1479,6 @@ git-tree-sha1 = "39240b5f66956acfa462d7fe12efe08e26d6d70d"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
 version = "3.2.2"
 
-[[deps.MAGE_PYCMA]]
-deps = ["CondaPkg", "Logging", "PythonCall", "Revise"]
-git-tree-sha1 = "e6e7ebbd873ce0549714172d2b2e57d22b52dac6"
-repo-rev = "main"
-repo-url = "http://github.com/camilodlt/MAGEPYCMA.jl"
-uuid = "f841c201-f6fd-4ce3-a497-54af563fbcd3"
-version = "1.0.0-DEV"
-
 [[deps.MIMEs]]
 git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
 uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
@@ -1598,12 +1572,6 @@ deps = ["AbstractTrees"]
 git-tree-sha1 = "39277c4f6a771f45613e552a9ae826be1bf873fe"
 uuid = "85b6ec6f-f7df-4429-9514-a64bcd9ee824"
 version = "1.0.0"
-
-[[deps.MicroMamba]]
-deps = ["Pkg", "Scratch", "micromamba_jll"]
-git-tree-sha1 = "011cab361eae7bcd7d278f0a7a00ff9c69000c51"
-uuid = "0b3b1443-0f03-428d-bdfb-f27f9c1191ea"
-version = "0.1.14"
 
 [[deps.MiniQhull]]
 deps = ["QhullMiniWrapper_jll"]
@@ -1822,12 +1790,6 @@ git-tree-sha1 = "7d2f8f21da5db6a806faf7b9b292296da42b2810"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.8.3"
 
-[[deps.Pidfile]]
-deps = ["FileWatching", "Test"]
-git-tree-sha1 = "2d8aaf8ee10df53d0dfb9b8ee44ae7c04ced2b03"
-uuid = "fa939f87-e72e-5be4-a000-7fc836dbe307"
-version = "1.3.0"
-
 [[deps.Pixman_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LLVMOpenMP_jll", "Libdl"]
 git-tree-sha1 = "db76b1ecd5e9715f3d043cec13b2ec93ce015d53"
@@ -1976,20 +1938,6 @@ version = "1.2.0"
 git-tree-sha1 = "1d36ef11a9aaf1e8b74dacc6a731dd1de8fd493d"
 uuid = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
 version = "1.3.0"
-
-[[deps.PythonCall]]
-deps = ["CondaPkg", "Dates", "Libdl", "MacroTools", "Markdown", "Pkg", "Serialization", "Tables", "UnsafePointers"]
-git-tree-sha1 = "34510e11cabd7964291f32f14d28b367e9960e6e"
-uuid = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
-version = "0.9.28"
-
-    [deps.PythonCall.extensions]
-    CategoricalArraysExt = "CategoricalArrays"
-    PyCallExt = "PyCall"
-
-    [deps.PythonCall.weakdeps]
-    CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
-    PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 
 [[deps.QOI]]
 deps = ["ColorTypes", "FileIO", "FixedPointNumbers"]
@@ -2206,7 +2154,9 @@ version = "1.3.0"
 
 [[deps.SearchNetworks]]
 deps = ["ColorSchemes", "DBInterface", "DataFrames", "DataStructures", "DuckDB", "GraphMakie", "Graphs", "Logging", "ReTest", "Revise", "SHA"]
-path = "../../SearchNetworks"
+git-tree-sha1 = "9e829a929e6d1e3358ced7820c4611f1e0e30ebf"
+repo-rev = "main"
+repo-url = "https://github.com/camilodlt/SearchNetworks.jl"
 uuid = "17666995-d420-48ac-8d7c-8a155fef8e5d"
 version = "1.0.0-DEV"
 
@@ -2417,12 +2367,6 @@ version = "0.6.21"
     SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
     StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
-[[deps.StructTypes]]
-deps = ["Dates", "UUIDs"]
-git-tree-sha1 = "159331b30e94d7b11379037feeb9b690950cace8"
-uuid = "856f2bd8-1eba-4b0a-8007-ebc267875bd4"
-version = "1.11.0"
-
 [[deps.StyledStrings]]
 uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
 version = "1.11.0"
@@ -2549,13 +2493,15 @@ version = "1.6.1"
 
 [[deps.UTCGP]]
 deps = ["AbstractTrees", "AutoHashEquals", "BenchmarkTools", "Clustering", "Colors", "Combinatorics", "Coverage", "Cthulhu", "DataFlowTasks", "DataFrames", "DataStructures", "Dates", "Debugger", "Delaunator", "DelaunayTriangulation", "DispatchDoctor", "Distances", "Documenter", "DocumenterVitepress", "DuckDB", "ErrorTypes", "ExprTools", "FixedPointNumbers", "ForceImport", "GraphPlot", "Graphs", "IOCapture", "ImageBinarization", "ImageCore", "ImageDraw", "ImageFeatures", "ImageFiltering", "ImageMorphology", "ImageSegmentation", "Images", "Infiltrator", "JET", "JSON", "LRUCache", "Lazy", "LinearAlgebra", "LiveServer", "Logging", "LoopVectorization", "MethodAnalysis", "OffsetArrays", "PProf", "Pkg", "Primes", "Random", "ReTest", "Revise", "SHA", "SearchNetworks", "Serialization", "StaticArrays", "Statistics", "StatsBase", "StatsPlots", "StringDistances", "Term", "TestImages", "ThreadPools", "TimerOutputs", "UUIDs", "UnicodePlots"]
-path = "/home/camilo/Documents/dev/MAGE"
+path = "/home/camilo/.julia/dev/UTCGP"
 uuid = "956831e1-0a7a-492a-ae16-058c6128a9f2"
 version = "1.0.3-DEV"
-weakdeps = ["MAGE_PYCMA"]
 
     [deps.UTCGP.extensions]
     MAGE_PYCMA_EXT = "MAGE_PYCMA"
+
+    [deps.UTCGP.weakdeps]
+    MAGE_PYCMA = "f841c201-f6fd-4ce3-a497-54af563fbcd3"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
@@ -2597,11 +2543,6 @@ version = "3.8.1"
     IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
     Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
-
-[[deps.UnsafePointers]]
-git-tree-sha1 = "c81331b3b2e60a982be57c046ec91f599ede674a"
-uuid = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
-version = "1.0.0"
 
 [[deps.Unzip]]
 git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
@@ -2900,12 +2841,6 @@ git-tree-sha1 = "86addc139bca85fdf9e7741e10977c45785727b7"
 uuid = "337d8026-41b4-5cde-a456-74a10e5b31d1"
 version = "1.11.3+0"
 
-[[deps.micromamba_jll]]
-deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
-git-tree-sha1 = "2ca2ac0b23a8e6b76752453e08428b3b4de28095"
-uuid = "f8abcde7-e9b7-5caa-b8af-a437887ae8e4"
-version = "1.5.12+0"
-
 [[deps.mtdev_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "b4d631fd51f2e9cdd93724ae25b2efc198b059b1"
@@ -2927,12 +2862,6 @@ version = "2022.0.0+1"
 deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 version = "17.4.0+2"
-
-[[deps.pixi_jll]]
-deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl"]
-git-tree-sha1 = "f349584316617063160a947a82638f7611a8ef0f"
-uuid = "4d7b5844-a134-5dcd-ac86-c8f19cd51bed"
-version = "0.41.3+0"
 
 [[deps.pprof_jll]]
 deps = ["Artifacts", "Graphviz_jll", "JLLWrappers", "Libdl"]

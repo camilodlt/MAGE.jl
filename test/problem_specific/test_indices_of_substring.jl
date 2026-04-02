@@ -1,7 +1,7 @@
 using UTCGP.listinteger_string: match_with_overlap
 using UTCGP.listnumber_arithmetic: subtract_broadcast
 
-train_data = [
+indices_of_substring_train_data = [
     [["a", "5"], [[]]],
     [["!", "!"], [[0]]],
     [["r", "nm,xcnwqnd@#\$fwkdjn3"], [[]]],
@@ -72,6 +72,7 @@ function algo_indices_subtring(x, y)
 end
 
 @testset "Indices Substring" begin
+    train_data = indices_of_substring_train_data
     for (x, y) in train_data
         @test begin
             algo_indices_subtring(x, y)
@@ -79,3 +80,4 @@ end
     end
 
 end
+

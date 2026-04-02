@@ -1,7 +1,7 @@
 using UTCGP.listinteger_iscond: is_more_eq_than_right
 using UTCGP.listgeneric_subset: subset_by_mask
 using UTCGP: listinteger_caster
-train_data = [
+leaders_train_data = [
     [[Int[]], [[]]],
     [[[0]], [[0]]],
     [[[451]], [[451]]],
@@ -314,9 +314,11 @@ function algo_leaders(x, y)
 end
 
 @testset "leaders" begin
+    train_data = leaders_train_data
     for (x, y) in train_data
         @test begin
             algo_leaders(x, y)
         end
     end
 end
+

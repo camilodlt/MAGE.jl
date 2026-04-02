@@ -11,7 +11,7 @@ discrete event of adding snow and then melting, not a con-
 tinuous process.
 """
 
-train_data = []
+snow_day_train_data = []
 
 function snow_day_algo(x, y)
     n_hours = x[1]
@@ -34,6 +34,7 @@ function snow_day_algo(x, y)
 end
 
 @testset "Snow Day" begin
+    train_data = snow_day_train_data
     for (x, y) in train_data
         @test begin
             snow_day_algo(x, y)

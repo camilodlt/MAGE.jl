@@ -1,4 +1,9 @@
-
+using UTCGP.str_parse: parse_number
+using UTCGP.liststring_split: split_string_to_vector
+using UTCGP.listinteger_string: parse_from_list_string
+using UTCGP.listnumber_arithmetic: mult_vector
+using UTCGP.liststring_broadcast
+using UTCGP.str_paste: paste_list_string
 
 """
 Text from paper: 
@@ -7,7 +12,7 @@ Given a positive integer, square each
 digit and concatenate the squares into a returned string.
 """
 
-train_data = [
+square_digits_train_data = [
     [[[0]], [["0"]]],
     [[[1]], [["1"]]],
     [[[2]], [["4"]]],
@@ -79,11 +84,11 @@ function square_digit_algo(x, y)
 end
 
 @testset "Shopping list" begin
+    train_data = square_digits_train_data
     for (x, y) in train_data
         @test begin
             square_digit_algo(x, y)
         end
     end
 end
-
 

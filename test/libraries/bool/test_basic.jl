@@ -2,7 +2,11 @@
     @test begin
         # bundle import
         using UTCGP: bundle_bool_basic
-        length(bundle_bool_basic) == 3 && _unique_names_in_bundle(bundle_bool_basic) # true, false, parse String
+        length(bundle_bool_basic) == 4 && _unique_names_in_bundle(bundle_bool_basic) # identity, true, false, parse String
+    end
+    @test begin
+        fnw = bundle_bool_basic[:identity_bool]
+        fnw.fn(true) && !fnw.fn(false)
     end
     @test begin # true
         fnw = bundle_bool_basic[:ret_true]
@@ -24,6 +28,5 @@
             !fnw.fn("")
     end
 end
-
 
 

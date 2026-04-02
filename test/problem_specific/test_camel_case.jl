@@ -14,7 +14,7 @@ by a space. For example: "camel-case example-test-string"
 → "camelCase exampleTestString".
 """
 
-train_data = [
+camel_case_train_data = [
     [[""], [""]],
     [["nospaceordash"], ["nospaceordash"]],
     [["two-words"], ["twoWords"]],
@@ -78,9 +78,11 @@ function camel_case_algo1(x, y)
 end
 
 @testset "Camel case" begin
+    train_data = camel_case_train_data
     for (x, y) in train_data
         @test begin
             camel_case_algo1(x, y)
         end
     end
 end
+

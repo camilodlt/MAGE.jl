@@ -1,5 +1,4 @@
 using UTCGP
-using Test
 using Random
 
 @testset "Make Single Genome" begin

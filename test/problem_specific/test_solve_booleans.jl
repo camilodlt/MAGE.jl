@@ -9,7 +9,7 @@ expression consisting of T, F, |, and &, evaluate it and return
 the resulting Boolean
 """
 
-train_data = [
+solve_booleans_train_data = [
     [["t"], [true]],
     [["f"], [false]],
     [["f&f"], [false]],
@@ -131,17 +131,20 @@ function solve_boolean_algo(x, y)
             cond = false
         end
     end
+    if state isa AbstractString
+        state = Meta.parse(state) |> eval
+    end
     res = state
     println(res)
     res == y[1]
 end
 
 @testset "Solve Boolean" begin
+    train_data = solve_booleans_train_data
     for (x, y) in train_data
         @test begin
             solve_boolean_algo(x, y)
         end
     end
 end
-
 
