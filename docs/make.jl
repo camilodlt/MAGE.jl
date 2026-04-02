@@ -32,6 +32,7 @@ makedocs(;
         "String Lib" => "libraries/string.md",
         "Number Lib" => "libraries/number.md",
         "Integer Lib" => "libraries/integer.md",
+        "Image Lib" => "libraries/image.md",
     ],
 )
 
