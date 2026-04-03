@@ -75,10 +75,15 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/avgpool_resize_intensity_k2_before.png" alt="Before avgpool_resize intensity k=2" style="width:50%;" />
-  <img src="../assets/fns/image_pool/avgpool_resize_intensity_k2_after.png" alt="After avgpool_resize intensity k=2" style="width:50%;" />
-</div>
+<div id="avgpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-intensity-k2").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_resize_intensity_k2_before.png" alt="Before avgpool_resize intensity k=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_resize_intensity_k2_after.png" alt="After avgpool_resize intensity k=2" style="width:50%;" />`;
+})();
+</script>
 ```
 
 #### Intensity image, `k = 10`
@@ -91,10 +96,15 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/avgpool_resize_intensity_k10_before.png" alt="Before avgpool_resize intensity k=10" style="width:50%;" />
-  <img src="../assets/fns/image_pool/avgpool_resize_intensity_k10_after.png" alt="After avgpool_resize intensity k=10" style="width:50%;" />
-</div>
+<div id="avgpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-intensity-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_resize_intensity_k10_before.png" alt="Before avgpool_resize intensity k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_resize_intensity_k10_after.png" alt="After avgpool_resize intensity k=10" style="width:50%;" />`;
+})();
+</script>
 ```
 
 #### Binary image, `> 0.3`, `k = 5`
@@ -107,10 +117,15 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/avgpool_resize_binary_k5_before.png" alt="Before avgpool_resize binary k=5" style="width:50%;" />
-  <img src="../assets/fns/image_pool/avgpool_resize_binary_k5_after.png" alt="After avgpool_resize binary k=5" style="width:50%;" />
-</div>
+<div id="avgpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-binary-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_resize_binary_k5_before.png" alt="Before avgpool_resize binary k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_resize_binary_k5_after.png" alt="After avgpool_resize binary k=5" style="width:50%;" />`;
+})();
+</script>
 ```
 
 #### Segmented image from `fastscanning_image2D`, `k = 5`
@@ -123,10 +138,15 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/avgpool_resize_segment_k5_before.png" alt="Before avgpool_resize segment k=5" style="width:50%;" />
-  <img src="../assets/fns/image_pool/avgpool_resize_segment_k5_after.png" alt="After avgpool_resize segment k=5" style="width:50%;" />
-</div>
+<div id="avgpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-segment-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_resize_segment_k5_before.png" alt="Before avgpool_resize segment k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_resize_segment_k5_after.png" alt="After avgpool_resize segment k=5" style="width:50%;" />`;
+})();
+</script>
 ```
 
 ### Max Pool
@@ -145,10 +165,15 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/maxpool_resize_intensity_k2_before.png" alt="Before maxpool_resize intensity k=2" style="width:50%;" />
-  <img src="../assets/fns/image_pool/maxpool_resize_intensity_k2_after.png" alt="After maxpool_resize intensity k=2" style="width:50%;" />
-</div>
+<div id="maxpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-intensity-k2").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_resize_intensity_k2_before.png" alt="Before maxpool_resize intensity k=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_resize_intensity_k2_after.png" alt="After maxpool_resize intensity k=2" style="width:50%;" />`;
+})();
+</script>
 ```
 
 #### Intensity image, `k = 10`
@@ -161,10 +186,15 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/maxpool_resize_intensity_k10_before.png" alt="Before maxpool_resize intensity k=10" style="width:50%;" />
-  <img src="../assets/fns/image_pool/maxpool_resize_intensity_k10_after.png" alt="After maxpool_resize intensity k=10" style="width:50%;" />
-</div>
+<div id="maxpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-intensity-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_resize_intensity_k10_before.png" alt="Before maxpool_resize intensity k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_resize_intensity_k10_after.png" alt="After maxpool_resize intensity k=10" style="width:50%;" />`;
+})();
+</script>
 ```
 
 #### Binary image, `> 0.3`, `k = 5`
@@ -177,10 +207,15 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/maxpool_resize_binary_k5_before.png" alt="Before maxpool_resize binary k=5" style="width:50%;" />
-  <img src="../assets/fns/image_pool/maxpool_resize_binary_k5_after.png" alt="After maxpool_resize binary k=5" style="width:50%;" />
-</div>
+<div id="maxpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-binary-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_resize_binary_k5_before.png" alt="Before maxpool_resize binary k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_resize_binary_k5_after.png" alt="After maxpool_resize binary k=5" style="width:50%;" />`;
+})();
+</script>
 ```
 
 #### Segmented image from `fastscanning_image2D`, `k = 5`
@@ -193,8 +228,13 @@ nothing # hide
 ```
 
 ```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-  <img src="../assets/fns/image_pool/maxpool_resize_segment_k5_before.png" alt="Before maxpool_resize segment k=5" style="width:50%;" />
-  <img src="../assets/fns/image_pool/maxpool_resize_segment_k5_after.png" alt="After maxpool_resize segment k=5" style="width:50%;" />
-</div>
+<div id="maxpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-segment-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_resize_segment_k5_before.png" alt="Before maxpool_resize segment k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_resize_segment_k5_after.png" alt="After maxpool_resize segment k=5" style="width:50%;" />`;
+})();
+</script>
 ```
