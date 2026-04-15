@@ -1,4 +1,5 @@
 using UTCGP
+using ImageCore: N0f8
 
 function _dummy_intensity_pool_img()
     img = [
@@ -7,7 +8,7 @@ function _dummy_intensity_pool_img()
         0.9 0.7 0.1 0.3
         0.5 0.3 0.9 0.7
     ]
-    return SImageND(IntensityPixel{Float64}.(img))
+    return SImageND(IntensityPixel{N0f8}.(img))
 end
 
 function _dummy_binary_pool_img()
@@ -39,7 +40,8 @@ function _dummy_cross_pool_intensity_img()
         7.0 7.0 7.0  6.0 6.0 6.0
         3.0 7.0 3.0  4.0 6.0 4.0
     ]
-    return SImageND(IntensityPixel{Float64}.(img))
+    img ./= maximum(img)
+    return SImageND(IntensityPixel{N0f8}.(img))
 end
 
 function _dummy_cross_pool_mixed_intensity_img()
@@ -51,7 +53,8 @@ function _dummy_cross_pool_mixed_intensity_img()
         3.0 4.0 5.0  8.0 7.0 6.0
         0.0 6.0 0.0  0.0 5.0 0.0
     ]
-    return SImageND(IntensityPixel{Float64}.(img))
+    img ./= maximum(img)
+    return SImageND(IntensityPixel{N0f8}.(img))
 end
 
 function _expected_avgpool_k2_intensity()
@@ -61,12 +64,12 @@ function _expected_avgpool_k2_intensity()
         0.6 0.6 0.5 0.5
         0.6 0.6 0.5 0.5
     ]
-    return SImageND(IntensityPixel{Float64}.(expected))
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_avgpool_k4_intensity()
     expected = fill(0.5, 4, 4)
-    return SImageND(IntensityPixel{Float64}.(expected))
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_avgpool_k2_binary()
@@ -91,12 +94,12 @@ function _expected_maxpool_k2_intensity()
         0.9 0.9 0.9 0.9
         0.9 0.9 0.9 0.9
     ]
-    return SImageND(IntensityPixel{Float64}.(expected))
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_maxpool_k4_intensity()
     expected = fill(1.0, 4, 4)
-    return SImageND(IntensityPixel{Float64}.(expected))
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_maxpool_k2_binary()
@@ -136,12 +139,12 @@ function _expected_minpool_k2_intensity()
         0.3 0.3 0.1 0.1
         0.3 0.3 0.1 0.1
     ]
-    return SImageND(IntensityPixel{Float64}.(expected))
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_minpool_k4_intensity()
     expected = fill(0.0, 4, 4)
-    return SImageND(IntensityPixel{Float64}.(expected))
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_minpool_k2_binary()
@@ -183,7 +186,8 @@ function _expected_avgpool_cross_k3_intensity()
         7.0 7.0 7.0  6.0 6.0 6.0
         7.0 7.0 7.0  6.0 6.0 6.0
     ]
-    return SImageND(IntensityPixel{Float64}.(expected))
+    expected ./= maximum(expected)
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_avgpool_cross_k3_mixed_intensity()
@@ -195,7 +199,8 @@ function _expected_avgpool_cross_k3_mixed_intensity()
         4.0 4.0 4.0   7.0 7.0 7.0
         4.0 4.0 4.0   7.0 7.0 7.0
     ]
-    return SImageND(IntensityPixel{Float64}.(expected))
+    expected ./= maximum(expected)
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_maxpool_cross_k3_mixed_intensity()
@@ -207,7 +212,8 @@ function _expected_maxpool_cross_k3_mixed_intensity()
         6.0 6.0 6.0   9.0 9.0 9.0
         6.0 6.0 6.0   9.0 9.0 9.0
     ]
-    return SImageND(IntensityPixel{Float64}.(expected))
+    expected ./= maximum(expected)
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 function _expected_minpool_cross_k3_mixed_intensity()
@@ -219,7 +225,8 @@ function _expected_minpool_cross_k3_mixed_intensity()
         2.0 2.0 2.0   5.0 5.0 5.0
         2.0 2.0 2.0   5.0 5.0 5.0
     ]
-    return SImageND(IntensityPixel{Float64}.(expected))
+    expected ./= 9.0
+    return SImageND(IntensityPixel{N0f8}.(expected))
 end
 
 # Spec:
@@ -237,7 +244,7 @@ end
     expected_k2 = _expected_avgpool_k2_intensity()
     expected_k4 = _expected_avgpool_k4_intensity()
 
-    @test eltype(res_default) == IntensityPixel{Float64}
+    @test eltype(res_default) == IntensityPixel{N0f8}
     @test size(res_default) == size(img)
     @test res_default == res_k2
     @test all(isapprox.(float.(res_k2), float.(expected_k2); atol = 1.0e-12))
@@ -283,7 +290,7 @@ end
     expected_k2 = _expected_maxpool_k2_intensity()
     expected_k4 = _expected_maxpool_k4_intensity()
 
-    @test eltype(res_default) == IntensityPixel{Float64}
+    @test eltype(res_default) == IntensityPixel{N0f8}
     @test size(res_default) == size(img)
     @test res_default == res_k2
     @test all(isapprox.(float.(res_k2), float.(expected_k2); atol = 1.0e-12))
@@ -352,7 +359,7 @@ end
     expected_k2 = _expected_minpool_k2_intensity()
     expected_k4 = _expected_minpool_k4_intensity()
 
-    @test eltype(res_default) == IntensityPixel{Float64}
+    @test eltype(res_default) == IntensityPixel{N0f8}
     @test size(res_default) == size(img)
     @test res_default == res_k2
     @test all(isapprox.(float.(res_k2), float.(expected_k2); atol = 1.0e-12))
@@ -420,7 +427,7 @@ end
     res_k3 = fn(img, 3)
     expected_k3 = _expected_avgpool_cross_k3_intensity()
 
-    @test eltype(res_default) == IntensityPixel{Float64}
+    @test eltype(res_default) == IntensityPixel{N0f8}
     @test size(res_default) == size(img)
     @test res_default != res_k3
     @test all(isapprox.(float.(res_k3), float.(expected_k3); atol = 1.0e-12))
@@ -443,7 +450,7 @@ end
     res_k3 = fn(img, 3)
     expected_k3 = _expected_maxpool_cross_k3_mixed_intensity()
 
-    @test eltype(res_default) == IntensityPixel{Float64}
+    @test eltype(res_default) == IntensityPixel{N0f8}
     @test size(res_default) == size(img)
     @test res_default != res_k3
     @test all(isapprox.(float.(res_k3), float.(expected_k3); atol = 1.0e-12))
@@ -467,7 +474,7 @@ end
     res_k3 = fn(img, 3)
     expected_k3 = _expected_minpool_cross_k3_mixed_intensity()
 
-    @test eltype(res_default) == IntensityPixel{Float64}
+    @test eltype(res_default) == IntensityPixel{N0f8}
     @test size(res_default) == size(img)
     @test res_default != res_k3
     @test all(isapprox.(float.(res_k3), float.(expected_k3); atol = 1.0e-12))

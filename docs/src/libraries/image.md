@@ -11,6 +11,825 @@ Pages = ["image.md"]
 
 # Image Lib
 
+## Orientation Image Maps
+
+These orientation maps are exposed through:
+
+- `bundle_image2DIntensity_orientation_factory`
+
+They currently operate on intensity images and use raw Sobel derivatives
+internally.
+
+```@example
+using UTCGP
+using ImageCore: N0f8
+
+function orientation_vertical_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    img[:, fld(n, 2)+1:end] .= 1.0
+    return img
+end
+
+function orientation_horizontal_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    img[fld(n, 2)+1:end, :] .= 1.0
+    return img
+end
+
+function orientation_diag45_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    for i in 1:n, j in 1:n
+        img[i, j] = j >= i ? 1.0 : 0.0
+    end
+    return img
+end
+
+orientation_intensity_image(arr::AbstractMatrix{<:Real}) =
+    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
+
+img = orientation_intensity_image(orientation_vertical_step_array())
+grad_mag = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
+grad_ori = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
+
+(typeof(grad_mag), typeof(grad_ori))
+```
+
+```@setup orientation_image_assets
+using UTCGP
+using FileIO
+using Images
+using ImageCore: N0f8
+
+function orientation_vertical_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    img[:, fld(n, 2)+1:end] .= 1.0
+    return img
+end
+
+function orientation_horizontal_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    img[fld(n, 2)+1:end, :] .= 1.0
+    return img
+end
+
+function orientation_diag45_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    for i in 1:n, j in 1:n
+        img[i, j] = j >= i ? 1.0 : 0.0
+    end
+    return img
+end
+
+orientation_intensity_image(arr::AbstractMatrix{<:Real}) =
+    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
+
+repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+input_path = joinpath(repo_root, "assets", "000_img.png")
+docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "orientation")
+docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "orientation")
+mkpath(docs_assets_src)
+mkpath(docs_assets_build)
+
+function _save_orientation_gray(name, img)
+    vals = Float64.(img)
+    minv = minimum(vals)
+    maxv = maximum(vals)
+    scaled = maxv == minv ? zeros(size(vals)) : (vals .- minv) ./ (maxv - minv)
+    g = Gray.(scaled)
+    save(joinpath(docs_assets_src, name), g)
+    save(joinpath(docs_assets_build, name), g)
+    return nothing
+end
+
+function _save_image_orientation_triplet(prefix, original, output)
+    _save_orientation_gray(prefix * "_original.png", reinterpret(original.img))
+    _save_orientation_gray(prefix * "_output.png", reinterpret(output.img))
+    return nothing
+end
+
+vertical = orientation_intensity_image(orientation_vertical_step_array())
+horizontal = orientation_intensity_image(orientation_horizontal_step_array())
+diag45 = orientation_intensity_image(orientation_diag45_step_array())
+asset_gray = Float64.(Gray.(load(input_path)))
+asset_gray_small = asset_gray[1:2:end, 1:2:end]
+asset_img = orientation_intensity_image(asset_gray_small)
+
+grad_mag = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(asset_img))
+grad_ori = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(asset_img))
+orient_sel = UTCGP.bundle_image2DIntensity_orientation_factory[:orientation_select].fn(typeof(asset_img))
+
+mag_out = grad_mag(asset_img)
+ori_out = grad_ori(asset_img)
+sel_out = orient_sel(asset_img, 0.25, 0.1)
+
+_save_image_orientation_triplet("grad_magnitude", asset_img, mag_out)
+_save_image_orientation_triplet("grad_orientation", asset_img, ori_out)
+_save_image_orientation_triplet("orientation_select", asset_img, sel_out)
+```
+
+### `grad_magnitude`
+
+Gradient magnitude computed from Sobel x/y derivatives.
+
+```@example orientation_image_assets
+img = asset_img
+fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
+fn(img)
+```
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<img src="../assets/fns/orientation/grad_magnitude_original.png" alt="grad_magnitude original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+<img src="../assets/fns/orientation/grad_magnitude_output.png" alt="grad_magnitude output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+</div>
+```
+
+### `grad_orientation`
+
+Gradient orientation map encoded in `[0, 1]` over `[0, π]`.
+
+```@example orientation_image_assets
+img = asset_img
+fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
+fn(img)
+```
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<img src="../assets/fns/orientation/grad_orientation_original.png" alt="grad_orientation original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+<img src="../assets/fns/orientation/grad_orientation_output.png" alt="grad_orientation output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+</div>
+```
+
+### `orientation_select`
+
+Keep only gradient responses whose orientation is near a target angle.
+
+```@example orientation_image_assets
+img = asset_img
+fn = UTCGP.bundle_image2DIntensity_orientation_factory[:orientation_select].fn(typeof(img))
+fn(img, 0.25, 0.1)
+```
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<img src="../assets/fns/orientation/orientation_select_original.png" alt="orientation_select original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+<img src="../assets/fns/orientation/orientation_select_output.png" alt="orientation_select output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+</div>
+```
+
+## Block Pooling Functions
+
+In this set of bundles we currently find:
+
+- `avgpool_blocks`
+- `maxpool_blocks`
+- `minpool_blocks`
+- `avgpool_cross_blocks`
+- `maxpool_cross_blocks`
+- `minpool_cross_blocks`
+
+The pooling functions are exposed through the typed image pooling bundles:
+
+- `bundle_image2DIntensity_pool_factory`
+- `bundle_image2DBinary_pool_factory`
+- `bundle_image2DSegment_pool_factory`
+
+These functions use non-overlapping block windows scanned from left to right and
+top to bottom. Each block is reduced to a single value, and that value is
+written back over the covered block. There is no padding; the last block on the
+right or bottom may be partial if the image size is not divisible by `k`.
+
+To obtain a callable function, first select the function from the bundle, then
+specialize it on the concrete image type.
+
+```@example
+using UTCGP
+using ImageCore: N0f8
+
+img = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(rand(4, 4)))
+avg_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img))
+max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img))
+
+(typeof(avg_intensity), typeof(max_intensity))
+```
+
+```@setup pool_gallery
+using UTCGP
+using ImageCore: N0f8
+using FileIO
+using Images
+
+repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+input_path = joinpath(repo_root, "assets", "000_img.png")
+docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "image_pool")
+docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "image_pool")
+mkpath(docs_assets_src)
+mkpath(docs_assets_build)
+
+raw = load(input_path)
+gray = Gray.(raw)
+
+function _save_gray_pair(name, img)
+    g = Gray.(img)
+    save(joinpath(docs_assets_src, name), g)
+    save(joinpath(docs_assets_build, name), g)
+    return nothing
+end
+
+function _save_segment_pair(name, img)
+    vals = Float64.(float.(img))
+    scale = max(maximum(vals), 1.0)
+    g = Gray.(vals ./ scale)
+    save(joinpath(docs_assets_src, name), g)
+    save(joinpath(docs_assets_build, name), g)
+    return nothing
+end
+
+img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(gray)))
+img_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
+segment_template = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
+seg_fn = UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template))
+img_segment = seg_fn(img_intensity, 0.1)
+
+avg_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img_intensity))
+avg_binary = UTCGP.bundle_image2DBinary_pool_factory[:avgpool_blocks].fn(typeof(img_binary))
+avg_segment = UTCGP.bundle_image2DSegment_pool_factory[:avgpool_blocks].fn(typeof(img_segment))
+
+max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img_intensity))
+max_binary = UTCGP.bundle_image2DBinary_pool_factory[:maxpool_blocks].fn(typeof(img_binary))
+max_segment = UTCGP.bundle_image2DSegment_pool_factory[:maxpool_blocks].fn(typeof(img_segment))
+
+min_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:minpool_blocks].fn(typeof(img_intensity))
+min_binary = UTCGP.bundle_image2DBinary_pool_factory[:minpool_blocks].fn(typeof(img_binary))
+min_segment = UTCGP.bundle_image2DSegment_pool_factory[:minpool_blocks].fn(typeof(img_segment))
+
+cross_demo = zeros(Float64, 10, 10)
+cross_demo[3, 1:5] .= 1.0
+cross_demo[1:5, 3] .= 1.0
+cross_demo[3, 6:10] .= 0.8
+cross_demo[1:5, 8] .= 0.8
+cross_demo[8, 1:5] .= 0.6
+cross_demo[6:10, 3] .= 0.6
+cross_demo[8, 6:10] .= 0.4
+cross_demo[6:10, 8] .= 0.4
+
+img_cross_demo = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(cross_demo))
+avg_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_cross_blocks].fn(typeof(img_cross_demo))
+max_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_cross_blocks].fn(typeof(img_cross_demo))
+min_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:minpool_cross_blocks].fn(typeof(img_cross_demo))
+
+avg_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:avgpool_cross_blocks].fn(typeof(img_binary))
+avg_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:avgpool_cross_blocks].fn(typeof(img_segment))
+
+max_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:maxpool_cross_blocks].fn(typeof(img_binary))
+max_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:maxpool_cross_blocks].fn(typeof(img_segment))
+
+min_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:minpool_cross_blocks].fn(typeof(img_binary))
+min_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:minpool_cross_blocks].fn(typeof(img_segment))
+```
+
+### Avg Pool
+
+```@docs
+UTCGP.image_pool.avgpool_blocks_image2D_factory
+```
+
+#### Intensity image, `k = 2`
+
+```@example pool_gallery
+pooled = avg_intensity(img_intensity, 2)
+_save_gray_pair("avgpool_blocks_intensity_k2_before.png", Float64.(gray)) # hide
+_save_gray_pair("avgpool_blocks_intensity_k2_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-intensity-k2").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k2_before.png" alt="Before avgpool_blocks intensity k=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k2_after.png" alt="After avgpool_blocks intensity k=2" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Intensity image, `k = 10`
+
+```@example pool_gallery
+pooled = avg_intensity(img_intensity, 10)
+_save_gray_pair("avgpool_blocks_intensity_k10_before.png", Float64.(gray)) # hide
+_save_gray_pair("avgpool_blocks_intensity_k10_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-intensity-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k10_before.png" alt="Before avgpool_blocks intensity k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k10_after.png" alt="After avgpool_blocks intensity k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Binary image, `> 0.3`, `k = 5`
+
+```@example pool_gallery
+pooled = avg_binary(img_binary, 5)
+_save_gray_pair("avgpool_blocks_binary_k5_before.png", Float64.(reinterpret(img_binary.img))) # hide
+_save_gray_pair("avgpool_blocks_binary_k5_after.png", Float64.(reinterpret(pooled.img))) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-binary-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_binary_k5_before.png" alt="Before avgpool_blocks binary k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_blocks_binary_k5_after.png" alt="After avgpool_blocks binary k=5" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Segmented image from `fastscanning_image2D`, `k = 5`
+
+```@example pool_gallery
+pooled = avg_segment(img_segment, 5)
+_save_segment_pair("avgpool_blocks_segment_k5_before.png", reinterpret(img_segment.img)) # hide
+_save_segment_pair("avgpool_blocks_segment_k5_after.png", reinterpret(pooled.img)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-segment-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_segment_k5_before.png" alt="Before avgpool_blocks segment k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_blocks_segment_k5_after.png" alt="After avgpool_blocks segment k=5" style="width:50%;" />`;
+})();
+</script>
+```
+
+### Max Pool
+
+```@docs
+UTCGP.image_pool.maxpool_blocks_image2D_factory
+```
+
+#### Intensity image, `k = 2`
+
+```@example pool_gallery
+pooled = max_intensity(img_intensity, 2)
+_save_gray_pair("maxpool_blocks_intensity_k2_before.png", Float64.(gray)) # hide
+_save_gray_pair("maxpool_blocks_intensity_k2_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-intensity-k2").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k2_before.png" alt="Before maxpool_blocks intensity k=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k2_after.png" alt="After maxpool_blocks intensity k=2" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Intensity image, `k = 10`
+
+```@example pool_gallery
+pooled = max_intensity(img_intensity, 10)
+_save_gray_pair("maxpool_blocks_intensity_k10_before.png", Float64.(gray)) # hide
+_save_gray_pair("maxpool_blocks_intensity_k10_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-intensity-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k10_before.png" alt="Before maxpool_blocks intensity k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k10_after.png" alt="After maxpool_blocks intensity k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Binary image, `> 0.3`, `k = 5`
+
+```@example pool_gallery
+pooled = max_binary(img_binary, 5)
+_save_gray_pair("maxpool_blocks_binary_k5_before.png", Float64.(reinterpret(img_binary.img))) # hide
+_save_gray_pair("maxpool_blocks_binary_k5_after.png", Float64.(reinterpret(pooled.img))) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-binary-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_binary_k5_before.png" alt="Before maxpool_blocks binary k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_blocks_binary_k5_after.png" alt="After maxpool_blocks binary k=5" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Segmented image from `fastscanning_image2D`, `k = 5`
+
+```@example pool_gallery
+pooled = max_segment(img_segment, 5)
+_save_segment_pair("maxpool_blocks_segment_k5_before.png", reinterpret(img_segment.img)) # hide
+_save_segment_pair("maxpool_blocks_segment_k5_after.png", reinterpret(pooled.img)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-segment-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_segment_k5_before.png" alt="Before maxpool_blocks segment k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_blocks_segment_k5_after.png" alt="After maxpool_blocks segment k=5" style="width:50%;" />`;
+})();
+</script>
+```
+
+### Min Pool
+
+```@docs
+UTCGP.image_pool.minpool_blocks_image2D_factory
+```
+
+#### Intensity image, `k = 2`
+
+```@example pool_gallery
+pooled = min_intensity(img_intensity, 2)
+_save_gray_pair("minpool_blocks_intensity_k2_before.png", Float64.(gray)) # hide
+_save_gray_pair("minpool_blocks_intensity_k2_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-intensity-k2").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k2_before.png" alt="Before minpool_blocks intensity k=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k2_after.png" alt="After minpool_blocks intensity k=2" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Intensity image, `k = 10`
+
+```@example pool_gallery
+pooled = min_intensity(img_intensity, 10)
+_save_gray_pair("minpool_blocks_intensity_k10_before.png", Float64.(gray)) # hide
+_save_gray_pair("minpool_blocks_intensity_k10_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-intensity-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k10_before.png" alt="Before minpool_blocks intensity k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k10_after.png" alt="After minpool_blocks intensity k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Binary image, `> 0.3`, `k = 5`
+
+```@example pool_gallery
+pooled = min_binary(img_binary, 5)
+_save_gray_pair("minpool_blocks_binary_k5_before.png", Float64.(reinterpret(img_binary.img))) # hide
+_save_gray_pair("minpool_blocks_binary_k5_after.png", Float64.(reinterpret(pooled.img))) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-binary-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_blocks_binary_k5_before.png" alt="Before minpool_blocks binary k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/minpool_blocks_binary_k5_after.png" alt="After minpool_blocks binary k=5" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Segmented image from `fastscanning_image2D`, `k = 5`
+
+```@example pool_gallery
+pooled = min_segment(img_segment, 5)
+_save_segment_pair("minpool_blocks_segment_k5_before.png", reinterpret(img_segment.img)) # hide
+_save_segment_pair("minpool_blocks_segment_k5_after.png", reinterpret(pooled.img)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-segment-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_blocks_segment_k5_before.png" alt="Before minpool_blocks segment k=5" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/minpool_blocks_segment_k5_after.png" alt="After minpool_blocks segment k=5" style="width:50%;" />`;
+})();
+</script>
+```
+
+## Cross Pooling Functions
+
+### Avg Cross Pool
+
+```@docs
+UTCGP.image_pool.avgpool_cross_blocks_image2D_factory
+```
+
+#### Custom 10x10 intensity image, `k = 3`
+
+```@example pool_gallery
+pooled = avg_cross_intensity(img_cross_demo, 3)
+_save_gray_pair("avgpool_cross_blocks_intensity_k3_before.png", cross_demo) # hide
+_save_gray_pair("avgpool_cross_blocks_intensity_k3_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-cross-intensity-k3").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k3_before.png" alt="Before avgpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k3_after.png" alt="After avgpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
+})();
+</script>
+```
+
+#### Custom 10x10 intensity image, `k = 5`
+
+```@example pool_gallery
+pooled = avg_cross_intensity(img_cross_demo, 5)
+_save_gray_pair("avgpool_cross_blocks_intensity_k5_before.png", cross_demo) # hide
+_save_gray_pair("avgpool_cross_blocks_intensity_k5_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-cross-intensity-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-cross-intensity-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k5_before.png" alt="Before avgpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k5_after.png" alt="After avgpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
+})();
+</script>
+```
+
+#### Binary image, `> 0.3`, `k = 10`
+
+```@example pool_gallery
+pooled = avg_cross_binary(img_binary, 10)
+_save_gray_pair("avgpool_cross_blocks_binary_k10_before.png", Float64.(reinterpret(img_binary.img))) # hide
+_save_gray_pair("avgpool_cross_blocks_binary_k10_after.png", Float64.(reinterpret(pooled.img))) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-cross-binary-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-cross-binary-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_binary_k10_before.png" alt="Before avgpool_cross_blocks binary k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_binary_k10_after.png" alt="After avgpool_cross_blocks binary k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Segmented image from `fastscanning_image2D`, `k = 10`
+
+```@example pool_gallery
+pooled = avg_cross_segment(img_segment, 10)
+_save_segment_pair("avgpool_cross_blocks_segment_k10_before.png", reinterpret(img_segment.img)) # hide
+_save_segment_pair("avgpool_cross_blocks_segment_k10_after.png", reinterpret(pooled.img)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="avgpool-cross-segment-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("avgpool-cross-segment-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_segment_k10_before.png" alt="Before avgpool_cross_blocks segment k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_segment_k10_after.png" alt="After avgpool_cross_blocks segment k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+### Max Cross Pool
+
+```@docs
+UTCGP.image_pool.maxpool_cross_blocks_image2D_factory
+```
+
+#### Custom 10x10 intensity image, `k = 3`
+
+```@example pool_gallery
+pooled = max_cross_intensity(img_cross_demo, 3)
+_save_gray_pair("maxpool_cross_blocks_intensity_k3_before.png", cross_demo) # hide
+_save_gray_pair("maxpool_cross_blocks_intensity_k3_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-cross-intensity-k3").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k3_before.png" alt="Before maxpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k3_after.png" alt="After maxpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
+})();
+</script>
+```
+
+#### Custom 10x10 intensity image, `k = 5`
+
+```@example pool_gallery
+pooled = max_cross_intensity(img_cross_demo, 5)
+_save_gray_pair("maxpool_cross_blocks_intensity_k5_before.png", cross_demo) # hide
+_save_gray_pair("maxpool_cross_blocks_intensity_k5_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-cross-intensity-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-cross-intensity-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k5_before.png" alt="Before maxpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k5_after.png" alt="After maxpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
+})();
+</script>
+```
+
+#### Binary image, `> 0.3`, `k = 10`
+
+```@example pool_gallery
+pooled = max_cross_binary(img_binary, 10)
+_save_gray_pair("maxpool_cross_blocks_binary_k10_before.png", Float64.(reinterpret(img_binary.img))) # hide
+_save_gray_pair("maxpool_cross_blocks_binary_k10_after.png", Float64.(reinterpret(pooled.img))) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-cross-binary-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-cross-binary-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_binary_k10_before.png" alt="Before maxpool_cross_blocks binary k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_binary_k10_after.png" alt="After maxpool_cross_blocks binary k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Segmented image from `fastscanning_image2D`, `k = 10`
+
+```@example pool_gallery
+pooled = max_cross_segment(img_segment, 10)
+_save_segment_pair("maxpool_cross_blocks_segment_k10_before.png", reinterpret(img_segment.img)) # hide
+_save_segment_pair("maxpool_cross_blocks_segment_k10_after.png", reinterpret(pooled.img)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="maxpool-cross-segment-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-cross-segment-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_segment_k10_before.png" alt="Before maxpool_cross_blocks segment k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_segment_k10_after.png" alt="After maxpool_cross_blocks segment k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+### Min Cross Pool
+
+```@docs
+UTCGP.image_pool.minpool_cross_blocks_image2D_factory
+```
+
+#### Custom 10x10 intensity image, `k = 3`
+
+```@example pool_gallery
+pooled = min_cross_intensity(img_cross_demo, 3)
+_save_gray_pair("minpool_cross_blocks_intensity_k3_before.png", cross_demo) # hide
+_save_gray_pair("minpool_cross_blocks_intensity_k3_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-cross-intensity-k3").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k3_before.png" alt="Before minpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
+     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k3_after.png" alt="After minpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
+})();
+</script>
+```
+
+#### Custom 10x10 intensity image, `k = 5`
+
+```@example pool_gallery
+pooled = min_cross_intensity(img_cross_demo, 5)
+_save_gray_pair("minpool_cross_blocks_intensity_k5_before.png", cross_demo) # hide
+_save_gray_pair("minpool_cross_blocks_intensity_k5_after.png", float.(pooled)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-cross-intensity-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-cross-intensity-k5").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k5_before.png" alt="Before minpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
+     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k5_after.png" alt="After minpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
+})();
+</script>
+```
+
+#### Binary image, `> 0.3`, `k = 10`
+
+```@example pool_gallery
+pooled = min_cross_binary(img_binary, 10)
+_save_gray_pair("minpool_cross_blocks_binary_k10_before.png", Float64.(reinterpret(img_binary.img))) # hide
+_save_gray_pair("minpool_cross_blocks_binary_k10_after.png", Float64.(reinterpret(pooled.img))) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-cross-binary-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-cross-binary-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_binary_k10_before.png" alt="Before minpool_cross_blocks binary k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_binary_k10_after.png" alt="After minpool_cross_blocks binary k=10" style="width:50%;" />`;
+})();
+</script>
+```
+
+#### Segmented image from `fastscanning_image2D`, `k = 10`
+
+```@example pool_gallery
+pooled = min_cross_segment(img_segment, 10)
+_save_segment_pair("minpool_cross_blocks_segment_k10_before.png", reinterpret(img_segment.img)) # hide
+_save_segment_pair("minpool_cross_blocks_segment_k10_after.png", reinterpret(pooled.img)) # hide
+nothing # hide
+```
+
+```@raw html
+<div id="minpool-cross-segment-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-cross-segment-k10").innerHTML =
+    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_segment_k10_before.png" alt="Before minpool_cross_blocks segment k=10" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_segment_k10_after.png" alt="After minpool_cross_blocks segment k=10" style="width:50%;" />`;
+})();
+</script>
+```
 ## Sliding Window Poolers
 
 In this set of bundles we currently find:
@@ -38,8 +857,9 @@ The sliding-window poolers are exposed through:
 
 ```@example
 using UTCGP
+using ImageCore: N0f8
 
-img = UTCGP.SImageND(UTCGP.IntensityPixel{Float64}.(rand(8, 8)))
+img = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(rand(8, 8)))
 mean_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:meanpool].fn(typeof(img))
 iqr_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:iqrpool].fn(typeof(img))
 
@@ -50,6 +870,7 @@ iqr_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:iqrpool].fn(typeof
 using UTCGP
 using FileIO
 using Images
+using ImageCore: N0f8
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
 input_path = joinpath(repo_root, "assets", "000_img.png")
@@ -83,7 +904,7 @@ function _save_pooler_segment_pair(name, img)
     return nothing
 end
 
-img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{Float64}.(Float64.(gray)))
+img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(gray)))
 img_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
 segment_template = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
 seg_fn = UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template))
@@ -911,657 +1732,6 @@ nothing # hide
   document.getElementById("iqrpool-segment-k5-s2").innerHTML =
     `<img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_before.png" alt="Before iqrpool segment k=5 stride=2" style="width:50%;" />
      <img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_after.png" alt="After iqrpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script>
-```
-
-## Block Pooling Functions
-
-In this set of bundles we currently find:
-
-- `avgpool_blocks`
-- `maxpool_blocks`
-- `minpool_blocks`
-- `avgpool_cross_blocks`
-- `maxpool_cross_blocks`
-- `minpool_cross_blocks`
-
-The pooling functions are exposed through the typed image pooling bundles:
-
-- `bundle_image2DIntensity_pool_factory`
-- `bundle_image2DBinary_pool_factory`
-- `bundle_image2DSegment_pool_factory`
-
-These functions use non-overlapping block windows scanned from left to right and
-top to bottom. Each block is reduced to a single value, and that value is
-written back over the covered block. There is no padding; the last block on the
-right or bottom may be partial if the image size is not divisible by `k`.
-
-To obtain a callable function, first select the function from the bundle, then
-specialize it on the concrete image type.
-
-```@example
-using UTCGP
-
-img = UTCGP.SImageND(UTCGP.IntensityPixel{Float64}.(rand(4, 4)))
-avg_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img))
-max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img))
-
-(typeof(avg_intensity), typeof(max_intensity))
-```
-
-```@setup pool_gallery
-using UTCGP
-using FileIO
-using Images
-
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
-input_path = joinpath(repo_root, "assets", "000_img.png")
-docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "image_pool")
-docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "image_pool")
-mkpath(docs_assets_src)
-mkpath(docs_assets_build)
-
-raw = load(input_path)
-gray = Gray.(raw)
-
-function _save_gray_pair(name, img)
-    g = Gray.(img)
-    save(joinpath(docs_assets_src, name), g)
-    save(joinpath(docs_assets_build, name), g)
-    return nothing
-end
-
-function _save_segment_pair(name, img)
-    vals = Float64.(float.(img))
-    scale = max(maximum(vals), 1.0)
-    g = Gray.(vals ./ scale)
-    save(joinpath(docs_assets_src, name), g)
-    save(joinpath(docs_assets_build, name), g)
-    return nothing
-end
-
-img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{Float64}.(Float64.(gray)))
-img_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
-segment_template = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
-seg_fn = UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template))
-img_segment = seg_fn(img_intensity, 0.1)
-
-avg_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img_intensity))
-avg_binary = UTCGP.bundle_image2DBinary_pool_factory[:avgpool_blocks].fn(typeof(img_binary))
-avg_segment = UTCGP.bundle_image2DSegment_pool_factory[:avgpool_blocks].fn(typeof(img_segment))
-
-max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img_intensity))
-max_binary = UTCGP.bundle_image2DBinary_pool_factory[:maxpool_blocks].fn(typeof(img_binary))
-max_segment = UTCGP.bundle_image2DSegment_pool_factory[:maxpool_blocks].fn(typeof(img_segment))
-
-min_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:minpool_blocks].fn(typeof(img_intensity))
-min_binary = UTCGP.bundle_image2DBinary_pool_factory[:minpool_blocks].fn(typeof(img_binary))
-min_segment = UTCGP.bundle_image2DSegment_pool_factory[:minpool_blocks].fn(typeof(img_segment))
-
-cross_demo = zeros(Float64, 10, 10)
-cross_demo[3, 1:5] .= 1.0
-cross_demo[1:5, 3] .= 1.0
-cross_demo[3, 6:10] .= 0.8
-cross_demo[1:5, 8] .= 0.8
-cross_demo[8, 1:5] .= 0.6
-cross_demo[6:10, 3] .= 0.6
-cross_demo[8, 6:10] .= 0.4
-cross_demo[6:10, 8] .= 0.4
-
-img_cross_demo = UTCGP.SImageND(UTCGP.IntensityPixel{Float64}.(cross_demo))
-avg_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_cross_blocks].fn(typeof(img_cross_demo))
-max_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_cross_blocks].fn(typeof(img_cross_demo))
-min_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:minpool_cross_blocks].fn(typeof(img_cross_demo))
-
-avg_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:avgpool_cross_blocks].fn(typeof(img_binary))
-avg_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:avgpool_cross_blocks].fn(typeof(img_segment))
-
-max_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:maxpool_cross_blocks].fn(typeof(img_binary))
-max_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:maxpool_cross_blocks].fn(typeof(img_segment))
-
-min_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:minpool_cross_blocks].fn(typeof(img_binary))
-min_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:minpool_cross_blocks].fn(typeof(img_segment))
-```
-
-### Avg Pool
-
-```@docs
-UTCGP.image_pool.avgpool_blocks_image2D_factory
-```
-
-#### Intensity image, `k = 2`
-
-```@example pool_gallery
-pooled = avg_intensity(img_intensity, 2)
-_save_gray_pair("avgpool_blocks_intensity_k2_before.png", Float64.(gray)) # hide
-_save_gray_pair("avgpool_blocks_intensity_k2_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-intensity-k2").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k2_before.png" alt="Before avgpool_blocks intensity k=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k2_after.png" alt="After avgpool_blocks intensity k=2" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Intensity image, `k = 10`
-
-```@example pool_gallery
-pooled = avg_intensity(img_intensity, 10)
-_save_gray_pair("avgpool_blocks_intensity_k10_before.png", Float64.(gray)) # hide
-_save_gray_pair("avgpool_blocks_intensity_k10_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-intensity-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k10_before.png" alt="Before avgpool_blocks intensity k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_blocks_intensity_k10_after.png" alt="After avgpool_blocks intensity k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Binary image, `> 0.3`, `k = 5`
-
-```@example pool_gallery
-pooled = avg_binary(img_binary, 5)
-_save_gray_pair("avgpool_blocks_binary_k5_before.png", Float64.(reinterpret(img_binary.img))) # hide
-_save_gray_pair("avgpool_blocks_binary_k5_after.png", Float64.(reinterpret(pooled.img))) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-binary-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_binary_k5_before.png" alt="Before avgpool_blocks binary k=5" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_blocks_binary_k5_after.png" alt="After avgpool_blocks binary k=5" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Segmented image from `fastscanning_image2D`, `k = 5`
-
-```@example pool_gallery
-pooled = avg_segment(img_segment, 5)
-_save_segment_pair("avgpool_blocks_segment_k5_before.png", reinterpret(img_segment.img)) # hide
-_save_segment_pair("avgpool_blocks_segment_k5_after.png", reinterpret(pooled.img)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-segment-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_blocks_segment_k5_before.png" alt="Before avgpool_blocks segment k=5" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_blocks_segment_k5_after.png" alt="After avgpool_blocks segment k=5" style="width:50%;" />`;
-})();
-</script>
-```
-
-### Max Pool
-
-```@docs
-UTCGP.image_pool.maxpool_blocks_image2D_factory
-```
-
-#### Intensity image, `k = 2`
-
-```@example pool_gallery
-pooled = max_intensity(img_intensity, 2)
-_save_gray_pair("maxpool_blocks_intensity_k2_before.png", Float64.(gray)) # hide
-_save_gray_pair("maxpool_blocks_intensity_k2_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-intensity-k2").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k2_before.png" alt="Before maxpool_blocks intensity k=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k2_after.png" alt="After maxpool_blocks intensity k=2" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Intensity image, `k = 10`
-
-```@example pool_gallery
-pooled = max_intensity(img_intensity, 10)
-_save_gray_pair("maxpool_blocks_intensity_k10_before.png", Float64.(gray)) # hide
-_save_gray_pair("maxpool_blocks_intensity_k10_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-intensity-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k10_before.png" alt="Before maxpool_blocks intensity k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_blocks_intensity_k10_after.png" alt="After maxpool_blocks intensity k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Binary image, `> 0.3`, `k = 5`
-
-```@example pool_gallery
-pooled = max_binary(img_binary, 5)
-_save_gray_pair("maxpool_blocks_binary_k5_before.png", Float64.(reinterpret(img_binary.img))) # hide
-_save_gray_pair("maxpool_blocks_binary_k5_after.png", Float64.(reinterpret(pooled.img))) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-binary-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_binary_k5_before.png" alt="Before maxpool_blocks binary k=5" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_blocks_binary_k5_after.png" alt="After maxpool_blocks binary k=5" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Segmented image from `fastscanning_image2D`, `k = 5`
-
-```@example pool_gallery
-pooled = max_segment(img_segment, 5)
-_save_segment_pair("maxpool_blocks_segment_k5_before.png", reinterpret(img_segment.img)) # hide
-_save_segment_pair("maxpool_blocks_segment_k5_after.png", reinterpret(pooled.img)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-segment-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_blocks_segment_k5_before.png" alt="Before maxpool_blocks segment k=5" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_blocks_segment_k5_after.png" alt="After maxpool_blocks segment k=5" style="width:50%;" />`;
-})();
-</script>
-```
-
-### Min Pool
-
-```@docs
-UTCGP.image_pool.minpool_blocks_image2D_factory
-```
-
-#### Intensity image, `k = 2`
-
-```@example pool_gallery
-pooled = min_intensity(img_intensity, 2)
-_save_gray_pair("minpool_blocks_intensity_k2_before.png", Float64.(gray)) # hide
-_save_gray_pair("minpool_blocks_intensity_k2_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-intensity-k2").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k2_before.png" alt="Before minpool_blocks intensity k=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k2_after.png" alt="After minpool_blocks intensity k=2" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Intensity image, `k = 10`
-
-```@example pool_gallery
-pooled = min_intensity(img_intensity, 10)
-_save_gray_pair("minpool_blocks_intensity_k10_before.png", Float64.(gray)) # hide
-_save_gray_pair("minpool_blocks_intensity_k10_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-intensity-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-intensity-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k10_before.png" alt="Before minpool_blocks intensity k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/minpool_blocks_intensity_k10_after.png" alt="After minpool_blocks intensity k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Binary image, `> 0.3`, `k = 5`
-
-```@example pool_gallery
-pooled = min_binary(img_binary, 5)
-_save_gray_pair("minpool_blocks_binary_k5_before.png", Float64.(reinterpret(img_binary.img))) # hide
-_save_gray_pair("minpool_blocks_binary_k5_after.png", Float64.(reinterpret(pooled.img))) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-binary-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-binary-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_blocks_binary_k5_before.png" alt="Before minpool_blocks binary k=5" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/minpool_blocks_binary_k5_after.png" alt="After minpool_blocks binary k=5" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Segmented image from `fastscanning_image2D`, `k = 5`
-
-```@example pool_gallery
-pooled = min_segment(img_segment, 5)
-_save_segment_pair("minpool_blocks_segment_k5_before.png", reinterpret(img_segment.img)) # hide
-_save_segment_pair("minpool_blocks_segment_k5_after.png", reinterpret(pooled.img)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-segment-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-segment-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_blocks_segment_k5_before.png" alt="Before minpool_blocks segment k=5" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/minpool_blocks_segment_k5_after.png" alt="After minpool_blocks segment k=5" style="width:50%;" />`;
-})();
-</script>
-```
-
-## Cross Pooling Functions
-
-### Avg Cross Pool
-
-```@docs
-UTCGP.image_pool.avgpool_cross_blocks_image2D_factory
-```
-
-#### Custom 10x10 intensity image, `k = 3`
-
-```@example pool_gallery
-pooled = avg_cross_intensity(img_cross_demo, 3)
-_save_gray_pair("avgpool_cross_blocks_intensity_k3_before.png", cross_demo) # hide
-_save_gray_pair("avgpool_cross_blocks_intensity_k3_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-cross-intensity-k3").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k3_before.png" alt="Before avgpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k3_after.png" alt="After avgpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
-})();
-</script>
-```
-
-#### Custom 10x10 intensity image, `k = 5`
-
-```@example pool_gallery
-pooled = avg_cross_intensity(img_cross_demo, 5)
-_save_gray_pair("avgpool_cross_blocks_intensity_k5_before.png", cross_demo) # hide
-_save_gray_pair("avgpool_cross_blocks_intensity_k5_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-cross-intensity-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-cross-intensity-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k5_before.png" alt="Before avgpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_intensity_k5_after.png" alt="After avgpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
-})();
-</script>
-```
-
-#### Binary image, `> 0.3`, `k = 10`
-
-```@example pool_gallery
-pooled = avg_cross_binary(img_binary, 10)
-_save_gray_pair("avgpool_cross_blocks_binary_k10_before.png", Float64.(reinterpret(img_binary.img))) # hide
-_save_gray_pair("avgpool_cross_blocks_binary_k10_after.png", Float64.(reinterpret(pooled.img))) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-cross-binary-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-cross-binary-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_binary_k10_before.png" alt="Before avgpool_cross_blocks binary k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_binary_k10_after.png" alt="After avgpool_cross_blocks binary k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Segmented image from `fastscanning_image2D`, `k = 10`
-
-```@example pool_gallery
-pooled = avg_cross_segment(img_segment, 10)
-_save_segment_pair("avgpool_cross_blocks_segment_k10_before.png", reinterpret(img_segment.img)) # hide
-_save_segment_pair("avgpool_cross_blocks_segment_k10_after.png", reinterpret(pooled.img)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="avgpool-cross-segment-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("avgpool-cross-segment-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_segment_k10_before.png" alt="Before avgpool_cross_blocks segment k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_segment_k10_after.png" alt="After avgpool_cross_blocks segment k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-### Max Cross Pool
-
-```@docs
-UTCGP.image_pool.maxpool_cross_blocks_image2D_factory
-```
-
-#### Custom 10x10 intensity image, `k = 3`
-
-```@example pool_gallery
-pooled = max_cross_intensity(img_cross_demo, 3)
-_save_gray_pair("maxpool_cross_blocks_intensity_k3_before.png", cross_demo) # hide
-_save_gray_pair("maxpool_cross_blocks_intensity_k3_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-cross-intensity-k3").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k3_before.png" alt="Before maxpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k3_after.png" alt="After maxpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
-})();
-</script>
-```
-
-#### Custom 10x10 intensity image, `k = 5`
-
-```@example pool_gallery
-pooled = max_cross_intensity(img_cross_demo, 5)
-_save_gray_pair("maxpool_cross_blocks_intensity_k5_before.png", cross_demo) # hide
-_save_gray_pair("maxpool_cross_blocks_intensity_k5_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-cross-intensity-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-cross-intensity-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k5_before.png" alt="Before maxpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_intensity_k5_after.png" alt="After maxpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
-})();
-</script>
-```
-
-#### Binary image, `> 0.3`, `k = 10`
-
-```@example pool_gallery
-pooled = max_cross_binary(img_binary, 10)
-_save_gray_pair("maxpool_cross_blocks_binary_k10_before.png", Float64.(reinterpret(img_binary.img))) # hide
-_save_gray_pair("maxpool_cross_blocks_binary_k10_after.png", Float64.(reinterpret(pooled.img))) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-cross-binary-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-cross-binary-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_binary_k10_before.png" alt="Before maxpool_cross_blocks binary k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_binary_k10_after.png" alt="After maxpool_cross_blocks binary k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Segmented image from `fastscanning_image2D`, `k = 10`
-
-```@example pool_gallery
-pooled = max_cross_segment(img_segment, 10)
-_save_segment_pair("maxpool_cross_blocks_segment_k10_before.png", reinterpret(img_segment.img)) # hide
-_save_segment_pair("maxpool_cross_blocks_segment_k10_after.png", reinterpret(pooled.img)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="maxpool-cross-segment-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-cross-segment-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_segment_k10_before.png" alt="Before maxpool_cross_blocks segment k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_segment_k10_after.png" alt="After maxpool_cross_blocks segment k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-### Min Cross Pool
-
-```@docs
-UTCGP.image_pool.minpool_cross_blocks_image2D_factory
-```
-
-#### Custom 10x10 intensity image, `k = 3`
-
-```@example pool_gallery
-pooled = min_cross_intensity(img_cross_demo, 3)
-_save_gray_pair("minpool_cross_blocks_intensity_k3_before.png", cross_demo) # hide
-_save_gray_pair("minpool_cross_blocks_intensity_k3_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-cross-intensity-k3").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k3_before.png" alt="Before minpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
-     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k3_after.png" alt="After minpool_cross_blocks intensity k=3" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
-})();
-</script>
-```
-
-#### Custom 10x10 intensity image, `k = 5`
-
-```@example pool_gallery
-pooled = min_cross_intensity(img_cross_demo, 5)
-_save_gray_pair("minpool_cross_blocks_intensity_k5_before.png", cross_demo) # hide
-_save_gray_pair("minpool_cross_blocks_intensity_k5_after.png", float.(pooled)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-cross-intensity-k5" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-cross-intensity-k5").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k5_before.png" alt="Before minpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />
-     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_intensity_k5_after.png" alt="After minpool_cross_blocks intensity k=5" style="width:160px; image-rendering: pixelated; image-rendering: crisp-edges;" />`;
-})();
-</script>
-```
-
-#### Binary image, `> 0.3`, `k = 10`
-
-```@example pool_gallery
-pooled = min_cross_binary(img_binary, 10)
-_save_gray_pair("minpool_cross_blocks_binary_k10_before.png", Float64.(reinterpret(img_binary.img))) # hide
-_save_gray_pair("minpool_cross_blocks_binary_k10_after.png", Float64.(reinterpret(pooled.img))) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-cross-binary-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-cross-binary-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_binary_k10_before.png" alt="Before minpool_cross_blocks binary k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_binary_k10_after.png" alt="After minpool_cross_blocks binary k=10" style="width:50%;" />`;
-})();
-</script>
-```
-
-#### Segmented image from `fastscanning_image2D`, `k = 10`
-
-```@example pool_gallery
-pooled = min_cross_segment(img_segment, 10)
-_save_segment_pair("minpool_cross_blocks_segment_k10_before.png", reinterpret(img_segment.img)) # hide
-_save_segment_pair("minpool_cross_blocks_segment_k10_after.png", reinterpret(pooled.img)) # hide
-nothing # hide
-```
-
-```@raw html
-<div id="minpool-cross-segment-k10" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-cross-segment-k10").innerHTML =
-    `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_segment_k10_before.png" alt="Before minpool_cross_blocks segment k=10" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_segment_k10_after.png" alt="After minpool_cross_blocks segment k=10" style="width:50%;" />`;
 })();
 </script>
 ```

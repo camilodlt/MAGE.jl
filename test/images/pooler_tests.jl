@@ -1,4 +1,5 @@
 using UTCGP: IntensityPixel, BinaryPixel, SegmentPixel
+using ImageCore: N0f8
 
 function _dummy_pooler_intensity_img()
     img = Float64[
@@ -6,7 +7,8 @@ function _dummy_pooler_intensity_img()
         4 4 6
         7 8 9
     ]
-    return SImageND(IntensityPixel{Float64}.(img))
+    img ./= maximum(img)
+    return SImageND(IntensityPixel{N0f8}.(img))
 end
 
 function _dummy_pooler_binary_img()
@@ -28,11 +30,12 @@ function _dummy_pooler_segment_img()
 end
 
 function _pooler_windows()
+    img = reinterpret(_dummy_pooler_intensity_img().img)
     return [
-        Float64[1 2; 4 4],
-        Float64[2 3; 4 6],
-        Float64[4 4; 7 8],
-        Float64[4 6; 8 9],
+        img[1:2, 1:2],
+        img[1:2, 2:3],
+        img[2:3, 1:2],
+        img[2:3, 2:3],
     ]
 end
 
@@ -54,7 +57,16 @@ function _expected_pooler_intensity(reducer::Function)
         reducer(wins[1]) reducer(wins[2])
         reducer(wins[3]) reducer(wins[4])
     ]
-    return SImageND(IntensityPixel{Float64}.(_resize_2x2_to_3x3(small)))
+    return SImageND(IntensityPixel{N0f8}.(_resize_2x2_to_3x3(small)))
+end
+
+function _expected_pooler_intensity_matrix(reducer::Function)
+    wins = _pooler_windows()
+    small = Float64[
+        reducer(wins[1]) reducer(wins[2])
+        reducer(wins[3]) reducer(wins[4])
+    ]
+    return _resize_2x2_to_3x3(small)
 end
 
 function _normalize_expected(img)
@@ -62,9 +74,9 @@ function _normalize_expected(img)
     minv = minimum(vals)
     maxv = maximum(vals)
     if maxv == minv
-        return SImageND(IntensityPixel{Float64}.(zeros(size(vals))))
+        return SImageND(IntensityPixel{N0f8}.(zeros(size(vals))))
     end
-    return SImageND(IntensityPixel{Float64}.((vals .- minv) ./ (maxv - minv)))
+    return SImageND(IntensityPixel{N0f8}.((vals .- minv) ./ (maxv - minv)))
 end
 
 const _POOLER_INTENSITY_EXPECTED = Dict(
@@ -73,9 +85,9 @@ const _POOLER_INTENSITY_EXPECTED = Dict(
     :minpool => _expected_pooler_intensity(minimum),
     :stdpool => _expected_pooler_intensity(std),
     :medianpool => _expected_pooler_intensity(median),
-    :uniquecountpool => _normalize_expected(_expected_pooler_intensity(w -> length(unique(w)))),
-    :argmaxcountpool => _normalize_expected(_expected_pooler_intensity(w -> count(==(maximum(w)), w))),
-    :argmincountpool => _normalize_expected(_expected_pooler_intensity(w -> count(==(minimum(w)), w))),
+    :uniquecountpool => _normalize_expected(_expected_pooler_intensity_matrix(w -> length(unique(w)))),
+    :argmaxcountpool => _normalize_expected(_expected_pooler_intensity_matrix(w -> count(==(maximum(w)), w))),
+    :argmincountpool => _normalize_expected(_expected_pooler_intensity_matrix(w -> count(==(minimum(w)), w))),
     :iqrpool => _expected_pooler_intensity(w -> begin
         vals = Float64.(vec(collect(w)))
         quantile(vals, 0.75) - quantile(vals, 0.25)
@@ -109,7 +121,7 @@ for name in _POOLER_NAMES
             res_explicit = fn(img, 2, 1)
             res_numeric = fn(img, 2.2, 1.2)
 
-            @test eltype(res_default) == IntensityPixel{Float64}
+            @test eltype(res_default) == IntensityPixel{N0f8}
             @test size(res_default) == size(img)
             @test all(isapprox.(float.(res_default), float.(expected); atol = 1.0e-12))
             @test all(isapprox.(float.(res_explicit), float.(expected); atol = 1.0e-12))
