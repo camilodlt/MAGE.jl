@@ -1,305 +1,117 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Image Lib · MAGE.jl</title><meta name="title" content="Image Lib · MAGE.jl"/><meta property="og:title" content="Image Lib · MAGE.jl"/><meta property="twitter:title" content="Image Lib · MAGE.jl"/><meta name="description" content="Documentation for MAGE.jl."/><meta property="og:description" content="Documentation for MAGE.jl."/><meta property="twitter:description" content="Documentation for MAGE.jl."/><meta property="og:url" content="https://camilodlt.github.io/MAGE.jl/libraries/image/"/><meta property="twitter:url" content="https://camilodlt.github.io/MAGE.jl/libraries/image/"/><link rel="canonical" href="https://camilodlt.github.io/MAGE.jl/libraries/image/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MAGE.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../sr_example/">Symbolic Regression</a></li></ul></li><li><a class="tocitem" href="../../config/">Model Config</a></li><li><a class="tocitem" href="../">Libraries</a></li><li><a class="tocitem" href="../../mutations/">Mutations</a></li><li><a class="tocitem" href="../../crossover/">Crossover</a></li><li><a class="tocitem" href="../list_generic/">Vector Generic Lib</a></li><li><a class="tocitem" href="../list_number/">Vector Number Lib</a></li><li><a class="tocitem" href="../list_integer/">Vector Integer Lib</a></li><li><a class="tocitem" href="../list_string/">Vector String Lib</a></li><li><a class="tocitem" href="../list_tuple/">Vector Tuple{T,T}</a></li><li><a class="tocitem" href="../element/">Element Lib</a></li><li><a class="tocitem" href="../string/">String Lib</a></li><li><a class="tocitem" href="../number/">Number Lib</a></li><li><a class="tocitem" href="../integer/">Integer Lib</a></li><li class="is-active"><a class="tocitem" href>Image Lib</a><ul class="internal"><li><a class="tocitem" href="#Sliding-Window-Poolers"><span>Sliding Window Poolers</span></a></li><li><a class="tocitem" href="#Block-Pooling-Functions"><span>Block Pooling Functions</span></a></li><li><a class="tocitem" href="#Cross-Pooling-Functions"><span>Cross Pooling Functions</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Image Lib</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Image Lib</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/camilodlt/MAGE.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/camilodlt/MAGE.jl/blob/main/docs/src/libraries/image.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><ul><li><a href="#Image-Lib">Image Lib</a></li><li class="no-marker"><ul><li><a href="#Sliding-Window-Poolers">Sliding Window Poolers</a></li><li><a href="#Block-Pooling-Functions">Block Pooling Functions</a></li><li><a href="#Cross-Pooling-Functions">Cross Pooling Functions</a></li></ul></li></ul><h1 id="Image-Lib"><a class="docs-heading-anchor" href="#Image-Lib">Image Lib</a><a id="Image-Lib-1"></a><a class="docs-heading-anchor-permalink" href="#Image-Lib" title="Permalink"></a></h1><h2 id="Sliding-Window-Poolers"><a class="docs-heading-anchor" href="#Sliding-Window-Poolers">Sliding Window Poolers</a><a id="Sliding-Window-Poolers-1"></a><a class="docs-heading-anchor-permalink" href="#Sliding-Window-Poolers" title="Permalink"></a></h2><p>In this set of bundles we currently find:</p><ul><li><code>meanpool</code></li><li><code>maxpool</code></li><li><code>minpool</code></li><li><code>stdpool</code></li><li><code>medianpool</code></li><li><code>uniquecountpool</code></li><li><code>argmaxcountpool</code></li><li><code>argmincountpool</code></li><li><code>iqrpool</code></li></ul><p>These functions use full sliding <code>k × k</code> windows with no padding. Only windows that fully fit in the image are reduced, using the provided <code>stride</code>, and the reduced image is then resized back to the original size with nearest-neighbor sampling.</p><p>The sliding-window poolers are exposed through:</p><ul><li><code>bundle_image2DIntensity_pooler_factory</code></li><li><code>bundle_image2DBinary_pooler_factory</code></li><li><code>bundle_image2DSegment_pooler_factory</code></li></ul><pre><code class="language-julia hljs">using UTCGP
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Image Lib · MAGE.jl</title><meta name="title" content="Image Lib · MAGE.jl"/><meta property="og:title" content="Image Lib · MAGE.jl"/><meta property="twitter:title" content="Image Lib · MAGE.jl"/><meta name="description" content="Documentation for MAGE.jl."/><meta property="og:description" content="Documentation for MAGE.jl."/><meta property="twitter:description" content="Documentation for MAGE.jl."/><meta property="og:url" content="https://camilodlt.github.io/MAGE.jl/libraries/image/"/><meta property="twitter:url" content="https://camilodlt.github.io/MAGE.jl/libraries/image/"/><link rel="canonical" href="https://camilodlt.github.io/MAGE.jl/libraries/image/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">MAGE.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../sr_example/">Symbolic Regression</a></li></ul></li><li><a class="tocitem" href="../../config/">Model Config</a></li><li><a class="tocitem" href="../">Libraries</a></li><li><a class="tocitem" href="../../mutations/">Mutations</a></li><li><a class="tocitem" href="../../crossover/">Crossover</a></li><li><a class="tocitem" href="../list_generic/">Vector Generic Lib</a></li><li><a class="tocitem" href="../list_number/">Vector Number Lib</a></li><li><a class="tocitem" href="../list_integer/">Vector Integer Lib</a></li><li><a class="tocitem" href="../list_string/">Vector String Lib</a></li><li><a class="tocitem" href="../list_tuple/">Vector Tuple{T,T}</a></li><li><a class="tocitem" href="../element/">Element Lib</a></li><li><a class="tocitem" href="../string/">String Lib</a></li><li><a class="tocitem" href="../number/">Number Lib</a></li><li><a class="tocitem" href="../integer/">Integer Lib</a></li><li class="is-active"><a class="tocitem" href>Image Lib</a><ul class="internal"><li><a class="tocitem" href="#Orientation-Image-Maps"><span>Orientation Image Maps</span></a></li><li><a class="tocitem" href="#Block-Pooling-Functions"><span>Block Pooling Functions</span></a></li><li><a class="tocitem" href="#Cross-Pooling-Functions"><span>Cross Pooling Functions</span></a></li><li><a class="tocitem" href="#Sliding-Window-Poolers"><span>Sliding Window Poolers</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Image Lib</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Image Lib</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/camilodlt/MAGE.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/camilodlt/MAGE.jl/blob/main/docs/src/libraries/image.md#" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><ul><li><a href="#Image-Lib">Image Lib</a></li><li class="no-marker"><ul><li><a href="#Orientation-Image-Maps">Orientation Image Maps</a></li><li><a href="#Block-Pooling-Functions">Block Pooling Functions</a></li><li><a href="#Cross-Pooling-Functions">Cross Pooling Functions</a></li><li><a href="#Sliding-Window-Poolers">Sliding Window Poolers</a></li></ul></li></ul><h1 id="Image-Lib"><a class="docs-heading-anchor" href="#Image-Lib">Image Lib</a><a id="Image-Lib-1"></a><a class="docs-heading-anchor-permalink" href="#Image-Lib" title="Permalink"></a></h1><h2 id="Orientation-Image-Maps"><a class="docs-heading-anchor" href="#Orientation-Image-Maps">Orientation Image Maps</a><a id="Orientation-Image-Maps-1"></a><a class="docs-heading-anchor-permalink" href="#Orientation-Image-Maps" title="Permalink"></a></h2><p>These orientation maps are exposed through:</p><ul><li><code>bundle_image2DIntensity_orientation_factory</code></li></ul><p>They currently operate on intensity images and use raw Sobel derivatives internally.</p><pre><code class="language-julia hljs">using UTCGP
+using ImageCore: N0f8
 
-img = UTCGP.SImageND(UTCGP.IntensityPixel{Float64}.(rand(8, 8)))
-mean_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:meanpool].fn(typeof(img))
-iqr_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:iqrpool].fn(typeof(img))
+function orientation_vertical_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    img[:, fld(n, 2)+1:end] .= 1.0
+    return img
+end
 
-(typeof(mean_intensity), typeof(iqr_intensity))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(typeof(UTCGP.image_pooler.var&quot;meanpool_image2D_SImage2D{8, 8, IntensityPixel{Float64}, Matrix{IntensityPixel{Float64}}}&quot;), typeof(UTCGP.image_pooler.var&quot;iqrpool_image2D_SImage2D{8, 8, IntensityPixel{Float64}, Matrix{IntensityPixel{Float64}}}&quot;))</code></pre><h3 id="Mean-Pool"><a class="docs-heading-anchor" href="#Mean-Pool">Mean Pool</a><a id="Mean-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Mean-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.meanpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.meanpool_image2D_factory"><code>UTCGP.image_pooler.meanpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">meanpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create mean sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L148-L155">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a id="Intensity-image,-k-3,-stride-1-1"></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:meanpool](img_intensity, 3, 1)</code></pre><div id="meanpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("meanpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/meanpool_intensity_k3_s1_before.png" alt="Before meanpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/meanpool_intensity_k3_s1_after.png" alt="After meanpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a id="Intensity-image,-k-5,-stride-2-1"></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:meanpool](img_intensity, 5, 2)</code></pre><div id="meanpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("meanpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/meanpool_intensity_k5_s2_before.png" alt="Before meanpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/meanpool_intensity_k5_s2_after.png" alt="After meanpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a id="Binary-image,-k-5,-stride-2-1"></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:meanpool](img_binary, 5, 2)</code></pre><div id="meanpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("meanpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/meanpool_binary_k5_s2_before.png" alt="Before meanpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/meanpool_binary_k5_s2_after.png" alt="After meanpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-1"></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:meanpool](img_segment, 5, 2)</code></pre><div id="meanpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("meanpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/meanpool_segment_k5_s2_before.png" alt="Before meanpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/meanpool_segment_k5_s2_after.png" alt="After meanpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="Max-Pool"><a class="docs-heading-anchor" href="#Max-Pool">Max Pool</a><a id="Max-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Max-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.maxpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.maxpool_image2D_factory"><code>UTCGP.image_pooler.maxpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">maxpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create max sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L159-L166">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-2">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:maxpool](img_intensity, 3, 1)</code></pre><div id="maxpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/maxpool_intensity_k3_s1_before.png" alt="Before maxpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/maxpool_intensity_k3_s1_after.png" alt="After maxpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-2">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:maxpool](img_intensity, 5, 2)</code></pre><div id="maxpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/maxpool_intensity_k5_s2_before.png" alt="Before maxpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/maxpool_intensity_k5_s2_after.png" alt="After maxpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-2"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-2">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:maxpool](img_binary, 5, 2)</code></pre><div id="maxpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/maxpool_binary_k5_s2_before.png" alt="Before maxpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/maxpool_binary_k5_s2_after.png" alt="After maxpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-2"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-2">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:maxpool](img_segment, 5, 2)</code></pre><div id="maxpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("maxpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/maxpool_segment_k5_s2_before.png" alt="Before maxpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/maxpool_segment_k5_s2_after.png" alt="After maxpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="Min-Pool"><a class="docs-heading-anchor" href="#Min-Pool">Min Pool</a><a id="Min-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Min-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.minpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.minpool_image2D_factory"><code>UTCGP.image_pooler.minpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">minpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create min sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L170-L177">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-3"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-3">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:minpool](img_intensity, 3, 1)</code></pre><div id="minpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/minpool_intensity_k3_s1_before.png" alt="Before minpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/minpool_intensity_k3_s1_after.png" alt="After minpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-3"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-3">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:minpool](img_intensity, 5, 2)</code></pre><div id="minpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/minpool_intensity_k5_s2_before.png" alt="Before minpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/minpool_intensity_k5_s2_after.png" alt="After minpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-3"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-3">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:minpool](img_binary, 5, 2)</code></pre><div id="minpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/minpool_binary_k5_s2_before.png" alt="Before minpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/minpool_binary_k5_s2_after.png" alt="After minpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-3"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-3">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:minpool](img_segment, 5, 2)</code></pre><div id="minpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("minpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/minpool_segment_k5_s2_before.png" alt="Before minpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/minpool_segment_k5_s2_after.png" alt="After minpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="Std-Pool"><a class="docs-heading-anchor" href="#Std-Pool">Std Pool</a><a id="Std-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Std-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.stdpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.stdpool_image2D_factory"><code>UTCGP.image_pooler.stdpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">stdpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create std sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L181-L188">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-4"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-4">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:stdpool](img_intensity, 3, 1)</code></pre><div id="stdpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("stdpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/stdpool_intensity_k3_s1_before.png" alt="Before stdpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/stdpool_intensity_k3_s1_after.png" alt="After stdpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-4"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-4">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:stdpool](img_intensity, 5, 2)</code></pre><div id="stdpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("stdpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/stdpool_intensity_k5_s2_before.png" alt="Before stdpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/stdpool_intensity_k5_s2_after.png" alt="After stdpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-4"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-4">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:stdpool](img_binary, 5, 2)</code></pre><div id="stdpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("stdpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/stdpool_binary_k5_s2_before.png" alt="Before stdpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/stdpool_binary_k5_s2_after.png" alt="After stdpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-4"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-4">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:stdpool](img_segment, 5, 2)</code></pre><div id="stdpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("stdpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/stdpool_segment_k5_s2_before.png" alt="Before stdpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/stdpool_segment_k5_s2_after.png" alt="After stdpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="Median-Pool"><a class="docs-heading-anchor" href="#Median-Pool">Median Pool</a><a id="Median-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Median-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.medianpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.medianpool_image2D_factory"><code>UTCGP.image_pooler.medianpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">medianpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create median sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L192-L199">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-5"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-5">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:medianpool](img_intensity, 3, 1)</code></pre><div id="medianpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("medianpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/medianpool_intensity_k3_s1_before.png" alt="Before medianpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/medianpool_intensity_k3_s1_after.png" alt="After medianpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-5"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-5">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:medianpool](img_intensity, 5, 2)</code></pre><div id="medianpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("medianpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/medianpool_intensity_k5_s2_before.png" alt="Before medianpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/medianpool_intensity_k5_s2_after.png" alt="After medianpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-5"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-5">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:medianpool](img_binary, 5, 2)</code></pre><div id="medianpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("medianpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/medianpool_binary_k5_s2_before.png" alt="Before medianpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/medianpool_binary_k5_s2_after.png" alt="After medianpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-5"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-5">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:medianpool](img_segment, 5, 2)</code></pre><div id="medianpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("medianpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/medianpool_segment_k5_s2_before.png" alt="Before medianpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/medianpool_segment_k5_s2_after.png" alt="After medianpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="Unique-Count-Pool"><a class="docs-heading-anchor" href="#Unique-Count-Pool">Unique Count Pool</a><a id="Unique-Count-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Unique-Count-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.uniquecountpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.uniquecountpool_image2D_factory"><code>UTCGP.image_pooler.uniquecountpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">uniquecountpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create unique-count sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L203-L210">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-6"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-6">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:uniquecountpool](img_intensity, 3, 1)</code></pre><div id="uniquecountpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("uniquecountpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k3_s1_before.png" alt="Before uniquecountpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k3_s1_after.png" alt="After uniquecountpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-6"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-6">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:uniquecountpool](img_intensity, 5, 2)</code></pre><div id="uniquecountpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("uniquecountpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k5_s2_before.png" alt="Before uniquecountpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k5_s2_after.png" alt="After uniquecountpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-6"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-6">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:uniquecountpool](img_binary, 5, 2)</code></pre><div id="uniquecountpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("uniquecountpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_binary_k5_s2_before.png" alt="Before uniquecountpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/uniquecountpool_binary_k5_s2_after.png" alt="After uniquecountpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-6"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-6">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:uniquecountpool](img_segment, 5, 2)</code></pre><div id="uniquecountpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("uniquecountpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_segment_k5_s2_before.png" alt="Before uniquecountpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/uniquecountpool_segment_k5_s2_after.png" alt="After uniquecountpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="Argmax-Count-Pool"><a class="docs-heading-anchor" href="#Argmax-Count-Pool">Argmax Count Pool</a><a id="Argmax-Count-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Argmax-Count-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.argmaxcountpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.argmaxcountpool_image2D_factory"><code>UTCGP.image_pooler.argmaxcountpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">argmaxcountpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create argmax-count sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L214-L221">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-7"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-7">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmaxcountpool](img_intensity, 3, 1)</code></pre><div id="argmaxcountpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmaxcountpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k3_s1_before.png" alt="Before argmaxcountpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k3_s1_after.png" alt="After argmaxcountpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-7"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-7">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmaxcountpool](img_intensity, 5, 2)</code></pre><div id="argmaxcountpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmaxcountpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k5_s2_before.png" alt="Before argmaxcountpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k5_s2_after.png" alt="After argmaxcountpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-7"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-7">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:argmaxcountpool](img_binary, 5, 2)</code></pre><div id="argmaxcountpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmaxcountpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_binary_k5_s2_before.png" alt="Before argmaxcountpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_binary_k5_s2_after.png" alt="After argmaxcountpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-7"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-7">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:argmaxcountpool](img_segment, 5, 2)</code></pre><div id="argmaxcountpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmaxcountpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_segment_k5_s2_before.png" alt="Before argmaxcountpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_segment_k5_s2_after.png" alt="After argmaxcountpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="Argmin-Count-Pool"><a class="docs-heading-anchor" href="#Argmin-Count-Pool">Argmin Count Pool</a><a id="Argmin-Count-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Argmin-Count-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.argmincountpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.argmincountpool_image2D_factory"><code>UTCGP.image_pooler.argmincountpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">argmincountpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create argmin-count sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L225-L232">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-8"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-8">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmincountpool](img_intensity, 3, 1)</code></pre><div id="argmincountpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmincountpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k3_s1_before.png" alt="Before argmincountpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k3_s1_after.png" alt="After argmincountpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-8"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-8">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmincountpool](img_intensity, 5, 2)</code></pre><div id="argmincountpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmincountpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k5_s2_before.png" alt="Before argmincountpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k5_s2_after.png" alt="After argmincountpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-8"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-8">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:argmincountpool](img_binary, 5, 2)</code></pre><div id="argmincountpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmincountpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmincountpool_binary_k5_s2_before.png" alt="Before argmincountpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmincountpool_binary_k5_s2_after.png" alt="After argmincountpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-8"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-8">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:argmincountpool](img_segment, 5, 2)</code></pre><div id="argmincountpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("argmincountpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/argmincountpool_segment_k5_s2_before.png" alt="Before argmincountpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/argmincountpool_segment_k5_s2_after.png" alt="After argmincountpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h3 id="IQR-Pool"><a class="docs-heading-anchor" href="#IQR-Pool">IQR Pool</a><a id="IQR-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#IQR-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.iqrpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.iqrpool_image2D_factory"><code>UTCGP.image_pooler.iqrpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">iqrpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create interquartile-range sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pooler.jl#L236-L243">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-9"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-9">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:iqrpool](img_intensity, 3, 1)</code></pre><div id="iqrpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("iqrpool-intensity-k3-s1").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k3_s1_before.png" alt="Before iqrpool intensity k=3 stride=1" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k3_s1_after.png" alt="After iqrpool intensity k=3 stride=1" style="width:50%;" />`;
-})();
-</script><h4 id="Intensity-image,-k-5,-stride-2-9"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-9">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:iqrpool](img_intensity, 5, 2)</code></pre><div id="iqrpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("iqrpool-intensity-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k5_s2_before.png" alt="Before iqrpool intensity k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k5_s2_after.png" alt="After iqrpool intensity k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Binary-image,-k-5,-stride-2-9"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-9">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:iqrpool](img_binary, 5, 2)</code></pre><div id="iqrpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("iqrpool-binary-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/iqrpool_binary_k5_s2_before.png" alt="Before iqrpool binary k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/iqrpool_binary_k5_s2_after.png" alt="After iqrpool binary k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-9"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-9">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:iqrpool](img_segment, 5, 2)</code></pre><div id="iqrpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
-<script>
-(() => {
-  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
-  document.getElementById("iqrpool-segment-k5-s2").innerHTML =
-    `<img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_before.png" alt="Before iqrpool segment k=5 stride=2" style="width:50%;" />
-     <img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_after.png" alt="After iqrpool segment k=5 stride=2" style="width:50%;" />`;
-})();
-</script><h2 id="Block-Pooling-Functions"><a class="docs-heading-anchor" href="#Block-Pooling-Functions">Block Pooling Functions</a><a id="Block-Pooling-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Block-Pooling-Functions" title="Permalink"></a></h2><p>In this set of bundles we currently find:</p><ul><li><code>avgpool_blocks</code></li><li><code>maxpool_blocks</code></li><li><code>minpool_blocks</code></li><li><code>avgpool_cross_blocks</code></li><li><code>maxpool_cross_blocks</code></li><li><code>minpool_cross_blocks</code></li></ul><p>The pooling functions are exposed through the typed image pooling bundles:</p><ul><li><code>bundle_image2DIntensity_pool_factory</code></li><li><code>bundle_image2DBinary_pool_factory</code></li><li><code>bundle_image2DSegment_pool_factory</code></li></ul><p>These functions use non-overlapping block windows scanned from left to right and top to bottom. Each block is reduced to a single value, and that value is written back over the covered block. There is no padding; the last block on the right or bottom may be partial if the image size is not divisible by <code>k</code>.</p><p>To obtain a callable function, first select the function from the bundle, then specialize it on the concrete image type.</p><pre><code class="language-julia hljs">using UTCGP
+function orientation_horizontal_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    img[fld(n, 2)+1:end, :] .= 1.0
+    return img
+end
 
-img = UTCGP.SImageND(UTCGP.IntensityPixel{Float64}.(rand(4, 4)))
+function orientation_diag45_step_array(n::Int = 30)
+    img = zeros(Float64, n, n)
+    for i in 1:n, j in 1:n
+        img[i, j] = j &gt;= i ? 1.0 : 0.0
+    end
+    return img
+end
+
+orientation_intensity_image(arr::AbstractMatrix{&lt;:Real}) =
+    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
+
+img = orientation_intensity_image(orientation_vertical_step_array())
+grad_mag = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
+grad_ori = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
+
+(typeof(grad_mag), typeof(grad_ori))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(typeof(UTCGP.image2D_orientation.var&quot;grad_magnitude_image2D_SImage2D{30, 30, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}&quot;), typeof(UTCGP.image2D_orientation.var&quot;grad_orientation_image2D_SImage2D{30, 30, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}&quot;))</code></pre><h3 id="grad_magnitude"><a class="docs-heading-anchor" href="#grad_magnitude"><code>grad_magnitude</code></a><a id="grad_magnitude-1"></a><a class="docs-heading-anchor-permalink" href="#grad_magnitude" title="Permalink"></a></h3><p>Gradient magnitude computed from Sobel x/y derivatives.</p><pre><code class="language-julia hljs">img = asset_img
+fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
+fn(img)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">192×256 SImage2D{192, 256, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}:
+ IntensityPixel{N0f8}(0.031)  …  IntensityPixel{N0f8}(0.051)
+ IntensityPixel{N0f8}(0.059)     IntensityPixel{N0f8}(0.039)
+  IntensityPixel{N0f8}(0.09)     IntensityPixel{N0f8}(0.024)
+ IntensityPixel{N0f8}(0.129)     IntensityPixel{N0f8}(0.024)
+ IntensityPixel{N0f8}(0.243)     IntensityPixel{N0f8}(0.106)
+ IntensityPixel{N0f8}(0.161)  …   IntensityPixel{N0f8}(0.29)
+ IntensityPixel{N0f8}(0.027)       IntensityPixel{N0f8}(0.4)
+  IntensityPixel{N0f8}(0.02)     IntensityPixel{N0f8}(0.043)
+ IntensityPixel{N0f8}(0.027)     IntensityPixel{N0f8}(0.008)
+ IntensityPixel{N0f8}(0.039)     IntensityPixel{N0f8}(0.004)
+                           ⋮  ⋱                            ⋮
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.043)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.012)
+   IntensityPixel{N0f8}(0.0)  …  IntensityPixel{N0f8}(0.004)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.004)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.004)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.004)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.004)
+   IntensityPixel{N0f8}(0.0)  …  IntensityPixel{N0f8}(0.008)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.008)</code></pre><div style="display:flex; gap:1rem; align-items:flex-start;">
+<img src="../assets/fns/orientation/grad_magnitude_original.png" alt="grad_magnitude original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+<img src="../assets/fns/orientation/grad_magnitude_output.png" alt="grad_magnitude output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+</div><h3 id="grad_orientation"><a class="docs-heading-anchor" href="#grad_orientation"><code>grad_orientation</code></a><a id="grad_orientation-1"></a><a class="docs-heading-anchor-permalink" href="#grad_orientation" title="Permalink"></a></h3><p>Gradient orientation map encoded in <code>[0, 1]</code> over <code>[0, π]</code>.</p><pre><code class="language-julia hljs">img = asset_img
+fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
+fn(img)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">192×256 SImage2D{192, 256, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}:
+ IntensityPixel{N0f8}(0.604)  …  IntensityPixel{N0f8}(0.722)
+ IntensityPixel{N0f8}(0.635)     IntensityPixel{N0f8}(0.475)
+ IntensityPixel{N0f8}(0.682)     IntensityPixel{N0f8}(0.118)
+ IntensityPixel{N0f8}(0.643)     IntensityPixel{N0f8}(0.427)
+  IntensityPixel{N0f8}(0.58)     IntensityPixel{N0f8}(0.643)
+ IntensityPixel{N0f8}(0.612)  …  IntensityPixel{N0f8}(0.424)
+ IntensityPixel{N0f8}(0.275)     IntensityPixel{N0f8}(0.486)
+ IntensityPixel{N0f8}(0.396)     IntensityPixel{N0f8}(0.549)
+ IntensityPixel{N0f8}(0.557)     IntensityPixel{N0f8}(0.353)
+ IntensityPixel{N0f8}(0.153)     IntensityPixel{N0f8}(0.251)
+                           ⋮  ⋱                            ⋮
+ IntensityPixel{N0f8}(0.157)     IntensityPixel{N0f8}(0.549)
+ IntensityPixel{N0f8}(0.157)     IntensityPixel{N0f8}(0.502)
+ IntensityPixel{N0f8}(0.157)  …    IntensityPixel{N0f8}(1.0)
+ IntensityPixel{N0f8}(0.157)     IntensityPixel{N0f8}(0.604)
+ IntensityPixel{N0f8}(0.157)     IntensityPixel{N0f8}(0.749)
+ IntensityPixel{N0f8}(0.157)     IntensityPixel{N0f8}(0.251)
+ IntensityPixel{N0f8}(0.157)     IntensityPixel{N0f8}(0.749)
+ IntensityPixel{N0f8}(0.157)  …    IntensityPixel{N0f8}(1.0)
+ IntensityPixel{N0f8}(0.157)       IntensityPixel{N0f8}(1.0)</code></pre><div style="display:flex; gap:1rem; align-items:flex-start;">
+<img src="../assets/fns/orientation/grad_orientation_original.png" alt="grad_orientation original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+<img src="../assets/fns/orientation/grad_orientation_output.png" alt="grad_orientation output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+</div><h3 id="orientation_select"><a class="docs-heading-anchor" href="#orientation_select"><code>orientation_select</code></a><a id="orientation_select-1"></a><a class="docs-heading-anchor-permalink" href="#orientation_select" title="Permalink"></a></h3><p>Keep only gradient responses whose orientation is near a target angle.</p><pre><code class="language-julia hljs">img = asset_img
+fn = UTCGP.bundle_image2DIntensity_orientation_factory[:orientation_select].fn(typeof(img))
+fn(img, 0.25, 0.1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">192×256 SImage2D{192, 256, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}:
+   IntensityPixel{N0f8}(0.0)  …    IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)  …    IntensityPixel{N0f8}(0.0)
+ IntensityPixel{N0f8}(0.043)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.004)
+                           ⋮  ⋱                            ⋮
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)  …    IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)     IntensityPixel{N0f8}(0.004)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)  …    IntensityPixel{N0f8}(0.0)
+   IntensityPixel{N0f8}(0.0)       IntensityPixel{N0f8}(0.0)</code></pre><div style="display:flex; gap:1rem; align-items:flex-start;">
+<img src="../assets/fns/orientation/orientation_select_original.png" alt="orientation_select original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+<img src="../assets/fns/orientation/orientation_select_output.png" alt="orientation_select output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+</div><h2 id="Block-Pooling-Functions"><a class="docs-heading-anchor" href="#Block-Pooling-Functions">Block Pooling Functions</a><a id="Block-Pooling-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Block-Pooling-Functions" title="Permalink"></a></h2><p>In this set of bundles we currently find:</p><ul><li><code>avgpool_blocks</code></li><li><code>maxpool_blocks</code></li><li><code>minpool_blocks</code></li><li><code>avgpool_cross_blocks</code></li><li><code>maxpool_cross_blocks</code></li><li><code>minpool_cross_blocks</code></li></ul><p>The pooling functions are exposed through the typed image pooling bundles:</p><ul><li><code>bundle_image2DIntensity_pool_factory</code></li><li><code>bundle_image2DBinary_pool_factory</code></li><li><code>bundle_image2DSegment_pool_factory</code></li></ul><p>These functions use non-overlapping block windows scanned from left to right and top to bottom. Each block is reduced to a single value, and that value is written back over the covered block. There is no padding; the last block on the right or bottom may be partial if the image size is not divisible by <code>k</code>.</p><p>To obtain a callable function, first select the function from the bundle, then specialize it on the concrete image type.</p><pre><code class="language-julia hljs">using UTCGP
+using ImageCore: N0f8
+
+img = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(rand(4, 4)))
 avg_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img))
 max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img))
 
-(typeof(avg_intensity), typeof(max_intensity))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(typeof(UTCGP.image_pool.var&quot;avgpool_blocks_image2D_SImage2D{4, 4, IntensityPixel{Float64}, Matrix{IntensityPixel{Float64}}}&quot;), typeof(UTCGP.image_pool.var&quot;maxpool_blocks_image2D_SImage2D{4, 4, IntensityPixel{Float64}, Matrix{IntensityPixel{Float64}}}&quot;))</code></pre><h3 id="Avg-Pool"><a class="docs-heading-anchor" href="#Avg-Pool">Avg Pool</a><a id="Avg-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Avg-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.avgpool_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.avgpool_blocks_image2D_factory"><code>UTCGP.image_pool.avgpool_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">avgpool_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create average-pooling methods specialized on the given image type.</p><p>The output preserves the original image size by average-pooling block windows and writing the pooled value back over each source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pool.jl#L100-L107">source</a></section></details></article><h4 id="Intensity-image,-k-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-2">Intensity image, <code>k = 2</code></a><a id="Intensity-image,-k-2-1"></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = avg_intensity(img_intensity, 2)</code></pre><div id="avgpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+(typeof(avg_intensity), typeof(max_intensity))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(typeof(UTCGP.image_pool.var&quot;avgpool_blocks_image2D_SImage2D{4, 4, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}&quot;), typeof(UTCGP.image_pool.var&quot;maxpool_blocks_image2D_SImage2D{4, 4, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}&quot;))</code></pre><h3 id="Avg-Pool"><a class="docs-heading-anchor" href="#Avg-Pool">Avg Pool</a><a id="Avg-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Avg-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.avgpool_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.avgpool_blocks_image2D_factory"><code>UTCGP.image_pool.avgpool_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">avgpool_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create average-pooling methods specialized on the given image type.</p><p>The output preserves the original image size by average-pooling block windows and writing the pooled value back over each source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pool.jl#L100-L107">source</a></section></details></article><h4 id="Intensity-image,-k-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-2">Intensity image, <code>k = 2</code></a><a id="Intensity-image,-k-2-1"></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = avg_intensity(img_intensity, 2)</code></pre><div id="avgpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
 <script>
 (() => {
   const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
@@ -331,7 +143,7 @@ max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(t
     `<img src="${base}/assets/fns/image_pool/avgpool_blocks_segment_k5_before.png" alt="Before avgpool_blocks segment k=5" style="width:50%;" />
      <img src="${base}/assets/fns/image_pool/avgpool_blocks_segment_k5_after.png" alt="After avgpool_blocks segment k=5" style="width:50%;" />`;
 })();
-</script><h3 id="Max-Pool-2"><a class="docs-heading-anchor" href="#Max-Pool-2">Max Pool</a><a class="docs-heading-anchor-permalink" href="#Max-Pool-2" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.maxpool_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.maxpool_blocks_image2D_factory"><code>UTCGP.image_pool.maxpool_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">maxpool_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create max-pooling methods specialized on the given image type.</p><p>The output preserves the original image size by max-pooling block windows and writing the pooled value back over each source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pool.jl#L154-L161">source</a></section></details></article><h4 id="Intensity-image,-k-2-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-2-2">Intensity image, <code>k = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = max_intensity(img_intensity, 2)</code></pre><div id="maxpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+</script><h3 id="Max-Pool"><a class="docs-heading-anchor" href="#Max-Pool">Max Pool</a><a id="Max-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Max-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.maxpool_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.maxpool_blocks_image2D_factory"><code>UTCGP.image_pool.maxpool_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">maxpool_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create max-pooling methods specialized on the given image type.</p><p>The output preserves the original image size by max-pooling block windows and writing the pooled value back over each source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pool.jl#L154-L161">source</a></section></details></article><h4 id="Intensity-image,-k-2-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-2-2">Intensity image, <code>k = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = max_intensity(img_intensity, 2)</code></pre><div id="maxpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
 <script>
 (() => {
   const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
@@ -363,7 +175,7 @@ max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(t
     `<img src="${base}/assets/fns/image_pool/maxpool_blocks_segment_k5_before.png" alt="Before maxpool_blocks segment k=5" style="width:50%;" />
      <img src="${base}/assets/fns/image_pool/maxpool_blocks_segment_k5_after.png" alt="After maxpool_blocks segment k=5" style="width:50%;" />`;
 })();
-</script><h3 id="Min-Pool-2"><a class="docs-heading-anchor" href="#Min-Pool-2">Min Pool</a><a class="docs-heading-anchor-permalink" href="#Min-Pool-2" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.minpool_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.minpool_blocks_image2D_factory"><code>UTCGP.image_pool.minpool_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">minpool_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create min-pooling methods specialized on the given image type.</p><p>The output preserves the original image size by min-pooling block windows and writing the pooled value back over each source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pool.jl#L208-L215">source</a></section></details></article><h4 id="Intensity-image,-k-2-3"><a class="docs-heading-anchor" href="#Intensity-image,-k-2-3">Intensity image, <code>k = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = min_intensity(img_intensity, 2)</code></pre><div id="minpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+</script><h3 id="Min-Pool"><a class="docs-heading-anchor" href="#Min-Pool">Min Pool</a><a id="Min-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Min-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.minpool_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.minpool_blocks_image2D_factory"><code>UTCGP.image_pool.minpool_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">minpool_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create min-pooling methods specialized on the given image type.</p><p>The output preserves the original image size by min-pooling block windows and writing the pooled value back over each source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pool.jl#L208-L215">source</a></section></details></article><h4 id="Intensity-image,-k-2-3"><a class="docs-heading-anchor" href="#Intensity-image,-k-2-3">Intensity image, <code>k = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = min_intensity(img_intensity, 2)</code></pre><div id="minpool-intensity-k2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
 <script>
 (() => {
   const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
@@ -395,7 +207,7 @@ max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(t
     `<img src="${base}/assets/fns/image_pool/minpool_blocks_segment_k5_before.png" alt="Before minpool_blocks segment k=5" style="width:50%;" />
      <img src="${base}/assets/fns/image_pool/minpool_blocks_segment_k5_after.png" alt="After minpool_blocks segment k=5" style="width:50%;" />`;
 })();
-</script><h2 id="Cross-Pooling-Functions"><a class="docs-heading-anchor" href="#Cross-Pooling-Functions">Cross Pooling Functions</a><a id="Cross-Pooling-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Cross-Pooling-Functions" title="Permalink"></a></h2><h3 id="Avg-Cross-Pool"><a class="docs-heading-anchor" href="#Avg-Cross-Pool">Avg Cross Pool</a><a id="Avg-Cross-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Avg-Cross-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.avgpool_cross_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.avgpool_cross_blocks_image2D_factory"><code>UTCGP.image_pool.avgpool_cross_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">avgpool_cross_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create cross-shaped average-pooling methods specialized on the given image type.</p><p>Within each block window, only the center row and center column are averaged. The pooled value is then written back over the full source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pool.jl#L127-L134">source</a></section></details></article><h4 id="Custom-10x10-intensity-image,-k-3"><a class="docs-heading-anchor" href="#Custom-10x10-intensity-image,-k-3">Custom 10x10 intensity image, <code>k = 3</code></a><a id="Custom-10x10-intensity-image,-k-3-1"></a><a class="docs-heading-anchor-permalink" href="#Custom-10x10-intensity-image,-k-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = avg_cross_intensity(img_cross_demo, 3)</code></pre><div id="avgpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+</script><h2 id="Cross-Pooling-Functions"><a class="docs-heading-anchor" href="#Cross-Pooling-Functions">Cross Pooling Functions</a><a id="Cross-Pooling-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Cross-Pooling-Functions" title="Permalink"></a></h2><h3 id="Avg-Cross-Pool"><a class="docs-heading-anchor" href="#Avg-Cross-Pool">Avg Cross Pool</a><a id="Avg-Cross-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Avg-Cross-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.avgpool_cross_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.avgpool_cross_blocks_image2D_factory"><code>UTCGP.image_pool.avgpool_cross_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">avgpool_cross_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create cross-shaped average-pooling methods specialized on the given image type.</p><p>Within each block window, only the center row and center column are averaged. The pooled value is then written back over the full source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pool.jl#L127-L134">source</a></section></details></article><h4 id="Custom-10x10-intensity-image,-k-3"><a class="docs-heading-anchor" href="#Custom-10x10-intensity-image,-k-3">Custom 10x10 intensity image, <code>k = 3</code></a><a id="Custom-10x10-intensity-image,-k-3-1"></a><a class="docs-heading-anchor-permalink" href="#Custom-10x10-intensity-image,-k-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = avg_cross_intensity(img_cross_demo, 3)</code></pre><div id="avgpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
 <script>
 (() => {
   const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
@@ -427,7 +239,7 @@ max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(t
     `<img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_segment_k10_before.png" alt="Before avgpool_cross_blocks segment k=10" style="width:50%;" />
      <img src="${base}/assets/fns/image_pool/avgpool_cross_blocks_segment_k10_after.png" alt="After avgpool_cross_blocks segment k=10" style="width:50%;" />`;
 })();
-</script><h3 id="Max-Cross-Pool"><a class="docs-heading-anchor" href="#Max-Cross-Pool">Max Cross Pool</a><a id="Max-Cross-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Max-Cross-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.maxpool_cross_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.maxpool_cross_blocks_image2D_factory"><code>UTCGP.image_pool.maxpool_cross_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">maxpool_cross_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create cross-shaped max-pooling methods specialized on the given image type.</p><p>Within each block window, only the center row and center column are reduced. The pooled value is then written back over the full source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pool.jl#L181-L188">source</a></section></details></article><h4 id="Custom-10x10-intensity-image,-k-3-2"><a class="docs-heading-anchor" href="#Custom-10x10-intensity-image,-k-3-2">Custom 10x10 intensity image, <code>k = 3</code></a><a class="docs-heading-anchor-permalink" href="#Custom-10x10-intensity-image,-k-3-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = max_cross_intensity(img_cross_demo, 3)</code></pre><div id="maxpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+</script><h3 id="Max-Cross-Pool"><a class="docs-heading-anchor" href="#Max-Cross-Pool">Max Cross Pool</a><a id="Max-Cross-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Max-Cross-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.maxpool_cross_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.maxpool_cross_blocks_image2D_factory"><code>UTCGP.image_pool.maxpool_cross_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">maxpool_cross_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create cross-shaped max-pooling methods specialized on the given image type.</p><p>Within each block window, only the center row and center column are reduced. The pooled value is then written back over the full source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pool.jl#L181-L188">source</a></section></details></article><h4 id="Custom-10x10-intensity-image,-k-3-2"><a class="docs-heading-anchor" href="#Custom-10x10-intensity-image,-k-3-2">Custom 10x10 intensity image, <code>k = 3</code></a><a class="docs-heading-anchor-permalink" href="#Custom-10x10-intensity-image,-k-3-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = max_cross_intensity(img_cross_demo, 3)</code></pre><div id="maxpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
 <script>
 (() => {
   const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
@@ -459,7 +271,7 @@ max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(t
     `<img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_segment_k10_before.png" alt="Before maxpool_cross_blocks segment k=10" style="width:50%;" />
      <img src="${base}/assets/fns/image_pool/maxpool_cross_blocks_segment_k10_after.png" alt="After maxpool_cross_blocks segment k=10" style="width:50%;" />`;
 })();
-</script><h3 id="Min-Cross-Pool"><a class="docs-heading-anchor" href="#Min-Cross-Pool">Min Cross Pool</a><a id="Min-Cross-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Min-Cross-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.minpool_cross_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.minpool_cross_blocks_image2D_factory"><code>UTCGP.image_pool.minpool_cross_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">minpool_cross_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create cross-shaped min-pooling methods specialized on the given image type.</p><p>Within each block window, only the center row and center column are reduced. The pooled value is then written back over the full source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/1924872d0527ea27a3fefbeaf5ff8081c1a9c348/src/libraries/image/image_pool.jl#L235-L242">source</a></section></details></article><h4 id="Custom-10x10-intensity-image,-k-3-3"><a class="docs-heading-anchor" href="#Custom-10x10-intensity-image,-k-3-3">Custom 10x10 intensity image, <code>k = 3</code></a><a class="docs-heading-anchor-permalink" href="#Custom-10x10-intensity-image,-k-3-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = min_cross_intensity(img_cross_demo, 3)</code></pre><div id="minpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+</script><h3 id="Min-Cross-Pool"><a class="docs-heading-anchor" href="#Min-Cross-Pool">Min Cross Pool</a><a id="Min-Cross-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Min-Cross-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pool.minpool_cross_blocks_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pool.minpool_cross_blocks_image2D_factory"><code>UTCGP.image_pool.minpool_cross_blocks_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">minpool_cross_blocks_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create cross-shaped min-pooling methods specialized on the given image type.</p><p>Within each block window, only the center row and center column are reduced. The pooled value is then written back over the full source block.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pool.jl#L235-L242">source</a></section></details></article><h4 id="Custom-10x10-intensity-image,-k-3-3"><a class="docs-heading-anchor" href="#Custom-10x10-intensity-image,-k-3-3">Custom 10x10 intensity image, <code>k = 3</code></a><a class="docs-heading-anchor-permalink" href="#Custom-10x10-intensity-image,-k-3-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = min_cross_intensity(img_cross_demo, 3)</code></pre><div id="minpool-cross-intensity-k3" style="display:flex; gap:1rem; align-items:flex-start;"></div>
 <script>
 (() => {
   const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
@@ -491,4 +303,299 @@ max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(t
     `<img src="${base}/assets/fns/image_pool/minpool_cross_blocks_segment_k10_before.png" alt="Before minpool_cross_blocks segment k=10" style="width:50%;" />
      <img src="${base}/assets/fns/image_pool/minpool_cross_blocks_segment_k10_after.png" alt="After minpool_cross_blocks segment k=10" style="width:50%;" />`;
 })();
-</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../integer/">« Integer Lib</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 14 April 2026 07:55">Tuesday 14 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</script><h2 id="Sliding-Window-Poolers"><a class="docs-heading-anchor" href="#Sliding-Window-Poolers">Sliding Window Poolers</a><a id="Sliding-Window-Poolers-1"></a><a class="docs-heading-anchor-permalink" href="#Sliding-Window-Poolers" title="Permalink"></a></h2><p>In this set of bundles we currently find:</p><ul><li><code>meanpool</code></li><li><code>maxpool</code></li><li><code>minpool</code></li><li><code>stdpool</code></li><li><code>medianpool</code></li><li><code>uniquecountpool</code></li><li><code>argmaxcountpool</code></li><li><code>argmincountpool</code></li><li><code>iqrpool</code></li></ul><p>These functions use full sliding <code>k × k</code> windows with no padding. Only windows that fully fit in the image are reduced, using the provided <code>stride</code>, and the reduced image is then resized back to the original size with nearest-neighbor sampling.</p><p>The sliding-window poolers are exposed through:</p><ul><li><code>bundle_image2DIntensity_pooler_factory</code></li><li><code>bundle_image2DBinary_pooler_factory</code></li><li><code>bundle_image2DSegment_pooler_factory</code></li></ul><pre><code class="language-julia hljs">using UTCGP
+using ImageCore: N0f8
+
+img = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(rand(8, 8)))
+mean_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:meanpool].fn(typeof(img))
+iqr_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:iqrpool].fn(typeof(img))
+
+(typeof(mean_intensity), typeof(iqr_intensity))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(typeof(UTCGP.image_pooler.var&quot;meanpool_image2D_SImage2D{8, 8, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}&quot;), typeof(UTCGP.image_pooler.var&quot;iqrpool_image2D_SImage2D{8, 8, IntensityPixel{FixedPointNumbers.N0f8}, Matrix{IntensityPixel{FixedPointNumbers.N0f8}}}&quot;))</code></pre><h3 id="Mean-Pool"><a class="docs-heading-anchor" href="#Mean-Pool">Mean Pool</a><a id="Mean-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Mean-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.meanpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.meanpool_image2D_factory"><code>UTCGP.image_pooler.meanpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">meanpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create mean sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L148-L155">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a id="Intensity-image,-k-3,-stride-1-1"></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:meanpool](img_intensity, 3, 1)</code></pre><div id="meanpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("meanpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/meanpool_intensity_k3_s1_before.png" alt="Before meanpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/meanpool_intensity_k3_s1_after.png" alt="After meanpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a id="Intensity-image,-k-5,-stride-2-1"></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:meanpool](img_intensity, 5, 2)</code></pre><div id="meanpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("meanpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/meanpool_intensity_k5_s2_before.png" alt="Before meanpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/meanpool_intensity_k5_s2_after.png" alt="After meanpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a id="Binary-image,-k-5,-stride-2-1"></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:meanpool](img_binary, 5, 2)</code></pre><div id="meanpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("meanpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/meanpool_binary_k5_s2_before.png" alt="Before meanpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/meanpool_binary_k5_s2_after.png" alt="After meanpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-1"></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:meanpool](img_segment, 5, 2)</code></pre><div id="meanpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("meanpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/meanpool_segment_k5_s2_before.png" alt="Before meanpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/meanpool_segment_k5_s2_after.png" alt="After meanpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="Max-Pool-2"><a class="docs-heading-anchor" href="#Max-Pool-2">Max Pool</a><a class="docs-heading-anchor-permalink" href="#Max-Pool-2" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.maxpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.maxpool_image2D_factory"><code>UTCGP.image_pooler.maxpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">maxpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create max sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L159-L166">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-2">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:maxpool](img_intensity, 3, 1)</code></pre><div id="maxpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/maxpool_intensity_k3_s1_before.png" alt="Before maxpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/maxpool_intensity_k3_s1_after.png" alt="After maxpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-2"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-2">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:maxpool](img_intensity, 5, 2)</code></pre><div id="maxpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/maxpool_intensity_k5_s2_before.png" alt="Before maxpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/maxpool_intensity_k5_s2_after.png" alt="After maxpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-2"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-2">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:maxpool](img_binary, 5, 2)</code></pre><div id="maxpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/maxpool_binary_k5_s2_before.png" alt="Before maxpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/maxpool_binary_k5_s2_after.png" alt="After maxpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-2"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-2">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:maxpool](img_segment, 5, 2)</code></pre><div id="maxpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("maxpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/maxpool_segment_k5_s2_before.png" alt="Before maxpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/maxpool_segment_k5_s2_after.png" alt="After maxpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="Min-Pool-2"><a class="docs-heading-anchor" href="#Min-Pool-2">Min Pool</a><a class="docs-heading-anchor-permalink" href="#Min-Pool-2" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.minpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.minpool_image2D_factory"><code>UTCGP.image_pooler.minpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">minpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create min sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L170-L177">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-3"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-3">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:minpool](img_intensity, 3, 1)</code></pre><div id="minpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/minpool_intensity_k3_s1_before.png" alt="Before minpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/minpool_intensity_k3_s1_after.png" alt="After minpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-3"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-3">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:minpool](img_intensity, 5, 2)</code></pre><div id="minpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/minpool_intensity_k5_s2_before.png" alt="Before minpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/minpool_intensity_k5_s2_after.png" alt="After minpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-3"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-3">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:minpool](img_binary, 5, 2)</code></pre><div id="minpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/minpool_binary_k5_s2_before.png" alt="Before minpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/minpool_binary_k5_s2_after.png" alt="After minpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-3"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-3">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-3" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:minpool](img_segment, 5, 2)</code></pre><div id="minpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("minpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/minpool_segment_k5_s2_before.png" alt="Before minpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/minpool_segment_k5_s2_after.png" alt="After minpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="Std-Pool"><a class="docs-heading-anchor" href="#Std-Pool">Std Pool</a><a id="Std-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Std-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.stdpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.stdpool_image2D_factory"><code>UTCGP.image_pooler.stdpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">stdpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create std sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L181-L188">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-4"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-4">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:stdpool](img_intensity, 3, 1)</code></pre><div id="stdpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("stdpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/stdpool_intensity_k3_s1_before.png" alt="Before stdpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/stdpool_intensity_k3_s1_after.png" alt="After stdpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-4"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-4">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:stdpool](img_intensity, 5, 2)</code></pre><div id="stdpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("stdpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/stdpool_intensity_k5_s2_before.png" alt="Before stdpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/stdpool_intensity_k5_s2_after.png" alt="After stdpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-4"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-4">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:stdpool](img_binary, 5, 2)</code></pre><div id="stdpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("stdpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/stdpool_binary_k5_s2_before.png" alt="Before stdpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/stdpool_binary_k5_s2_after.png" alt="After stdpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-4"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-4">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-4" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:stdpool](img_segment, 5, 2)</code></pre><div id="stdpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("stdpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/stdpool_segment_k5_s2_before.png" alt="Before stdpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/stdpool_segment_k5_s2_after.png" alt="After stdpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="Median-Pool"><a class="docs-heading-anchor" href="#Median-Pool">Median Pool</a><a id="Median-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Median-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.medianpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.medianpool_image2D_factory"><code>UTCGP.image_pooler.medianpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">medianpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create median sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L192-L199">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-5"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-5">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:medianpool](img_intensity, 3, 1)</code></pre><div id="medianpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("medianpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/medianpool_intensity_k3_s1_before.png" alt="Before medianpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/medianpool_intensity_k3_s1_after.png" alt="After medianpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-5"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-5">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:medianpool](img_intensity, 5, 2)</code></pre><div id="medianpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("medianpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/medianpool_intensity_k5_s2_before.png" alt="Before medianpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/medianpool_intensity_k5_s2_after.png" alt="After medianpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-5"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-5">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:medianpool](img_binary, 5, 2)</code></pre><div id="medianpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("medianpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/medianpool_binary_k5_s2_before.png" alt="Before medianpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/medianpool_binary_k5_s2_after.png" alt="After medianpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-5"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-5">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-5" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:medianpool](img_segment, 5, 2)</code></pre><div id="medianpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("medianpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/medianpool_segment_k5_s2_before.png" alt="Before medianpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/medianpool_segment_k5_s2_after.png" alt="After medianpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="Unique-Count-Pool"><a class="docs-heading-anchor" href="#Unique-Count-Pool">Unique Count Pool</a><a id="Unique-Count-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Unique-Count-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.uniquecountpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.uniquecountpool_image2D_factory"><code>UTCGP.image_pooler.uniquecountpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">uniquecountpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create unique-count sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L203-L210">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-6"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-6">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:uniquecountpool](img_intensity, 3, 1)</code></pre><div id="uniquecountpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("uniquecountpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k3_s1_before.png" alt="Before uniquecountpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k3_s1_after.png" alt="After uniquecountpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-6"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-6">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:uniquecountpool](img_intensity, 5, 2)</code></pre><div id="uniquecountpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("uniquecountpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k5_s2_before.png" alt="Before uniquecountpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/uniquecountpool_intensity_k5_s2_after.png" alt="After uniquecountpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-6"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-6">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:uniquecountpool](img_binary, 5, 2)</code></pre><div id="uniquecountpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("uniquecountpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_binary_k5_s2_before.png" alt="Before uniquecountpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/uniquecountpool_binary_k5_s2_after.png" alt="After uniquecountpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-6"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-6">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-6" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:uniquecountpool](img_segment, 5, 2)</code></pre><div id="uniquecountpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("uniquecountpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/uniquecountpool_segment_k5_s2_before.png" alt="Before uniquecountpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/uniquecountpool_segment_k5_s2_after.png" alt="After uniquecountpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="Argmax-Count-Pool"><a class="docs-heading-anchor" href="#Argmax-Count-Pool">Argmax Count Pool</a><a id="Argmax-Count-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Argmax-Count-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.argmaxcountpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.argmaxcountpool_image2D_factory"><code>UTCGP.image_pooler.argmaxcountpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">argmaxcountpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create argmax-count sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L214-L221">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-7"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-7">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmaxcountpool](img_intensity, 3, 1)</code></pre><div id="argmaxcountpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmaxcountpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k3_s1_before.png" alt="Before argmaxcountpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k3_s1_after.png" alt="After argmaxcountpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-7"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-7">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmaxcountpool](img_intensity, 5, 2)</code></pre><div id="argmaxcountpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmaxcountpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k5_s2_before.png" alt="Before argmaxcountpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_intensity_k5_s2_after.png" alt="After argmaxcountpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-7"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-7">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:argmaxcountpool](img_binary, 5, 2)</code></pre><div id="argmaxcountpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmaxcountpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_binary_k5_s2_before.png" alt="Before argmaxcountpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_binary_k5_s2_after.png" alt="After argmaxcountpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-7"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-7">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-7" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:argmaxcountpool](img_segment, 5, 2)</code></pre><div id="argmaxcountpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmaxcountpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmaxcountpool_segment_k5_s2_before.png" alt="Before argmaxcountpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmaxcountpool_segment_k5_s2_after.png" alt="After argmaxcountpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="Argmin-Count-Pool"><a class="docs-heading-anchor" href="#Argmin-Count-Pool">Argmin Count Pool</a><a id="Argmin-Count-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#Argmin-Count-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.argmincountpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.argmincountpool_image2D_factory"><code>UTCGP.image_pooler.argmincountpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">argmincountpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create argmin-count sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L225-L232">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-8"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-8">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmincountpool](img_intensity, 3, 1)</code></pre><div id="argmincountpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmincountpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k3_s1_before.png" alt="Before argmincountpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k3_s1_after.png" alt="After argmincountpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-8"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-8">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:argmincountpool](img_intensity, 5, 2)</code></pre><div id="argmincountpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmincountpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k5_s2_before.png" alt="Before argmincountpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmincountpool_intensity_k5_s2_after.png" alt="After argmincountpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-8"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-8">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:argmincountpool](img_binary, 5, 2)</code></pre><div id="argmincountpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmincountpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmincountpool_binary_k5_s2_before.png" alt="Before argmincountpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmincountpool_binary_k5_s2_after.png" alt="After argmincountpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-8"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-8">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-8" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:argmincountpool](img_segment, 5, 2)</code></pre><div id="argmincountpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("argmincountpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/argmincountpool_segment_k5_s2_before.png" alt="Before argmincountpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/argmincountpool_segment_k5_s2_after.png" alt="After argmincountpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h3 id="IQR-Pool"><a class="docs-heading-anchor" href="#IQR-Pool">IQR Pool</a><a id="IQR-Pool-1"></a><a class="docs-heading-anchor-permalink" href="#IQR-Pool" title="Permalink"></a></h3><article><details class="docstring" open="true"><summary id="UTCGP.image_pooler.iqrpool_image2D_factory"><a class="docstring-binding" href="#UTCGP.image_pooler.iqrpool_image2D_factory"><code>UTCGP.image_pooler.iqrpool_image2D_factory</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">iqrpool_image2D_factory(i::Type{I}) where {I&lt;:SizedImage2D}</code></pre><p>Create interquartile-range sliding-window pooling methods specialized on the given image type.</p><p>The image is reduced over full <code>k × k</code> windows using the provided <code>stride</code>, without padding, then nearest-neighbor resized back to the original image size.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/camilodlt/MAGE.jl/blob/6f8f2d49d2ff3a86cc3893594faef6544c07fde6/src/libraries/image/image_pooler.jl#L236-L243">source</a></section></details></article><h4 id="Intensity-image,-k-3,-stride-1-9"><a class="docs-heading-anchor" href="#Intensity-image,-k-3,-stride-1-9">Intensity image, <code>k = 3</code>, <code>stride = 1</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-3,-stride-1-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:iqrpool](img_intensity, 3, 1)</code></pre><div id="iqrpool-intensity-k3-s1" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("iqrpool-intensity-k3-s1").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k3_s1_before.png" alt="Before iqrpool intensity k=3 stride=1" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k3_s1_after.png" alt="After iqrpool intensity k=3 stride=1" style="width:50%;" />`;
+})();
+</script><h4 id="Intensity-image,-k-5,-stride-2-9"><a class="docs-heading-anchor" href="#Intensity-image,-k-5,-stride-2-9">Intensity image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Intensity-image,-k-5,-stride-2-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_intensity[:iqrpool](img_intensity, 5, 2)</code></pre><div id="iqrpool-intensity-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("iqrpool-intensity-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k5_s2_before.png" alt="Before iqrpool intensity k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/iqrpool_intensity_k5_s2_after.png" alt="After iqrpool intensity k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Binary-image,-k-5,-stride-2-9"><a class="docs-heading-anchor" href="#Binary-image,-k-5,-stride-2-9">Binary image, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Binary-image,-k-5,-stride-2-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_binary[:iqrpool](img_binary, 5, 2)</code></pre><div id="iqrpool-binary-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("iqrpool-binary-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/iqrpool_binary_k5_s2_before.png" alt="Before iqrpool binary k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/iqrpool_binary_k5_s2_after.png" alt="After iqrpool binary k=5 stride=2" style="width:50%;" />`;
+})();
+</script><h4 id="Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-9"><a class="docs-heading-anchor" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-9">Segmented image from <code>fastscanning_image2D</code>, <code>k = 5</code>, <code>stride = 2</code></a><a class="docs-heading-anchor-permalink" href="#Segmented-image-from-fastscanning_image2D,-k-5,-stride-2-9" title="Permalink"></a></h4><pre><code class="language-julia hljs">pooled = pooler_segment[:iqrpool](img_segment, 5, 2)</code></pre><div id="iqrpool-segment-k5-s2" style="display:flex; gap:1rem; align-items:flex-start;"></div>
+<script>
+(() => {
+  const base = (window.documenterBaseURL || "..").replace(/\/$/, "");
+  document.getElementById("iqrpool-segment-k5-s2").innerHTML =
+    `<img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_before.png" alt="Before iqrpool segment k=5 stride=2" style="width:50%;" />
+     <img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_after.png" alt="After iqrpool segment k=5 stride=2" style="width:50%;" />`;
+})();
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../integer/">« Integer Lib</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 15 April 2026 16:15">Wednesday 15 April 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
