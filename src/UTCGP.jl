@@ -376,6 +376,14 @@ module UTCGP
     import .number_reduceFromImg: bundle_number_relativeCoordinatesFromImg
     export bundle_number_relativeCoordinatesFromImg
 
+    include("libraries/number/img_region_common.jl")
+    include("libraries/number/region_from_img.jl")
+    import .number_regionFromImg: bundle_number_regionFromImg
+    export bundle_number_regionFromImg
+    include("libraries/number/haar_from_img.jl")
+    import .number_haarFromImg: bundle_number_haarFromImg
+    export bundle_number_haarFromImg
+
     include("libraries/number/transcendental.jl")
     import .number_transcendental: bundle_number_transcendental
     export bundle_number_transcendental
@@ -472,10 +480,19 @@ module UTCGP
     import .image2D_filtering: bundle_image2DIntensity_filtering_factory, bundle_image2DBinary_filtering_factory
     export bundle_image2DIntensity_filtering_factory, bundle_image2DBinary_filtering_factory
 
+    include("libraries/image2D/orientation_common.jl")
+    include("libraries/image2D/orientation_image2D.jl")
+    import .image2D_orientation: bundle_image2DIntensity_orientation_factory
+    export bundle_image2DIntensity_orientation_factory
+
     # 2D IMAGES Segmentation
     include("libraries/image2D/segmentation_image2D.jl")
     import .image2D_segmentation: bundle_image2DSegment_segmentation_factory
     export bundle_image2DSegment_segmentation_factory
+
+    include("libraries/float/orientation_summary.jl")
+    import .float_orientation: bundle_float_orientation
+    export bundle_float_orientation
 
     # 2D IMAGES MASK
     # include("libraries/image2D/mask_image2D.jl")
@@ -532,6 +549,10 @@ module UTCGP
 
     # PRE MADE BUNDLES
     include("libraries/pre_made_libraries.jl")
+    export get_extension_nb
+    export get_extension_intensityimg
+    export get_extension_binaryimg
+    export get_extension_segmentimg
 
     # FILE TRACKING
     include("metrics_trackers/local_file.jl")

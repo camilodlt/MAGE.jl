@@ -4,6 +4,44 @@
 
 # VECTOS ----
 
+const extension_nb = [
+    bundle_number_regionFromImg,
+    bundle_number_haarFromImg,
+    bundle_float_orientation,
+]
+
+const extension_intensityimg = [
+    bundle_image2DIntensity_pool_factory,
+    bundle_image2DIntensity_pooler_factory,
+    bundle_image2DIntensity_orientation_factory,
+]
+
+const extension_binaryimg = [
+    bundle_image2DBinary_pool_factory,
+    bundle_image2DBinary_pooler_factory,
+]
+
+const extension_segmentimg = [
+    bundle_image2DSegment_pool_factory,
+    bundle_image2DSegment_pooler_factory,
+]
+
+function get_extension_nb()
+    return [deepcopy(b) for b in extension_nb]
+end
+
+function get_extension_intensityimg()
+    return [deepcopy(b) for b in extension_intensityimg]
+end
+
+function get_extension_binaryimg()
+    return [deepcopy(b) for b in extension_binaryimg]
+end
+
+function get_extension_segmentimg()
+    return [deepcopy(b) for b in extension_segmentimg]
+end
+
 # INTEGER LIBRARY 
 
 """
