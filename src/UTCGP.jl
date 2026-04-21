@@ -131,7 +131,9 @@ module UTCGP
     include("libraries/function.jl")
     include("libraries/bundle.jl")
     include("libraries/meta_library.jl")
+    export FunctionWrapper
     export FunctionBundle
+    export safe_call
     export add_bundle_to_library!
     export unpack_bundles_in_library!
     export list_functions_names
@@ -174,8 +176,12 @@ module UTCGP
     include("programs/decode.jl")
     include("programs/free_decode.jl")
     include("programs/evaluate.jl")
+    include("programs/compile/compile_program.jl")
 
     export InputPromise, OperationInput, Operation, Program
+    export SequentialProgram, SequentialCallStep, SequentialConstantStep, SequentialOutput
+    export SequentialProgramInputRef, SequentialTmpRef, NoTypeAssertion
+    export compile_program, sequential_source
     export replace_shared_inputs!
     # MUTATIONS
     include("mutations/utils_mutation.jl")

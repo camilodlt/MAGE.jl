@@ -81,6 +81,14 @@ function FunctionWrapper(
     return FunctionWrapper(fn, nothing, fallback; cache_config)
 end
 
+"""
+    NoTypeAssertion()
+
+Readable sentinel for `safe_call(...; return_type=NoTypeAssertion())`. It keeps
+the caster/fallback behavior active while skipping the final return-type check.
+"""
+struct NoTypeAssertion end
+
 # from https://discourse.julialang.org/t/performance-of-hasmethod-vs-try-catch-on-methoderror/99827/23
 const SafeFunctions = Dict{Type, IsGood}()
 const SafeFunctionsLock = Base.ReentrantLock()
@@ -130,6 +138,42 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
         @debug "Unlocking safe call lock for $(fn_name) by $(tid). $(now())"
         return output
     end
+end
+
+"""
+    safe_call(fn, inputs...; return_type=NoTypeAssertion())
+
+Public value-returning safe call used by sequential programs. It delegates
+caster/fallback behavior to `evaluate_fn_wrapper`, then optionally checks the
+returned value type so rendered sequential code and runtime semantics use the
+same call shape.
+"""
+function safe_call(
+        @nospecialize(f::FunctionWrapper),
+        inputs...;
+        return_type = NoTypeAssertion(),
+    )
+    output = evaluate_fn_wrapper(f, Any[inputs...])
+    return safe_call_return_type_assertion(output, return_type, f, inputs)
+end
+
+function safe_call_return_type_assertion(
+        @nospecialize(output),
+        ::NoTypeAssertion,
+        @nospecialize(::FunctionWrapper),
+        @nospecialize(::Tuple),
+    )
+    return output
+end
+
+function safe_call_return_type_assertion(
+        @nospecialize(output),
+        @nospecialize(return_type::Type),
+        @nospecialize(f::FunctionWrapper),
+        @nospecialize(inputs::Tuple),
+    )
+    @assert output isa return_type "$(f.name) returned $(typeof(output)) for inputs $(typeof.(inputs)); expected $return_type"
+    return output
 end
 
 # FASTER
