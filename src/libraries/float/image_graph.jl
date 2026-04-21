@@ -223,24 +223,24 @@ for metric in fns
 end
 
 # SOME COEFFS ---
-@stable function assortativity_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function assortativity_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = assortativity(g)
     return res
 end
-@stable function global_clustering_coefficient_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function global_clustering_coefficient_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = global_clustering_coefficient(g)
     return res
 end
-@stable function diameter_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function diameter_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = diameter(g)
     return res
 end
 
 # SPECIAL COMMUNITIES
-@stable function label_propagation_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function label_propagation_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = label_propagation(g)[1] |> unique |> length # nb of communities
     return res

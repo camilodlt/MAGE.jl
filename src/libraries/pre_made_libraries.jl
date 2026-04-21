@@ -42,7 +42,7 @@ function get_extension_segmentimg()
     return [deepcopy(b) for b in extension_segmentimg]
 end
 
-# INTEGER LIBRARY 
+# INTEGER LIBRARY
 
 """
 listinteger_bundles
@@ -88,7 +88,7 @@ function get_listinteger_bundles()
 end
 
 
-# LIST FLOAT LIBRARY 
+# LIST FLOAT LIBRARY
 
 """
 listfloat_bundles
@@ -134,7 +134,7 @@ function get_listfloat_bundles()
 end
 
 
-# VEC STRING LIBRARY 
+# VEC STRING LIBRARY
 """
 liststring_bundles
 """
@@ -173,7 +173,7 @@ function get_liststring_bundles()
     return liststring_bundles
 end
 
-# VEV TUPLES LIBRARY 
+# VEV TUPLES LIBRARY
 
 """
 
@@ -206,7 +206,7 @@ function get_list_int_tuples_bundles()
     # Update Casters && Fallbacks
     for b in listtuples_bundles
         update_caster!(b, listtuple_identity)
-        update_fallback!(b, () -> Tuple{Int,Int}[])
+        update_fallback!(b, () -> Tuple{Int, Int}[])
     end
     return listtuples_bundles
 end
@@ -241,14 +241,14 @@ function get_list_string_tuples_bundles()
     # Update Casters && Fallbacks
     for b in listtuples_bundles
         update_caster!(b, listtuple_identity)
-        update_fallback!(b, () -> Tuple{String,String}[])
+        update_fallback!(b, () -> Tuple{String, String}[])
     end
     return listtuples_bundles
 end
 
 # ELEMENTS ----
 
-# INT LIBRARY 
+# INT LIBRARY
 """
 integer_bundles
 """
@@ -284,7 +284,7 @@ function get_integer_bundles()
     return integer_bundles
 end
 
-# FLOAT LIBRARY  
+# FLOAT LIBRARY
 """
 floatinteger_bundles
 """
@@ -341,7 +341,7 @@ function get_sr_float_bundles()
     return float_bundles
 end
 
-# STRING LIBRARY 
+# STRING LIBRARY
 
 """
 stringinteger_bundles
@@ -366,7 +366,7 @@ function get_string_bundles()
         bundle_string_conditional,
         bundle_string_caps,
         bundle_string_parse,
-        bundle_element_pick, # TODO 
+        bundle_element_pick, # TODO
         factories...,
     ]
 
@@ -379,11 +379,11 @@ function get_string_bundles()
     return string_bundles
 end
 
-# IMAGES --- 
+# IMAGES ---
 function get_image2Dintensity_factory_bundles()
     bundle_images = [
         bundle_image2DIntensity_basic_factory,
-        bundle_image2DIntensity_morph_factory, 
+        bundle_image2DIntensity_morph_factory,
         bundle_image2DIntensity_arithmetic_factory,
         bundle_image2DIntensity_barithmetic_factory,
         bundle_image2DIntensity_filtering_factory,
@@ -449,7 +449,7 @@ function get_float_bundles_atari()
         update_caster!(b, float_caster)
         update_fallback!(b, () -> 0.0)
     end
-    float_bundles
+    return float_bundles
 end
 
 function get_image2D_factory_bundles_atari()

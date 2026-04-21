@@ -24,23 +24,24 @@ bundle_float_basic = FunctionBundle(fallback)
 """
     identity_float(from::Int, args...)
 """
-@stable function identity_float(from::Float64, args...)
+function identity_float(from::Float64, args...)
     return identity(from)
 end
 
 """
     ret_1(args...)
 """
-@stable function ret_1(args...)
+function ret_1(args...)
     return 1.0
 end
 
 
-@stable function tanh_(x::Float64, args...)
+function tanh_(x::T, args...) where {T <: Number}
     return tanh(x)
 end
-@stable function relu_(x::Float64, args...)
-    return ifelse(x > 0, x, 0)
+
+function relu_(x::T, args...) where {T <: Number}
+    return ifelse(x > zero(T), x, zero(T))
 end
 
 append_method!(bundle_float_basic, identity_float)
