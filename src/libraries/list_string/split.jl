@@ -33,6 +33,10 @@ function split_string_to_vector(s::String, by::String, args...)
 end
 
 
-append_method!(bundle_liststring_split, split_string_to_vector)
+append_method!(
+    bundle_liststring_split,
+    split_string_to_vector;
+    description = "Splits a string using the provided delimiter and returns a vector of substrings.",
+)
 
 end

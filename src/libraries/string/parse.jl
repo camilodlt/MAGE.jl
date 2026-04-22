@@ -31,6 +31,10 @@ function parse_number(n::Number, args...)
 end
 
 # APPEND ---
-append_method!(bundle_string_parse, parse_number)
+append_method!(
+    bundle_string_parse,
+    parse_number;
+    description = "Converts a numeric input to a string.",
+)
 
 end

@@ -48,12 +48,18 @@ function if_else_multiplexer_factory(element_type::Type{T}) where {T}
 end
 if_else_multiplexer = if_else_multiplexer_factory(Any)
 
-append_method!(bundle_element_conditional, if_else_multiplexer, :if_else_multiplexer)
+append_method!(
+    bundle_element_conditional,
+    if_else_multiplexer,
+    :if_else_multiplexer;
+    description = "Selects between two values of the same type using a numeric condition.",
+)
 append_method!(
     bundle_element_conditional_factory,
     if_else_multiplexer_factory,
     :if_else_multiplexer,
+    ;
+    description = "Builds a typed if-else selector that returns either branch based on cond > 0.",
 )
 
 end
-

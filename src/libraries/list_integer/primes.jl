@@ -37,5 +37,9 @@ function int_divisors(n::Int, args...)
     return divisors(n)
 end
 
-append_method!(bundle_listinteger_primes, int_divisors)
+append_method!(
+    bundle_listinteger_primes,
+    int_divisors;
+    description = "Returns all positive divisors of the input integer.",
+)
 end

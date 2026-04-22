@@ -292,30 +292,92 @@ end
 # end
 
 # APPEND FUNCTIONS ---
-append_method!(bundle_number_reduceFromImg, reduce_length)
-append_method!(bundle_number_reduceFromImg, reduce_biggestAxis)
-append_method!(bundle_number_reduceFromImg, reduce_smallerAxis)
-append_method!(bundle_number_reduceFromImg, reduce_histMode)
-append_method!(bundle_number_reduceFromImg, reduce_histModeCount)
-append_method!(bundle_number_reduceFromImg, reduce_propWhite)
-append_method!(bundle_number_reduceFromImg, reduce_propBlack)
-append_method!(bundle_number_reduceFromImg, reduce_nColors)
-append_method!(bundle_number_reduceFromImg, reduce_mean)
-append_method!(bundle_number_reduceFromImg, reduce_median)
-append_method!(bundle_number_reduceFromImg, reduce_std)
-append_method!(bundle_number_reduceFromImg, reduce_maximum)
-append_method!(bundle_number_reduceFromImg, reduce_minimum)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_length;
+    description = "Returns the number of pixels in the input image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_biggestAxis;
+    description = "Returns the largest image dimension size.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_smallerAxis;
+    description = "Returns the smallest image dimension size.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_histMode;
+    description = "Returns the most frequent pixel value in the image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_histModeCount;
+    description = "Returns the count of the most frequent pixel value in the image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_propWhite;
+    description = "Returns the proportion of white pixels in a binary image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_propBlack;
+    description = "Returns the proportion of black pixels in a binary image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_nColors;
+    description = "Returns the number of unique pixel values in the image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_mean;
+    description = "Returns the mean intensity of the image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_median;
+    description = "Returns the median intensity of the image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_std;
+    description = "Returns the standard deviation of image intensities.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_maximum;
+    description = "Returns the maximum intensity value in the image.",
+)
+append_method!(
+    bundle_number_reduceFromImg,
+    reduce_minimum;
+    description = "Returns the minimum intensity value in the image.",
+)
 
 # useful for ATARI
-append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_argmax)
-append_method!(bundle_number_coordinatesFromImg, experimental_vertical_argmax)
 append_method!(
-    bundle_number_relativeCoordinatesFromImg,
-    experimental_horizontal_relative_argmax,
+    bundle_number_coordinatesFromImg,
+    experimental_horizontal_argmax;
+    description = "Returns the x coordinate of the maximum image value.",
+)
+append_method!(
+    bundle_number_coordinatesFromImg,
+    experimental_vertical_argmax;
+    description = "Returns the y coordinate of the maximum image value.",
 )
 append_method!(
     bundle_number_relativeCoordinatesFromImg,
-    experimental_vertical_relative_argmax,
+    experimental_horizontal_relative_argmax;
+    description = "Returns the x coordinate of the maximum image value normalized by image width.",
+)
+append_method!(
+    bundle_number_relativeCoordinatesFromImg,
+    experimental_vertical_relative_argmax;
+    description = "Returns the y coordinate of the maximum image value normalized by image height.",
 )
 # append_method!(bundle_number_coordinatesFromImg, experimental_horizontal_center_of_mass)
 # append_method!(bundle_number_coordinatesFromImg, experimental_vertical_center_of_mass)

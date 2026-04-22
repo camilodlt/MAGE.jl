@@ -77,9 +77,20 @@ function length_broadcast(v::Vector{String}, args...)
 end
 
 # APPEND ---
-append_method!(bundle_listinteger_string, match_with_overlap)
-append_method!(bundle_listinteger_string, parse_from_list_string)
-append_method!(bundle_listinteger_string, length_broadcast)
+append_method!(
+    bundle_listinteger_string,
+    match_with_overlap;
+    description = "Returns start indices of all overlapping matches of a pattern in a string.",
+)
+append_method!(
+    bundle_listinteger_string,
+    parse_from_list_string;
+    description = "Parses a vector of numeric strings to integers using Float64 then floor.",
+)
+append_method!(
+    bundle_listinteger_string,
+    length_broadcast;
+    description = "Returns the length of each string in the input vector.",
+)
 
 end
-

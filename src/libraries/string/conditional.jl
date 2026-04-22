@@ -108,10 +108,30 @@ function shortest_string(s1::String, s2::String, args...)::String
     return s2
 end
 
-append_method!(bundle_string_conditional, if_string)
-append_method!(bundle_string_conditional, if_not_string)
-append_method!(bundle_string_conditional, if_else_string)
-append_method!(bundle_string_conditional, longest_string)
-append_method!(bundle_string_conditional, shortest_string)
+append_method!(
+    bundle_string_conditional,
+    if_string;
+    description = "Returns the input string when the numeric condition is non-zero, otherwise an empty string.",
+)
+append_method!(
+    bundle_string_conditional,
+    if_not_string;
+    description = "Returns the input string when the numeric condition is zero, otherwise an empty string.",
+)
+append_method!(
+    bundle_string_conditional,
+    if_else_string;
+    description = "Selects between two strings based on whether the numeric condition is non-zero.",
+)
+append_method!(
+    bundle_string_conditional,
+    longest_string;
+    description = "Returns the longer of two strings, preferring the first on ties.",
+)
+append_method!(
+    bundle_string_conditional,
+    shortest_string;
+    description = "Returns the shorter of two strings, preferring the first on ties.",
+)
 
 end

@@ -77,9 +77,25 @@ function log10_(a::Number, args...)
     return log10(a)
 end
 
-append_method!(bundle_number_transcendental, pi_)
-append_method!(bundle_number_transcendental, exp_)
-append_method!(bundle_number_transcendental, log_)
-append_method!(bundle_number_transcendental, log10_)
+append_method!(
+    bundle_number_transcendental,
+    pi_;
+    description = "Returns the mathematical constant pi as Float64.",
+)
+append_method!(
+    bundle_number_transcendental,
+    exp_;
+    description = "Computes the exponential of the numeric input.",
+)
+append_method!(
+    bundle_number_transcendental,
+    log_;
+    description = "Computes the natural logarithm after clipping the input to a positive minimum.",
+)
+append_method!(
+    bundle_number_transcendental,
+    log10_;
+    description = "Computes the base-10 logarithm after clipping the input to a positive minimum.",
+)
 
 end

@@ -20,8 +20,25 @@ function _get_name_from_likefn(dp::AbstractManualDispatcher)
     return dp.name
 end
 
+function _default_wrapper_description(name::Symbol)::String
+    return "Performs $(name) on the provided inputs and returns the computed output."
+end
+
+function _sanitize_wrapper_description(name::Symbol, description::AbstractString)::String
+    raw = strip(String(description))
+    if isempty(raw)
+        return _default_wrapper_description(name)
+    end
+    lines = [strip(line) for line in split(raw, '\n') if !isempty(strip(line))]
+    if isempty(lines)
+        return _default_wrapper_description(name)
+    end
+    return join(lines[1:min(length(lines), 3)], "\n")
+end
+
 mutable struct FunctionWrapper{T} <: AbstractFunction
     name::Symbol
+    description::String
     parent_module::Symbol
     fn::LikeFunction
     caster::Union{Function, Nothing}
@@ -29,6 +46,7 @@ mutable struct FunctionWrapper{T} <: AbstractFunction
     cache::Union{Nothing, <:LRU}
     function FunctionWrapper(
             name::Symbol,
+            description::AbstractString,
             parent_module::Symbol,
             fn::T,
             caster::Union{Function, Nothing},
@@ -38,7 +56,8 @@ mutable struct FunctionWrapper{T} <: AbstractFunction
         if !isnothing(cache)
             @info "Using Cache $cache for fn $name"
         end
-        return new{T}(name, parent_module, fn, caster, fallback, cache)
+        desc = _sanitize_wrapper_description(name, description)
+        return new{T}(name, desc, parent_module, fn, caster, fallback, cache)
     end
 end
 
@@ -51,10 +70,11 @@ function FunctionWrapper(
         caster::Union{Function, Nothing},
         fallback::Function;
         cache_config::AbstractCacheConfig = NoCacheConfig(),
+        description::AbstractString = "",
     ) where {T <: LikeFunction}
     p_mod = _get_parent_module_symbol(fn)
     cache = _create_fn_cache(cache_config) # nothing if NoCacheConfig
-    return FunctionWrapper(name, p_mod, fn, caster, fallback, cache)
+    return FunctionWrapper(name, description, p_mod, fn, caster, fallback, cache)
 end
 
 """
@@ -65,9 +85,10 @@ function FunctionWrapper(
         caster::Union{Function, Nothing},
         fallback::Function;
         cache_config::AbstractCacheConfig = NoCacheConfig(),
+        description::AbstractString = "",
     ) where {T <: LikeFunction}
     name = _get_name_from_likefn(fn)
-    return FunctionWrapper(fn, name, caster, fallback; cache_config)
+    return FunctionWrapper(fn, name, caster, fallback; cache_config, description = description)
 end
 
 
@@ -77,8 +98,9 @@ Function Wrapper with fallback (no caster)
 function FunctionWrapper(
         fn::T, fallback::Function;
         cache_config::AbstractCacheConfig = NoCacheConfig(),
+        description::AbstractString = "",
     ) where {T <: LikeFunction}
-    return FunctionWrapper(fn, nothing, fallback; cache_config)
+    return FunctionWrapper(fn, nothing, fallback; cache_config, description = description)
 end
 
 """

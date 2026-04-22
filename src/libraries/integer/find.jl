@@ -59,6 +59,14 @@ function index_of_first_true(from::Vector{<:Number}, args...)
 
 end
 
-append_method!(bundle_integer_find, find_first)
-append_method!(bundle_integer_find, index_of_first_true)
+append_method!(
+    bundle_integer_find,
+    find_first;
+    description = "Returns the index of the first element equal to the target value.",
+)
+append_method!(
+    bundle_integer_find,
+    index_of_first_true;
+    description = "Returns the first index whose value is at least 1, or -1 if none match.",
+)
 end

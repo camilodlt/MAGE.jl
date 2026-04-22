@@ -200,12 +200,40 @@ function haar_three_v(from::SImageND{S,T,2,C}, position::Number, region_size::Nu
     return _haar_feature_value(from, :haar_three_v, position, region_size)
 end
 
-append_method!(bundle_number_haarFromImg, haar_lr)
-append_method!(bundle_number_haarFromImg, haar_tb)
-append_method!(bundle_number_haarFromImg, haar_diag_main)
-append_method!(bundle_number_haarFromImg, haar_diag_anti)
-append_method!(bundle_number_haarFromImg, haar_center_surround)
-append_method!(bundle_number_haarFromImg, haar_three_h)
-append_method!(bundle_number_haarFromImg, haar_three_v)
+append_method!(
+    bundle_number_haarFromImg,
+    haar_lr;
+    description = "Computes left-versus-right Haar contrast in a local image region.",
+)
+append_method!(
+    bundle_number_haarFromImg,
+    haar_tb;
+    description = "Computes top-versus-bottom Haar contrast in a local image region.",
+)
+append_method!(
+    bundle_number_haarFromImg,
+    haar_diag_main;
+    description = "Computes diagonal Haar contrast favoring main-diagonal quadrants.",
+)
+append_method!(
+    bundle_number_haarFromImg,
+    haar_diag_anti;
+    description = "Computes diagonal Haar contrast favoring anti-diagonal quadrants.",
+)
+append_method!(
+    bundle_number_haarFromImg,
+    haar_center_surround;
+    description = "Computes center-versus-surround Haar contrast in a local region.",
+)
+append_method!(
+    bundle_number_haarFromImg,
+    haar_three_h;
+    description = "Computes horizontal three-band Haar contrast in a local region.",
+)
+append_method!(
+    bundle_number_haarFromImg,
+    haar_three_v;
+    description = "Computes vertical three-band Haar contrast in a local region.",
+)
 
 end

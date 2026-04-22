@@ -98,11 +98,35 @@ function power_of(a::Number, b::Number, args...)
     return a^b
 end
 
-append_method!(bundle_number_arithmetic, number_sum)
-append_method!(bundle_number_arithmetic, number_minus)
-append_method!(bundle_number_arithmetic, number_mult)
-append_method!(bundle_number_arithmetic, number_div)
-append_method!(bundle_number_arithmetic, safe_div)
-append_method!(bundle_number_arithmetic, power_of)
+append_method!(
+    bundle_number_arithmetic,
+    number_sum;
+    description = "Adds two numeric inputs.",
+)
+append_method!(
+    bundle_number_arithmetic,
+    number_minus;
+    description = "Subtracts the second numeric input from the first.",
+)
+append_method!(
+    bundle_number_arithmetic,
+    number_mult;
+    description = "Multiplies two numeric inputs.",
+)
+append_method!(
+    bundle_number_arithmetic,
+    number_div;
+    description = "Divides the first numeric input by the second and throws on division by zero.",
+)
+append_method!(
+    bundle_number_arithmetic,
+    safe_div;
+    description = "Divides two numeric inputs and returns 0 when the divisor is zero.",
+)
+append_method!(
+    bundle_number_arithmetic,
+    power_of;
+    description = "Raises the first numeric input to the power of the second.",
+)
 
 end

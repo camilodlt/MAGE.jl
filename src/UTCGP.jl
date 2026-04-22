@@ -599,6 +599,18 @@ module UTCGP
     include("libraries/modular_library.jl")
     include("libraries/subgraph_selection.jl")
 
+    # AUTOMATICALLY DEFINED FUNCTIONS
+    include("adf/types.jl")
+    include("adf/library_extension.jl")
+    include("adf/usage.jl")
+    include("adf/genome_flatten.jl")
+    include("adf/serialization.jl")
+    export ADFRegistry, ADFSlotFunction, EmptyADFDefinition, ActiveADFDefinition
+    export extend_fn_lib_adf!, replace_adf_slot!, adf_is_empty
+    export direct_adf_usage, recursive_adf_dependencies, can_replace_adf_slot
+    export flatten_adfs
+    export adf_source, adf_sources
+
     # EXT
     #include("libraries/float/MAGE_RADIOMICS.jl")
     #function _FOS_MeanFeatureValue()

@@ -67,10 +67,29 @@ function str_is_empty(s::String, args...)
     return Int(isempty(s))
 end
 
-append_method!(bundle_integer_cond, is_eq_to)
-append_method!(bundle_integer_cond, str_is_empty)
-append_method!(bundle_integer_cond, experimental_is_gt)
-append_method!(bundle_integer_cond, experimental_is_lt)
-append_method!(bundle_integer_cond, experimental_not)
+append_method!(
+    bundle_integer_cond,
+    is_eq_to;
+    description = "Returns 1 when two numeric inputs are equal, otherwise 0.",
+)
+append_method!(
+    bundle_integer_cond,
+    str_is_empty;
+    description = "Returns 1 when the input string is empty, otherwise 0.",
+)
+append_method!(
+    bundle_integer_cond,
+    experimental_is_gt;
+    description = "Returns 1 when the first number is greater than the second, otherwise 0.",
+)
+append_method!(
+    bundle_integer_cond,
+    experimental_is_lt;
+    description = "Returns 1 when the first number is lower than the second, otherwise 0.",
+)
+append_method!(
+    bundle_integer_cond,
+    experimental_not;
+    description = "Returns 1 when the input is at most 0.5, otherwise 0.",
+)
 end
-

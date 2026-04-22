@@ -35,5 +35,9 @@ function modulo(a::Number, b::Number, args...)
     return a % b
 end
 
-append_method!(bundle_integer_modulo, modulo)
+append_method!(
+    bundle_integer_modulo,
+    modulo;
+    description = "Computes the modulo remainder a % b for two numeric inputs.",
+)
 end

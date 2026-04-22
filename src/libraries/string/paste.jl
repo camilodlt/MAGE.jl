@@ -46,9 +46,21 @@ function paste_with_space(s1::String, s2::String, args...)::String
     return paste(s1, s2, " ")
 end
 
-append_method!(bundle_string_paste, paste)
-append_method!(bundle_string_paste, paste0)
-append_method!(bundle_string_paste, paste_with_space)
+append_method!(
+    bundle_string_paste,
+    paste;
+    description = "Concatenates two strings with a custom separator between them.",
+)
+append_method!(
+    bundle_string_paste,
+    paste0;
+    description = "Concatenates two strings directly with no separator.",
+)
+append_method!(
+    bundle_string_paste,
+    paste_with_space;
+    description = "Concatenates two strings with a single space between them.",
+)
 
 # WITH LISTS
 
@@ -70,8 +82,20 @@ function paste_list_string(ls::Vector{String}, args...)::String
     return join(ls)
 end
 
-append_method!(bundle_string_concat_list_string, paste_space_list_string)
-append_method!(bundle_string_concat_list_string, paste_list_string_sep)
-append_method!(bundle_string_concat_list_string, paste_list_string)
+append_method!(
+    bundle_string_concat_list_string,
+    paste_space_list_string;
+    description = "Joins a list of strings using a single space separator.",
+)
+append_method!(
+    bundle_string_concat_list_string,
+    paste_list_string_sep;
+    description = "Joins a list of strings using the provided delimiter string.",
+)
+append_method!(
+    bundle_string_concat_list_string,
+    paste_list_string;
+    description = "Joins a list of strings with no delimiter.",
+)
 
 end

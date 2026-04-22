@@ -285,28 +285,108 @@ for (suffix, pct) in _REGION_PERCENT_SCALES
     end
 end
 
-append_method!(bundle_number_regionFromImg, region_mean)
-append_method!(bundle_number_regionFromImg, region_std)
-append_method!(bundle_number_regionFromImg, region_min)
-append_method!(bundle_number_regionFromImg, region_max)
-append_method!(bundle_number_regionFromImg, region_sum)
-append_method!(bundle_number_regionFromImg, region_median)
-append_method!(bundle_number_regionFromImg, region_range)
-append_method!(bundle_number_regionFromImg, region_contrast)
-append_method!(bundle_number_regionFromImg, region_energy)
-append_method!(bundle_number_regionFromImg, region_entropy)
+append_method!(
+    bundle_number_regionFromImg,
+    region_mean;
+    description = "Computes local mean intensity inside a patch centered at normalized coordinates.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_std;
+    description = "Computes local standard deviation inside a patch centered at normalized coordinates.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_min;
+    description = "Computes the minimum local value inside a centered patch.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_max;
+    description = "Computes the maximum local value inside a centered patch.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_sum;
+    description = "Computes the local sum of values inside a centered patch.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_median;
+    description = "Computes the local median value inside a centered patch.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_range;
+    description = "Computes local range as max minus min inside a centered patch.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_contrast;
+    description = "Computes local contrast between a center patch and its surrounding ring.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_energy;
+    description = "Computes local energy as the mean squared value inside a centered patch.",
+)
+append_method!(
+    bundle_number_regionFromImg,
+    region_entropy;
+    description = "Computes local entropy from a coarse histogram inside a centered patch.",
+)
 
 for (suffix, _) in _REGION_PERCENT_SCALES
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_mean, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_std, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_min, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_max, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_sum, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_median, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_range, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_contrast, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_energy, suffix)))
-    append_method!(bundle_number_regionFromImg, getfield(@__MODULE__, Symbol(:region_entropy, suffix)))
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_mean, suffix));
+        description = "Computes local mean intensity using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_std, suffix));
+        description = "Computes local standard deviation using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_min, suffix));
+        description = "Computes the local minimum using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_max, suffix));
+        description = "Computes the local maximum using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_sum, suffix));
+        description = "Computes local sum using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_median, suffix));
+        description = "Computes local median using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_range, suffix));
+        description = "Computes local range using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_contrast, suffix));
+        description = "Computes center-versus-ring local contrast using a percentage-sized patch.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_energy, suffix));
+        description = "Computes local energy using a percentage-sized patch centered at normalized coordinates.",
+    )
+    append_method!(
+        bundle_number_regionFromImg,
+        getfield(@__MODULE__, Symbol(:region_entropy, suffix));
+        description = "Computes local entropy from histogram bins in a percentage-sized patch.",
+    )
 end
 
 end
