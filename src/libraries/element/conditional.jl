@@ -59,7 +59,7 @@ append_method!(
     if_else_multiplexer_factory,
     :if_else_multiplexer,
     ;
-    description = "Builds a typed if-else selector that returns either branch based on cond > 0.",
+    description = "Selects between two same-type values based on whether cond is greater than zero.",
 )
 
 end

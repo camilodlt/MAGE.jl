@@ -74,8 +74,23 @@ function orientation_select_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     return f
 end
 
-append_method!(bundle_image2DIntensity_orientation_factory, grad_magnitude_image2D_factory, :grad_magnitude)
-append_method!(bundle_image2DIntensity_orientation_factory, grad_orientation_image2D_factory, :grad_orientation)
-append_method!(bundle_image2DIntensity_orientation_factory, orientation_select_image2D_factory, :orientation_select)
+append_method!(
+    bundle_image2DIntensity_orientation_factory,
+    grad_magnitude_image2D_factory,
+    :grad_magnitude;
+    description = "Computes gradient magnitude map of the input image.",
+)
+append_method!(
+    bundle_image2DIntensity_orientation_factory,
+    grad_orientation_image2D_factory,
+    :grad_orientation;
+    description = "Computes gradient orientation map of the input image.",
+)
+append_method!(
+    bundle_image2DIntensity_orientation_factory,
+    orientation_select_image2D_factory,
+    :orientation_select;
+    description = "Selects image gradients near a target orientation with configurable bandwidth.",
+)
 
 end

@@ -246,124 +246,187 @@ function label_propagation_factory(img::SizedImage{S, <:BinaryPixel}, args::Vara
     return res
 end
 
+function _image_graph_description(name::Symbol)::String
+    s = lowercase(String(name))
+    metric = s
+    reducer = ""
+
+    if startswith(metric, "xcoorargmax")
+        metric = replace(metric, "xcoorargmax" => "")
+        reducer = "x-coordinate of argmax"
+    elseif startswith(metric, "ycoorargmax")
+        metric = replace(metric, "ycoorargmax" => "")
+        reducer = "y-coordinate of argmax"
+    elseif startswith(metric, "xcoorargmin")
+        metric = replace(metric, "xcoorargmin" => "")
+        reducer = "x-coordinate of argmin"
+    elseif startswith(metric, "ycoorargmin")
+        metric = replace(metric, "ycoorargmin" => "")
+        reducer = "y-coordinate of argmin"
+    elseif startswith(metric, "mean")
+        metric = replace(metric, "mean" => "")
+        reducer = "mean"
+    elseif startswith(metric, "median")
+        metric = replace(metric, "median" => "")
+        reducer = "median"
+    elseif startswith(metric, "minimum")
+        metric = replace(metric, "minimum" => "")
+        reducer = "minimum"
+    elseif startswith(metric, "maximum")
+        metric = replace(metric, "maximum" => "")
+        reducer = "maximum"
+    elseif startswith(metric, "std")
+        metric = replace(metric, "std" => "")
+        reducer = "standard deviation"
+    end
+
+    metric_h = replace(metric, "centrality" => " centrality")
+    metric_h = replace(metric_h, "clusteringcoefficient" => "clustering coefficient")
+    metric_h = replace(metric_h, "stress" => "stress")
+    metric_h = replace(metric_h, "triangles" => "triangles")
+    metric_h = strip(metric_h)
+
+    if s == "assortativity"
+        return "Computes graph assortativity on the graph built from the binary image."
+    elseif s == "clustering_coefficient"
+        return "Computes the global clustering coefficient of the graph built from the binary image."
+    elseif s == "diameter"
+        return "Computes the graph diameter on the graph built from the binary image."
+    elseif s == "label_propagation"
+        return "Computes the number of detected communities from label propagation on the image graph."
+    elseif !isempty(reducer)
+        return "Computes the node-wise $(metric_h) vector on the image graph, then returns the $(reducer) over that vector."
+    end
+    return "Computes a graph-based feature from the binary-image graph representation."
+end
+
+function append_image_graph_metric!(factory, name::Symbol)
+    return append_method!(
+        bundle_float_imagegraph,
+        factory,
+        name;
+        description = _image_graph_description(name),
+    )
+end
+
 # BUNDLES --- ---
-append_method!(bundle_float_imagegraph, meanbetweenness_centrality_float_factory, :meanbetweennesscentrality)
-append_method!(bundle_float_imagegraph, medianbetweenness_centrality_float_factory, :medianbetweennesscentrality)
-append_method!(bundle_float_imagegraph, minimumbetweenness_centrality_float_factory, :minimumbetweennesscentrality)
-append_method!(bundle_float_imagegraph, maximumbetweenness_centrality_float_factory, :maximumbetweennesscentrality)
-append_method!(bundle_float_imagegraph, stdbetweenness_centrality_float_factory, :stdbetweennesscentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxbetweenness_centrality_float_factory, :xcoorargmaxbetweennesscentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxbetweenness_centrality_float_factory, :ycoorargmaxbetweennesscentrality)
-append_method!(bundle_float_imagegraph, xCoorArgminbetweenness_centrality_float_factory, :xcoorargminbetweennesscentrality)
-append_method!(bundle_float_imagegraph, yCoorArgminbetweenness_centrality_float_factory, :ycoorargminbetweennesscentrality)
+append_image_graph_metric!(meanbetweenness_centrality_float_factory, :meanbetweennesscentrality)
+append_image_graph_metric!(medianbetweenness_centrality_float_factory, :medianbetweennesscentrality)
+append_image_graph_metric!(minimumbetweenness_centrality_float_factory, :minimumbetweennesscentrality)
+append_image_graph_metric!(maximumbetweenness_centrality_float_factory, :maximumbetweennesscentrality)
+append_image_graph_metric!(stdbetweenness_centrality_float_factory, :stdbetweennesscentrality)
+append_image_graph_metric!(xCoorArgmaxbetweenness_centrality_float_factory, :xcoorargmaxbetweennesscentrality)
+append_image_graph_metric!(yCoorArgmaxbetweenness_centrality_float_factory, :ycoorargmaxbetweennesscentrality)
+append_image_graph_metric!(xCoorArgminbetweenness_centrality_float_factory, :xcoorargminbetweennesscentrality)
+append_image_graph_metric!(yCoorArgminbetweenness_centrality_float_factory, :ycoorargminbetweennesscentrality)
 
-append_method!(bundle_float_imagegraph, meancloseness_centrality_float_factory, :meanclosenesscentrality)
-append_method!(bundle_float_imagegraph, mediancloseness_centrality_float_factory, :medianclosenesscentrality)
-append_method!(bundle_float_imagegraph, minimumcloseness_centrality_float_factory, :minimumclosenesscentrality)
-append_method!(bundle_float_imagegraph, maximumcloseness_centrality_float_factory, :maximumclosenesscentrality)
-append_method!(bundle_float_imagegraph, stdcloseness_centrality_float_factory, :stdclosenesscentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxcloseness_centrality_float_factory, :xcoorargmaxclosenesscentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxcloseness_centrality_float_factory, :ycoorargmaxclosenesscentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmincloseness_centrality_float_factory, :xcoorargminclosenesscentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmincloseness_centrality_float_factory, :ycoorargminclosenesscentrality)
+append_image_graph_metric!(meancloseness_centrality_float_factory, :meanclosenesscentrality)
+append_image_graph_metric!(mediancloseness_centrality_float_factory, :medianclosenesscentrality)
+append_image_graph_metric!(minimumcloseness_centrality_float_factory, :minimumclosenesscentrality)
+append_image_graph_metric!(maximumcloseness_centrality_float_factory, :maximumclosenesscentrality)
+append_image_graph_metric!(stdcloseness_centrality_float_factory, :stdclosenesscentrality)
+append_image_graph_metric!(xCoorArgmaxcloseness_centrality_float_factory, :xcoorargmaxclosenesscentrality)
+append_image_graph_metric!(yCoorArgmaxcloseness_centrality_float_factory, :ycoorargmaxclosenesscentrality)
+append_image_graph_metric!(xCoorArgmincloseness_centrality_float_factory, :xcoorargminclosenesscentrality)
+append_image_graph_metric!(yCoorArgmincloseness_centrality_float_factory, :ycoorargminclosenesscentrality)
 
-append_method!(bundle_float_imagegraph, meandegree_centrality_float_factory, :meandegreecentrality)
-append_method!(bundle_float_imagegraph, mediandegree_centrality_float_factory, :mediandegreecentrality)
-append_method!(bundle_float_imagegraph, minimumdegree_centrality_float_factory, :minimumdegreecentrality)
-append_method!(bundle_float_imagegraph, maximumdegree_centrality_float_factory, :maximumdegreecentrality)
-append_method!(bundle_float_imagegraph, stddegree_centrality_float_factory, :stddegreecentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxdegree_centrality_float_factory, :xcoorargmaxdegreecentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxdegree_centrality_float_factory, :ycoorargmaxdegreecentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmindegree_centrality_float_factory, :xcoorargmindegreecentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmindegree_centrality_float_factory, :ycoorargmindegreecentrality)
+append_image_graph_metric!(meandegree_centrality_float_factory, :meandegreecentrality)
+append_image_graph_metric!(mediandegree_centrality_float_factory, :mediandegreecentrality)
+append_image_graph_metric!(minimumdegree_centrality_float_factory, :minimumdegreecentrality)
+append_image_graph_metric!(maximumdegree_centrality_float_factory, :maximumdegreecentrality)
+append_image_graph_metric!(stddegree_centrality_float_factory, :stddegreecentrality)
+append_image_graph_metric!(xCoorArgmaxdegree_centrality_float_factory, :xcoorargmaxdegreecentrality)
+append_image_graph_metric!(yCoorArgmaxdegree_centrality_float_factory, :ycoorargmaxdegreecentrality)
+append_image_graph_metric!(xCoorArgmindegree_centrality_float_factory, :xcoorargmindegreecentrality)
+append_image_graph_metric!(yCoorArgmindegree_centrality_float_factory, :ycoorargmindegreecentrality)
 
-append_method!(bundle_float_imagegraph, meanindegree_centrality_float_factory, :meanindegreecentrality)
-append_method!(bundle_float_imagegraph, medianindegree_centrality_float_factory, :medianindegreecentrality)
-append_method!(bundle_float_imagegraph, minimumindegree_centrality_float_factory, :minimumindegreecentrality)
-append_method!(bundle_float_imagegraph, maximumindegree_centrality_float_factory, :maximumindegreecentrality)
-append_method!(bundle_float_imagegraph, stdindegree_centrality_float_factory, :stdindegreecentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxindegree_centrality_float_factory, :xcoorargmaxindegreecentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxindegree_centrality_float_factory, :ycoorargmaxindegreecentrality)
-append_method!(bundle_float_imagegraph, xCoorArgminindegree_centrality_float_factory, :xcoorargminindegreecentrality)
-append_method!(bundle_float_imagegraph, yCoorArgminindegree_centrality_float_factory, :ycoorargminindegreecentrality)
+append_image_graph_metric!(meanindegree_centrality_float_factory, :meanindegreecentrality)
+append_image_graph_metric!(medianindegree_centrality_float_factory, :medianindegreecentrality)
+append_image_graph_metric!(minimumindegree_centrality_float_factory, :minimumindegreecentrality)
+append_image_graph_metric!(maximumindegree_centrality_float_factory, :maximumindegreecentrality)
+append_image_graph_metric!(stdindegree_centrality_float_factory, :stdindegreecentrality)
+append_image_graph_metric!(xCoorArgmaxindegree_centrality_float_factory, :xcoorargmaxindegreecentrality)
+append_image_graph_metric!(yCoorArgmaxindegree_centrality_float_factory, :ycoorargmaxindegreecentrality)
+append_image_graph_metric!(xCoorArgminindegree_centrality_float_factory, :xcoorargminindegreecentrality)
+append_image_graph_metric!(yCoorArgminindegree_centrality_float_factory, :ycoorargminindegreecentrality)
 
-append_method!(bundle_float_imagegraph, meanoutdegree_centrality_float_factory, :meanoutdegreecentrality)
-append_method!(bundle_float_imagegraph, medianoutdegree_centrality_float_factory, :medianoutdegreecentrality)
-append_method!(bundle_float_imagegraph, minimumoutdegree_centrality_float_factory, :minimumoutdegreecentrality)
-append_method!(bundle_float_imagegraph, maximumoutdegree_centrality_float_factory, :maximumoutdegreecentrality)
-append_method!(bundle_float_imagegraph, stdoutdegree_centrality_float_factory, :stdoutdegreecentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxoutdegree_centrality_float_factory, :xcoorargmaxoutdegreecentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxoutdegree_centrality_float_factory, :ycoorargmaxoutdegreecentrality)
-append_method!(bundle_float_imagegraph, xCoorArgminoutdegree_centrality_float_factory, :xcoorargminoutdegreecentrality)
-append_method!(bundle_float_imagegraph, yCoorArgminoutdegree_centrality_float_factory, :ycoorargminoutdegreecentrality)
+append_image_graph_metric!(meanoutdegree_centrality_float_factory, :meanoutdegreecentrality)
+append_image_graph_metric!(medianoutdegree_centrality_float_factory, :medianoutdegreecentrality)
+append_image_graph_metric!(minimumoutdegree_centrality_float_factory, :minimumoutdegreecentrality)
+append_image_graph_metric!(maximumoutdegree_centrality_float_factory, :maximumoutdegreecentrality)
+append_image_graph_metric!(stdoutdegree_centrality_float_factory, :stdoutdegreecentrality)
+append_image_graph_metric!(xCoorArgmaxoutdegree_centrality_float_factory, :xcoorargmaxoutdegreecentrality)
+append_image_graph_metric!(yCoorArgmaxoutdegree_centrality_float_factory, :ycoorargmaxoutdegreecentrality)
+append_image_graph_metric!(xCoorArgminoutdegree_centrality_float_factory, :xcoorargminoutdegreecentrality)
+append_image_graph_metric!(yCoorArgminoutdegree_centrality_float_factory, :ycoorargminoutdegreecentrality)
 
-append_method!(bundle_float_imagegraph, meaneigenvector_centrality_float_factory, :meaneigenvectorcentrality)
-append_method!(bundle_float_imagegraph, medianeigenvector_centrality_float_factory, :medianeigenvectorcentrality)
-append_method!(bundle_float_imagegraph, minimumeigenvector_centrality_float_factory, :minimumeigenvectorcentrality)
-append_method!(bundle_float_imagegraph, maximumeigenvector_centrality_float_factory, :maximumeigenvectorcentrality)
-append_method!(bundle_float_imagegraph, stdeigenvector_centrality_float_factory, :stdeigenvectorcentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxeigenvector_centrality_float_factory, :xcoorargmaxeigenvectorcentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxeigenvector_centrality_float_factory, :ycoorargmaxeigenvectorcentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmineigenvector_centrality_float_factory, :xcoorargmineigenvectorcentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmineigenvector_centrality_float_factory, :ycoorargmineigenvectorcentrality)
+append_image_graph_metric!(meaneigenvector_centrality_float_factory, :meaneigenvectorcentrality)
+append_image_graph_metric!(medianeigenvector_centrality_float_factory, :medianeigenvectorcentrality)
+append_image_graph_metric!(minimumeigenvector_centrality_float_factory, :minimumeigenvectorcentrality)
+append_image_graph_metric!(maximumeigenvector_centrality_float_factory, :maximumeigenvectorcentrality)
+append_image_graph_metric!(stdeigenvector_centrality_float_factory, :stdeigenvectorcentrality)
+append_image_graph_metric!(xCoorArgmaxeigenvector_centrality_float_factory, :xcoorargmaxeigenvectorcentrality)
+append_image_graph_metric!(yCoorArgmaxeigenvector_centrality_float_factory, :ycoorargmaxeigenvectorcentrality)
+append_image_graph_metric!(xCoorArgmineigenvector_centrality_float_factory, :xcoorargmineigenvectorcentrality)
+append_image_graph_metric!(yCoorArgmineigenvector_centrality_float_factory, :ycoorargmineigenvectorcentrality)
 
-append_method!(bundle_float_imagegraph, meanradiality_centrality_float_factory, :meanradialitycentrality)
-append_method!(bundle_float_imagegraph, medianradiality_centrality_float_factory, :medianradialitycentrality)
-append_method!(bundle_float_imagegraph, minimumradiality_centrality_float_factory, :minimumradialitycentrality)
-append_method!(bundle_float_imagegraph, maximumradiality_centrality_float_factory, :maximumradialitycentrality)
-append_method!(bundle_float_imagegraph, stdradiality_centrality_float_factory, :stdradialitycentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxradiality_centrality_float_factory, :xcoorargmaxradialitycentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxradiality_centrality_float_factory, :ycoorargmaxradialitycentrality)
-append_method!(bundle_float_imagegraph, xCoorArgminradiality_centrality_float_factory, :xcoorargminradialitycentrality)
-append_method!(bundle_float_imagegraph, yCoorArgminradiality_centrality_float_factory, :ycoorargminradialitycentrality)
+append_image_graph_metric!(meanradiality_centrality_float_factory, :meanradialitycentrality)
+append_image_graph_metric!(medianradiality_centrality_float_factory, :medianradialitycentrality)
+append_image_graph_metric!(minimumradiality_centrality_float_factory, :minimumradialitycentrality)
+append_image_graph_metric!(maximumradiality_centrality_float_factory, :maximumradialitycentrality)
+append_image_graph_metric!(stdradiality_centrality_float_factory, :stdradialitycentrality)
+append_image_graph_metric!(xCoorArgmaxradiality_centrality_float_factory, :xcoorargmaxradialitycentrality)
+append_image_graph_metric!(yCoorArgmaxradiality_centrality_float_factory, :ycoorargmaxradialitycentrality)
+append_image_graph_metric!(xCoorArgminradiality_centrality_float_factory, :xcoorargminradialitycentrality)
+append_image_graph_metric!(yCoorArgminradiality_centrality_float_factory, :ycoorargminradialitycentrality)
 
-append_method!(bundle_float_imagegraph, meanstress_centrality_float_factory, :meanstresscentrality)
-append_method!(bundle_float_imagegraph, medianstress_centrality_float_factory, :medianstresscentrality)
-append_method!(bundle_float_imagegraph, minimumstress_centrality_float_factory, :minimumstresscentrality)
-append_method!(bundle_float_imagegraph, maximumstress_centrality_float_factory, :maximumstresscentrality)
-append_method!(bundle_float_imagegraph, stdstress_centrality_float_factory, :stdstresscentrality)
-append_method!(bundle_float_imagegraph, xCoorArgmaxstress_centrality_float_factory, :xcoorargmaxstresscentrality)
-append_method!(bundle_float_imagegraph, yCoorArgmaxstress_centrality_float_factory, :ycoorargmaxstresscentrality)
-append_method!(bundle_float_imagegraph, xCoorArgminstress_centrality_float_factory, :xcoorargminstresscentrality)
-append_method!(bundle_float_imagegraph, yCoorArgminstress_centrality_float_factory, :ycoorargminstresscentrality)
+append_image_graph_metric!(meanstress_centrality_float_factory, :meanstresscentrality)
+append_image_graph_metric!(medianstress_centrality_float_factory, :medianstresscentrality)
+append_image_graph_metric!(minimumstress_centrality_float_factory, :minimumstresscentrality)
+append_image_graph_metric!(maximumstress_centrality_float_factory, :maximumstresscentrality)
+append_image_graph_metric!(stdstress_centrality_float_factory, :stdstresscentrality)
+append_image_graph_metric!(xCoorArgmaxstress_centrality_float_factory, :xcoorargmaxstresscentrality)
+append_image_graph_metric!(yCoorArgmaxstress_centrality_float_factory, :ycoorargmaxstresscentrality)
+append_image_graph_metric!(xCoorArgminstress_centrality_float_factory, :xcoorargminstresscentrality)
+append_image_graph_metric!(yCoorArgminstress_centrality_float_factory, :ycoorargminstresscentrality)
 
-append_method!(bundle_float_imagegraph, meanlocal_clustering_coefficient_float_factory, :meanclusteringcoefficient)
-append_method!(bundle_float_imagegraph, medianlocal_clustering_coefficient_float_factory, :medianclusteringcoefficient)
-append_method!(bundle_float_imagegraph, minimumlocal_clustering_coefficient_float_factory, :minimumclusteringcoefficient)
-append_method!(bundle_float_imagegraph, maximumlocal_clustering_coefficient_float_factory, :maximumclusteringcoefficient)
-append_method!(bundle_float_imagegraph, stdlocal_clustering_coefficient_float_factory, :stdclusteringcoefficient)
-append_method!(bundle_float_imagegraph, xCoorArgmaxlocal_clustering_coefficient_float_factory, :xcoorargmaxclusteringcoefficient)
-append_method!(bundle_float_imagegraph, yCoorArgmaxlocal_clustering_coefficient_float_factory, :ycoorargmaxclusteringcoefficient)
-append_method!(bundle_float_imagegraph, xCoorArgminlocal_clustering_coefficient_float_factory, :xcoorargminclusteringcoefficient)
-append_method!(bundle_float_imagegraph, yCoorArgminlocal_clustering_coefficient_float_factory, :ycoorargminclusteringcoefficient)
+append_image_graph_metric!(meanlocal_clustering_coefficient_float_factory, :meanclusteringcoefficient)
+append_image_graph_metric!(medianlocal_clustering_coefficient_float_factory, :medianclusteringcoefficient)
+append_image_graph_metric!(minimumlocal_clustering_coefficient_float_factory, :minimumclusteringcoefficient)
+append_image_graph_metric!(maximumlocal_clustering_coefficient_float_factory, :maximumclusteringcoefficient)
+append_image_graph_metric!(stdlocal_clustering_coefficient_float_factory, :stdclusteringcoefficient)
+append_image_graph_metric!(xCoorArgmaxlocal_clustering_coefficient_float_factory, :xcoorargmaxclusteringcoefficient)
+append_image_graph_metric!(yCoorArgmaxlocal_clustering_coefficient_float_factory, :ycoorargmaxclusteringcoefficient)
+append_image_graph_metric!(xCoorArgminlocal_clustering_coefficient_float_factory, :xcoorargminclusteringcoefficient)
+append_image_graph_metric!(yCoorArgminlocal_clustering_coefficient_float_factory, :ycoorargminclusteringcoefficient)
 
-append_method!(bundle_float_imagegraph, meantriangles_float_factory, :meantriangles)
-append_method!(bundle_float_imagegraph, mediantriangles_float_factory, :mediantriangles)
-append_method!(bundle_float_imagegraph, minimumtriangles_float_factory, :minimumtriangles)
-append_method!(bundle_float_imagegraph, maximumtriangles_float_factory, :maximumtriangles)
-append_method!(bundle_float_imagegraph, stdtriangles_float_factory, :stdtriangles)
-append_method!(bundle_float_imagegraph, xCoorArgmaxtriangles_float_factory, :xcoorargmaxtriangles)
-append_method!(bundle_float_imagegraph, yCoorArgmaxtriangles_float_factory, :ycoorargmaxtriangles)
-append_method!(bundle_float_imagegraph, xCoorArgmintriangles_float_factory, :xcoorargmintriangles)
-append_method!(bundle_float_imagegraph, yCoorArgmintriangles_float_factory, :ycoorargmintriangles)
+append_image_graph_metric!(meantriangles_float_factory, :meantriangles)
+append_image_graph_metric!(mediantriangles_float_factory, :mediantriangles)
+append_image_graph_metric!(minimumtriangles_float_factory, :minimumtriangles)
+append_image_graph_metric!(maximumtriangles_float_factory, :maximumtriangles)
+append_image_graph_metric!(stdtriangles_float_factory, :stdtriangles)
+append_image_graph_metric!(xCoorArgmaxtriangles_float_factory, :xcoorargmaxtriangles)
+append_image_graph_metric!(yCoorArgmaxtriangles_float_factory, :ycoorargmaxtriangles)
+append_image_graph_metric!(xCoorArgmintriangles_float_factory, :xcoorargmintriangles)
+append_image_graph_metric!(yCoorArgmintriangles_float_factory, :ycoorargmintriangles)
 
-append_method!(bundle_float_imagegraph, meaneccentricity_float_factory, :meaneccentricity)
-append_method!(bundle_float_imagegraph, medianeccentricity_float_factory, :medianeccentricity)
-append_method!(bundle_float_imagegraph, minimumeccentricity_float_factory, :minimumeccentricity)
-append_method!(bundle_float_imagegraph, maximumeccentricity_float_factory, :maximumeccentricity)
-append_method!(bundle_float_imagegraph, stdeccentricity_float_factory, :stdeccentricity)
-append_method!(bundle_float_imagegraph, xCoorArgmaxeccentricity_float_factory, :xcoorargmaxeccentricity)
-append_method!(bundle_float_imagegraph, yCoorArgmaxeccentricity_float_factory, :ycoorargmaxeccentricity)
-append_method!(bundle_float_imagegraph, xCoorArgmineccentricity_float_factory, :xcoorargmineccentricity)
-append_method!(bundle_float_imagegraph, yCoorArgmineccentricity_float_factory, :ycoorargmineccentricity)
+append_image_graph_metric!(meaneccentricity_float_factory, :meaneccentricity)
+append_image_graph_metric!(medianeccentricity_float_factory, :medianeccentricity)
+append_image_graph_metric!(minimumeccentricity_float_factory, :minimumeccentricity)
+append_image_graph_metric!(maximumeccentricity_float_factory, :maximumeccentricity)
+append_image_graph_metric!(stdeccentricity_float_factory, :stdeccentricity)
+append_image_graph_metric!(xCoorArgmaxeccentricity_float_factory, :xcoorargmaxeccentricity)
+append_image_graph_metric!(yCoorArgmaxeccentricity_float_factory, :ycoorargmaxeccentricity)
+append_image_graph_metric!(xCoorArgmineccentricity_float_factory, :xcoorargmineccentricity)
+append_image_graph_metric!(yCoorArgmineccentricity_float_factory, :ycoorargmineccentricity)
 
 # COEFFS ---
-append_method!(bundle_float_imagegraph, assortativity_float_factory, :assortativity)
-append_method!(bundle_float_imagegraph, global_clustering_coefficient_float_factory, :clustering_coefficient)
-append_method!(bundle_float_imagegraph, diameter_float_factory, :diameter)
+append_image_graph_metric!(assortativity_float_factory, :assortativity)
+append_image_graph_metric!(global_clustering_coefficient_float_factory, :clustering_coefficient)
+append_image_graph_metric!(diameter_float_factory, :diameter)
 
 # COMMUNITIES ---
-append_method!(bundle_float_imagegraph, label_propagation_factory, :label_propagation)
+append_image_graph_metric!(label_propagation_factory, :label_propagation)
 
 end
 

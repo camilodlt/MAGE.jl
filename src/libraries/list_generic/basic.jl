@@ -75,12 +75,42 @@ reverse_list = reverse_list_factory(Any)
 # BUNDLES 
 
 bundle_listgeneric_basic = FunctionBundle(identity_list, new_list, new_list)
-append_method!(bundle_listgeneric_basic, identity_list, :identity_list)
-append_method!(bundle_listgeneric_basic, new_list, :new_list)
-append_method!(bundle_listgeneric_basic, reverse_list, :reverse_list)
+append_method!(
+    bundle_listgeneric_basic,
+    identity_list,
+    :identity_list;
+    description = "Returns the input list unchanged.",
+)
+append_method!(
+    bundle_listgeneric_basic,
+    new_list,
+    :new_list;
+    description = "Creates an empty list.",
+)
+append_method!(
+    bundle_listgeneric_basic,
+    reverse_list,
+    :reverse_list;
+    description = "Returns the input list in reverse order.",
+)
 
 bundle_listgeneric_basic_factory = FunctionBundle(identity_list, new_list, new_list)
-append_method!(bundle_listgeneric_basic_factory, identity_list_factory, :identity_list)
-append_method!(bundle_listgeneric_basic_factory, new_list_factory, :new_list)
-append_method!(bundle_listgeneric_basic_factory, reverse_list_factory, :reverse_list)
+append_method!(
+    bundle_listgeneric_basic_factory,
+    identity_list_factory,
+    :identity_list;
+    description = "Returns the input list unchanged.",
+)
+append_method!(
+    bundle_listgeneric_basic_factory,
+    new_list_factory,
+    :new_list;
+    description = "Creates an empty list.",
+)
+append_method!(
+    bundle_listgeneric_basic_factory,
+    reverse_list_factory,
+    :reverse_list;
+    description = "Returns the input list in reverse order.",
+)
 end

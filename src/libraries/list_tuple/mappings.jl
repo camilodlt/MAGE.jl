@@ -49,10 +49,19 @@ mappings_a_to_b = mappings_a_to_b_factory(Any)
 #########
 
 # Normal Bundle ---
-append_method!(bundle_listtuple_mappings, mappings_a_to_b, :mappings_a_to_b)
+append_method!(
+    bundle_listtuple_mappings,
+    mappings_a_to_b,
+    :mappings_a_to_b;
+    description = "Pairs elements from two vectors into a vector of tuples (a, b).",
+)
 
 # Factory rundle ---
-append_method!(bundle_listtuple_mappings_factory, mappings_a_to_b_factory, :mappings_a_to_b)
+append_method!(
+    bundle_listtuple_mappings_factory,
+    mappings_a_to_b_factory,
+    :mappings_a_to_b;
+    description = "Pairs elements from two vectors into a vector of tuples (a, b).",
+)
 
 end
-

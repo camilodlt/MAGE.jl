@@ -81,31 +81,43 @@ append_method!(
     bundle_listgeneric_makelist,
     make_list_from_one_element,
     :make_list_from_one_element,
+    ;
+    description = "Builds a one-element list from a single input value.",
 )
 append_method!(
     bundle_listgeneric_makelist,
     make_list_from_two_elements,
     :make_list_from_two_elements,
+    ;
+    description = "Builds a two-element list from two input values.",
 )
 append_method!(
     bundle_listgeneric_makelist,
     make_list_from_three_elements,
     :make_list_from_three_elements,
+    ;
+    description = "Builds a three-element list from three input values.",
 )
 
 append_method!(
     bundle_listgeneric_makelist_factory,
     make_list_from_one_element_factory,
     :make_list_from_one_element,
+    ;
+    description = "Builds a one-element list from a single input value.",
 )
 append_method!(
     bundle_listgeneric_makelist_factory,
     make_list_from_two_elements_factory,
     :make_list_from_two_elements,
+    ;
+    description = "Builds a two-element list from two input values.",
 )
 append_method!(
     bundle_listgeneric_makelist_factory,
     make_list_from_three_elements_factory,
     :make_list_from_three_elements,
+    ;
+    description = "Builds a three-element list from three input values.",
 )
 end

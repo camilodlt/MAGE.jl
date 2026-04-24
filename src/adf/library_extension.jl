@@ -12,21 +12,29 @@ Example: `registry.slots[21]` returns the mutable ADF slot registered at functio
 """
 mutable struct ADFRegistry
     slots::Dict{Int, ADFSlotFunction}
+    wrappers::Dict{Int, FunctionWrapper}
 end
 
-ADFRegistry() = ADFRegistry(Dict{Int, ADFSlotFunction}())
+ADFRegistry() = ADFRegistry(Dict{Int, ADFSlotFunction}(), Dict{Int, FunctionWrapper}())
 
 """
-    register_adf_slot!(registry, slot)
+    register_adf_slot!(registry, slot, wrapper)
 
 Record one ADF slot so replacement, usage checks, and serialization can find
-it by stable slot id.
+it by stable slot id. The wrapper is stored beside the slot so replacement can
+update the user-facing description without searching the function library.
 
-Example: `register_adf_slot!(registry, slot)` makes `registry.slots[slot.slot_id] === slot`.
+Example: `register_adf_slot!(registry, slot, wrapper)` makes `registry.wrappers[slot.slot_id] === wrapper`.
 """
-function register_adf_slot!(registry::ADFRegistry, slot::ADFSlotFunction)
+function register_adf_slot!(
+        registry::ADFRegistry,
+        slot::ADFSlotFunction,
+        wrapper::FunctionWrapper,
+    )
     @assert !haskey(registry.slots, slot.slot_id) "ADF slot $(slot.slot_id) is already registered"
+    @assert !haskey(registry.wrappers, slot.slot_id) "ADF wrapper $(slot.slot_id) is already registered"
     registry.slots[slot.slot_id] = slot
+    registry.wrappers[slot.slot_id] = wrapper
     return slot
 end
 
@@ -65,10 +73,16 @@ function extend_fn_lib_adf!(
             output_type,
             EmptyADFDefinition(),
         )
-        wrapper = FunctionWrapper(slot, slot.name, nothing, fallback)
+        wrapper = FunctionWrapper(
+            slot,
+            slot.name,
+            nothing,
+            fallback;
+            description = "Reserved ADF slot. Currently behaves like identity on its first input.",
+        )
         push!(bundle.functions, wrapper)
         push!(library.library, wrapper)
-        register_adf_slot!(registry, slot)
+        register_adf_slot!(registry, slot, wrapper)
         push!(added_slots, slot)
     end
 
@@ -111,6 +125,16 @@ function replace_adf_slot!(
     return slot
 end
 
+function update_adf_wrapper!(
+        wrapper::FunctionWrapper,
+        name::Symbol,
+        program::SequentialProgram,
+    )::FunctionWrapper
+    wrapper.name = name
+    wrapper.description = sequential_source(program)
+    return wrapper
+end
+
 """
     replace_adf_slot!(registry, slot_id, genome, shared_inputs, model_architecture, meta_library; name)
 
@@ -129,7 +153,8 @@ function replace_adf_slot!(
         name::Symbol = registry.slots[slot_id].name,
     )::ADFSlotFunction
     @assert haskey(registry.slots, slot_id) "ADF slot $slot_id is not registered"
-    return replace_adf_slot!(
+    @assert haskey(registry.wrappers, slot_id) "ADF wrapper $slot_id is not registered"
+    slot = replace_adf_slot!(
         registry.slots[slot_id],
         genome,
         shared_inputs,
@@ -137,4 +162,6 @@ function replace_adf_slot!(
         meta_library;
         name = name,
     )
+    update_adf_wrapper!(registry.wrappers[slot_id], name, slot.definition.sequential_program)
+    return slot
 end

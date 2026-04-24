@@ -394,24 +394,102 @@ end
 
 
 # Factory Methods
-append_method!(bundle_image2DIntensity_morph_factory, erosion_image2D_factory, :erosion_2D)
-append_method!(bundle_image2DIntensity_morph_factory, dilation_image2D_factory, :dilation_2D)
-append_method!(bundle_image2DIntensity_morph_factory, opening_image2D_factory, :opening_2D)
-append_method!(bundle_image2DIntensity_morph_factory, closing_image2D_factory, :closing_2D)
-append_method!(bundle_image2DIntensity_morph_factory, tophat_image2D_factory, :tophat_2D)
-append_method!(bundle_image2DIntensity_morph_factory, bothat_image2D_factory, :bothat_2D)
-append_method!(bundle_image2DIntensity_morph_factory, morphogradient_image2D_factory, :morphogradient_2D)
-append_method!(bundle_image2DIntensity_morph_factory, morpholaplace_image2D_factory, :morpholaplace_2D)
-# 
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    erosion_image2D_factory,
+    :erosion_2D;
+    description = "Applies morphological erosion to shrink bright regions.",
+)
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    dilation_image2D_factory,
+    :dilation_2D;
+    description = "Applies morphological dilation to expand bright regions.",
+)
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    opening_image2D_factory,
+    :opening_2D;
+    description = "Applies opening (erosion followed by dilation) to remove small bright noise.",
+)
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    closing_image2D_factory,
+    :closing_2D;
+    description = "Applies closing (dilation followed by erosion) to fill small dark gaps.",
+)
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    tophat_image2D_factory,
+    :tophat_2D;
+    description = "Computes top-hat transform to extract small bright structures.",
+)
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    bothat_image2D_factory,
+    :bothat_2D;
+    description = "Computes black-hat transform to extract small dark structures.",
+)
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    morphogradient_image2D_factory,
+    :morphogradient_2D;
+    description = "Computes morphological gradient to emphasize object boundaries.",
+)
+append_method!(
+    bundle_image2DIntensity_morph_factory,
+    morpholaplace_image2D_factory,
+    :morpholaplace_2D;
+    description = "Computes a morphological Laplace-style edge response.",
+)
 
-
-append_method!(bundle_image2DBinary_morph_factory, erosion_image2D_factory, :erosion_2D)
-append_method!(bundle_image2DBinary_morph_factory, dilation_image2D_factory, :dilation_2D)
-append_method!(bundle_image2DBinary_morph_factory, opening_image2D_factory, :opening_2D)
-append_method!(bundle_image2DBinary_morph_factory, closing_image2D_factory, :closing_2D)
-append_method!(bundle_image2DBinary_morph_factory, tophat_image2D_factory, :tophat_2D)
-append_method!(bundle_image2DBinary_morph_factory, bothat_image2D_factory, :bothat_2D)
-append_method!(bundle_image2DBinary_morph_factory, morphogradient_image2D_factory, :morphogradient_2D)
-append_method!(bundle_image2DBinary_morph_factory, morpholaplace_image2D_factory, :morpholaplace_2D)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    erosion_image2D_factory,
+    :erosion_2D;
+    description = "Applies morphological erosion to shrink bright regions.",
+)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    dilation_image2D_factory,
+    :dilation_2D;
+    description = "Applies morphological dilation to expand bright regions.",
+)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    opening_image2D_factory,
+    :opening_2D;
+    description = "Applies opening (erosion followed by dilation) to remove small bright noise.",
+)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    closing_image2D_factory,
+    :closing_2D;
+    description = "Applies closing (dilation followed by erosion) to fill small dark gaps.",
+)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    tophat_image2D_factory,
+    :tophat_2D;
+    description = "Computes top-hat transform to extract small bright structures.",
+)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    bothat_image2D_factory,
+    :bothat_2D;
+    description = "Computes black-hat transform to extract small dark structures.",
+)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    morphogradient_image2D_factory,
+    :morphogradient_2D;
+    description = "Computes morphological gradient to emphasize object boundaries.",
+)
+append_method!(
+    bundle_image2DBinary_morph_factory,
+    morpholaplace_image2D_factory,
+    :morpholaplace_2D;
+    description = "Computes a morphological Laplace-style edge response.",
+)
 
 end

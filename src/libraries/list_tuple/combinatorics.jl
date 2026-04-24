@@ -92,11 +92,18 @@ vector_of_combinations = vector_of_combinations_factory(Any)
 #########
 
 # Normal Bundle ---
-append_method!(bundle_listtuple_combinatorics, vector_of_products, :vector_of_products)
+append_method!(
+    bundle_listtuple_combinatorics,
+    vector_of_products,
+    :vector_of_products;
+    description = "Returns all ordered pair products from values in the input vector.",
+)
 append_method!(
     bundle_listtuple_combinatorics,
     vector_of_combinations,
     :vector_of_combinations,
+    ;
+    description = "Returns all size-2 combinations of elements from the input vector.",
 )
 
 # Factory rundle ---
@@ -104,11 +111,14 @@ append_method!(
     bundle_listtuple_combinatorics_factory,
     vector_of_products_factory,
     :vector_of_products,
+    ;
+    description = "Returns all ordered pair products from values in the input vector.",
 )
 append_method!(
     bundle_listtuple_combinatorics_factory,
     vector_of_combinations_factory,
     :vector_of_combinations,
+    ;
+    description = "Returns all size-2 combinations of elements from the input vector.",
 )
 end
-

@@ -93,84 +93,85 @@ function make_functions_with_op(property::Function)
     return Dispatchers, Names
 end
 
+function glcm_registration_description(name::Symbol)::String
+    name_parts = split(String(name), "_")
+    reducer_token = name_parts[end]
+    metric_token = join(name_parts[1:end-1], "_")
+
+    reducer_map = Dict(
+        "mean" => "mean",
+        "sum" => "sum",
+        "std" => "standard deviation",
+        "minimum" => "minimum",
+        "maximum" => "maximum",
+    )
+    metric_map = Dict(
+        "glcm_mean_ref" => "GLCM mean",
+        "glcm_var_ref" => "GLCM variance",
+        "glcm_correlation" => "GLCM correlation",
+        "glcm_contrast" => "GLCM contrast",
+        "glcm_IDM" => "GLCM inverse-difference-moment",
+        "glcm_ASM" => "GLCM angular-second-moment",
+        "glcm_glcm_entropy" => "GLCM entropy",
+        "glcm_max_prob" => "GLCM max-probability",
+        "glcm_energy" => "GLCM energy",
+        "glcm_dissimilarity" => "GLCM dissimilarity",
+    )
+
+    reducer_label = get(reducer_map, reducer_token, reducer_token)
+    metric_label = get(metric_map, metric_token, replace(metric_token, "_" => " "))
+    return "Computes $(metric_label) across angles [pi, 3pi/4, pi/2, pi/4], then applies $(reducer_label) reducer. Supports signatures (img), (img, matrix_size), and (img, distance, matrix_size)."
+end
+
+function append_glcm_functions!(functions, names)
+    for (fn, name) in zip(functions, names)
+        append_method!(
+            experimental_bundle_float_glcm_factory,
+            fn,
+            name;
+            description = glcm_registration_description(name),
+        )
+    end
+end
+
 # ADD Mean
 glcm_mean_ref_functions, glcm_mean_ref_names = make_functions_with_op(ImageFeatures.glcm_mean_ref)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_mean_ref_functions,
-    glcm_mean_ref_names,
-)
+append_glcm_functions!(glcm_mean_ref_functions, glcm_mean_ref_names)
 
 # ADD Var
 glcm_var_ref_functions, glcm_var_ref_names = make_functions_with_op(ImageFeatures.glcm_var_ref)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_var_ref_functions,
-    glcm_var_ref_names,
-)
+append_glcm_functions!(glcm_var_ref_functions, glcm_var_ref_names)
 
 # ADD corr
 glcm_corr_ref_functions, glcm_corr_ref_names = make_functions_with_op(ImageFeatures.correlation)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_corr_ref_functions,
-    glcm_corr_ref_names,
-)
+append_glcm_functions!(glcm_corr_ref_functions, glcm_corr_ref_names)
 
 # ADD contrast
 glcm_contrast_ref_functions, glcm_contrast_ref_names = make_functions_with_op(ImageFeatures.contrast)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_contrast_ref_functions,
-    glcm_contrast_ref_names,
-)
+append_glcm_functions!(glcm_contrast_ref_functions, glcm_contrast_ref_names)
 
 # ADD IDM
 glcm_idm_ref_functions, glcm_idm_ref_names = make_functions_with_op(ImageFeatures.IDM)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_idm_ref_functions,
-    glcm_idm_ref_names,
-)
+append_glcm_functions!(glcm_idm_ref_functions, glcm_idm_ref_names)
 
 # ADD ASM
 glcm_asm_ref_functions, glcm_asm_ref_names = make_functions_with_op(ImageFeatures.ASM)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_asm_ref_functions,
-    glcm_asm_ref_names,
-)
+append_glcm_functions!(glcm_asm_ref_functions, glcm_asm_ref_names)
 
 # ADD Entropy
 glcm_entropy_ref_functions, glcm_entropy_ref_names = make_functions_with_op(ImageFeatures.glcm_entropy)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_entropy_ref_functions,
-    glcm_entropy_ref_names,
-)
+append_glcm_functions!(glcm_entropy_ref_functions, glcm_entropy_ref_names)
 
 # ADD MAXPROB
 glcm_maxprob_ref_functions, glcm_maxprob_ref_names = make_functions_with_op(ImageFeatures.max_prob)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_maxprob_ref_functions,
-    glcm_maxprob_ref_names,
-)
+append_glcm_functions!(glcm_maxprob_ref_functions, glcm_maxprob_ref_names)
 
 # ADD Energy
 glcm_energy_ref_functions, glcm_energy_ref_names = make_functions_with_op(ImageFeatures.energy)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_energy_ref_functions,
-    glcm_energy_ref_names,
-)
+append_glcm_functions!(glcm_energy_ref_functions, glcm_energy_ref_names)
 
 # ADD DISSIMILARITY
 glcm_dissimilarity_ref_functions, glcm_dissimilarity_ref_names = make_functions_with_op(ImageFeatures.dissimilarity)
-append_method!.(
-    Ref(experimental_bundle_float_glcm_factory),
-    glcm_dissimilarity_ref_functions,
-    glcm_dissimilarity_ref_names,
-)
+append_glcm_functions!(glcm_dissimilarity_ref_functions, glcm_dissimilarity_ref_names)
 
 end

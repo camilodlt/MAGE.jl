@@ -83,7 +83,19 @@ function range_(max_n::Number, args...)
     return collect(1:max_n)
 end
 
-append_method!(bundle_listnumber_recursive, recsum)
-append_method!(bundle_listnumber_recursive, recmult)
-append_method!(bundle_listnumber_recursive, range_)
+append_method!(
+    bundle_listnumber_recursive,
+    recsum;
+    description = "Returns cumulative sums over the input numeric vector.",
+)
+append_method!(
+    bundle_listnumber_recursive,
+    recmult;
+    description = "Returns recursive multiplications starting from init_number and repeatedly multiplying by mult_by.",
+)
+append_method!(
+    bundle_listnumber_recursive,
+    range_;
+    description = "Returns the integer range from 1 to max_n (inclusive).",
+)
 end

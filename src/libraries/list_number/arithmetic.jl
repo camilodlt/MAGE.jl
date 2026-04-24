@@ -168,15 +168,47 @@ end
 
 
 # Broadcast
-append_method!(bundle_listnumber_arithmetic, sum_broadcast)
-append_method!(bundle_listnumber_arithmetic, subtract_broadcast)
-append_method!(bundle_listnumber_arithmetic, mult_broadcast)
-append_method!(bundle_listnumber_arithmetic, div_broadcast)
+append_method!(
+    bundle_listnumber_arithmetic,
+    sum_broadcast;
+    description = "Adds a scalar to every element of a numeric vector.",
+)
+append_method!(
+    bundle_listnumber_arithmetic,
+    subtract_broadcast;
+    description = "Subtracts a scalar from every element of a numeric vector.",
+)
+append_method!(
+    bundle_listnumber_arithmetic,
+    mult_broadcast;
+    description = "Multiplies every element of a numeric vector by a scalar.",
+)
+append_method!(
+    bundle_listnumber_arithmetic,
+    div_broadcast;
+    description = "Divides every element of a numeric vector by a scalar.",
+)
 
 # Vector (same size)
-append_method!(bundle_listnumber_arithmetic, sum_vector)
-append_method!(bundle_listnumber_arithmetic, subtract_vector)
-append_method!(bundle_listnumber_arithmetic, mult_vector)
-append_method!(bundle_listnumber_arithmetic, div_vector)
+append_method!(
+    bundle_listnumber_arithmetic,
+    sum_vector;
+    description = "Adds two numeric vectors elementwise.",
+)
+append_method!(
+    bundle_listnumber_arithmetic,
+    subtract_vector;
+    description = "Subtracts two numeric vectors elementwise.",
+)
+append_method!(
+    bundle_listnumber_arithmetic,
+    mult_vector;
+    description = "Multiplies two numeric vectors elementwise.",
+)
+append_method!(
+    bundle_listnumber_arithmetic,
+    div_vector;
+    description = "Divides two numeric vectors elementwise.",
+)
 
 end

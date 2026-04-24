@@ -32,5 +32,9 @@ function abs_vector(v::VECTORNUM, args...)
     return abs.(v)
 end
 
-append_method!(bundle_listnumber_algebraic, abs_vector)
+append_method!(
+    bundle_listnumber_algebraic,
+    abs_vector;
+    description = "Applies absolute value elementwise to a numeric vector.",
+)
 end

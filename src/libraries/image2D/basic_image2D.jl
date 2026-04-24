@@ -224,26 +224,111 @@ function experimental_tosegment_image2D_factory(i::Type{I}) where {I <: SizedIma
 end
 
 # Factory Intensity
-append_method!(bundle_image2DIntensity_basic_factory, identity_image2D_factory, :identity_image2D)
-append_method!(bundle_image2DIntensity_basic_factory, ones_2D_factory, :ones_2D)
-append_method!(bundle_image2DIntensity_basic_factory, zeros_2D_factory, :zeros_2D)
-append_method!(bundle_image2DIntensity_basic_factory, experimental_invert_image2D_factory, :experimental_invert_2D)
-append_method!(bundle_image2DIntensity_basic_factory, experimental_normalize_image2D_factory, :experimental_normalize_2D)
-append_method!(bundle_image2DIntensity_basic_factory, experimental_standardize_image2D_factory, :experimental_standardize_2D)
-append_method!(bundle_image2DIntensity_basic_factory, experimental_tointensity_image2D_factory, :experimental_tointensity_image2D)
+append_method!(
+    bundle_image2DIntensity_basic_factory,
+    identity_image2D_factory,
+    :identity_image2D;
+    description = "Returns the input image unchanged.",
+)
+append_method!(
+    bundle_image2DIntensity_basic_factory,
+    ones_2D_factory,
+    :ones_2D;
+    description = "Creates an image filled with ones, matching input shape.",
+)
+append_method!(
+    bundle_image2DIntensity_basic_factory,
+    zeros_2D_factory,
+    :zeros_2D;
+    description = "Creates an image filled with zeros, matching input shape.",
+)
+append_method!(
+    bundle_image2DIntensity_basic_factory,
+    experimental_invert_image2D_factory,
+    :experimental_invert_2D;
+    description = "Inverts image intensities with respect to the [0, 1] range.",
+)
+append_method!(
+    bundle_image2DIntensity_basic_factory,
+    experimental_normalize_image2D_factory,
+    :experimental_normalize_2D;
+    description = "Normalizes image values to the [0, 1] range.",
+)
+append_method!(
+    bundle_image2DIntensity_basic_factory,
+    experimental_standardize_image2D_factory,
+    :experimental_standardize_2D;
+    description = "Standardizes image values using mean and standard deviation.",
+)
+append_method!(
+    bundle_image2DIntensity_basic_factory,
+    experimental_tointensity_image2D_factory,
+    :experimental_tointensity_image2D;
+    description = "Converts binary or segment images to intensity image representation.",
+)
 
 # Factory Binary
-append_method!(bundle_image2DBinary_basic_factory, identity_image2D_factory, :identity_image2D)
-append_method!(bundle_image2DBinary_basic_factory, ones_2D_factory, :ones_2D)
-append_method!(bundle_image2DBinary_basic_factory, zeros_2D_factory, :zeros_2D)
-append_method!(bundle_image2DBinary_basic_factory, experimental_invert_image2D_factory, :experimental_invert_2D)
-append_method!(bundle_image2DBinary_basic_factory, experimental_tobinary_image2D_factory, :experimental_tobinary_image2D)
-append_method!(bundle_image2DBinary_basic_factory, experimental_tobinary_th_image2D_factory, :experimental_tobinary_th_image2D_factory)
+append_method!(
+    bundle_image2DBinary_basic_factory,
+    identity_image2D_factory,
+    :identity_image2D;
+    description = "Returns the input image unchanged.",
+)
+append_method!(
+    bundle_image2DBinary_basic_factory,
+    ones_2D_factory,
+    :ones_2D;
+    description = "Creates an image filled with ones, matching input shape.",
+)
+append_method!(
+    bundle_image2DBinary_basic_factory,
+    zeros_2D_factory,
+    :zeros_2D;
+    description = "Creates an image filled with zeros, matching input shape.",
+)
+append_method!(
+    bundle_image2DBinary_basic_factory,
+    experimental_invert_image2D_factory,
+    :experimental_invert_2D;
+    description = "Inverts image intensities with respect to the [0, 1] range.",
+)
+append_method!(
+    bundle_image2DBinary_basic_factory,
+    experimental_tobinary_image2D_factory,
+    :experimental_tobinary_image2D;
+    description = "Converts an intensity image to binary using default thresholding.",
+)
+append_method!(
+    bundle_image2DBinary_basic_factory,
+    experimental_tobinary_th_image2D_factory,
+    :experimental_tobinary_th_image2D_factory;
+    description = "Converts an intensity image to binary using a provided threshold.",
+)
 
 # Factory Segment
-append_method!(bundle_image2DSegment_basic_factory, identity_image2D_factory, :identity_image2D)
-append_method!(bundle_image2DSegment_basic_factory, ones_2D_factory, :ones_2D)
-append_method!(bundle_image2DSegment_basic_factory, zeros_2D_factory, :zeros_2D)
-append_method!(bundle_image2DSegment_basic_factory, experimental_tosegment_image2D_factory, :experimental_tosegment_image2D)
+append_method!(
+    bundle_image2DSegment_basic_factory,
+    identity_image2D_factory,
+    :identity_image2D;
+    description = "Returns the input image unchanged.",
+)
+append_method!(
+    bundle_image2DSegment_basic_factory,
+    ones_2D_factory,
+    :ones_2D;
+    description = "Creates an image filled with ones, matching input shape.",
+)
+append_method!(
+    bundle_image2DSegment_basic_factory,
+    zeros_2D_factory,
+    :zeros_2D;
+    description = "Creates an image filled with zeros, matching input shape.",
+)
+append_method!(
+    bundle_image2DSegment_basic_factory,
+    experimental_tosegment_image2D_factory,
+    :experimental_tosegment_image2D;
+    description = "Converts a binary image to segment image representation.",
+)
 
 end

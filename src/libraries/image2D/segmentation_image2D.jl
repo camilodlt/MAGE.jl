@@ -311,12 +311,16 @@ append_method!(
     bundle_image2DSegment_segmentation_factory,
     fastscanning_image2D_factory,
     :fastscanning_image2D,
+    ;
+    description = "Segments the image using a fast scanning region-labeling strategy.",
 )
 
 append_method!(
     bundle_image2DSegment_segmentation_factory,
     watershed_image2D_factory,
     :watershed_image2D,
+    ;
+    description = "Segments the image using watershed transform over intensity topology.",
 )
 
 end

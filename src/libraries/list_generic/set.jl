@@ -97,21 +97,44 @@ intersect_with_duplicates = intersect_with_duplicates_factory(Any)
 # Append #
 ##########
 
-append_method!(bundle_listgeneric_set, intersect_, :intersect_)
-append_method!(bundle_listgeneric_set, left_join, :left_join)
+append_method!(
+    bundle_listgeneric_set,
+    intersect_,
+    :intersect_;
+    description = "Returns the intersection of two input lists.",
+)
+append_method!(
+    bundle_listgeneric_set,
+    left_join,
+    :left_join;
+    description = "Returns elements from the first list that also match elements in the second list.",
+)
 append_method!(
     bundle_listgeneric_set,
     intersect_with_duplicates,
     :intersect_with_duplicates,
+    ;
+    description = "Returns intersection values while preserving duplicate matches.",
 )
 
-append_method!(bundle_listgeneric_set_factory, intersect_factory, :intersect)
-append_method!(bundle_listgeneric_set_factory, left_join_factory, :left_join)
+append_method!(
+    bundle_listgeneric_set_factory,
+    intersect_factory,
+    :intersect;
+    description = "Returns the intersection of two input lists.",
+)
+append_method!(
+    bundle_listgeneric_set_factory,
+    left_join_factory,
+    :left_join;
+    description = "Returns elements from the first list that also match elements in the second list.",
+)
 append_method!(
     bundle_listgeneric_set_factory,
     intersect_with_duplicates_factory,
     :intersect_with_duplicates_factory,
+    ;
+    description = "Returns intersection values while preserving duplicate matches.",
 )
 
 end
-

@@ -76,6 +76,14 @@ function zeros_(n::Int, args...)
     return zeros(n)
 end
 
-append_method!(bundle_listnumber_basic, ones_)
-append_method!(bundle_listnumber_basic, zeros_)
+append_method!(
+    bundle_listnumber_basic,
+    ones_;
+    description = "Supports both signatures ones_(vector) and ones_(n), returning a vector of ones.",
+)
+append_method!(
+    bundle_listnumber_basic,
+    zeros_;
+    description = "Supports both signatures zeros_(vector) and zeros_(n), returning a vector of zeros.",
+)
 end

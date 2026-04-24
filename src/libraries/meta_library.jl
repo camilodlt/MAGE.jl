@@ -199,6 +199,54 @@ function list_functions_names(
     return identity.(names)
 end
 
+function _fn_table_escape_cell(text::AbstractString)::String
+    clean = replace(String(text), "\r\n" => "\n")
+    clean = replace(clean, '\r' => '\n')
+    clean = strip(clean)
+    clean = replace(clean, "|" => "\\|")
+    clean = replace(clean, "\n" => "<br>")
+    return clean
+end
+
+function _fn_table_markdown(library::AbstractLibrary)::String
+    lines = String[
+        "| Fn | Description |",
+        "| --- | --- |",
+    ]
+    for fn in library
+        name_cell = _fn_table_escape_cell(String(fn.name))
+        desc_cell = _fn_table_escape_cell(fn.description)
+        push!(lines, "| $(name_cell) | $(desc_cell) |")
+    end
+    return join(lines, "\n")
+end
+
+"""
+    print_function_table(library::AbstractLibrary)
+
+Prints a markdown table with two columns:
+- `Fn`
+- `Description`
+"""
+function print_function_table(library::AbstractLibrary)
+    table_md = _fn_table_markdown(library)
+    println(table_md)
+    return nothing
+end
+
+"""
+    write_function_table(library::AbstractLibrary, path::AbstractString)
+
+Writes a markdown table (`Fn | Description`) to `path`.
+"""
+function write_function_table(library::AbstractLibrary, path::AbstractString)
+    table_md = _fn_table_markdown(library)
+    open(path, "w") do io
+        write(io, table_md * "\n")
+    end
+    return path
+end
+
 ####################
 # METALIBRARY
 ####################
@@ -256,6 +304,38 @@ function list_functions_names(meta_library::MetaLibrary)::Vector{Vector{String}}
         push!(names_, list_functions_names(lib))
     end
     return names_
+end
+
+"""
+    print_function_table(meta_library::AbstractMetaLibrary)
+
+Prints one markdown function table per library in the MetaLibrary.
+"""
+function print_function_table(meta_library::AbstractMetaLibrary)
+    for (idx, lib) in enumerate(meta_library.libraries)
+        println("## Library $(idx)")
+        print_function_table(lib)
+        idx < length(meta_library.libraries) && println()
+    end
+    return nothing
+end
+
+"""
+    write_function_table(meta_library::AbstractMetaLibrary, path::AbstractString)
+
+Writes one markdown function table per library in the MetaLibrary to `path`.
+"""
+function write_function_table(meta_library::AbstractMetaLibrary, path::AbstractString)
+    lines = String[]
+    for (idx, lib) in enumerate(meta_library.libraries)
+        push!(lines, "## Library $(idx)")
+        push!(lines, _fn_table_markdown(lib))
+        idx < length(meta_library.libraries) && push!(lines, "")
+    end
+    open(path, "w") do io
+        write(io, join(lines, "\n") * "\n")
+    end
+    return path
 end
 
 

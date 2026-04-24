@@ -173,17 +173,66 @@ function min_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
 end
 
 # Factory Methods
-append_method!(bundle_image2DBinary_arithmetic_factory, subtract_image2D_factory, :subtract_img2D)
-append_method!(bundle_image2DBinary_arithmetic_factory, add_image2D_factory, :add_img2D)
-append_method!(bundle_image2DBinary_arithmetic_factory, mult_image2D_factory, :mult_img2D)
-append_method!(bundle_image2DBinary_arithmetic_factory, max_image2D_factory, :max_img2D)
-append_method!(bundle_image2DBinary_arithmetic_factory, min_image2D_factory, :min_img2D)
+append_method!(
+    bundle_image2DBinary_arithmetic_factory,
+    subtract_image2D_factory,
+    :subtract_img2D;
+    description = "Subtracts two images elementwise.",
+)
+append_method!(
+    bundle_image2DBinary_arithmetic_factory,
+    add_image2D_factory,
+    :add_img2D;
+    description = "Adds two images elementwise.",
+)
+append_method!(
+    bundle_image2DBinary_arithmetic_factory,
+    mult_image2D_factory,
+    :mult_img2D;
+    description = "Multiplies two images elementwise.",
+)
+append_method!(
+    bundle_image2DBinary_arithmetic_factory,
+    max_image2D_factory,
+    :max_img2D;
+    description = "Computes elementwise maximum between two images.",
+)
+append_method!(
+    bundle_image2DBinary_arithmetic_factory,
+    min_image2D_factory,
+    :min_img2D;
+    description = "Computes elementwise minimum between two images.",
+)
 
-append_method!(bundle_image2DIntensity_arithmetic_factory , subtract_image2D_factory, :subtract_img2D)
-append_method!(bundle_image2DIntensity_arithmetic_factory , add_image2D_factory, :add_img2D)
-append_method!(bundle_image2DIntensity_arithmetic_factory , mult_image2D_factory, :mult_img2D)
-append_method!(bundle_image2DIntensity_arithmetic_factory , max_image2D_factory, :max_img2D)
-append_method!(bundle_image2DIntensity_arithmetic_factory , min_image2D_factory, :min_img2D)
+append_method!(
+    bundle_image2DIntensity_arithmetic_factory,
+    subtract_image2D_factory,
+    :subtract_img2D;
+    description = "Subtracts two images elementwise.",
+)
+append_method!(
+    bundle_image2DIntensity_arithmetic_factory,
+    add_image2D_factory,
+    :add_img2D;
+    description = "Adds two images elementwise.",
+)
+append_method!(
+    bundle_image2DIntensity_arithmetic_factory,
+    mult_image2D_factory,
+    :mult_img2D;
+    description = "Multiplies two images elementwise.",
+)
+append_method!(
+    bundle_image2DIntensity_arithmetic_factory,
+    max_image2D_factory,
+    :max_img2D;
+    description = "Computes elementwise maximum between two images.",
+)
+append_method!(
+    bundle_image2DIntensity_arithmetic_factory,
+    min_image2D_factory,
+    :min_img2D;
+    description = "Computes elementwise minimum between two images.",
+)
 
 end
-

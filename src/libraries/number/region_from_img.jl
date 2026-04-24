@@ -59,8 +59,13 @@ function _region_half_size_from_percent(from::SImageND, pct::Float64)
     return fld(kernel_size - 1, 2)
 end
 
-function _region_entropy_impl(from::SImageND, cx::Number, cy::Number)
-    patch = vec(Float64.(collect(_region_window(from, cx, cy, _REGION_HALF_SIZE))))
+function _region_entropy_impl(
+        from::SImageND,
+        cx::Number,
+        cy::Number;
+        half_size::Int = _REGION_HALF_SIZE,
+    )
+    patch = vec(Float64.(collect(_region_window(from, cx, cy, half_size))))
     isempty(patch) && return 0.0
     minv = minimum(patch)
     maxv = maximum(patch)
@@ -280,7 +285,8 @@ for (suffix, pct) in _REGION_PERCENT_SCALES
         end
 
         function $entropy_name(from::SImageND{S,T,2,C}, cx::Number, cy::Number, args...) where {S,T<:Union{IntensityPixel,BinaryPixel,SegmentPixel},C}
-            return _region_entropy_impl(from, cx, cy)
+            half_size = _region_half_size_from_percent(from, $pct)
+            return _region_entropy_impl(from, cx, cy; half_size = half_size)
         end
     end
 end

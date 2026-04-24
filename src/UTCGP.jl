@@ -137,6 +137,8 @@ module UTCGP
     export add_bundle_to_library!
     export unpack_bundles_in_library!
     export list_functions_names
+    export print_function_table
+    export write_function_table
     export update_caster!
     export update_fallback!
 
@@ -606,10 +608,16 @@ module UTCGP
     include("adf/genome_flatten.jl")
     include("adf/serialization.jl")
     export ADFRegistry, ADFSlotFunction, EmptyADFDefinition, ActiveADFDefinition
+    export SavedADFRef, SavedADFDefinition, SavedADFEnvironment
+    export SavedIndividualWithADFEnvironment
     export extend_fn_lib_adf!, replace_adf_slot!, adf_is_empty
     export direct_adf_usage, recursive_adf_dependencies, can_replace_adf_slot
     export flatten_adfs
     export adf_source, adf_sources
+    export saved_adf_ref, saved_adf_definition, saved_adf_environment
+    export saved_individual_with_adfs, saved_adf_dependency_order
+    export save_adf_environment, load_adf_environment
+    export save_individual_with_adfs, load_individual_with_adfs
 
     # EXT
     #include("libraries/float/MAGE_RADIOMICS.jl")

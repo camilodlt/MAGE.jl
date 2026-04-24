@@ -510,21 +510,29 @@ append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeAdaptive_image2D_factory,
     :binarize_adaptive2D,
+    ;
+    description = "Binarizes image with adaptive local thresholding.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeNiblack_image2D_factory,
     :binarize_niblack2D,
+    ;
+    description = "Binarizes image using Niblack local thresholding.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizePolysegment_image2D_factory,
     :binarize_polysegment2D,
+    ;
+    description = "Binarizes image using polysegment thresholding.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeSauvola_image2D_factory,
     :binarize_sauvola2D,
+    ;
+    description = "Binarizes image using Sauvola local thresholding.",
 )
 
 # HISTOGRAM
@@ -532,50 +540,70 @@ append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeOtsu_image2D_factory,
     :binarize_otsu2D,
+    ;
+    description = "Binarizes image using Otsu histogram threshold.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeMinimumintermodes_image2D_factory,
     :binarize_minimumintermodes2D,
+    ;
+    description = "Binarizes image using minimum-intermodes histogram threshold.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeIntermodes_image2D_factory,
     :binarize_intermodes2D,
+    ;
+    description = "Binarizes image using intermodes histogram threshold.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeMinimumError_image2D_factory,
     :binarize_minimumerror2D,
+    ;
+    description = "Binarizes image using minimum-error threshold estimation.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeMoments_image2D_factory,
     :binarize_moments2D,
+    ;
+    description = "Binarizes image using moments-based histogram threshold.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeUnimodalRosin_image2D_factory,
     :binarize_unimodalrosin2D,
+    ;
+    description = "Binarizes image using unimodal Rosin threshold.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeEntropy_image2D_factory,
     :binarize_entropy2D,
+    ;
+    description = "Binarizes image using entropy-based thresholding.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeBalanced_image2D_factory,
     :binarize_balanced2D,
+    ;
+    description = "Binarizes image using balanced histogram thresholding.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeYen_image2D_factory,
     :binarize_yen2D,
+    ;
+    description = "Binarizes image using Yen thresholding method.",
 )
 append_method!(
     bundle_image2DBinary_binarize_factory,
     binarizeManual_image2D_factory,
     :binarize_manual2D,
+    ;
+    description = "Binarizes image using user-controlled manual threshold parameters.",
 )
 end
