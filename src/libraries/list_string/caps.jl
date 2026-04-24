@@ -49,6 +49,14 @@ function uppercasefirst_list_string(strings::Vector{String}, args...)::Vector{St
     return uppercasefirst.(strings)
 end
 
-append_method!(bundle_liststring_caps, capitalize_list_string)
-append_method!(bundle_liststring_caps, uppercasefirst_list_string)
+append_method!(
+    bundle_liststring_caps,
+    capitalize_list_string;
+    description = "Applies title case to each string in the input vector.",
+)
+append_method!(
+    bundle_liststring_caps,
+    uppercasefirst_list_string;
+    description = "Uppercases the first character of each string in the input vector.",
+)
 end

@@ -8,9 +8,13 @@ mutable struct ModularLibrary <: AbstractLibrary
     end
 end
 
-function add_to_library!(mod_lib::ModularLibrary, mod_fn::ModularFunction)
+function add_to_library!(
+        mod_lib::ModularLibrary,
+        mod_fn::ModularFunction,
+        description::AbstractString,
+    )
     @warn "No caster or callback"
-    fw = FunctionWrapper(mod_fn, mod_fn.name, nothing, () -> nothing)
+    fw = FunctionWrapper(mod_fn, mod_fn.name, nothing, () -> nothing; description = description)
     push!(mod_lib.library, fw)
     new_idx = length(mod_lib.library)
     mod_lib.name_to_index[mod_fn.name] = new_idx

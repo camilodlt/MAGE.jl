@@ -126,9 +126,20 @@ append_method!(
     bundle_image2DIntensity_barithmetic_factory,
     bsubtract_image2D_factory,
     :bsubtract_image2D,
+    ;
+    description = "Subtracts a scalar from every pixel of the image.",
 )
-append_method!(bundle_image2DIntensity_barithmetic_factory, badd_image2D_factory, :badd_image2D)
-append_method!(bundle_image2DIntensity_barithmetic_factory, bmult_image2D_factory, :bmult_image2D)
+append_method!(
+    bundle_image2DIntensity_barithmetic_factory,
+    badd_image2D_factory,
+    :badd_image2D;
+    description = "Adds a scalar to every pixel of the image.",
+)
+append_method!(
+    bundle_image2DIntensity_barithmetic_factory,
+    bmult_image2D_factory,
+    :bmult_image2D;
+    description = "Multiplies every pixel of the image by a scalar.",
+)
 
 end
-

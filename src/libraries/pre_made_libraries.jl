@@ -63,7 +63,13 @@ function get_listinteger_bundles()
             fn = wrapper.fn(Int) # specialize
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
 
@@ -110,7 +116,13 @@ function get_listfloat_bundles()
             @show wrapper.name
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
     listfloat_bundles = [
@@ -154,7 +166,13 @@ function get_liststring_bundles()
             fn = wrapper.fn(String)
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
 
@@ -197,7 +215,13 @@ function get_list_int_tuples_bundles()
             fn = wrapper.fn(Int)
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
 
@@ -232,7 +256,13 @@ function get_list_string_tuples_bundles()
             fn = wrapper.fn(String)
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
 
@@ -260,7 +290,13 @@ function get_integer_bundles()
             fn = wrapper.fn(Int)
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
     integer_bundles = [
@@ -296,7 +332,13 @@ function get_float_bundles()
             fn = wrapper.fn(Float64)
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
 
@@ -354,7 +396,13 @@ function get_string_bundles()
             fn = wrapper.fn(String)
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
 
@@ -424,7 +472,13 @@ function get_float_bundles_atari()
             fn = wrapper.fn(Float64)
             # create a new wrapper in order to change the type
             factory_bundle.functions[i] =
-                FunctionWrapper(fn, wrapper.name, wrapper.caster, wrapper.fallback)
+                FunctionWrapper(
+                    fn,
+                    wrapper.name,
+                    wrapper.caster,
+                    wrapper.fallback;
+                    description = wrapper.description,
+                )
         end
     end
 

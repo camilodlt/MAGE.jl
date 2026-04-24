@@ -136,14 +136,30 @@ function powerof_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intensit
 end
 
 # Factory Methods
-append_method!(bundle_image2DIntensity_transcendental_factory, exp_image2D_factory, :exp_image2D)
-append_method!(bundle_image2DIntensity_transcendental_factory, loginv_image2D_factory, :loginv_image2D)
-append_method!(bundle_image2DIntensity_transcendental_factory, log_image2D_factory, :log_image2D)
+append_method!(
+    bundle_image2DIntensity_transcendental_factory,
+    exp_image2D_factory,
+    :exp_image2D;
+    description = "Applies exponential transform to each pixel.",
+)
+append_method!(
+    bundle_image2DIntensity_transcendental_factory,
+    loginv_image2D_factory,
+    :loginv_image2D;
+    description = "Applies logarithm to inverse-intensity transformed pixels.",
+)
+append_method!(
+    bundle_image2DIntensity_transcendental_factory,
+    log_image2D_factory,
+    :log_image2D;
+    description = "Applies logarithm transform to each pixel with safe clipping.",
+)
 append_method!(
     bundle_image2DIntensity_transcendental_factory,
     powerof_image2D_factory,
     :powerof_image2D,
+    ;
+    description = "Raises each pixel value to a provided exponent.",
 )
 
 end
-

@@ -174,6 +174,19 @@ function sequential_safe_identifier(name::Symbol)::Symbol
 end
 
 """
+    sequential_display_name(wrapper)
+
+Return the function name shown in generated source. Most functions use the
+immutable wrapper name created by the library, while mutable function-like
+objects can overload this hook when their human-readable name changes later.
+
+Example: a wrapper named `add` renders as `add`.
+"""
+function sequential_display_name(wrapper::FunctionWrapper)::Symbol
+    return sequential_safe_identifier(wrapper.name)
+end
+
+"""
     sequential_node_type(node, model_architecture)
 
 Resolve the declared type of a node using the same convention as decode/evaluate:
@@ -379,7 +392,7 @@ function append_body_steps!(
                 node_key,
                 node,
                 operation.fn,
-                sequential_safe_identifier(operation.fn.name),
+                sequential_display_name(operation.fn),
                 input_refs,
                 return_type,
                 sequential_return_type_policy(state, return_type),

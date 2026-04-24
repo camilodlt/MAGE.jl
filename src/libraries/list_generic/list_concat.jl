@@ -58,10 +58,17 @@ concat_two_lists = concat_two_lists_factory(Any)
 ##########
 # Append #
 ##########
-append_method!(bundle_listgeneric_concat, concat_two_lists, :concat_two_lists)
+append_method!(
+    bundle_listgeneric_concat,
+    concat_two_lists,
+    :concat_two_lists;
+    description = "Concatenates two input lists of compatible element type.",
+)
 append_method!(
     bundle_listgeneric_concat_factory,
     concat_two_lists_factory,
     :concat_two_lists,
+    ;
+    description = "Concatenates two input lists of compatible element type.",
 )
 end

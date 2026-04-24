@@ -62,8 +62,24 @@ function parse_string(s::String, args...)
     end
 end
 
-append_method!(bundle_bool_basic, identity_bool)
-append_method!(bundle_bool_basic, ret_true)
-append_method!(bundle_bool_basic, ret_false)
-append_method!(bundle_bool_basic, parse_string)
+append_method!(
+    bundle_bool_basic,
+    identity_bool;
+    description = "Returns the boolean input without modifying it.",
+)
+append_method!(
+    bundle_bool_basic,
+    ret_true;
+    description = "Always returns true, independent of the inputs.",
+)
+append_method!(
+    bundle_bool_basic,
+    ret_false;
+    description = "Always returns false, independent of the inputs.",
+)
+append_method!(
+    bundle_bool_basic,
+    parse_string;
+    description = "Parses a string as a Julia expression and checks whether it evaluates to true.",
+)
 end

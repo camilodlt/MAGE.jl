@@ -48,12 +48,40 @@ function orientation_spread(from::SImageND{S,T,2,C}, args...) where {S,T<:Intens
     return image2D_orientation_common._orientation_spread_value(from)
 end
 
-append_method!(bundle_float_orientation, orientation_coherence)
-append_method!(bundle_float_orientation, dominant_orientation)
-append_method!(bundle_float_orientation, orientation_energy_0)
-append_method!(bundle_float_orientation, orientation_energy_45)
-append_method!(bundle_float_orientation, orientation_energy_90)
-append_method!(bundle_float_orientation, orientation_energy_135)
-append_method!(bundle_float_orientation, orientation_spread)
+append_method!(
+    bundle_float_orientation,
+    orientation_coherence;
+    description = "Computes orientation coherence of the image gradient field.",
+)
+append_method!(
+    bundle_float_orientation,
+    dominant_orientation;
+    description = "Returns the strongest coarse orientation bin center among {0, π/4, π/2, 3π/4}, normalized by π.",
+)
+append_method!(
+    bundle_float_orientation,
+    orientation_energy_0;
+    description = "Returns orientation energy proportion near 0 degrees.",
+)
+append_method!(
+    bundle_float_orientation,
+    orientation_energy_45;
+    description = "Returns orientation energy proportion near 45 degrees.",
+)
+append_method!(
+    bundle_float_orientation,
+    orientation_energy_90;
+    description = "Returns orientation energy proportion near 90 degrees.",
+)
+append_method!(
+    bundle_float_orientation,
+    orientation_energy_135;
+    description = "Returns orientation energy proportion near 135 degrees.",
+)
+append_method!(
+    bundle_float_orientation,
+    orientation_spread;
+    description = "Measures how widely orientation energy is distributed across directions.",
+)
 
 end

@@ -124,20 +124,55 @@ the first value matched the element.
 replace_by_mapping = replace_by_mapping_factory(Any)
 
 # APPEND
-append_method!(bundle_listgeneric_utils, sort_list, :sort_list)
-append_method!(bundle_listgeneric_utils, append_to_list, :append_to_list)
-append_method!(bundle_listgeneric_utils, unique_in_list, :unique_in_list)
-append_method!(bundle_listgeneric_utils, replace_by_mapping, :replace_by_mapping)
+append_method!(
+    bundle_listgeneric_utils,
+    sort_list,
+    :sort_list;
+    description = "Sorts elements of the input list.",
+)
+append_method!(
+    bundle_listgeneric_utils,
+    append_to_list,
+    :append_to_list;
+    description = "Appends one element to the end of a list.",
+)
+append_method!(
+    bundle_listgeneric_utils,
+    unique_in_list,
+    :unique_in_list;
+    description = "Removes duplicate values from the input list.",
+)
+append_method!(
+    bundle_listgeneric_utils,
+    replace_by_mapping,
+    :replace_by_mapping;
+    description = "Replaces list values according to (from, to) mapping pairs.",
+)
 
-append_method!(bundle_listgeneric_utils_factory, sort_list_factory, :sort_list)
-append_method!(bundle_listgeneric_utils_factory, append_to_list_factory, :append_to_list)
-append_method!(bundle_listgeneric_utils_factory, unique_in_list_factory, :unique_in_list)
+append_method!(
+    bundle_listgeneric_utils_factory,
+    sort_list_factory,
+    :sort_list;
+    description = "Sorts elements of the input list.",
+)
+append_method!(
+    bundle_listgeneric_utils_factory,
+    append_to_list_factory,
+    :append_to_list;
+    description = "Appends one element to the end of a list.",
+)
+append_method!(
+    bundle_listgeneric_utils_factory,
+    unique_in_list_factory,
+    :unique_in_list;
+    description = "Removes duplicate values from the input list.",
+)
 append_method!(
     bundle_listgeneric_utils_factory,
     replace_by_mapping_factory,
     :replace_by_mapping,
+    ;
+    description = "Replaces list values according to (from, to) mapping pairs.",
 )
 
 end
-
-

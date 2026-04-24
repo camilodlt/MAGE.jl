@@ -51,7 +51,14 @@ function numbers_to_string(strings::Vector{<:Number}, args...)
 end
 
 # APPEND ---
-append_method!(bundle_liststring_broadcast, reverse_broadcast)
-append_method!(bundle_liststring_broadcast, numbers_to_string)
+append_method!(
+    bundle_liststring_broadcast,
+    reverse_broadcast;
+    description = "Reverses every string element in the input vector.",
+)
+append_method!(
+    bundle_liststring_broadcast,
+    numbers_to_string;
+    description = "Converts each numeric element of the input vector to a string.",
+)
 end
-

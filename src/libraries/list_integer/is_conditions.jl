@@ -341,27 +341,99 @@ function compare_two_vectors(v1::Vector{T}, v2::Vector{T}, args...) where {T}
     return Int.(v1 .== v2)
 end
 
-append_method!(bundle_listinteger_iscond, is_sup_0)
-append_method!(bundle_listinteger_iscond, is_eq_0)
-append_method!(bundle_listinteger_iscond, is_less_0)
-append_method!(bundle_listinteger_iscond, is_eq_to)
-append_method!(bundle_listinteger_iscond, compare_tuple_a_gr_b)
-append_method!(bundle_listinteger_iscond, compare_tuple_a_eq_b)
-append_method!(bundle_listinteger_iscond, compare_tuple_a_less_b)
-append_method!(bundle_listinteger_iscond, is_more_than_right)
-append_method!(bundle_listinteger_iscond, is_more_eq_than_right)
-append_method!(bundle_listinteger_iscond, is_eq_to_prev)
+append_method!(
+    bundle_listinteger_iscond,
+    is_sup_0;
+    description = "Returns a 0/1 mask indicating which vector elements are greater than zero.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    is_eq_0;
+    description = "Returns a 0/1 mask indicating which vector elements are equal to zero.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    is_less_0;
+    description = "Returns a 0/1 mask indicating which vector elements are less than zero.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    is_eq_to;
+    description = "Returns a 0/1 mask indicating which vector elements equal the provided scalar.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    compare_tuple_a_gr_b;
+    description = "For each numeric tuple (a, b), returns 1 when a > b, else 0.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    compare_tuple_a_eq_b;
+    description = "For each numeric tuple (a, b), returns 1 when a == b, else 0.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    compare_tuple_a_less_b;
+    description = "For each numeric tuple (a, b), returns 1 when a < b, else 0.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    is_more_than_right;
+    description = "Returns 1 where an element is strictly greater than all elements to its right.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    is_more_eq_than_right;
+    description = "Returns 1 where an element is greater than or equal to all elements to its right.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    is_eq_to_prev;
+    description = "Returns a 0/1 vector indicating whether each element equals its previous element.",
+)
 
-append_method!(bundle_listinteger_iscond, even_indices_mask)
-append_method!(bundle_listinteger_iscond, odd_indices_mask)
+append_method!(
+    bundle_listinteger_iscond,
+    even_indices_mask;
+    description = "Returns a 0/1 mask with 1 at even indices.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    odd_indices_mask;
+    description = "Returns a 0/1 mask with 1 at odd indices.",
+)
 
-append_method!(bundle_listinteger_iscond, mask)
-append_method!(bundle_listinteger_iscond, inverse_mask)
+append_method!(
+    bundle_listinteger_iscond,
+    mask;
+    description = "Applies an integer mask to keep values selected by mask entries equal to 1.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    inverse_mask;
+    description = "Applies the inverse of an integer mask, keeping values where mask entries are 0.",
+)
 
-append_method!(bundle_listinteger_iscond, greater_than_broadcast)
-append_method!(bundle_listinteger_iscond, less_than_broadcast)
-append_method!(bundle_listinteger_iscond, eq_broadcast)
+append_method!(
+    bundle_listinteger_iscond,
+    greater_than_broadcast;
+    description = "Compares each vector element to a scalar and returns a 0/1 greater-than mask.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    less_than_broadcast;
+    description = "Compares each vector element to a scalar and returns a 0/1 less-than mask.",
+)
+append_method!(
+    bundle_listinteger_iscond,
+    eq_broadcast;
+    description = "Compares each vector element to a scalar and returns a 0/1 equality mask.",
+)
 
 # COMPARE VECTORS
-append_method!(bundle_listinteger_iscond, compare_two_vectors)
+append_method!(
+    bundle_listinteger_iscond,
+    compare_two_vectors;
+    description = "Compares two vectors elementwise and returns a 0/1 equality mask.",
+)
 end

@@ -44,8 +44,26 @@ function relu_(x::T, args...) where {T <: Number}
     return ifelse(x > zero(T), x, zero(T))
 end
 
-append_method!(bundle_float_basic, identity_float)
-append_method!(bundle_float_basic, ret_1)
-append_method!(bundle_float_basic, tanh_, :tanh)
-append_method!(bundle_float_basic, relu_, :relu)
+append_method!(
+    bundle_float_basic,
+    identity_float;
+    description = "Returns the input Float64 value unchanged.",
+)
+append_method!(
+    bundle_float_basic,
+    ret_1;
+    description = "Returns the constant float value 1.0.",
+)
+append_method!(
+    bundle_float_basic,
+    tanh_,
+    :tanh;
+    description = "Applies hyperbolic tangent to a numeric input.",
+)
+append_method!(
+    bundle_float_basic,
+    relu_,
+    :relu;
+    description = "Applies ReLU by returning max(x, 0) for numeric inputs.",
+)
 end

@@ -507,87 +507,89 @@ moffat13_image2D_factory = moffat_factories(13)
 moffat25_image2D_factory = moffat_factories(25)
 
 # BUNDLE INTENSITY ---
-# X,Y,M kernels
-append_method!(bundle_image2DIntensity_filtering_factory, sobelx_image2D_factory, :sobelx_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, sobely_image2D_factory, :sobely_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, sobelm_image2D_factory, :sobelm_image2D)
-
-append_method!(bundle_image2DIntensity_filtering_factory, ando3x_image2D_factory, :ando3x_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando3y_image2D_factory, :ando3y_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando3m_image2D_factory, :ando3m_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando4x_image2D_factory, :ando4x_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando4y_image2D_factory, :ando4y_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando4m_image2D_factory, :ando4m_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando5x_image2D_factory, :ando5x_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando5y_image2D_factory, :ando5y_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, ando5m_image2D_factory, :ando5m_image2D)
-
-append_method!(bundle_image2DIntensity_filtering_factory, bickleyx_image2D_factory, :bickleyx_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, bickleyy_image2D_factory, :bickleyy_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, bickleym_image2D_factory, :bickleym_image2D)
-
-append_method!(bundle_image2DIntensity_filtering_factory, prewittx_image2D_factory, :prewittx_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, prewitty_image2D_factory, :prewitty_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, prewittm_image2D_factory, :prewittm_image2D)
-
-append_method!(bundle_image2DIntensity_filtering_factory, scharrx_image2D_factory, :scharrx_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, scharry_image2D_factory, :scharry_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, scharrm_image2D_factory, :scharrm_image2D)
-# ONE KERNEL
-append_method!(bundle_image2DIntensity_filtering_factory, gaussian5_image2D_factory, :gaussian5_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, gaussian9_image2D_factory, :gaussian9_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, gaussian13_image2D_factory, :gaussian13_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, gaussian17_image2D_factory, :gaussian17_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, gaussian25_image2D_factory, :gaussian25_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, laplacian3_image2D_factory, :laplacian3_image2D)
-# SPECIAL
-append_method!(bundle_image2DIntensity_filtering_factory, dog_factory, :dog_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, moffat5_image2D_factory, :moffat5_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, moffat13_image2D_factory, :moffat13_image2D)
-append_method!(bundle_image2DIntensity_filtering_factory, moffat25_image2D_factory, :moffat25_image2D)
-
+for (factory, name, description) in (
+    (sobelx_image2D_factory, :sobelx_image2D, "Applies Sobel X derivative filter."),
+    (sobely_image2D_factory, :sobely_image2D, "Applies Sobel Y derivative filter."),
+    (sobelm_image2D_factory, :sobelm_image2D, "Computes Sobel gradient magnitude response."),
+    (ando3x_image2D_factory, :ando3x_image2D, "Applies Ando order-3 X derivative filter."),
+    (ando3y_image2D_factory, :ando3y_image2D, "Applies Ando order-3 Y derivative filter."),
+    (ando3m_image2D_factory, :ando3m_image2D, "Computes Ando order-3 gradient magnitude response."),
+    (ando4x_image2D_factory, :ando4x_image2D, "Applies Ando order-4 X derivative filter."),
+    (ando4y_image2D_factory, :ando4y_image2D, "Applies Ando order-4 Y derivative filter."),
+    (ando4m_image2D_factory, :ando4m_image2D, "Computes Ando order-4 gradient magnitude response."),
+    (ando5x_image2D_factory, :ando5x_image2D, "Applies Ando order-5 X derivative filter."),
+    (ando5y_image2D_factory, :ando5y_image2D, "Applies Ando order-5 Y derivative filter."),
+    (ando5m_image2D_factory, :ando5m_image2D, "Computes Ando order-5 gradient magnitude response."),
+    (bickleyx_image2D_factory, :bickleyx_image2D, "Applies Bickley X derivative filter."),
+    (bickleyy_image2D_factory, :bickleyy_image2D, "Applies Bickley Y derivative filter."),
+    (bickleym_image2D_factory, :bickleym_image2D, "Computes Bickley gradient magnitude response."),
+    (prewittx_image2D_factory, :prewittx_image2D, "Applies Prewitt X derivative filter."),
+    (prewitty_image2D_factory, :prewitty_image2D, "Applies Prewitt Y derivative filter."),
+    (prewittm_image2D_factory, :prewittm_image2D, "Computes Prewitt gradient magnitude response."),
+    (scharrx_image2D_factory, :scharrx_image2D, "Applies Scharr X derivative filter."),
+    (scharry_image2D_factory, :scharry_image2D, "Applies Scharr Y derivative filter."),
+    (scharrm_image2D_factory, :scharrm_image2D, "Computes Scharr gradient magnitude response."),
+    (gaussian5_image2D_factory, :gaussian5_image2D, "Applies Gaussian smoothing with sigma 5."),
+    (gaussian9_image2D_factory, :gaussian9_image2D, "Applies Gaussian smoothing with sigma 9."),
+    (gaussian13_image2D_factory, :gaussian13_image2D, "Applies Gaussian smoothing with sigma 13."),
+    (gaussian17_image2D_factory, :gaussian17_image2D, "Applies Gaussian smoothing with sigma 17."),
+    (gaussian25_image2D_factory, :gaussian25_image2D, "Applies Gaussian smoothing with sigma 25."),
+    (laplacian3_image2D_factory, :laplacian3_image2D, "Applies Laplacian filter for second-order edge response."),
+    (dog_factory, :dog_image2D, "Applies Difference-of-Gaussians filtering."),
+    (moffat5_image2D_factory, :moffat5_image2D, "Applies Moffat smoothing filter with beta 5."),
+    (moffat13_image2D_factory, :moffat13_image2D, "Applies Moffat smoothing filter with beta 13."),
+    (moffat25_image2D_factory, :moffat25_image2D, "Applies Moffat smoothing filter with beta 25."),
+)
+    append_method!(
+        bundle_image2DIntensity_filtering_factory,
+        factory,
+        name;
+        description = description,
+    )
+end
 
 # BUNDLE BINARY ---
-append_method!(bundle_image2DBinary_filtering_factory, sobelx_image2D_factory, :sobelx_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, sobely_image2D_factory, :sobely_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, sobelm_image2D_factory, :sobelm_image2D)
-
-append_method!(bundle_image2DBinary_filtering_factory, ando3x_image2D_factory, :ando3x_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando3y_image2D_factory, :ando3y_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando3m_image2D_factory, :ando3m_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando4x_image2D_factory, :ando4x_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando4y_image2D_factory, :ando4y_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando4m_image2D_factory, :ando4m_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando5x_image2D_factory, :ando5x_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando5y_image2D_factory, :ando5y_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, ando5m_image2D_factory, :ando5m_image2D)
-
-append_method!(bundle_image2DBinary_filtering_factory, bickleyx_image2D_factory, :bickleyx_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, bickleyy_image2D_factory, :bickleyy_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, bickleym_image2D_factory, :bickleym_image2D)
-
-append_method!(bundle_image2DBinary_filtering_factory, prewittx_image2D_factory, :prewittx_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, prewitty_image2D_factory, :prewitty_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, prewittm_image2D_factory, :prewittm_image2D)
-
-append_method!(bundle_image2DBinary_filtering_factory, scharrx_image2D_factory, :scharrx_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, scharry_image2D_factory, :scharry_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, scharrm_image2D_factory, :scharrm_image2D)
-# ONE KERNEL
-append_method!(bundle_image2DBinary_filtering_factory, gaussian5_image2D_factory, :gaussian5_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, gaussian9_image2D_factory, :gaussian9_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, gaussian13_image2D_factory, :gaussian13_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, gaussian17_image2D_factory, :gaussian17_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, gaussian25_image2D_factory, :gaussian25_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, laplacian3_image2D_factory, :laplacian3_image2D)
-# SPECIAL
-append_method!(bundle_image2DBinary_filtering_factory, dog_factory, :dog_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, moffat5_image2D_factory, :moffat5_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, moffat13_image2D_factory, :moffat13_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, moffat25_image2D_factory, :moffat25_image2D)
-
-# EXTRAS
-append_method!(bundle_image2DBinary_filtering_factory, findlocalminima_factory, :findlocalminima_image2D)
-append_method!(bundle_image2DBinary_filtering_factory, findlocalmaxima_factory, :findlocalmaxima_image2D)
+for (factory, name, description) in (
+    (sobelx_image2D_factory, :sobelx_image2D, "Applies Sobel X derivative filter."),
+    (sobely_image2D_factory, :sobely_image2D, "Applies Sobel Y derivative filter."),
+    (sobelm_image2D_factory, :sobelm_image2D, "Computes Sobel gradient magnitude response."),
+    (ando3x_image2D_factory, :ando3x_image2D, "Applies Ando order-3 X derivative filter."),
+    (ando3y_image2D_factory, :ando3y_image2D, "Applies Ando order-3 Y derivative filter."),
+    (ando3m_image2D_factory, :ando3m_image2D, "Computes Ando order-3 gradient magnitude response."),
+    (ando4x_image2D_factory, :ando4x_image2D, "Applies Ando order-4 X derivative filter."),
+    (ando4y_image2D_factory, :ando4y_image2D, "Applies Ando order-4 Y derivative filter."),
+    (ando4m_image2D_factory, :ando4m_image2D, "Computes Ando order-4 gradient magnitude response."),
+    (ando5x_image2D_factory, :ando5x_image2D, "Applies Ando order-5 X derivative filter."),
+    (ando5y_image2D_factory, :ando5y_image2D, "Applies Ando order-5 Y derivative filter."),
+    (ando5m_image2D_factory, :ando5m_image2D, "Computes Ando order-5 gradient magnitude response."),
+    (bickleyx_image2D_factory, :bickleyx_image2D, "Applies Bickley X derivative filter."),
+    (bickleyy_image2D_factory, :bickleyy_image2D, "Applies Bickley Y derivative filter."),
+    (bickleym_image2D_factory, :bickleym_image2D, "Computes Bickley gradient magnitude response."),
+    (prewittx_image2D_factory, :prewittx_image2D, "Applies Prewitt X derivative filter."),
+    (prewitty_image2D_factory, :prewitty_image2D, "Applies Prewitt Y derivative filter."),
+    (prewittm_image2D_factory, :prewittm_image2D, "Computes Prewitt gradient magnitude response."),
+    (scharrx_image2D_factory, :scharrx_image2D, "Applies Scharr X derivative filter."),
+    (scharry_image2D_factory, :scharry_image2D, "Applies Scharr Y derivative filter."),
+    (scharrm_image2D_factory, :scharrm_image2D, "Computes Scharr gradient magnitude response."),
+    (gaussian5_image2D_factory, :gaussian5_image2D, "Applies Gaussian smoothing with sigma 5."),
+    (gaussian9_image2D_factory, :gaussian9_image2D, "Applies Gaussian smoothing with sigma 9."),
+    (gaussian13_image2D_factory, :gaussian13_image2D, "Applies Gaussian smoothing with sigma 13."),
+    (gaussian17_image2D_factory, :gaussian17_image2D, "Applies Gaussian smoothing with sigma 17."),
+    (gaussian25_image2D_factory, :gaussian25_image2D, "Applies Gaussian smoothing with sigma 25."),
+    (laplacian3_image2D_factory, :laplacian3_image2D, "Applies Laplacian filter for second-order edge response."),
+    (dog_factory, :dog_image2D, "Applies Difference-of-Gaussians filtering."),
+    (moffat5_image2D_factory, :moffat5_image2D, "Applies Moffat smoothing filter with beta 5."),
+    (moffat13_image2D_factory, :moffat13_image2D, "Applies Moffat smoothing filter with beta 13."),
+    (moffat25_image2D_factory, :moffat25_image2D, "Applies Moffat smoothing filter with beta 25."),
+    (findlocalminima_factory, :findlocalminima_image2D, "Marks local minima locations in the filtered image."),
+    (findlocalmaxima_factory, :findlocalmaxima_image2D, "Marks local maxima locations in the filtered image."),
+)
+    append_method!(
+        bundle_image2DBinary_filtering_factory,
+        factory,
+        name;
+        description = description,
+    )
+end
 
 end

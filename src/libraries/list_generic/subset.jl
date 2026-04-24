@@ -219,27 +219,50 @@ append_method!(
     bundle_listgeneric_subset,
     pick_from_inclusive_generic,
     :pick_from_inclusive_generic,
+    ;
+    description = "Keeps elements from a start index to the end, including the start position.",
 )
 append_method!(
     bundle_listgeneric_subset,
     pick_from_exclusive_generic,
     :pick_from_exclusive_generic,
+    ;
+    description = "Keeps elements after a start index, excluding the start position.",
 )
 append_method!(
     bundle_listgeneric_subset,
     pick_until_inclusive_generic,
     :pick_until_inclusive_generic,
+    ;
+    description = "Keeps elements from the beginning up to and including the end index.",
 )
 append_method!(
     bundle_listgeneric_subset,
     pick_until_exclusive_generic,
     :pick_until_exclusive_generic,
+    ;
+    description = "Keeps elements from the beginning up to but excluding the end index.",
 )
 # Subset Tuples
-append_method!(bundle_listgeneric_subset, subset_list_of_tuples, :subset_list_of_tuples)
+append_method!(
+    bundle_listgeneric_subset,
+    subset_list_of_tuples,
+    :subset_list_of_tuples;
+    description = "Selects tuple entries from a list of tuples using index constraints.",
+)
 # Subset mask & Indices
-append_method!(bundle_listgeneric_subset, subset_by_mask, :subset_by_mask)
-append_method!(bundle_listgeneric_subset, subset_by_indices, :subset_by_indices)
+append_method!(
+    bundle_listgeneric_subset,
+    subset_by_mask,
+    :subset_by_mask;
+    description = "Selects list elements where the corresponding mask entry is 1.",
+)
+append_method!(
+    bundle_listgeneric_subset,
+    subset_by_indices,
+    :subset_by_indices;
+    description = "Selects list elements at the provided indices.",
+)
 
 # FACTORY
 # Pick
@@ -247,34 +270,51 @@ append_method!(
     bundle_listgeneric_subset_factory,
     pick_from_inclusive_generic_factory,
     :pick_from_inclusive_generic,
+    ;
+    description = "Keeps elements from a start index to the end, including the start position.",
 )
 append_method!(
     bundle_listgeneric_subset_factory,
     pick_from_exclusive_generic_factory,
     :pick_from_exclusive_generic,
+    ;
+    description = "Keeps elements after a start index, excluding the start position.",
 )
 append_method!(
     bundle_listgeneric_subset_factory,
     pick_until_inclusive_generic_factory,
     :pick_until_inclusive_generic,
+    ;
+    description = "Keeps elements from the beginning up to and including the end index.",
 )
 append_method!(
     bundle_listgeneric_subset_factory,
     pick_until_exclusive_generic_factory,
     :pick_until_exclusive_generic,
+    ;
+    description = "Keeps elements from the beginning up to but excluding the end index.",
 )
 # Subset Tuples
 append_method!(
     bundle_listgeneric_subset_factory,
     subset_list_of_tuples_factory,
     :subset_list_of_tuples,
+    ;
+    description = "Selects tuple entries from a list of tuples using index constraints.",
 )
 # Subset mask & Indices
-append_method!(bundle_listgeneric_subset_factory, subset_by_mask_factory, :subset_by_mask)
+append_method!(
+    bundle_listgeneric_subset_factory,
+    subset_by_mask_factory,
+    :subset_by_mask;
+    description = "Selects list elements where the corresponding mask entry is 1.",
+)
 append_method!(
     bundle_listgeneric_subset_factory,
     subset_by_indices_factory,
     :subset_by_indices,
+    ;
+    description = "Selects list elements at the provided indices.",
 )
 
 end

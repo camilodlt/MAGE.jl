@@ -259,95 +259,64 @@ function minpool_cross_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage
     return f
 end
 
-append_method!(
+function _pool_blocks_description(name::Symbol)::String
+    if name === :avgpool_blocks
+        return "Pools each non-overlapping block by mean and broadcasts that value within the block."
+    elseif name === :avgpool_cross_blocks
+        return "Pools each non-overlapping block by averaging its center row and column."
+    elseif name === :maxpool_blocks
+        return "Pools each non-overlapping block by maximum and broadcasts that value within the block."
+    elseif name === :maxpool_cross_blocks
+        return "Pools each non-overlapping block by max over its center row and column."
+    elseif name === :minpool_blocks
+        return "Pools each non-overlapping block by minimum and broadcasts that value within the block."
+    elseif name === :minpool_cross_blocks
+        return "Pools each non-overlapping block by min over its center row and column."
+    end
+    return "Applies block-wise pooling to the input image."
+end
+
+for bundle in (
     bundle_image2DIntensity_pool_factory,
-    avgpool_blocks_image2D_factory,
-    :avgpool_blocks,
-)
-append_method!(
     bundle_image2DBinary_pool_factory,
-    avgpool_blocks_image2D_factory,
-    :avgpool_blocks,
-)
-append_method!(
     bundle_image2DSegment_pool_factory,
-    avgpool_blocks_image2D_factory,
-    :avgpool_blocks,
 )
-append_method!(
-    bundle_image2DIntensity_pool_factory,
-    avgpool_cross_blocks_image2D_factory,
-    :avgpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DBinary_pool_factory,
-    avgpool_cross_blocks_image2D_factory,
-    :avgpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DSegment_pool_factory,
-    avgpool_cross_blocks_image2D_factory,
-    :avgpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DIntensity_pool_factory,
-    maxpool_blocks_image2D_factory,
-    :maxpool_blocks,
-)
-append_method!(
-    bundle_image2DBinary_pool_factory,
-    maxpool_blocks_image2D_factory,
-    :maxpool_blocks,
-)
-append_method!(
-    bundle_image2DSegment_pool_factory,
-    maxpool_blocks_image2D_factory,
-    :maxpool_blocks,
-)
-append_method!(
-    bundle_image2DIntensity_pool_factory,
-    maxpool_cross_blocks_image2D_factory,
-    :maxpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DBinary_pool_factory,
-    maxpool_cross_blocks_image2D_factory,
-    :maxpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DSegment_pool_factory,
-    maxpool_cross_blocks_image2D_factory,
-    :maxpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DIntensity_pool_factory,
-    minpool_blocks_image2D_factory,
-    :minpool_blocks,
-)
-append_method!(
-    bundle_image2DBinary_pool_factory,
-    minpool_blocks_image2D_factory,
-    :minpool_blocks,
-)
-append_method!(
-    bundle_image2DSegment_pool_factory,
-    minpool_blocks_image2D_factory,
-    :minpool_blocks,
-)
-append_method!(
-    bundle_image2DIntensity_pool_factory,
-    minpool_cross_blocks_image2D_factory,
-    :minpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DBinary_pool_factory,
-    minpool_cross_blocks_image2D_factory,
-    :minpool_cross_blocks,
-)
-append_method!(
-    bundle_image2DSegment_pool_factory,
-    minpool_cross_blocks_image2D_factory,
-    :minpool_cross_blocks,
-)
+    append_method!(
+        bundle,
+        avgpool_blocks_image2D_factory,
+        :avgpool_blocks;
+        description = _pool_blocks_description(:avgpool_blocks),
+    )
+    append_method!(
+        bundle,
+        avgpool_cross_blocks_image2D_factory,
+        :avgpool_cross_blocks;
+        description = _pool_blocks_description(:avgpool_cross_blocks),
+    )
+    append_method!(
+        bundle,
+        maxpool_blocks_image2D_factory,
+        :maxpool_blocks;
+        description = _pool_blocks_description(:maxpool_blocks),
+    )
+    append_method!(
+        bundle,
+        maxpool_cross_blocks_image2D_factory,
+        :maxpool_cross_blocks;
+        description = _pool_blocks_description(:maxpool_cross_blocks),
+    )
+    append_method!(
+        bundle,
+        minpool_blocks_image2D_factory,
+        :minpool_blocks;
+        description = _pool_blocks_description(:minpool_blocks),
+    )
+    append_method!(
+        bundle,
+        minpool_cross_blocks_image2D_factory,
+        :minpool_cross_blocks;
+        description = _pool_blocks_description(:minpool_cross_blocks),
+    )
+end
 
 end

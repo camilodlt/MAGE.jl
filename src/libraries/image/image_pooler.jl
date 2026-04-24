@@ -244,6 +244,29 @@ without padding, then nearest-neighbor resized back to the original image size.
 iqrpool_image2D_factory(i::Type{I}) where {I<:SizedImage2D} =
     _make_pooler_factory(i, _iqr, :iqrpool)
 
+function _pooler_description(name::Symbol)::String
+    if name === :meanpool
+        return "Applies sliding-window mean pooling and resizes back to the original image size."
+    elseif name === :maxpool
+        return "Applies sliding-window max pooling and resizes back to the original image size."
+    elseif name === :minpool
+        return "Applies sliding-window min pooling and resizes back to the original image size."
+    elseif name === :stdpool
+        return "Applies sliding-window standard-deviation pooling and resizes back to the original image size."
+    elseif name === :medianpool
+        return "Applies sliding-window median pooling and resizes back to the original image size."
+    elseif name === :uniquecountpool
+        return "Applies sliding-window unique-count pooling and rescales values to [0, 1]."
+    elseif name === :argmaxcountpool
+        return "Applies sliding-window argmax-count pooling and rescales values to [0, 1]."
+    elseif name === :argmincountpool
+        return "Applies sliding-window argmin-count pooling and rescales values to [0, 1]."
+    elseif name === :iqrpool
+        return "Applies sliding-window interquartile-range pooling and resizes back to the original image size."
+    end
+    return "Applies sliding-window pooling and resizes the result to the original image size."
+end
+
 for (bundle, factory, name) in (
     (bundle_image2DIntensity_pooler_factory, meanpool_image2D_factory, :meanpool),
     (bundle_image2DBinary_pooler_factory, meanpool_image2D_factory, :meanpool),
@@ -273,7 +296,7 @@ for (bundle, factory, name) in (
     (bundle_image2DBinary_pooler_factory, iqrpool_image2D_factory, :iqrpool),
     (bundle_image2DSegment_pooler_factory, iqrpool_image2D_factory, :iqrpool),
 )
-    append_method!(bundle, factory, name)
+    append_method!(bundle, factory, name; description = _pooler_description(name))
 end
 
 end

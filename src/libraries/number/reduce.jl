@@ -108,11 +108,35 @@ function reduce_length(from::String, args...)
     return length(from)
 end
 
-append_method!(bundle_number_reduce, reduce_sum)
-append_method!(bundle_number_reduce, reduce_min)
-append_method!(bundle_number_reduce, reduce_max)
-append_method!(bundle_number_reduce, reduce_argmin)
-append_method!(bundle_number_reduce, reduce_argmax)
-append_method!(bundle_number_reduce, reduce_length)
+append_method!(
+    bundle_number_reduce,
+    reduce_sum;
+    description = "Returns the sum of numeric values in the input vector.",
+)
+append_method!(
+    bundle_number_reduce,
+    reduce_min;
+    description = "Returns the minimum numeric value found in the input vector.",
+)
+append_method!(
+    bundle_number_reduce,
+    reduce_max;
+    description = "Returns the maximum numeric value found in the input vector.",
+)
+append_method!(
+    bundle_number_reduce,
+    reduce_argmin;
+    description = "Returns the index of the minimum value in the input vector.",
+)
+append_method!(
+    bundle_number_reduce,
+    reduce_argmax;
+    description = "Returns the index of the maximum value in the input vector.",
+)
+append_method!(
+    bundle_number_reduce,
+    reduce_length;
+    description = "Returns length for both supported signatures: reduce_length(vector) and reduce_length(string).",
+)
 
 end

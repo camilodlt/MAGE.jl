@@ -50,7 +50,15 @@ function pick_last_element(vec::Vector{<:Any}, args...)
     return vec[end]
 end
 
-append_method!(bundle_element_pick, pick_element_from_vector)
-append_method!(bundle_element_pick, pick_last_element)
+append_method!(
+    bundle_element_pick,
+    pick_element_from_vector;
+    description = "Returns the element located at the requested index in the input vector.",
+)
+append_method!(
+    bundle_element_pick,
+    pick_last_element;
+    description = "Returns the last element of the input vector.",
+)
 
 end

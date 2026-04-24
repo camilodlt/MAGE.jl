@@ -38,6 +38,14 @@ function ret_1(args...)
     return 1
 end
 
-append_method!(bundle_integer_basic, identity_int)
-append_method!(bundle_integer_basic, ret_1)
+append_method!(
+    bundle_integer_basic,
+    identity_int;
+    description = "Returns the integer input unchanged.",
+)
+append_method!(
+    bundle_integer_basic,
+    ret_1;
+    description = "Returns the constant integer value 1.",
+)
 end

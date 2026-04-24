@@ -50,7 +50,19 @@ function number_to_string(num::Number, args...)
     return string(num)
 end
 
-append_method!(bundle_string_basic, identity_str)
-append_method!(bundle_string_basic, empty_string)
-append_method!(bundle_string_basic, number_to_string)
+append_method!(
+    bundle_string_basic,
+    identity_str;
+    description = "Returns the input string unchanged.",
+)
+append_method!(
+    bundle_string_basic,
+    empty_string;
+    description = "Returns an empty string.",
+)
+append_method!(
+    bundle_string_basic,
+    number_to_string;
+    description = "Converts a numeric input to its string representation.",
+)
 end

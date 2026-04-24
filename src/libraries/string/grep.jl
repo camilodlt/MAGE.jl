@@ -41,8 +41,20 @@ function remove_pattern(s::String, pattern::String, args...)::String
     return replace(s, pattern => "")
 end
 
-append_method!(bundle_string_grep, replace_pattern)
-append_method!(bundle_string_grep, replace_first_pattern)
-append_method!(bundle_string_grep, remove_pattern)
+append_method!(
+    bundle_string_grep,
+    replace_pattern;
+    description = "Replaces all occurrences of a pattern string with a replacement string.",
+)
+append_method!(
+    bundle_string_grep,
+    replace_first_pattern;
+    description = "Replaces only the first occurrence of a pattern string.",
+)
+append_method!(
+    bundle_string_grep,
+    remove_pattern;
+    description = "Removes all occurrences of a pattern string from the input text.",
+)
 
 end

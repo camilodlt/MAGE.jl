@@ -32,6 +32,9 @@ function sum_tuples_in_vector(v::Vector{Tuple{T,T}}, args...) where {T<:Number}
     return identity.([a + b for (a, b) in v])
 end
 
-append_method!(bundle_listnumber_vectuples, sum_tuples_in_vector)
+append_method!(
+    bundle_listnumber_vectuples,
+    sum_tuples_in_vector;
+    description = "Sums each numeric tuple (a, b) in the vector and returns the resulting vector.",
+)
 end
-

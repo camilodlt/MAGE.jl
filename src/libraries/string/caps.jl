@@ -299,20 +299,76 @@ function capitalize_all(s::String, args...)::String
     return titlecase(s)
 end
 
-append_method!(bundle_string_caps, uppercase_)
-append_method!(bundle_string_caps, uppercase_at)
-append_method!(bundle_string_caps, uppercase_after)
-append_method!(bundle_string_caps, uppercase_char_after)
-append_method!(bundle_string_caps, lowercase_)
-append_method!(bundle_string_caps, lowercase_at)
-append_method!(bundle_string_caps, lowercase_after)
-append_method!(bundle_string_caps, lowercase_char_after)
+append_method!(
+    bundle_string_caps,
+    uppercase_;
+    description = "Converts the full input string to uppercase.",
+)
+append_method!(
+    bundle_string_caps,
+    uppercase_at;
+    description = "Uppercases the character at the requested index after clipping index bounds.",
+)
+append_method!(
+    bundle_string_caps,
+    uppercase_after;
+    description = "Uppercases all characters after the first match of the marker substring.",
+)
+append_method!(
+    bundle_string_caps,
+    uppercase_char_after;
+    description = "Uppercases one character after each match of the marker substring.",
+)
+append_method!(
+    bundle_string_caps,
+    lowercase_;
+    description = "Converts the full input string to lowercase.",
+)
+append_method!(
+    bundle_string_caps,
+    lowercase_at;
+    description = "Lowercases the character at the requested index after clipping index bounds.",
+)
+append_method!(
+    bundle_string_caps,
+    lowercase_after;
+    description = "Lowercases all characters after the first match of the marker substring.",
+)
+append_method!(
+    bundle_string_caps,
+    lowercase_char_after;
+    description = "Lowercases one character after each match of the marker substring.",
+)
 
-append_method!(bundle_string_caps, uppercase_before)
-append_method!(bundle_string_caps, uppercase_char_before)
-append_method!(bundle_string_caps, lowercase_before)
-append_method!(bundle_string_caps, lowercase_char_before)
+append_method!(
+    bundle_string_caps,
+    uppercase_before;
+    description = "Uppercases all characters before the last match of the marker substring.",
+)
+append_method!(
+    bundle_string_caps,
+    uppercase_char_before;
+    description = "Uppercases one character before each match of the marker substring.",
+)
+append_method!(
+    bundle_string_caps,
+    lowercase_before;
+    description = "Lowercases all characters before the last match of the marker substring.",
+)
+append_method!(
+    bundle_string_caps,
+    lowercase_char_before;
+    description = "Lowercases one character before each match of the marker substring.",
+)
 
-append_method!(bundle_string_caps, capitalize_first)
-append_method!(bundle_string_caps, capitalize_all)
+append_method!(
+    bundle_string_caps,
+    capitalize_first;
+    description = "Capitalizes only the first character of the string.",
+)
+append_method!(
+    bundle_string_caps,
+    capitalize_all;
+    description = "Capitalizes words across the full string using title case.",
+)
 end

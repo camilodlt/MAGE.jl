@@ -46,7 +46,16 @@ Replaces the elements where `at` is 1 from `v1` with the element in `v2` at that
 replace_vec_at = replace_vec_at_factory(Any)
 
 # APPEND
-append_method!(bundle_listgeneric_where, replace_vec_at, :replace_vec_at)
-append_method!(bundle_listgeneric_where_factory, replace_vec_at_factory, :replace_vec_at)
+append_method!(
+    bundle_listgeneric_where,
+    replace_vec_at,
+    :replace_vec_at;
+    description = "Replaces values in one vector with values from another where mask entries are 1.",
+)
+append_method!(
+    bundle_listgeneric_where_factory,
+    replace_vec_at_factory,
+    :replace_vec_at;
+    description = "Replaces values in one vector with values from another where mask entries are 1.",
+)
 end
-

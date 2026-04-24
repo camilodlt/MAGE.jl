@@ -419,21 +419,29 @@ append_method!(
     experimental_bundle_image2D_mask_factory,
     maskgt_image2D_factory,
     :maskgt_image2D,
+    ;
+    description = "Masks pixels greater than a threshold with a provided replacement value.",
 )
 append_method!(
     experimental_bundle_image2D_mask_factory,
     masklt_image2D_factory,
     :masklt_image2D,
+    ;
+    description = "Masks pixels lower than a threshold with a provided replacement value.",
 )
 append_method!(
     experimental_bundle_image2D_mask_factory,
     maskeqt_image2D_factory,
     :maskeqt_image2D,
+    ;
+    description = "Masks pixels equal to a threshold with a provided replacement value.",
 )
 append_method!(
     experimental_bundle_image2D_mask_factory,
     notmaskbycolor_image2D_factory,
     :experimental_notmaskbycolor_image2D,
+    ;
+    description = "Keeps only pixels close to a target color and masks the rest.",
 )
 
 # MASK REGION #
@@ -441,21 +449,29 @@ append_method!(
     experimental_bundle_image2D_maskregion_factory,
     notmaskfromtov_image2D_factory,
     :experimental_notmaskfromtov_image2D,
+    ;
+    description = "Keeps a vertical interval region and masks values outside it.",
 )
 append_method!(
     experimental_bundle_image2D_maskregion_factory,
     notmaskfromtoh_image2D_factory,
     :experimental_notmaskfromtoh_image2D,
+    ;
+    description = "Keeps a horizontal interval region and masks values outside it.",
 )
 append_method!(
     experimental_bundle_image2D_maskregion_factory,
     maskfromtov_image2D_factory,
     :experimental_maskfromtov_image2D,
+    ;
+    description = "Masks values inside a vertical interval region.",
 )
 append_method!(
     experimental_bundle_image2D_maskregion_factory,
     maskfromtoh_image2D_factory,
     :experimental_maskfromtoh_image2D,
+    ;
+    description = "Masks values inside a horizontal interval region.",
 )
 
 # MASK REGION RELATIVE #
@@ -463,26 +479,36 @@ append_method!(
     experimental_bundle_image2D_maskregion_relative_factory,
     notmaskfromtov_relative_image2D_factory,
     :experimental_notmaskfromtov_relative_image2D,
+    ;
+    description = "Keeps a relative vertical region and masks outside values.",
 )
 append_method!(
     experimental_bundle_image2D_maskregion_relative_factory,
     notmaskfromtoh_relative_image2D_factory,
     :experimental_notmaskfromtoh_relative_image2D,
+    ;
+    description = "Keeps a relative horizontal region and masks outside values.",
 )
 append_method!(
     experimental_bundle_image2D_maskregion_relative_factory,
     maskfromtov_relative_image2D_factory,
     :experimental_maskfromtov_relative_image2D,
+    ;
+    description = "Masks values inside a relative vertical region.",
 )
 append_method!(
     experimental_bundle_image2D_maskregion_relative_factory,
     maskfromtoh_relative_image2D_factory,
     :experimental_maskfromtoh_relative_image2D,
+    ;
+    description = "Masks values inside a relative horizontal region.",
 )
 append_method!(
     experimental_bundle_image2D_maskregion_relative_factory,
     notmaskaround_relative_image2D_factory,
     :experimental_notmaskaround_relative_image2D,
+    ;
+    description = "Keeps values around a relative center window and masks the rest.",
 )
 
 end
