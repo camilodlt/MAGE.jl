@@ -56,7 +56,7 @@ end
             [:x1, :x2],
             [Int, Int],
             Int,
-            "return int_fns.add(x1, x2) + 1";
+            "return fns_returning_int.add(x1, x2) + 1";
             description = "",
         )
 
@@ -64,11 +64,11 @@ end
         @test haskey(bindings, :image_values)
         @test haskey(bindings, :image_values_float64)
         @test haskey(bindings, :rewrap_like)
-        @test haskey(bindings, :int_fns)
+        @test haskey(bindings, :fns_returning_int)
         source = render_generated_function_source(spec, bindings)
         @test occursin("function sum_plus_one", source)
-        @test occursin("int_fns", source)
-        @test occursin("int_fns.add", source)
+        @test occursin("fns_returning_int", source)
+        @test occursin("fns_returning_int.add", source)
 
         artifact, report = validate_generated_function(
             spec,
@@ -107,7 +107,7 @@ end
             [:x1, :x2],
             [Int, Int],
             Int,
-            "return int_fns.add(x1, x2)";
+            "return fns_returning_int.add(x1, x2)";
             description = "Adds two integer inputs.",
         )
         base_bindings = generated_function_bindings(ml, ma)
@@ -127,12 +127,12 @@ end
             [:x1, :x2],
             [Int, Int],
             Int,
-            "tmp = int_fns.sum_two_ints(x1, x2)\nreturn int_fns.add(tmp, tmp)";
+            "tmp = fns_returning_int.sum_two_ints(x1, x2)\nreturn fns_returning_int.add(tmp, tmp)";
             description = "Doubles the sum produced by sum_two_ints.",
         )
         composed_bindings = generated_function_bindings(ml, ma)
-        @test haskey(composed_bindings, :int_fns)
-        @test haskey(composed_bindings[:int_fns].callables, :sum_two_ints)
+        @test haskey(composed_bindings, :fns_returning_int)
+        @test haskey(composed_bindings[:fns_returning_int].callables, :sum_two_ints)
         composed_artifact, composed_report = validate_generated_function(
             composed_spec,
             ma,
@@ -218,7 +218,7 @@ end
             [:x1, :x2],
             [Int, Int],
             Int,
-            "return int_fns.add(x1, x2)";
+            "return fns_returning_int.add(x1, x2)";
             description = "Adds two ints with a temporary name.",
         )
         artifact, report = validate_generated_function(
@@ -294,7 +294,7 @@ end
             [:x1, :x2],
             [Int, Int],
             Int,
-            "return int_fns.add(x1, x2)",
+            "return fns_returning_int.add(x1, x2)",
         )
         client = MockGeneratedFunctionClient(broken, repaired)
 

@@ -137,7 +137,7 @@ Local dispatcher used inside one generated-function namespace when several
 callables intentionally share the same readable name. It behaves like a small
 method table keyed by runtime argument types.
 
-Example: if `float_fns.reduce_length` exists for both strings and images, the
+Example: if `fns_returning_float.reduce_length` exists for both strings and images, the
 namespace exposes a single property whose dispatcher picks the compatible
 underlying callable at call time.
 """
@@ -150,12 +150,12 @@ end
     GeneratedFunctionNamespace(name, callables)
 
 Namespace object exposed to generated Julia code through keyword arguments such
-as `intensity_img_fns` or `float_fns`. Inside the generated body the LLM can
+as `fns_returning_intensity_img` or `fns_returning_float`. Inside the generated body the LLM can
 write expressions like:
 
 ```julia
-tmp = intensity_img_fns.laplacian3_image2D(x1)
-score = float_fns.region_mean_10p(x1, 0.5, 0.5)
+tmp = fns_returning_intensity_img.laplacian3_image2D(x1)
+score = fns_returning_float.region_mean_10p(x1, 0.5, 0.5)
 ```
 
 Each namespace keeps one readable callable name per library.
@@ -386,7 +386,7 @@ Rules:
 - input_types must come only from: $(allowed_input_types)
 - output_type must come only from: $(allowed_output_types)
 - The generated body may use normal Julia language constructs such as local variables, indexing, broadcasting, arithmetic, comparisons, conditionals, and loops.
-- The generated body may also call the readable callable names provided in the user prompt context through namespace objects such as intensity_img_fns.some_function(...), binary_img_fns.some_function(...), segment_img_fns.some_function(...), int_fns.some_function(...), or float_fns.some_function(...).
+- The generated body may also call the readable callable names provided in the user prompt context through namespace objects such as fns_returning_intensity_img.some_function(...), fns_returning_binary_img.some_function(...), fns_returning_segment_img.some_function(...), fns_returning_int.some_function(...), or fns_returning_float.some_function(...).
 - When calling a provided helper or library function, be mindful of its declared return type.
 - Do not include imports, module declarations, or full function signatures.
 - The description should explain the function semantically, not repeat raw source code.
@@ -595,14 +595,30 @@ function _post_gemini_chat_request(
     response_io = IOBuffer()
     started_at = time()
     client.last_request_started_at = started_at
-    response = Downloads.request(
-        _gemini_url(client);
-        method = "POST",
-        headers = ["Content-Type" => "application/json", "x-goog-api-key" => client.api_key],
-        input = request_buffer,
-        output = response_io,
-        timeout = 3600.0,
-    )
+    downloader = Downloads.Downloader()
+    downloader.easy_hook = (easy, info) -> begin
+        Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_LOW_SPEED_TIME, 0)
+        Downloads.Curl.setopt(easy, Downloads.Curl.CURLOPT_LOW_SPEED_LIMIT, 0)
+    end
+    response = try
+        Downloads.request(
+            _gemini_url(client);
+            method = "POST",
+            headers = ["Content-Type" => "application/json", "x-goog-api-key" => client.api_key],
+            input = request_buffer,
+            output = response_io,
+            timeout = 3600.0,
+            downloader = downloader,
+        )
+    catch err
+        if retry_index < 8 && err isa Downloads.RequestError
+            sleep_seconds = min(300.0, max(client.min_request_interval_seconds, 10.0) * 2.0^retry_index)
+            @warn "Gemini request failed at transport layer; retrying after backoff" retry_index sleep_seconds error = sprint(showerror, err)
+            sleep(sleep_seconds)
+            return _post_gemini_chat_request(client, request_payload, retry_index + 1)
+        end
+        rethrow()
+    end
     elapsed_seconds = time() - started_at
     raw_response_text = String(take!(response_io))
     if response.status == 429
@@ -612,9 +628,9 @@ function _post_gemini_chat_request(
         sleep(sleep_seconds)
         return _post_gemini_chat_request(client, request_payload, retry_index + 1)
     end
-    if response.status == 503 && retry_index < 8
+    if response.status in (500, 502, 503, 504) && retry_index < 8
         sleep_seconds = min(300.0, max(client.min_request_interval_seconds, 10.0) * 2.0^retry_index)
-        @warn "Gemini request hit temporary capacity error; retrying after backoff" retry_index sleep_seconds raw_response = raw_response_text
+        @warn "Gemini request hit transient server error; retrying after backoff" status = response.status retry_index sleep_seconds raw_response = raw_response_text
         sleep(sleep_seconds)
         return _post_gemini_chat_request(client, request_payload, retry_index + 1)
     end
@@ -868,8 +884,6 @@ function _build_gemini_chat_request(
     )
     if client.think
         payload["generationConfig"]["thinkingConfig"] = Dict("includeThoughts" => false)
-    else
-        payload["generationConfig"]["thinkingConfig"] = Dict("thinkingBudget" => 0)
     end
     if !isempty(strip(client.service_tier))
         payload["service_tier"] = strip(client.service_tier)
@@ -1272,12 +1286,12 @@ function _render_generated_kwarg_clause(keyword_bindings::AbstractDict{Symbol, A
     # Example returned object:
     #   Dict(
     #       :image_values => generated_function_image_values,
-    #       :intensity_img_fns => GeneratedFunctionNamespace(...),
-    #       :float_fns => GeneratedFunctionNamespace(...),
+    #       :fns_returning_intensity_img => GeneratedFunctionNamespace(...),
+    #       :fns_returning_float => GeneratedFunctionNamespace(...),
     #   )
     # We only need the readable keyword names here because the generated source
     # will see them as namespace objects:
-    #   function new_fn(x1::Img, args...; image_values, intensity_img_fns, float_fns)
+    #   function new_fn(x1::Img, args...; image_values, fns_returning_intensity_img, fns_returning_float)
     kw_names = sort!(collect(keys(keyword_bindings)); by = String)
     return "; " * join(string.(kw_names), ", ")
 end
@@ -1378,6 +1392,22 @@ function _generated_function_builtin_bindings()::Dict{Symbol, Any}
     )
 end
 
+function _add_legacy_generated_function_aliases!(bindings::Dict{Symbol, Any})::Dict{Symbol, Any}
+    alias_map = Dict{Symbol, Symbol}(
+        :intensity_img_fns => :fns_returning_intensity_img,
+        :binary_img_fns => :fns_returning_binary_img,
+        :segment_img_fns => :fns_returning_segment_img,
+        :float_fns => :fns_returning_float,
+        :int_fns => :fns_returning_int,
+    )
+    for (alias_name, canonical_name) in alias_map
+        haskey(bindings, alias_name) && continue
+        haskey(bindings, canonical_name) || continue
+        bindings[alias_name] = bindings[canonical_name]
+    end
+    return bindings
+end
+
 Base.propertynames(namespace::GeneratedFunctionNamespace; private::Bool = false) =
     collect(keys(namespace.callables))
 
@@ -1394,16 +1424,16 @@ function _generated_function_library_namespace_name(output_type::DataType, libra
     if output_type <: SizedImage
         image_pixel_wrapper_type = _get_image_pixel_type(output_type)
         if image_pixel_wrapper_type <: IntensityPixel
-            return :intensity_img_fns
+            return :fns_returning_intensity_img
         elseif image_pixel_wrapper_type <: BinaryPixel
-            return :binary_img_fns
+            return :fns_returning_binary_img
         elseif image_pixel_wrapper_type <: SegmentPixel
-            return :segment_img_fns
+            return :fns_returning_segment_img
         end
     elseif output_type <: Base.AbstractFloat
-        return :float_fns
+        return :fns_returning_float
     elseif output_type <: Integer
-        return :int_fns
+        return :fns_returning_int
     end
     return Symbol("library_", library_index, "_fns")
 end
@@ -1457,7 +1487,7 @@ end
 
 Collect generated-function keyword bindings for one `MetaLibrary`. Built-in
 image helpers stay flat, while per-library callables are exposed through
-explicit namespace objects such as `intensity_img_fns`, `int_fns`, and `float_fns`.
+explicit namespace objects such as `fns_returning_intensity_img`, `fns_returning_int`, and `fns_returning_float`.
 
 Example: use this dictionary when one generated function may compose existing
 MAGE helpers without ambiguity across output libraries.
@@ -1473,7 +1503,7 @@ function generated_function_bindings(
         @assert !haskey(bindings, namespace_name) "Duplicate generated-function namespace $(namespace_name) across the MetaLibrary."
         bindings[namespace_name] = _build_generated_function_namespace(namespace_name, library)
     end
-    return bindings
+    return _add_legacy_generated_function_aliases!(bindings)
 end
 
 ############################
@@ -1483,15 +1513,15 @@ end
 function (f::SourceBackedFunction)(inputs...)
     # Turn the stored keyword binding dictionary into keyword arguments, for example:
     #   Dict(:image_values => generated_function_image_values,
-    #        :intensity_img_fns => GeneratedFunctionNamespace(...))
+    #        :fns_returning_intensity_img => GeneratedFunctionNamespace(...))
     # becomes the keyword set:
     #   (; image_values = generated_function_image_values,
-    #      intensity_img_fns = GeneratedFunctionNamespace(...))
+    #      fns_returning_intensity_img = GeneratedFunctionNamespace(...))
     #
     # The generated Julia function is then called as:
-    #   runtime_fn(inputs...; image_values = ..., intensity_img_fns = ...)
+    #   runtime_fn(inputs...; image_values = ..., fns_returning_intensity_img = ...)
     # so the body can simply write:
-    #   return intensity_img_fns.sobelx_image2D(img)
+    #   return fns_returning_intensity_img.sobelx_image2D(img)
     kw_pairs = (; (name => callable for (name, callable) in f.keyword_bindings)...)
     return Base.invokelatest(f.runtime_fn, inputs...; kw_pairs...)
 end
@@ -1796,6 +1826,47 @@ function _validate_generated_image_output_size!(
     return nothing
 end
 
+function _generated_function_output_summary_value(output)
+    if output isa Number
+        return Float64(output)
+    elseif output isa SizedImage
+        return mean(generated_function_image_values_float64(output))
+    elseif output isa AbstractArray
+        return mean(Float64.(output))
+    end
+    return nothing
+end
+
+function _validate_generated_function_pairwise_output_relation!(
+        errors::Vector{String},
+        outputs::Vector{Any},
+        output_relation::Symbol,
+    )::Nothing
+    output_relation == :none && return nothing
+    length(outputs) < 2 && begin
+        push!(errors, "Pairwise output validation requires at least two validation samples.")
+        return nothing
+    end
+    lhs = _generated_function_output_summary_value(outputs[1])
+    rhs = _generated_function_output_summary_value(outputs[2])
+    if lhs === nothing || rhs === nothing
+        push!(errors, "Pairwise output validation could not derive comparable scalar summaries from the first two outputs.")
+        return nothing
+    end
+    lhs_value = Float64(lhs)
+    rhs_value = Float64(rhs)
+    if output_relation == :first_greater_than_second
+        lhs_value > rhs_value || push!(errors, "Pairwise output hypothesis expected the first validation output to be greater than the second, but got $(lhs_value) <= $(rhs_value).")
+    elseif output_relation == :first_less_than_second
+        lhs_value < rhs_value || push!(errors, "Pairwise output hypothesis expected the first validation output to be less than the second, but got $(lhs_value) >= $(rhs_value).")
+    elseif output_relation == :first_different_from_second
+        lhs_value != rhs_value || push!(errors, "Pairwise output hypothesis expected the first validation output to differ from the second, but both summaries were $(lhs_value).")
+    else
+        push!(errors, "Unknown pairwise output relation $(output_relation).")
+    end
+    return nothing
+end
+
 """
     validate_generated_function(spec, model_architecture, node_config, samples;
                                 keyword_bindings = Dict(), max_mean_runtime_seconds = 0.05)
@@ -1812,6 +1883,8 @@ function validate_generated_function(
         samples::Vector{<:Tuple};
         keyword_bindings::AbstractDict{Symbol, Any} = Dict{Symbol, Any}(),
         max_mean_runtime_seconds::Float64 = 0.05,
+        require_distinct_sample_outputs::Bool = false,
+        pairwise_output_relation::Symbol = :none,
     )::Tuple{Union{Nothing, GeneratedFunctionArtifact}, GeneratedFunctionValidationReport}
     arity_ok, input_types_ok, output_type_ok, errors = _collect_generated_function_spec_errors(spec, model_architecture, node_config)
     if !(arity_ok && input_types_ok && output_type_ok)
@@ -1875,6 +1948,8 @@ function validate_generated_function(
     mean_runtime_seconds = isempty(runtimes) ? 0.0 : mean(runtimes)
     runtime_ok = mean_runtime_seconds <= max_mean_runtime_seconds
     runtime_ok || push!(errors, "Mean runtime $(mean_runtime_seconds)s exceeded max_mean_runtime_seconds=$(max_mean_runtime_seconds)s.")
+    pairwise_output_relation != :none && _validate_generated_function_pairwise_output_relation!(errors, outputs, pairwise_output_relation)
+    require_distinct_sample_outputs && pairwise_output_relation == :none && _validate_generated_function_pairwise_output_relation!(errors, outputs, :first_different_from_second)
 
     accepted = isempty(errors) && dispatch_ok && runtime_ok
     return artifact, GeneratedFunctionValidationReport(
@@ -2010,7 +2085,7 @@ function render_generated_function_context(
     println(context_buffer, "- image_values_float64(img) returns Float64.(image_values(img)).")
     println(context_buffer, "- If you create a new image matrix and need to wrap it back like a reference image, use rewrap_like(reference_img, new_matrix).")
     println(context_buffer, "- rewrap_like handles output casting for intensity, binary, and segmented images and preserves the reference image size/type wrapper.")
-    println(context_buffer, "- Use namespaced library helpers such as intensity_img_fns.some_function(...), binary_img_fns.some_function(...), segment_img_fns.some_function(...), int_fns.some_function(...), or float_fns.some_function(...).")
+    println(context_buffer, "- Use namespaced library helpers such as fns_returning_intensity_img.some_function(...), fns_returning_binary_img.some_function(...), fns_returning_segment_img.some_function(...), fns_returning_int.some_function(...), or fns_returning_float.some_function(...).")
     if include_function_tables
         println(context_buffer)
         println(context_buffer, "Available functions")
