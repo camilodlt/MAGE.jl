@@ -504,7 +504,7 @@ module UTCGP
     export bundle_float_orientation
 
     # 2D IMAGES MASK
-    # include("libraries/image2D/mask_image2D.jl")
+    include("libraries/image2D/mask_image2D.jl")
     # import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
     # export experimental_bundle_image2D_mask_factory
     # import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
