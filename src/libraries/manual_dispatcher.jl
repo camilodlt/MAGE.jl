@@ -125,6 +125,11 @@ function Base.which(dp::ManualDispatcher, types::T) where {T <: ArgsTypes}
     return
 end
 
+function Base.which(dp::ManualDispatcher, tuple_type::Type{<:Tuple})
+    types = tuple(tuple_type.parameters...)
+    return Base.which(dp, types)
+end
+
 error_fn(args...) = throw(error("No function with that signature found in ManualDispatcher"))
 
 function is_ok(x, lk, types)
@@ -156,6 +161,11 @@ function Base.hasmethod(dp::ManualDispatcher, types::T) where {T <: ArgsTypes}
         type_acceptance == Good && return true
     end
     return false
+end
+
+function Base.hasmethod(dp::ManualDispatcher, tuple_type::Type{<:Tuple})
+    types = tuple(tuple_type.parameters...)
+    return Base.hasmethod(dp, types)
 end
 
 function (dp::ManualDispatcher{FT})(inputs::T) where {T <: Tuple{Vararg{Any}}, FT}
