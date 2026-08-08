@@ -113,7 +113,8 @@ Symbol(dp::ManualDispatcher) = dp.name
 types: (Int, Int) for example
 """
 function Base.which(dp::ManualDispatcher, types::T) where {T <: ArgsTypes}
-    for fn in dp.functions
+    # The final function is the runtime fallback and accepts every signature.
+    for fn in dp.functions[begin:(end - 1)]
         type_acceptance = _pre_update_fn_lookup(dp.lk, fn, types)
         if type_acceptance == Good
             m = methods(fn)
@@ -156,7 +157,8 @@ end
 types: (Int, Int) for example
 """
 function Base.hasmethod(dp::ManualDispatcher, types::T) where {T <: ArgsTypes}
-    for fn in dp.functions
+    # Do not let the catch-all runtime fallback make every signature valid.
+    for fn in dp.functions[begin:(end - 1)]
         type_acceptance = _pre_update_fn_lookup(dp.lk, fn, types)
         type_acceptance == Good && return true
     end
