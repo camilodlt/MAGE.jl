@@ -23,6 +23,11 @@ module UTCGP
     using Logging
     using LinearAlgebra
     using StatsBase
+    using Random
+    using Graphs
+    using MetaGraphsNext
+    using JLD2
+    using GraphvizDotLang
     import Downloads
 
     using TimerOutputs
@@ -180,10 +185,15 @@ module UTCGP
     include("programs/free_decode.jl")
     include("programs/evaluate.jl")
     include("programs/compile/compile_program.jl")
+    include("programs/compile/population_sequential_program.jl")
 
     export InputPromise, OperationInput, Operation, Program
     export SequentialProgram, SequentialCallStep, SequentialConstantStep, SequentialOutput
     export SequentialProgramInputRef, SequentialTmpRef, NoTypeAssertion
+    export PopulationSequentialProgram, PopulationSequentialWorkspace
+    export evaluate_population_sequential_program
+    export evaluate_population_sequential_program_with_time
+    export evaluate_population_sequential_program_on_samples
     export compile_program, sequential_source
     export replace_shared_inputs!
     # MUTATIONS
@@ -555,6 +565,20 @@ module UTCGP
     export fit
     export fit_mt
     export fit_ga, fit_ga_mt
+
+    # GRAPHMAGE
+    include("graphmage/graphmage.jl")
+    export GraphMAGENode, GraphMAGEConfig, GraphMAGEArchive, GraphMAGERunContext
+    export run_graphmage, expand_node!, select_node, backpropagate!
+    export ucb_score, annealed_c, forced_exploration_score
+    export used_function_names, used_function_names_genotype, merge_used_function_names, subset_metalibrary, remap_genome_to_library!
+    export build_behavior_probes, compute_behaviors_for_population, compute_behaviors_independently
+    export evaluate_archive_outputs_on_samples, set_val_fitness!
+    export save_graphmage_archive, load_graphmage_archive
+    export merge_graphmage_archives
+    export plot_graphmage_archive
+    export new_graphmage_graph, add_node!, get_node, all_node_labels, add_edge_checked!
+    export best_train_node_label
 
     # PRE MADE BUNDLES
     include("libraries/pre_made_libraries.jl")

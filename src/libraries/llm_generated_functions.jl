@@ -117,6 +117,18 @@ stores the exact source, declared signature, and keyword-bound helper callables
 so MAGE can inspect and call it without exposing anonymous wrapper internals to
 the prompting layer.
 
+`cached_kw_pairs` is `keyword_bindings` pre-converted to the `NamedTuple` shape
+the call operator needs, computed once here at construction rather than on
+every call -- `keyword_bindings` itself never changes after construction (see
+`compile_generated_function`, the only place `SourceBackedFunction` is built),
+so rebuilding the same `NamedTuple` from it on every single invocation was
+pure repeated work. NOT safe to share this `NamedTuple` (or the underlying
+namespace objects it holds) across *different* `SourceBackedFunction`s, even
+ones installed into the same `MetaLibrary`: `generated_function_bindings`
+rebuilds a fresh namespace snapshot on every call, so a function only ever
+sees whichever sibling functions were installed strictly before it -- see the
+loader loop in `load_accepted_llm_functions!`.
+
 Example: installed generated functions in a `MetaLibrary` use this wrapper as their callable core.
 """
 mutable struct SourceBackedFunction <: AbstractFunction
@@ -127,6 +139,7 @@ mutable struct SourceBackedFunction <: AbstractFunction
     output_type::DataType
     runtime_fn::Function
     keyword_bindings::Dict{Symbol, Any}
+    cached_kw_pairs::NamedTuple
     module_name::Symbol
 end
 
@@ -1392,6 +1405,11 @@ function _generated_function_builtin_bindings()::Dict{Symbol, Any}
     )
 end
 
+# TODO: these legacy names (intensity_img_fns, binary_img_fns, segment_img_fns,
+# float_fns, int_fns) are kept only as aliases for older accepted LLM function
+# manifests generated before the fns_returning_* naming convention. Once every
+# accepted manifest in use has been regenerated/migrated to the canonical
+# fns_returning_* names, remove this function and its call site entirely.
 function _add_legacy_generated_function_aliases!(bindings::Dict{Symbol, Any})::Dict{Symbol, Any}
     alias_map = Dict{Symbol, Symbol}(
         :intensity_img_fns => :fns_returning_intensity_img,
@@ -1510,8 +1528,53 @@ end
 # Compilation
 ############################
 
+"""
+    (f::SourceBackedFunction)(inputs...)
+
+Default call path -- always uses `Val{true}` (`Base.invokelatest`). See
+`_call_runtime_fn`'s docstring for the compile-time `Val{true}`/`Val{false}`
+choice and why `Val{false}` isn't wired up as the default anywhere yet.
+"""
 function (f::SourceBackedFunction)(inputs...)
-    # Turn the stored keyword binding dictionary into keyword arguments, for example:
+    return _call_runtime_fn(f, Val(true), inputs...)
+end
+
+"""
+    _call_runtime_fn(f, ::Val{UseInvokeLatest}, inputs...)
+
+Compile-time choice (via `Val`, so each branch compiles to a direct call with
+no runtime branch) between:
+- `Val{true}`: `Base.invokelatest(f.runtime_fn, ...)` -- always correct,
+  the current/default behavior.
+- `Val{false}`: calls `f.runtime_fn(...)` directly, skipping `invokelatest`'s
+  small remaining per-call overhead (~32 bytes/call measured -- most of the
+  original per-call cost was `f.cached_kw_pairs`'s one-time construction,
+  already fixed; this is what's left).
+
+Whether `Val{false}` is safe wasn't obvious going in. A sequential,
+single-threaded test (define fn1, call it, define fn2 afterward, call fn2
+through the same already-compiled call-operator specialization without
+invokelatest) succeeded -- each generated function lives in its own fresh
+anonymous module, so `f.runtime_fn` is always a type Julia has never seen
+before at this call site, not a new method bolted onto an existing generic
+function some other caller already has a stale view of, which is the classic
+scenario `invokelatest` guards against. A follow-up concurrency stress test
+(24 functions, each validated once with `Val{true}`, then 20 million calls
+across `Threads.nthreads()` threads using `Val{false}`) also passed clean: no
+errors, no incorrect results. Neither test rules out a rarer race that only
+manifests over a long real run under real allocation pressure -- so the two
+call sites intentionally stay split by role rather than both switching to
+`Val{false}`: `SourceBackedFunction`'s default call operator (used by
+`validate_generated_function`'s load/validate call, `artifact.function_like(...)`)
+keeps `Val{true}`, while the actual evaluation path (`_invoke_fn` in
+`function.jl`, used by `call_fn_wrap`/`safe_call` during GA search) is wired
+to `Val{false}` via a specialized `_invoke_fn(fn::SourceBackedFunction, ...)`
+method below. If a future run's crash implicates this specifically, that's
+the method to revert.
+"""
+function _call_runtime_fn(f::SourceBackedFunction, ::Val{true}, inputs...)
+    # f.cached_kw_pairs is keyword_bindings pre-converted to keyword-argument
+    # shape once at construction (see SourceBackedFunction's docstring), for example:
     #   Dict(:image_values => generated_function_image_values,
     #        :fns_returning_intensity_img => GeneratedFunctionNamespace(...))
     # becomes the keyword set:
@@ -1522,9 +1585,23 @@ function (f::SourceBackedFunction)(inputs...)
     #   runtime_fn(inputs...; image_values = ..., fns_returning_intensity_img = ...)
     # so the body can simply write:
     #   return fns_returning_intensity_img.sobelx_image2D(img)
-    kw_pairs = (; (name => callable for (name, callable) in f.keyword_bindings)...)
-    return Base.invokelatest(f.runtime_fn, inputs...; kw_pairs...)
+    return Base.invokelatest(f.runtime_fn, inputs...; f.cached_kw_pairs...)
 end
+
+function _call_runtime_fn(f::SourceBackedFunction, ::Val{false}, inputs...)
+    return f.runtime_fn(inputs...; f.cached_kw_pairs...)
+end
+
+"""
+    _invoke_fn(fn::SourceBackedFunction, inputs...)
+
+The evaluation-path specialization of `_invoke_fn` (generic fallback defined
+in `function.jl`, called from `call_fn_wrap`/`safe_call`): routes through
+`_call_runtime_fn`'s `Val{false}` (no `invokelatest`) branch rather than the
+default call operator's `Val{true}` -- see `_call_runtime_fn`'s docstring for
+why the evaluation path and the load/validate path are deliberately split.
+"""
+@inline _invoke_fn(fn::SourceBackedFunction, inputs...) = _call_runtime_fn(fn, Val(false), inputs...)
 
 """
     Base.which(f::SourceBackedFunction, t::Type{<:Tuple})
@@ -1614,6 +1691,7 @@ function compile_generated_function(
     # values are supplied later by SourceBackedFunction(...)(inputs...).
     Base.include_string(module_ref, source, string(module_name, ".jl"))
     runtime_fn = getfield(module_ref, spec.name)
+    stored_keyword_bindings = Dict{Symbol, Any}(keyword_bindings)
     function_like = SourceBackedFunction(
         spec.name,
         source,
@@ -1621,7 +1699,8 @@ function compile_generated_function(
         copy(spec.input_types),
         spec.output_type,
         runtime_fn,
-        Dict{Symbol, Any}(keyword_bindings),
+        stored_keyword_bindings,
+        (; (name => callable for (name, callable) in stored_keyword_bindings)...),
         module_name,
     )
     return GeneratedFunctionArtifact(

@@ -1,6 +1,20 @@
 #################### FUNCTION WRAPPER ######################
 # wraps a function with it's caster, fallback and cache
 
+"""
+    _invoke_fn(fn, inputs...)
+
+Generic evaluation-path call: plain call syntax for everything except
+`SourceBackedFunction`s (LLM-generated functions), which get a specialized
+method added in `llm_generated_functions.jl` (included later, once that type
+exists) routing through `_call_runtime_fn(fn, Val(false), inputs...)` --
+`Val(false)` skips `invokelatest`'s per-call overhead, safe specifically for
+this evaluation path (see that method's docstring for why it's only wired up
+here and not for the load/validate call path, which still goes through
+`SourceBackedFunction`'s default call operator, `Val(true)`).
+"""
+@inline _invoke_fn(fn, inputs...) = fn(inputs...)
+
 function _get_parent_module_symbol(f::AbstractFunction)
     return typeof(f) |> parentmodule |> Symbol
 end
@@ -175,7 +189,7 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
     status = get(SafeFunctions, Tuple{F, T}, Undefined)
     if status == Good
         try
-            tmp = f.fn(x...)
+            tmp = _invoke_fn(f.fn, x...)
             if !isnothing(f.caster)
                 tmp = f.caster(tmp)
             end
@@ -186,7 +200,7 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
     end
     status == Bad && return (f.fallback(), false) # If types are nok, always return fallback
     output = try
-        tmp = f.fn(x...)
+        tmp = _invoke_fn(f.fn, x...)
         if !isnothing(f.caster)
             tmp = f.caster(tmp)
         end
@@ -316,7 +330,7 @@ end
         ::Val{true},
     )
     @debug "Running fn : $(fn_wrapper.name)"
-    pre = fn_wrapper.fn(inputs...)
+    pre = _invoke_fn(fn_wrapper.fn, inputs...)
     if isnothing(pre)
         if isdefined(Main, :Infiltrator)
             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
@@ -332,7 +346,7 @@ end
         ::Val{false},
     )
     @debug "Running fn : $(fn_wrapper.name)"
-    o = fn_wrapper.fn(inputs...)
+    o = _invoke_fn(fn_wrapper.fn, inputs...)
     @debug "End Running fn : $(fn_wrapper.name)"
     return o
 end
