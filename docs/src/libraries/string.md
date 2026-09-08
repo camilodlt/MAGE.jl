@@ -2,6 +2,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
   # STR GREP
   using UTCGP.str_grep:replace_pattern
   using UTCGP.str_grep:replace_first_pattern
@@ -433,4 +434,23 @@ julia> capitalize_all("julia julia")
 # The titlecase functions takes all non letters as separators
 julia> capitalize_all("julia-julia")
 "Julia-Julia"
+```
+
+## Parse
+
+### Module
+```@docs
+UTCGP.str_parse
+```
+
+## Bundles
+
+```@docs
+bundle_string_basic
+bundle_string_caps
+bundle_string_conditional
+bundle_string_grep
+bundle_string_parse
+bundle_string_paste
+bundle_string_concat_list_string
 ```

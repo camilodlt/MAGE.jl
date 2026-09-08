@@ -11,6 +11,17 @@ Pages = ["image.md"]
 
 # Image Lib
 
+Operators over [`SImageND`](@ref) images. Three pixel types make three
+different chromosomes — intensities, masks and label maps — so an operator only
+offers itself where it makes sense: morphology to masks, thresholding as the
+way to *produce* a mask, segmentation as the way to produce a label map. See
+[Image Types](@ref) for the type machinery.
+
+This page gives worked, rendered examples for the orientation maps and the
+pooling families. The remaining bundles are listed at the
+[bottom of this page](@ref "All image bundles"), and the exhaustive operator
+listing is in the [Bundle Catalogue](@ref).
+
 ## Orientation Image Maps
 
 These orientation maps are exposed through:
@@ -1734,4 +1745,84 @@ nothing # hide
      <img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_after.png" alt="After iqrpool segment k=5 stride=2" style="width:50%;" />`;
 })();
 </script>
+```
+
+## All image bundles
+
+### Basics, casts and arithmetic
+
+```@docs
+UTCGP.image2D_basic
+bundle_image2DIntensity_basic_factory
+bundle_image2DBinary_basic_factory
+bundle_image2DSegment_basic_factory
+```
+
+```@docs
+UTCGP.image2D_arithmetic
+bundle_image2DIntensity_arithmetic_factory
+bundle_image2DBinary_arithmetic_factory
+```
+
+```@docs
+UTCGP.image2D_barithmetic
+bundle_image2DIntensity_barithmetic_factory
+```
+
+```@docs
+UTCGP.image2D_transcendental
+bundle_image2DIntensity_transcendental_factory
+```
+
+### Filtering
+
+```@docs
+UTCGP.image2D_filtering
+bundle_image2DIntensity_filtering_factory
+bundle_image2DBinary_filtering_factory
+```
+
+### Morphology
+
+```@docs
+UTCGP.image2D_morph
+bundle_image2DIntensity_morph_factory
+bundle_image2DBinary_morph_factory
+```
+
+### Orientation
+
+```@docs
+UTCGP.image2D_orientation
+bundle_image2DIntensity_orientation_factory
+```
+
+### Thresholding
+
+```@docs
+UTCGP.image2D_binarize
+bundle_image2DBinary_binarize_factory
+```
+
+### Segmentation
+
+```@docs
+UTCGP.image2D_segmentation
+bundle_image2DSegment_segmentation_factory
+```
+
+### Pooling
+
+```@docs
+UTCGP.image_pool
+bundle_image2DIntensity_pool_factory
+bundle_image2DBinary_pool_factory
+bundle_image2DSegment_pool_factory
+```
+
+```@docs
+UTCGP.image_pooler
+bundle_image2DIntensity_pooler_factory
+bundle_image2DBinary_pooler_factory
+bundle_image2DSegment_pooler_factory
 ```

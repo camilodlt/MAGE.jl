@@ -1,6 +1,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
   using UTCGP.liststring_caps:capitalize_list_string
   using UTCGP.liststring_caps:uppercasefirst_list_string
 
@@ -71,4 +72,19 @@ julia> split_string_to_vector("julia", "")
  "l"
  "i"
  "a"
+```
+
+## Broadcast
+
+### Module
+```@docs
+UTCGP.liststring_broadcast
+```
+
+## Bundles
+
+```@docs
+bundle_liststring_split
+bundle_liststring_caps
+bundle_liststring_broadcast
 ```
