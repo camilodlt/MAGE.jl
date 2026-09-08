@@ -3,6 +3,18 @@ import Random
 
 abstract type AbstractNumberedMutationArgs end
 struct MissingNumberedMutationArgs <: AbstractNumberedMutationArgs end
+"""
+    NumberedMutationArgs(mutation_n_active_nodes::Number)
+
+How many *active* nodes [`numbered_mutation!`](@ref) should mutate.
+
+The count must be at least `1` and is floored to an integer (with an
+informational message when a non-integer is given, which is why a
+`mutation_rate` of `1.1` means "one node").
+
+Obtained from a run configuration with [`numbered_mutation_trait`](@ref) rather
+than built by hand.
+"""
 struct NumberedMutationArgs <: AbstractNumberedMutationArgs
     mutation_n_active_nodes::Int64
     function NumberedMutationArgs(mutation_n_active_nodes::Number)
@@ -15,12 +27,41 @@ struct NumberedMutationArgs <: AbstractNumberedMutationArgs
     end
 end
 
+"""
+    numbered_mutation_trait(conf)
+
+Return the [`NumberedMutationArgs`](@ref) a run configuration implies, or
+`MissingNumberedMutationArgs` when the configuration does not describe one.
+
+[`runConf`](@ref) and [`RunConfGA`](@ref) derive it from `mutation_rate`;
+[`RunConfCrossOverGA`](@ref) from its dedicated `mutation_n_active_nodes` field.
+"""
 numbered_mutation_trait(conf) = MissingNumberedMutationArgs
 numbered_mutation_trait(conf::RunConfGA) = NumberedMutationArgs(conf.mutation_rate)
 numbered_mutation_trait(conf::RunConfCrossOverGA) =
     NumberedMutationArgs(conf.mutation_n_active_nodes)
 numbered_mutation_trait(conf::runConf) = NumberedMutationArgs(conf.mutation_rate)
 
+"""
+    numbered_mutation!(ut_genome, numbered_mutation_args::NumberedMutationArgs,
+                       model_architecture, meta_library, shared_inputs)
+    numbered_mutation!(ut_genome, run_config::AbstractRunConf,
+                       model_architecture, meta_library, shared_inputs)
+
+Mutate a fixed *number* of active nodes, in place.
+
+The genome is decoded, `n` nodes are sampled among those the outputs actually
+depend on, and each is mutated with [`standard_mutate!`](@ref). Mutating a fixed
+count rather than a per-allele probability keeps the amount of change per
+individual stable as the genome grows.
+
+`n` comes from `numbered_mutation_args`, or from the run configuration through
+[`numbered_mutation_trait`](@ref).
+
+The mutation is not guaranteed to change the program: a node can be resampled
+to an equivalent one. Use [`new_material_mutation!`](@ref) when every offspring
+must differ from its parent.
+"""
 function numbered_mutation!(
     ut_genome::UTGenome,
     numbered_mutation_args::NumberedMutationArgs,

@@ -1,26 +1,15 @@
 # -*- coding: utf-8 -*-
 
-""" Binarization functions
-
-Exports :
-
-- **bundle\\image2D\\_basic** :
-    - `binarize\\_adaptive2D`
-    - `binarize\\_niblack2D`
-    - `binarize\\_polysegment2D`
-    - `binarize\\_sauvola2D`
-    - `binarize\\_otsu2D`
-    - `binarize\\_minimumintermodes2D`
-    - `binarize\\_intermodes2D`
-    - `binarize\\_minimumerror2D`
-    - `binarize\\_moments2D`
-    - `binarize\\_unimodalrosin2D`
-    - `binarize\\_entropy2D`
-    - `binarize\\_balanced2D`
-    - `binarize\\_yen2D`
-    - `binarize\\_manual2D`
 """
+Thresholding: intensity image in, mask out.
 
+# Bundles
+
+- [`bundle_image2DBinary_binarize_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_binarize
 
 using ImageBinarization
@@ -45,6 +34,26 @@ using Logging
 
 cast = image2D_morph.cast
 fallback(args...) = return nothing
+"""
+    bundle_image2DBinary_binarize_factory
+
+Thresholding: intensity image in, mask out.
+
+Global methods `binarize_otsu2D`, `binarize_entropy2D`, `binarize_yen2D`,
+`binarize_moments2D`, `binarize_minimumerror2D`, `binarize_intermodes2D`,
+`binarize_minimumintermodes2D`, `binarize_unimodalrosin2D`,
+`binarize_balanced2D`, `binarize_polysegment2D` and the explicit
+`binarize_manual2D`; local methods `binarize_adaptive2D`, `binarize_niblack2D`
+and `binarize_sauvola2D`.
+
+This is the bundle that lets an intensity chromosome produce material for the
+binary one.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_binarize_factory = FunctionBundle(fallback)
 
 # ################### #

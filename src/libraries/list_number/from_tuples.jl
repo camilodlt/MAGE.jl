@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Sums tuples in a vector 
- 
-Exports : **bundle\\_listnumber\\_vectuples**: 
-- `sum_tuples_in_vector`
+Numeric lists derived from lists of pairs.
 
+# Bundles
+
+- [`bundle_listnumber_vectuples`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listnumber_vectuples
 
@@ -13,6 +16,13 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = Number[]
 
+"""
+    bundle_listnumber_vectuples
+
+`sum_tuples_in_vector`: turn a list of pairs into the list of their sums.
+
+Reads from a `Vector{Tuple{T,T}}` chromosome and writes into a numeric-list one.
+"""
 bundle_listnumber_vectuples = FunctionBundle(fallback)
 
 VECTORNUM = Vector{<:Number}

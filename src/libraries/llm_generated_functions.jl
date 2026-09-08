@@ -2,6 +2,28 @@
 # Generated Function Types
 ############################
 
+"""
+    AbstractGeneratedFunctionClient
+
+Supertype of the LLM clients used to synthesise new library functions.
+
+MAGE can grow its own operators: a client is asked for a function spec, the spec
+is rendered to Julia source, compiled, validated against sample inputs, and — if
+it survives — installed into a [`Library`](@ref) as a normal
+[`FunctionWrapper`](@ref). See [`synthesize_validated_function`](@ref) for the
+whole loop.
+
+Concrete clients share the same observable fields (last prompt, last response,
+timings, attempt count) so runner-side logging needs no per-provider branches:
+[`LlamaCppGeneratedFunctionClient`](@ref) (a local `llama-server`),
+[`GeminiGeneratedFunctionClient`](@ref), and
+[`OpenAICompatibleGeneratedFunctionClient`](@ref) (any OpenAI-style
+`/chat/completions` endpoint).
+
+Build one with [`make_llm_generated_function_client`](@ref); query it with
+[`llm_generated_function_client_backend`](@ref) and
+[`llm_generated_function_client_status`](@ref).
+"""
 abstract type AbstractGeneratedFunctionClient end
 
 """

@@ -3,6 +3,16 @@
 # MAKE OUTPUT NODE
 ######################
 
+"""
+    make_output_node(fixed_fn_idx, min_connexion, max_connexion,
+                     fixed_con_type_idx, x_pos, y_pos)
+
+Build an [`OutputNode`](@ref) reading from chromosome `fixed_con_type_idx`.
+
+The `FUNCTION` element is pinned to `fixed_fn_idx` and the `TYPE` element to
+`fixed_con_type_idx` (both frozen), so only the connexion — anywhere in
+`min_connexion:max_connexion` — is left for evolution to choose.
+"""
 function make_output_node(
     # n_params::Int,
     fixed_fn_idx::Int,
@@ -41,6 +51,22 @@ end
 # MAKE CGPNODE
 ######################
 
+"""
+    make_evolvable_node(arity, min_fn, max_fn, min_connexion, max_connexion,
+                        min_type, max_type, x_pos, x_real_pos, y_pos)
+
+Build a [`CGPNode`](@ref) whose material is one `FUNCTION` element followed by
+`arity` `(CONNEXION, TYPE)` pairs.
+
+The bounds are what make the node safe to mutate: the function index stays
+inside its library (`min_fn:max_fn`), the connexions stay behind the node
+(`min_connexion:max_connexion`, normally `1:x_pos-1`) and the types stay inside
+the set of chromosomes (`min_type:max_type`).
+
+Callers normally go through [`make_evolvable_single_genome`](@ref) or
+[`make_evolvable_utgenome`](@ref), which derive these bounds from a
+[`nodeConfig`](@ref) and a [`MetaLibrary`](@ref).
+"""
 function make_evolvable_node(
     arity::Int,
     # fn bounds

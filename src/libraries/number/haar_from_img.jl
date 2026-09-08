@@ -1,4 +1,13 @@
-""" Haar-like rectangular image-to-float features. """
+"""
+Haar-like rectangular image-to-float features.
+
+# Bundles
+
+- [`bundle_number_haarFromImg`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module number_haarFromImg
 
 using Statistics: mean
@@ -11,6 +20,16 @@ using ..number_imgRegionCommon:
     _region_bounds_from_position
 
 fallback(args...) = return 0.0
+"""
+    bundle_number_haarFromImg
+
+Haar-like contrasts between neighbouring regions of an image: `haar_lr`,
+`haar_tb`, `haar_diag_main`, `haar_diag_anti`, `haar_center_surround`,
+`haar_three_h`, `haar_three_v`.
+
+The same family of features used by cascade detectors, here available as
+evolvable operators.
+"""
 bundle_number_haarFromImg = FunctionBundle(fallback)
 
 function _haar_bounds(from::SImageND, position::Number, region_size::Number)

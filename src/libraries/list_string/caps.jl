@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-""" Capitalize/ Uppercase elements of Vector{String}
+"""
+Case operators broadcast over a `Vector{String}`.
 
-Exports :
+# Bundles
 
-- **bundle\\_string\\_caps** :
-    - `capitalize_list_string`
-    - `uppercasefirst_list_string`
+- [`bundle_liststring_caps`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module liststring_caps
 
@@ -20,6 +21,12 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = return String[""]
 
+"""
+    bundle_liststring_caps
+
+Case operators broadcast over a list of strings: `capitalize_list_string` and
+`uppercasefirst_list_string`.
+"""
 bundle_liststring_caps = FunctionBundle(fallback)
 
 

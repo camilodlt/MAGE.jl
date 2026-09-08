@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
-""" Pick one element from a vector.
+"""
+Pick one element out of a vector.
 
-The type returned depends on the type of the element at a certain index.
+The type returned is the type of the element, so these operators are what let a
+list chromosome feed a scalar one.
 
-Exports :
+# Bundles
 
-- **bundle\\_element\\_pick** :
-    - `pick_element_from_vector`
+- [`bundle_element_pick`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module element_pick
 
@@ -20,6 +23,15 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return nothing
 
+"""
+    bundle_element_pick
+
+Read one element out of a vector: `pick_element_from_vector` (by index) and
+`pick_last_element`.
+
+The chromosome type is the *element* type, so this is how a list chromosome
+feeds a scalar one.
+"""
 bundle_element_pick = FunctionBundle(fallback)
 
 # FUNCTIONS ---

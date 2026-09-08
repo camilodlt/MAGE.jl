@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-""" Arithmetic ops between 2D images
-
-Exports :
-
-- **bundle\\_image2D\\_arithmetic** :
-    - subtract\\_image2D\\_factory 
-    - add\\_image2D\\_factory 
-    - mult\\_image2D\\_factory
-    - max\\_image2D\\_factory
-    - min\\_image2D\\_factory
 """
+Pixel-wise arithmetic between two images of the same type.
 
+# Bundles
+
+- [`bundle_image2DIntensity_arithmetic_factory`](@ref)
+- [`bundle_image2DBinary_arithmetic_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_arithmetic
 
 using ..UTCGP: image2D_basic
@@ -33,7 +32,30 @@ using ..UTCGP:
 cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DBinary_arithmetic_factory
+
+Pixel-wise arithmetic between two masks: `add_img2D`, `subtract_img2D`,
+`mult_img2D`, `max_img2D`, `min_img2D` — the boolean or/and-nots of mask
+algebra.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_arithmetic_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DIntensity_arithmetic_factory
+
+Pixel-wise arithmetic between two intensity images: `add_img2D`,
+`subtract_img2D`, `mult_img2D`, `max_img2D`, `min_img2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_arithmetic_factory = FunctionBundle(fallback)
 
 # ################### #

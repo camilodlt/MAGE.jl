@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-""" `modulo`
+"""
+Modulo arithmetic.
 
-Exports :
+# Bundles
 
-- **bundle\\_integer\\_modulo** :
-    - `modulo`
+- [`bundle_integer_modulo`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module integer_modulo
 
@@ -18,6 +20,11 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0
 
+"""
+    bundle_integer_modulo
+
+`modulo`: remainder of a division.
+"""
 bundle_integer_modulo = FunctionBundle(fallback)
 
 # FUNCTIONS ---

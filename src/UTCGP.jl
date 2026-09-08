@@ -106,7 +106,6 @@ module UTCGP
     export set_node_freeze_state
     export set_node_unfreeze_state
     export set_node_element_type
-    export set_node_value
 
     include("element_nodes/random_from_node_element.jl")
     export random_element_value
@@ -629,7 +628,10 @@ module UTCGP
     export GeneratedFunctionSpec, GeneratedFunctionValidationReport
     export GeneratedFunctionArtifact, GeneratedFunctionAttempt
     export GeneratedFunctionSynthesisResult, SourceBackedFunction
-    export AbstractGeneratedFunctionClient, OllamaGeneratedFunctionClient
+    export AbstractGeneratedFunctionClient
+    export LlamaCppGeneratedFunctionClient,
+        GeminiGeneratedFunctionClient,
+        OpenAICompatibleGeneratedFunctionClient
     export make_llm_generated_function_client
     export generated_function_bindings, render_generated_function_source
     export compile_generated_function, validate_generated_function

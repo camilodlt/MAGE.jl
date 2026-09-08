@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
-""" Combinatios of 2 elements
+"""
+Pair up two lists element by element.
 
-Exports :
+# Bundles
 
-- **bundle\\_listtuple\\_mappings** :
-    - `mappings`
+- [`bundle_listtuple_mappings`](@ref)
+- [`bundle_listtuple_mappings_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listtuple_mappings
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
@@ -17,7 +20,22 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 # ######### #
 
 fallback() = [(nothing, nothing)]
+"""
+    bundle_listtuple_mappings
+
+`mappings_a_to_b`: pair up two lists element by element.
+"""
 bundle_listtuple_mappings = FunctionBundle(fallback)
+"""
+    bundle_listtuple_mappings_factory
+
+Factory form of [`bundle_listtuple_mappings`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listtuple_mappings_factory = FunctionBundle(fallback)
 
 ###############

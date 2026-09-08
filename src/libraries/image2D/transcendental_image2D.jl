@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-""" Image transcendental ops 
-
-Exports :
-
-- **bundle\\_image2D\\_arithmetic** :
-    - exp\\_image2D\\_factory 
-    - log\\_image2D\\_factory 
-    - powerof\\_image2D\\_factory 
 """
+Pixel-wise transcendental transforms of an intensity image.
 
+# Bundles
+
+- [`bundle_image2DIntensity_transcendental_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_transcendental
 
 using ..UTCGP: image2D_basic
@@ -32,6 +32,17 @@ using ..UTCGP:
 cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DIntensity_transcendental_factory
+
+Pixel-wise transcendental transforms of an intensity image: `exp_image2D`,
+`log_image2D`, `loginv_image2D`, `powerof_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_transcendental_factory = FunctionBundle(fallback)
 
 # ################### #

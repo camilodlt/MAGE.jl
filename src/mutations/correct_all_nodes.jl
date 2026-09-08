@@ -1,3 +1,26 @@
+"""
+    correct_all_nodes!(ut_genome, model_architecture, meta_library, shared_inputs)
+    correct_all_nodes!(genome::SingleGenome, meta_library, model_architecture,
+                       ut_genome, shared_inputs)
+
+Make every node of the genome type-correct, in place.
+
+Each node is checked against the function its `FUNCTION` element points at: if a
+connexion feeds it a value of the wrong type, the connexion (and its `TYPE`
+element) is resampled until the node has a signature the function actually
+accepts.
+
+This is the step right after [`initialize_genome!`](@ref) — a freshly
+randomised genome is legal but not necessarily type-correct:
+
+```julia
+initialize_genome!(ut_genome)
+correct_all_nodes!(ut_genome, model_arch, ml, shared_inputs)
+```
+
+It is also what [`correct_all_nodes_callback`](@ref) runs during a search when
+the mutation operator does not guarantee correctness by itself.
+"""
 function correct_all_nodes!(
         ut_genome::UTGenome,
         model_architecture::modelArchitecture,

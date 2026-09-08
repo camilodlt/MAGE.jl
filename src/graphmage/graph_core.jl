@@ -17,15 +17,31 @@ function new_graphmage_graph()
     )
 end
 
+"""
+    add_node!(graph, node::GraphMAGENode) -> String
+
+Insert `node` into a GraphMAGE graph under its behavior hash and return that
+label. Re-inserting an existing label overwrites the stored node.
+"""
 function add_node!(graph, node::GraphMAGENode)::String
     graph[node.behavior_hash] = node
     return node.behavior_hash
 end
 
+"""
+    get_node(graph, label::String) -> GraphMAGENode
+
+Return the node stored under `label` (a behavior hash).
+"""
 function get_node(graph, label::String)::GraphMAGENode
     return graph[label]
 end
 
+"""
+    all_node_labels(graph) -> Vector{String}
+
+Every behavior hash currently in the graph.
+"""
 function all_node_labels(graph)::Vector{String}
     return collect(MetaGraphsNext.labels(graph))
 end

@@ -196,6 +196,17 @@ end
 # Get Active Nodes from a Individual Programs
 #############################################
 
+"""
+    get_active_nodes(ind_programs::IndividualPrograms)
+    get_active_nodes(program::Program)
+
+Return the genome nodes an individual's decoded programs actually call, without
+duplicates.
+
+These are the nodes on the path from the outputs back to the inputs; everything
+else in the genome is dormant material. Mutation operators sample from this set
+so that the change has a chance of affecting behaviour.
+"""
 function get_active_nodes(ind_programs::IndividualPrograms)::Vector{<:AbstractGenomeNode}
     active_nodes = AbstractGenomeNode[]
     for program in ind_programs

@@ -26,18 +26,49 @@ const extension_segmentimg = [
     bundle_image2DSegment_pooler_factory,
 ]
 
+"""
+    get_extension_nb()
+
+Fresh copies of the image-to-number bundles: region statistics, Haar features
+and orientation summaries.
+
+These are "extensions" in the sense that they extend a *number* library with
+operators that read an image and return a scalar — the bridge that lets a float
+chromosome consume the image chromosome.
+
+Bundles are deep-copied on every call, so the returned ones can be re-cast with
+[`update_caster!`](@ref) without touching the originals.
+"""
 function get_extension_nb()
     return [deepcopy(b) for b in extension_nb]
 end
 
+"""
+    get_extension_intensityimg()
+
+Fresh copies of the extra intensity-image bundles: block pooling, sliding-window
+pooling and orientation maps. See [`get_extension_nb`](@ref).
+"""
 function get_extension_intensityimg()
     return [deepcopy(b) for b in extension_intensityimg]
 end
 
+"""
+    get_extension_binaryimg()
+
+Fresh copies of the extra binary-image (mask) bundles: block and sliding-window
+pooling. See [`get_extension_nb`](@ref).
+"""
 function get_extension_binaryimg()
     return [deepcopy(b) for b in extension_binaryimg]
 end
 
+"""
+    get_extension_segmentimg()
+
+Fresh copies of the extra segment-image (label map) bundles: block and
+sliding-window pooling. See [`get_extension_nb`](@ref).
+"""
 function get_extension_segmentimg()
     return [deepcopy(b) for b in extension_segmentimg]
 end

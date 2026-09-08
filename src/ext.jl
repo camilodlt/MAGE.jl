@@ -1,5 +1,39 @@
+"""
+    make_cma_nodes!(args...)
+
+Turn part of a genome's constants into CMA-ES-optimised
+[`ConstantNode`](@ref)s.
+
+Stub: the real method is provided by the `MAGE_PYCMA` package extension. Load
+`MAGE_PYCMA` (which bridges to Python's `cma`) before calling it, or this
+errors.
+
+See also [`get_cma_nodes`](@ref), [`mutate_cma!`](@ref).
+"""
 make_cma_nodes!(args...) = @error "Should load MAGE_PYCMA to be olverloaded"
+
+"""
+    get_cma_nodes(args...)
+
+Return the CMA-ES-backed [`ConstantNode`](@ref)s of a genome.
+
+Stub; requires the `MAGE_PYCMA` package extension. See
+[`make_cma_nodes!`](@ref).
+"""
 get_cma_nodes(args...) = @error "Should load MAGE_PYCMA to be olverloaded"
+
+"""
+    mutate_cma!(args...)
+
+Ask the CMA-ES optimiser for the next set of constant values and write them into
+the genome's [`ConstantNode`](@ref)s.
+
+This is the numerical half of the search: the graph structure evolves through
+the usual mutation operators while the constants it uses are tuned by CMA-ES.
+
+Stub; requires the `MAGE_PYCMA` package extension. See
+[`make_cma_nodes!`](@ref).
+"""
 mutate_cma!(args...) = @error "Should load MAGE_PYCMA to be olverloaded"
 
 """

@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-""" Basic IMAGE 2D functions
+"""
+Identity, constant images, inversion and casts between image types.
 
-Exports :
+# Bundles
 
-- **bundle\\image2D\\_basic** :
-    - `identity_image2D`
-    - `ones_2D`
-    - `zeros_2D`
+- [`bundle_image2DIntensity_basic_factory`](@ref)
+- [`bundle_image2DBinary_basic_factory`](@ref)
+- [`bundle_image2DSegment_basic_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image2D_basic
 
@@ -29,8 +31,44 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_basic_factory
+
+Basic operators on intensity images: `identity_image2D`, the constant images
+`ones_2D` and `zeros_2D`, `experimental_invert_2D`, the rescalings
+`experimental_normalize_2D` and `experimental_standardize_2D`, and the cast
+`experimental_tointensity_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_basic_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DSegment_basic_factory
+
+Basic operators on segment images (label maps): `identity_image2D`, `ones_2D`,
+`zeros_2D`, and the cast `experimental_tosegment_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_basic_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_basic_factory
+
+Basic operators on binary images (masks): `identity_image2D`, `ones_2D`,
+`zeros_2D`, `experimental_invert_2D`, and the casts
+`experimental_tobinary_image2D` and `experimental_tobinary_th_image2D_factory`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_basic_factory = FunctionBundle(fallback)
 
 # ################### #

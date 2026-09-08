@@ -9,13 +9,15 @@ function new_list()
 end
 
 """
-Basic Functions that apply to all lists
+Basic operators valid for a list of any element type.
 
-Exports : **bundle_listgeneric_basic**: 
-    - `identity_list`
-    - `new_list`
-    - `reverse_list`
+# Bundles
 
+- [`bundle_listgeneric_basic`](@ref)
+- [`bundle_listgeneric_basic_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listgeneric_basic
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
@@ -74,6 +76,12 @@ reverse_list = reverse_list_factory(Any)
 
 # BUNDLES 
 
+"""
+    bundle_listgeneric_basic
+
+List basics, valid for any element type: `identity_list`, `new_list` (an empty
+one) and `reverse_list`.
+"""
 bundle_listgeneric_basic = FunctionBundle(identity_list, new_list, new_list)
 append_method!(
     bundle_listgeneric_basic,
@@ -94,6 +102,16 @@ append_method!(
     description = "Returns the input list in reverse order.",
 )
 
+"""
+    bundle_listgeneric_basic_factory
+
+Factory form of [`bundle_listgeneric_basic`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listgeneric_basic_factory = FunctionBundle(identity_list, new_list, new_list)
 append_method!(
     bundle_listgeneric_basic_factory,

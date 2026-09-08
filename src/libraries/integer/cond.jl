@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-""" Conditional assertions
+"""
+Integer-valued predicates.
 
-Exports :
+# Bundles
 
-- **bundle\\_integer\\_cond** :
-    - `is_eq_to`
-    - `str_is_empty`
+- [`bundle_integer_cond`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module integer_cond
 
@@ -19,6 +20,12 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0
 
+"""
+    bundle_integer_cond
+
+Integer-valued predicates: `is_eq_to`, `str_is_empty`, and the experimental
+`experimental_is_gt`, `experimental_is_lt` and `experimental_not`.
+"""
 bundle_integer_cond = FunctionBundle(fallback)
 
 # FUNCTIONS ---

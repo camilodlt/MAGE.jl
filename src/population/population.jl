@@ -1,6 +1,18 @@
 
 abstract type AbstractPopulation end
 
+"""
+    Population(pop::Vector{UTGenome})
+
+A generation of individuals.
+
+Thin wrapper over a vector of [`UTGenome`](@ref)s supporting `length`, `size`,
+integer and vector indexing, `setindex!` and iteration, so it can be used
+wherever a vector of genomes is expected.
+
+By convention the population callbacks put the elites first: see
+[`ga_population_callback`](@ref) and [`default_population_callback`](@ref).
+"""
 struct Population <: AbstractPopulation
     pop::Vector{UTGenome}
 end

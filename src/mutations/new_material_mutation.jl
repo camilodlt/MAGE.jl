@@ -2,6 +2,25 @@ import StatsBase: sample, Weights
 import Random
 using Debugger
 
+"""
+    new_material_mutation!(ut_genome, run_config, model_architecture, meta_library,
+                           shared_inputs)
+
+Like [`numbered_mutation!`](@ref), but each sampled node is re-mutated until its
+*active material* actually changes.
+
+A CGP mutation is often silent: it can hit dormant material, or resample a node
+to something equivalent, and the offspring then costs an evaluation while being
+a duplicate of its parent. This variant retries (up to 1000 times per node)
+until the node's decoded material differs, so an offspring is always a genuinely
+new program.
+
+`run_config.mutation_rate` must be `> 1.0`; its floor is the number of nodes to
+mutate.
+
+Exposed as [`default_numbered_new_material_mutation_callback`](@ref) and
+[`ga_numbered_new_material_mutation_callback`](@ref).
+"""
 function new_material_mutation!(
         ut_genome::UTGenome,
         run_config::AbstractRunConf,
