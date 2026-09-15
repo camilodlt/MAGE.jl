@@ -444,6 +444,24 @@ module UTCGP
     export SImage2D, SImage3D
     export BinaryPixel, SegmentPixel, IntensityPixel
 
+    # RGB IMAGE -> 2D INTENSITY COLOR STATISTICS
+    include("libraries/image3D/color_statistics_rgb.jl")
+    import .image3D_color_statistics_rgb:
+        bundle_image2DIntensity_color_statistics_rgb_factory
+    export bundle_image2DIntensity_color_statistics_rgb_factory
+
+    include("libraries/image3D/mask_rgb.jl")
+    import .image3D_rgb: bundle_image3DIntensity_rgb_factory
+    export bundle_image3DIntensity_rgb_factory
+
+    include("libraries/image3D/spatial_rgb.jl")
+    import .image3D_spatial_rgb: bundle_image3DIntensity_spatial_rgb_factory
+    export bundle_image3DIntensity_spatial_rgb_factory
+
+    include("libraries/image3D/composition_rgb.jl")
+    import .image3D_rgb_composition: bundle_image3DIntensity_rgb_composition_factory
+    export bundle_image3DIntensity_rgb_composition_factory
+
     include("libraries/image2D/basic_image2D.jl")
     import .image2D_basic:
         bundle_image2DIntensity_basic_factory,
@@ -502,6 +520,27 @@ module UTCGP
     include("libraries/image2D/orientation_image2D.jl")
     import .image2D_orientation: bundle_image2DIntensity_orientation_factory
     export bundle_image2DIntensity_orientation_factory
+
+    include("libraries/image2D/saliency_fixation_image2D.jl")
+    import .image2D_saliency_fixation: bundle_image2DIntensity_saliency_fixation_factory
+    export bundle_image2DIntensity_saliency_fixation_factory
+
+    include("libraries/image2D/foreground_extraction_discrete_image2D.jl")
+    import .image2D_foreground_extraction_discrete:
+        bundle_image2DBinary_foreground_extraction_factory
+    export bundle_image2DBinary_foreground_extraction_factory
+
+    include("libraries/image2D/foreground_extraction_continuous_image2D.jl")
+    import .image2D_foreground_extraction_continuous:
+        bundle_image2DIntensity_foreground_extraction_factory
+    export bundle_image2DIntensity_foreground_extraction_factory
+
+    include("libraries/image2D/blob_extraction_image2D.jl")
+    import .image2D_blob_extraction:
+        bundle_image2DBinary_blob_extraction_factory,
+        bundle_image2DIntensity_blob_extraction_factory
+    export bundle_image2DBinary_blob_extraction_factory,
+        bundle_image2DIntensity_blob_extraction_factory
 
     # 2D IMAGES Segmentation
     include("libraries/image2D/segmentation_image2D.jl")
@@ -584,6 +623,15 @@ module UTCGP
     export get_extension_nb
     export get_extension_intensityimg
     export get_extension_binaryimg
+    export get_extension_saliency_intensityimg
+    export get_extension_foreground_intensityimg
+    export get_extension_foreground_binaryimg
+    export get_extension_blob_intensityimg
+    export get_extension_blob_binaryimg
+    export get_extension_color_statistics_rgb_intensityimg
+    export get_extension_rgbimg
+    export get_extension_spatial_rgbimg
+    export get_extension_rgb_compositionimg
     export get_extension_segmentimg
 
     # FILE TRACKING

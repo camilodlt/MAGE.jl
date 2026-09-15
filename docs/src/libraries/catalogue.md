@@ -86,6 +86,25 @@ groups = [
             "bundle_image2DIntensity_morph_factory", "bundle_image2DBinary_morph_factory",
             "bundle_image2DIntensity_orientation_factory"]),
     ]),
+    ("Images: saliency, foreground and blobs", [
+        ("image", ["bundle_image2DIntensity_saliency_fixation_factory"]),
+        ("foreground_extraction", ["bundle_image2DBinary_foreground_extraction_factory",
+            "bundle_image2DIntensity_foreground_extraction_factory"]),
+        ("blob_extraction", ["bundle_image2DBinary_blob_extraction_factory",
+            "bundle_image2DIntensity_blob_extraction_factory"]),
+    ]),
+    ("Images: RGB", [
+        ("color_statistics_rgb", [
+            "bundle_image2DIntensity_color_statistics_rgb_factory",
+            "bundle_image3DIntensity_rgb_factory",
+        ]),
+        ("spatial_rgb", [
+            "bundle_image3DIntensity_spatial_rgb_factory",
+        ]),
+        ("composition_rgb", [
+            "bundle_image3DIntensity_rgb_composition_factory",
+        ]),
+    ]),
     ("Images: thresholding and segmentation", [
         ("image", ["bundle_image2DBinary_binarize_factory",
             "bundle_image2DSegment_segmentation_factory"]),

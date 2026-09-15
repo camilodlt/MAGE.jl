@@ -41,6 +41,21 @@ Whether a function is applicable to a node is decided with `hasmethod`, and the
 decoder uses `which` to determine how many inputs the node consumes — see
 [`ManualDispatcher`](@ref) for the escape hatch used by anonymous, factory-built
 methods.
+
+# Leading functions for a new output type
+
+When a bundle is the first/basic bundle for a new chromosome output type, keep
+the established leading-function convention used by the numeric, list, and 2D
+image libraries:
+
+1. Append a one-input identity/pass-through function first.
+2. Append a parameter-free typed constructor second. The constructor must still
+   accept trailing `args...`; examples are `ret_1`, `new_list`, and `ones_2D`.
+
+This gives evolution both a way to preserve a value and a terminal-like way to
+create a valid value without depending on an input of the same type. Extension
+bundles do not need to repeat these functions when their output library already
+starts with a basic bundle.
 """
 struct FunctionBundle <: AbstractFunctionBundle
     functions::Vector{FunctionWrapper}

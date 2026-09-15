@@ -173,9 +173,23 @@ casters and fallbacks already set for the target type.
 | `UTCGP.get_image2Dsegment_factory_bundles` | segment images (label maps) |
 | `UTCGP.get_float_bundles_atari` | `Float64`, Atari-oriented |
 | `UTCGP.get_image2D_factory_bundles_atari` | images, Atari-oriented |
+| `UTCGP.get_extension_saliency_intensityimg` | new intensity saliency factories |
+| `UTCGP.get_extension_foreground_intensityimg` | new continuous foreground factories |
+| `UTCGP.get_extension_foreground_binaryimg` | new discrete foreground factories |
+| `UTCGP.get_extension_blob_intensityimg` | new masked-intensity blob factories |
+| `UTCGP.get_extension_blob_binaryimg` | new binary blob-mask factories |
+| `UTCGP.get_extension_color_statistics_rgb_intensityimg` | RGB-to-2D intensity color-statistic factories |
+| `UTCGP.get_extension_rgbimg` | RGB-output factories, including binary-mask multiplication |
+| `UTCGP.get_extension_spatial_rgbimg` | opt-in RGB-to-RGB spatial-feature factories |
+| `UTCGP.get_extension_rgb_compositionimg` | opt-in 2D-intensity-to-RGB composition factories |
 
-The `get_extension_*` functions add the cross-modal operators — image-to-scalar
-statistics, pooling, orientation — on top of a base collection.
+The historical `get_extension_intensityimg` and `get_extension_binaryimg`
+functions retain only their original pooling and orientation bundles. Saliency,
+foreground extraction, blob extraction, and RGB operators use the dedicated
+getters in the table above, so training code opts into each new search space
+explicitly. Add `get_extension_spatial_rgbimg()` and/or
+`get_extension_rgb_compositionimg()` after `get_extension_rgbimg()` to preserve
+the basic RGB library's leading identity and constructor.
 
 ```@autodocs
 Modules = [UTCGP]

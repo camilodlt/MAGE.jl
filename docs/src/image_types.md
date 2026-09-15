@@ -65,3 +65,31 @@ typeof(img)
 mask = SImageND(BinaryPixel.(rand(Bool, 8, 8)))
 size(mask), eltype(mask)
 ```
+
+## RGB images
+
+MAGE represents a true RGB input as a different chromosome type from its
+individual red, green, and blue planes. It is a three-dimensional image whose
+last axis has exactly three slices in `R, G, B` order:
+
+```@example imgtypes
+red = rand(8, 8)
+green = rand(8, 8)
+blue = rand(8, 8)
+rgb = SImageND(IntensityPixel{N0f8}.(cat(red, green, blue; dims = 3)))
+
+(rgb isa SImage3D{8,8,3,IntensityPixel{N0f8}}, size(rgb), eltype(rgb))
+```
+
+The pixel wrapper remains `IntensityPixel{N0f8}` because MAGE uses the wrapper
+to encode image semantics. The extra dimension—not a change to raw channel
+storage—is what makes RGB a separate node and chromosome type. A color dataset
+can therefore expose four inputs simultaneously: three
+`SImage2D{H,W,IntensityPixel{N0f8}}` planes followed by one
+`SImage3D{H,W,3,IntensityPixel{N0f8}}` RGB image.
+
+Ordinary `image2D` functions are specialized for a two-dimensional output type
+and cannot dispatch on this RGB chromosome. The dimension-generic whole-image
+reducers do accept it; their statistics cover all three channels. Dedicated
+cross-type operators are described under
+[RGB Images and Color Statistics](@ref).

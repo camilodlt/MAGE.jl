@@ -175,7 +175,7 @@ const SizedImage2D{S1,S2,T,IT} =
 Three-dimensional [`SizedImage`](@ref) of `S1 x S2 x S3` pixels of type `T`.
 """
 const SizedImage3D{S1,S2,S3,T,IT} =
-    SizedImage{Tuple{S1,S2,S3},T,3,IT} where {T,IT<:AbstractArray{T,2}}
+    SizedImage{Tuple{S1,S2,S3},T,3,IT} where {T,IT<:AbstractArray{T,3}}
 
  
 Base.length(a::T) where {T<:SizedImage} = length(a.img)
@@ -247,7 +247,7 @@ const SImage2D{S1,S2,T} = SImageND{Tuple{S1,S2},T,2,IT} where {IT<:AbstractArray
 
 Three-dimensional [`SImageND`](@ref) of `S1 x S2 x S3` pixels of type `T`.
 """
-const SImage3D{S1,S2,S3,T} = SImageND{Tuple{S1,S2,S3},T,3,IT} where {IT<:AbstractArray{T,2}}
+const SImage3D{S1,S2,S3,T} = SImageND{Tuple{S1,S2,S3},T,3,IT} where {IT<:AbstractArray{T,3}}
 
 @inline function _get_image_tuple_size(img::AbstractArray{T,1}) where {T}
     s = size(img)
@@ -308,4 +308,3 @@ function _generate_test_image(PIXEL::Type{SegmentPixel{T}}, size=(10, 10)) where
     # img = reinterpret.(N0f8, img)
     return SImageND(PIXEL.(img))
 end
-
