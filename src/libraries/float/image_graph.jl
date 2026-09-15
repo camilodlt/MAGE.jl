@@ -1,10 +1,12 @@
-""" Image To Graph
+"""
+Graph-theoretic descriptors of an image, reduced to scalars.
 
-Exports :
+# Bundles
 
-- **bundle\\_float\\_imagegraph** :
-    - `identity_float`
+- [`bundle_float_imagegraph`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module imagegraph_basic
 
@@ -147,6 +149,19 @@ end
 
 fallback(args...) = return 0.0
 
+"""
+    bundle_float_imagegraph
+
+Graph-theoretic descriptors of an image, obtained by building a graph over it
+and reducing node-level measures to scalars.
+
+Eleven measures — betweenness, closeness, degree, in-degree, out-degree,
+eigenvector, radiality and stress centrality, clustering coefficient, triangle
+count and eccentricity — each summarised nine ways (`mean`, `median`, `minimum`,
+`maximum`, `std`, and the x/y coordinates of the arg-max and arg-min), plus the
+whole-graph `assortativity`, `clustering_coefficient`, `diameter` and
+`label_propagation`.
+"""
 bundle_float_imagegraph = FunctionBundle(fallback)
 
 # ##################### #

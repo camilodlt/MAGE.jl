@@ -2,6 +2,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
 
   # NUMBER ARITHMETIC
   using UTCGP.number_arithmetic:number_sum
@@ -25,7 +26,7 @@ end
 Pages = ["number.md"]
 ```
 
-# Integer Operations
+# Number Operations
 
 ## Orientation Summary From Image
 
@@ -927,14 +928,7 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_three_v].fn
 </div>
 ```
 
-## Basic operations 
-
-### Module 
-
-### Functions 
-
-
-## Reduce functions
+## Arithmetic
 
 ### Module
 ```@docs
@@ -1038,4 +1032,39 @@ UTCGP.number_reduce.reduce_length
 ```jldoctest
 julia> reduce_length(collect(1:10))
 10
+```
+
+## Image to Number
+
+The bridges from an image chromosome to a scalar one. Worked examples for the
+region and Haar families are above; `reduce_*` operators summarise the whole
+image at once.
+
+### Modules
+
+```@docs
+UTCGP.number_reduceFromImg
+UTCGP.number_regionFromImg
+UTCGP.number_haarFromImg
+UTCGP.number_imgRegionCommon
+```
+
+## Transcendental
+
+### Module
+```@docs
+UTCGP.number_transcendental
+```
+
+## Bundles
+
+```@docs
+bundle_number_arithmetic
+bundle_number_reduce
+bundle_number_transcendental
+bundle_number_reduceFromImg
+bundle_number_coordinatesFromImg
+bundle_number_relativeCoordinatesFromImg
+bundle_number_regionFromImg
+bundle_number_haarFromImg
 ```

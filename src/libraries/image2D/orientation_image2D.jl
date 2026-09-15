@@ -1,11 +1,12 @@
-""" Orientation image maps
+"""
+Gradient orientation maps computed from Sobel derivatives.
 
-Exports :
+# Bundles
 
-- **bundle\\_image2DIntensity\\_orientation\\_factory** :
-    - `grad_magnitude`
-    - `grad_orientation`
-    - `orientation_select`
+- [`bundle_image2DIntensity_orientation_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image2D_orientation
 
@@ -16,6 +17,20 @@ using ..UTCGP:
 using ..UTCGP: image2D_orientation_common
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_orientation_factory
+
+Gradient orientation maps from Sobel derivatives: `grad_magnitude`,
+`grad_orientation`, and `orientation_select`, which keeps only the pixels whose
+orientation falls in a band.
+
+For the scalar counterparts see `bundle_float_orientation`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_orientation_factory = FunctionBundle(fallback)
 
 _theta_from_number(theta::Number) = mod(Float64(theta), 1.0) * π

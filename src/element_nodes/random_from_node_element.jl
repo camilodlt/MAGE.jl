@@ -1,4 +1,12 @@
 
+"""
+    random_element_value(node_element::AbstractElement)
+
+Draw a value uniformly in `lowest_bound:highest_bound`.
+
+A frozen element is never resampled: its current value is returned instead (and
+it must already have one).
+"""
 function random_element_value(node_element::AbstractElement)::Int
     if node_element.is_freezed
         # return node_element.value ? node_element.value !== nothing : 1
@@ -9,6 +17,15 @@ function random_element_value(node_element::AbstractElement)::Int
     end
 end
 
+"""
+    initialize_node_element!(node_element::AbstractElement)
+
+Give `node_element` its first value, if it does not have one yet.
+
+Free elements get a random draw ([`random_element_value`](@ref)); frozen ones
+get their `lowest_bound`. Elements that already hold a value are left untouched,
+so calling this twice on a genome is harmless.
+"""
 function initialize_node_element!(node_element::AbstractElement)
     if node_element.value === nothing
         if node_element.is_freezed

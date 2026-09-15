@@ -1,23 +1,62 @@
 abstract type AbstractFunctionBundle end
 
 """
-Because of multiple dispatch anb how we call functions,
-methods with different number of arguments should have different names. 
+    FunctionBundle(fallback::Function)
+    FunctionBundle(caster::Function, fallback::Function)
+    FunctionBundle(caster::Function, fallback::Function, last_fallback::Function)
 
-For example: 
-    - p(a, z...) = 1 
-    - p(a,b,z...) = 2
+A themed group of operators, the unit libraries are assembled from.
 
-When running the program, we will try to run p(all_inputs..., all_params...). Hence, 
-we would always call the second p function. Because with that many arguments, p(2) obscures
-p(1). 
+A bundle owns a vector of [`FunctionWrapper`](@ref)s plus the two policies they
+share: a `caster`, applied to a function's result to force it into the
+chromosome's type, and a `fallback`, returned when a call throws. Populate it
+with `append_method!` and combine bundles into a [`Library`](@ref).
 
-Also because we pass all_params... . Functions should accept varargs at the end.
+Supports `length`, `size`, iteration, indexing by position (`bundle[1]`) and by
+name (`bundle[:grad_magnitude]`, `nothing` if absent).
 
-To accept a function at a given mutation, the applicable()/HASMETHOD fn is called. 
-To make the graph, connections the which function is used. 
+Both policies can be retargeted after the fact, which is how the premade
+libraries reuse one bundle across several chromosome types:
+
+```julia
+b = deepcopy(bundle_number_arithmetic)
+update_caster!(b, float_caster)
+update_fallback!(b, () -> 0.0)
+```
+
+# Writing functions for a bundle
+
+Because a node calls `fn(all_inputs..., all_params...)`, every function in a
+bundle must accept a trailing `args...` and swallow the extra arguments:
+
+```julia
+number_sum(a::Number, b::Number, args...) = a + b
+```
+
+For the same reason, two methods of the *same* name that differ only in arity
+cannot both live in a bundle: the widest one would always shadow the narrower.
+Give them different names instead.
+
+Whether a function is applicable to a node is decided with `hasmethod`, and the
+decoder uses `which` to determine how many inputs the node consumes — see
+[`ManualDispatcher`](@ref) for the escape hatch used by anonymous, factory-built
+methods.
+
+# Leading functions for a new output type
+
+When a bundle is the first/basic bundle for a new chromosome output type, keep
+the established leading-function convention used by the numeric, list, and 2D
+image libraries:
+
+1. Append a one-input identity/pass-through function first.
+2. Append a parameter-free typed constructor second. The constructor must still
+   accept trailing `args...`; examples are `ret_1`, `new_list`, and `ones_2D`.
+
+This gives evolution both a way to preserve a value and a terminal-like way to
+create a valid value without depending on an input of the same type. Extension
+bundles do not need to repeat these functions when their output library already
+starts with a basic bundle.
 """
-
 struct FunctionBundle <: AbstractFunctionBundle
     functions::Vector{FunctionWrapper}
     caster::Union{Function, Nothing}
@@ -109,11 +148,26 @@ function append_method!(
     return push!(bundle.functions, fn_wrapped)
 end
 
+"""
+    _unique_names_in_bundle(b::FunctionBundle)
+
+Check that no two functions in `b` share a name. Names are how bundles are
+indexed and how used-function sets are computed, so duplicates are a bug.
+"""
 function _unique_names_in_bundle(b::FunctionBundle)::Bool
     n = [fw.name for fw in b.functions]
     return length(n) == length(Set(n))
 end
 
+"""
+    update_caster!(b::FunctionBundle, new_caster::Function)
+
+Point every function of `b` at `new_caster`.
+
+The caster runs on each result and coerces it into the chromosome's type — for
+instance [`float_caster`](@ref) for a `Float64` chromosome. Mutates the bundle
+in place, so `deepcopy` a shared bundle first.
+"""
 function update_caster!(b::FunctionBundle, new_caster::Function)
     _validate_bundle(b)
     for fn in b.functions
@@ -121,6 +175,15 @@ function update_caster!(b::FunctionBundle, new_caster::Function)
     end
     return
 end
+"""
+    update_fallback!(b::FunctionBundle, new_fallback::Function)
+
+Point every function of `b` at `new_fallback`.
+
+The fallback is what a node returns when its function throws, which is what
+keeps an evolved program total: a division by zero yields the fallback rather
+than killing the run. Mutates the bundle in place.
+"""
 function update_fallback!(b::FunctionBundle, new_fallback::Function)
     _validate_bundle(b)
     for fn in b.functions

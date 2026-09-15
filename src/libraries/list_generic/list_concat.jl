@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
-""" Union of lists
+"""
+Concatenation of lists.
 
-Exports :
+# Bundles
 
-- **bundle\\_listgeneric\\_concat** :
-    - `concat_two_lists`
+- [`bundle_listgeneric_concat`](@ref)
+- [`bundle_listgeneric_concat_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listgeneric_concat
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
@@ -17,7 +20,22 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 # ########### #
 
 fallback() = []
+"""
+    bundle_listgeneric_concat
+
+`concat_two_lists`: append one list to another.
+"""
 bundle_listgeneric_concat = FunctionBundle(fallback)
+"""
+    bundle_listgeneric_concat_factory
+
+Factory form of [`bundle_listgeneric_concat`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listgeneric_concat_factory = FunctionBundle(fallback)
 
 #############

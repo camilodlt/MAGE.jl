@@ -1,15 +1,12 @@
-""" Orientation summary functions from image to Float64
+"""
+Scalar summaries of an image's gradient orientations.
 
-Exports :
+# Bundles
 
-- **bundle\\_float\\_orientation** :
-    - `orientation_coherence`
-    - `dominant_orientation`
-    - `orientation_energy_0`
-    - `orientation_energy_45`
-    - `orientation_energy_90`
-    - `orientation_energy_135`
-    - `orientation_spread`
+- [`bundle_float_orientation`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module float_orientation
 
@@ -18,6 +15,17 @@ using ..UTCGP: SImageND, IntensityPixel
 using ..UTCGP: image2D_orientation_common
 
 fallback(args...) = return -1.0
+"""
+    bundle_float_orientation
+
+Scalar summaries of an image's gradient orientations, computed from Sobel
+derivatives.
+
+`dominant_orientation` and `orientation_coherence` describe the main direction
+and how consistent it is; `orientation_energy_0`, `_45`, `_90` and `_135` give
+the energy in four directional bands, and `orientation_spread` how dispersed the
+orientations are.
+"""
 bundle_float_orientation = FunctionBundle(fallback)
 
 function orientation_coherence(from::SImageND{S,T,2,C}, args...) where {S,T<:IntensityPixel,C}

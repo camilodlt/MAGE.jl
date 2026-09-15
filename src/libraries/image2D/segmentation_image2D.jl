@@ -1,14 +1,12 @@
-""" Segmentation functions
+"""
+Segmentation: intensity image in, label map out.
 
-Exports :
+# Bundles
 
-- **bundle\\image2D\\_segmentation** :
-    - `felzenswalb`
-    - `unseeded_grow`
-    - `Watershed`
-    - `mean_shift` TODO
-    - `kmeans` TODO
+- [`bundle_image2DSegment_segmentation_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image2D_segmentation
 
@@ -33,6 +31,17 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DSegment_segmentation_factory
+
+Segmentation: intensity image in, label map out. `fastscanning_image2D` and
+`watershed_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_segmentation_factory = FunctionBundle(fallback)
 
 # ######################## #

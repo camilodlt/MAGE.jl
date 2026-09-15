@@ -1,6 +1,20 @@
 #################### FUNCTION WRAPPER ######################
 # wraps a function with it's caster, fallback and cache
 
+"""
+    _invoke_fn(fn, inputs...)
+
+Generic evaluation-path call: plain call syntax for everything except
+`SourceBackedFunction`s (LLM-generated functions), which get a specialized
+method added in `llm_generated_functions.jl` (included later, once that type
+exists) routing through `_call_runtime_fn(fn, Val(false), inputs...)` --
+`Val(false)` skips `invokelatest`'s per-call overhead, safe specifically for
+this evaluation path (see that method's docstring for why it's only wired up
+here and not for the load/validate call path, which still goes through
+`SourceBackedFunction`'s default call operator, `Val(true)`).
+"""
+@inline _invoke_fn(fn, inputs...) = fn(inputs...)
+
 function _get_parent_module_symbol(f::AbstractFunction)
     return typeof(f) |> parentmodule |> Symbol
 end
@@ -34,6 +48,56 @@ function _sanitize_wrapper_description(name::Symbol, description::AbstractString
         return _default_wrapper_description(name)
     end
     return join(lines[1:min(length(lines), 3)], "\n")
+end
+
+function _runtime_arg_tuple_type(inputs_)
+    return Tuple{map(typeof, inputs_)...}
+end
+
+function _declared_input_types_for_debug(fn_like)
+    if hasfield(typeof(fn_like), :input_types)
+        return try
+            getfield(fn_like, :input_types)
+        catch
+            nothing
+        end
+    end
+    return nothing
+end
+
+function _declared_argument_names_for_debug(fn_like)
+    if hasfield(typeof(fn_like), :argument_names)
+        return try
+            getfield(fn_like, :argument_names)
+        catch
+            nothing
+        end
+    end
+    return nothing
+end
+
+function _which_debug_string(fn_like, tuple_type)
+    try
+        return string(which(fn_like, tuple_type))
+    catch err
+        return "ERROR: " * sprint(showerror, err)
+    end
+end
+
+function _hasmethod_debug_value(fn_like, tuple_type)
+    try
+        return Base.hasmethod(fn_like, tuple_type)
+    catch err
+        return "ERROR: " * sprint(showerror, err)
+    end
+end
+
+function _method_signatures_for_debug(fn_like)
+    try
+        return sprint(show, methods(fn_like))
+    catch err
+        return "ERROR: " * sprint(showerror, err)
+    end
 end
 
 mutable struct FunctionWrapper{T} <: AbstractFunction
@@ -125,7 +189,7 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
     status = get(SafeFunctions, Tuple{F, T}, Undefined)
     if status == Good
         try
-            tmp = f.fn(x...)
+            tmp = _invoke_fn(f.fn, x...)
             if !isnothing(f.caster)
                 tmp = f.caster(tmp)
             end
@@ -136,7 +200,7 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
     end
     status == Bad && return (f.fallback(), false) # If types are nok, always return fallback
     output = try
-        tmp = f.fn(x...)
+        tmp = _invoke_fn(f.fn, x...)
         if !isnothing(f.caster)
             tmp = f.caster(tmp)
         end
@@ -240,7 +304,17 @@ function evaluate_fn_wrapper(
                         if isdefined(Main, :Infiltrator)
                             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
                         end
-                        @warn "$(fn_wrapper.name) got a MethodError with inputs of type $(typeof.(inputs_))"
+                        tuple_type = _runtime_arg_tuple_type(inputs_)
+                        @warn "$(fn_wrapper.name) got a MethodError with inputs of type $(typeof.(inputs_))" fn_name =
+                            fn_wrapper.name parent_module =
+                            fn_wrapper.parent_module real_input_types =
+                            typeof.(inputs_) runtime_tuple_type =
+                            tuple_type declared_argument_names =
+                            _declared_argument_names_for_debug(fn_wrapper.fn) declared_input_types =
+                            _declared_input_types_for_debug(fn_wrapper.fn) hasmethod_on_runtime_types =
+                            _hasmethod_debug_value(fn_wrapper.fn, tuple_type) which_on_runtime_types =
+                            _which_debug_string(fn_wrapper.fn, tuple_type) available_methods =
+                            _method_signatures_for_debug(fn_wrapper.fn)
                     end
                     @timeit_debug to "Eval fn Nok $(fn_wrapper.name)" fn_wrapper.fallback()
                 end
@@ -256,7 +330,7 @@ end
         ::Val{true},
     )
     @debug "Running fn : $(fn_wrapper.name)"
-    pre = fn_wrapper.fn(inputs...)
+    pre = _invoke_fn(fn_wrapper.fn, inputs...)
     if isnothing(pre)
         if isdefined(Main, :Infiltrator)
             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
@@ -272,7 +346,7 @@ end
         ::Val{false},
     )
     @debug "Running fn : $(fn_wrapper.name)"
-    o = fn_wrapper.fn(inputs...)
+    o = _invoke_fn(fn_wrapper.fn, inputs...)
     @debug "End Running fn : $(fn_wrapper.name)"
     return o
 end

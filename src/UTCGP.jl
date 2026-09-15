@@ -23,6 +23,12 @@ module UTCGP
     using Logging
     using LinearAlgebra
     using StatsBase
+    using Random
+    using Graphs
+    using MetaGraphsNext
+    using JLD2
+    using GraphvizDotLang
+    import Downloads
 
     using TimerOutputs
     const debuglogger = ConsoleLogger(stderr, right_justify = 10)
@@ -100,7 +106,6 @@ module UTCGP
     export set_node_freeze_state
     export set_node_unfreeze_state
     export set_node_element_type
-    export set_node_value
 
     include("element_nodes/random_from_node_element.jl")
     export random_element_value
@@ -179,10 +184,15 @@ module UTCGP
     include("programs/free_decode.jl")
     include("programs/evaluate.jl")
     include("programs/compile/compile_program.jl")
+    include("programs/compile/population_sequential_program.jl")
 
     export InputPromise, OperationInput, Operation, Program
     export SequentialProgram, SequentialCallStep, SequentialConstantStep, SequentialOutput
     export SequentialProgramInputRef, SequentialTmpRef, NoTypeAssertion
+    export PopulationSequentialProgram, PopulationSequentialWorkspace
+    export evaluate_population_sequential_program
+    export evaluate_population_sequential_program_with_time
+    export evaluate_population_sequential_program_on_samples
     export compile_program, sequential_source
     export replace_shared_inputs!
     # MUTATIONS
@@ -434,6 +444,24 @@ module UTCGP
     export SImage2D, SImage3D
     export BinaryPixel, SegmentPixel, IntensityPixel
 
+    # RGB IMAGE -> 2D INTENSITY COLOR STATISTICS
+    include("libraries/image3D/color_statistics_rgb.jl")
+    import .image3D_color_statistics_rgb:
+        bundle_image2DIntensity_color_statistics_rgb_factory
+    export bundle_image2DIntensity_color_statistics_rgb_factory
+
+    include("libraries/image3D/mask_rgb.jl")
+    import .image3D_rgb: bundle_image3DIntensity_rgb_factory
+    export bundle_image3DIntensity_rgb_factory
+
+    include("libraries/image3D/spatial_rgb.jl")
+    import .image3D_spatial_rgb: bundle_image3DIntensity_spatial_rgb_factory
+    export bundle_image3DIntensity_spatial_rgb_factory
+
+    include("libraries/image3D/composition_rgb.jl")
+    import .image3D_rgb_composition: bundle_image3DIntensity_rgb_composition_factory
+    export bundle_image3DIntensity_rgb_composition_factory
+
     include("libraries/image2D/basic_image2D.jl")
     import .image2D_basic:
         bundle_image2DIntensity_basic_factory,
@@ -493,6 +521,27 @@ module UTCGP
     import .image2D_orientation: bundle_image2DIntensity_orientation_factory
     export bundle_image2DIntensity_orientation_factory
 
+    include("libraries/image2D/saliency_fixation_image2D.jl")
+    import .image2D_saliency_fixation: bundle_image2DIntensity_saliency_fixation_factory
+    export bundle_image2DIntensity_saliency_fixation_factory
+
+    include("libraries/image2D/foreground_extraction_discrete_image2D.jl")
+    import .image2D_foreground_extraction_discrete:
+        bundle_image2DBinary_foreground_extraction_factory
+    export bundle_image2DBinary_foreground_extraction_factory
+
+    include("libraries/image2D/foreground_extraction_continuous_image2D.jl")
+    import .image2D_foreground_extraction_continuous:
+        bundle_image2DIntensity_foreground_extraction_factory
+    export bundle_image2DIntensity_foreground_extraction_factory
+
+    include("libraries/image2D/blob_extraction_image2D.jl")
+    import .image2D_blob_extraction:
+        bundle_image2DBinary_blob_extraction_factory,
+        bundle_image2DIntensity_blob_extraction_factory
+    export bundle_image2DBinary_blob_extraction_factory,
+        bundle_image2DIntensity_blob_extraction_factory
+
     # 2D IMAGES Segmentation
     include("libraries/image2D/segmentation_image2D.jl")
     import .image2D_segmentation: bundle_image2DSegment_segmentation_factory
@@ -503,7 +552,7 @@ module UTCGP
     export bundle_float_orientation
 
     # 2D IMAGES MASK
-    # include("libraries/image2D/mask_image2D.jl")
+    include("libraries/image2D/mask_image2D.jl")
     # import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
     # export experimental_bundle_image2D_mask_factory
     # import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
@@ -555,11 +604,34 @@ module UTCGP
     export fit_mt
     export fit_ga, fit_ga_mt
 
+    # GRAPHMAGE
+    include("graphmage/graphmage.jl")
+    export GraphMAGENode, GraphMAGEConfig, GraphMAGEArchive, GraphMAGERunContext
+    export run_graphmage, expand_node!, select_node, backpropagate!
+    export ucb_score, annealed_c, forced_exploration_score
+    export used_function_names, used_function_names_genotype, merge_used_function_names, subset_metalibrary, remap_genome_to_library!
+    export build_behavior_probes, compute_behaviors_for_population, compute_behaviors_independently
+    export evaluate_archive_outputs_on_samples, set_val_fitness!
+    export save_graphmage_archive, load_graphmage_archive
+    export merge_graphmage_archives
+    export plot_graphmage_archive
+    export new_graphmage_graph, add_node!, get_node, all_node_labels, add_edge_checked!
+    export best_train_node_label
+
     # PRE MADE BUNDLES
     include("libraries/pre_made_libraries.jl")
     export get_extension_nb
     export get_extension_intensityimg
     export get_extension_binaryimg
+    export get_extension_saliency_intensityimg
+    export get_extension_foreground_intensityimg
+    export get_extension_foreground_binaryimg
+    export get_extension_blob_intensityimg
+    export get_extension_blob_binaryimg
+    export get_extension_color_statistics_rgb_intensityimg
+    export get_extension_rgbimg
+    export get_extension_spatial_rgbimg
+    export get_extension_rgb_compositionimg
     export get_extension_segmentimg
 
     # FILE TRACKING
@@ -599,7 +671,21 @@ module UTCGP
     # MODULAR
     include("libraries/modular_function.jl")
     include("libraries/modular_library.jl")
+    include("libraries/llm_generated_functions.jl")
     include("libraries/subgraph_selection.jl")
+    export GeneratedFunctionSpec, GeneratedFunctionValidationReport
+    export GeneratedFunctionArtifact, GeneratedFunctionAttempt
+    export GeneratedFunctionSynthesisResult, SourceBackedFunction
+    export AbstractGeneratedFunctionClient
+    export LlamaCppGeneratedFunctionClient,
+        GeminiGeneratedFunctionClient,
+        OpenAICompatibleGeneratedFunctionClient
+    export make_llm_generated_function_client
+    export generated_function_bindings, render_generated_function_source
+    export compile_generated_function, validate_generated_function
+    export generated_function_library_index, install_generated_function!
+    export render_generated_function_context, synthesize_validated_function
+    export generate_function_spec, repair_function_spec
 
     # AUTOMATICALLY DEFINED FUNCTIONS
     include("adf/types.jl")

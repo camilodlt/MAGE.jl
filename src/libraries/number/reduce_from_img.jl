@@ -1,22 +1,14 @@
-""" REDUCE Functions : from Img of number to number
+"""
+Reduce a whole image to a single number, and locate its brightest point.
 
-Pooling techniques to reduce an image to a single scalar. 
+# Bundles
 
-Exports :
+- [`bundle_number_reduceFromImg`](@ref)
+- [`bundle_number_coordinatesFromImg`](@ref)
+- [`bundle_number_relativeCoordinatesFromImg`](@ref)
 
-- **bundle\\_number\\_reduceFromImg** :
-    - `reduce_length`
-    - `reduce_biggestAxis`
-    - `reduce_smallerAxis`
-    - `reduce_histMode`
-    - `reduce_propWhite`
-    - `reduce_propBlack`
-    - `reduce_ncolors`
-    - `reduce_mean`
-    - `reduce_median`
-    - `reduce_std`
-    - `reduce_minimum`
-    - `reduce_maximum`
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module number_reduceFromImg
 
@@ -44,8 +36,37 @@ using ..UTCGP:
 
 fallback(args...) = return 0.0
 
+"""
+    bundle_number_reduceFromImg
+
+Whole-image statistics, the main image-to-scalar bridge.
+
+Shape: `reduce_length`, `reduce_biggestAxis`, `reduce_smallerAxis`. Histogram:
+`reduce_histMode`, `reduce_histModeCount`, `reduce_nColors`. Content:
+`reduce_propWhite`, `reduce_propBlack`, `reduce_mean`, `reduce_median`,
+`reduce_std`, `reduce_maximum`, `reduce_minimum`.
+
+A scalar obtained this way can be fed straight back to an image operator as a
+parameter, which is the multimodal loop MAGE is built around.
+"""
 bundle_number_reduceFromImg = FunctionBundle(fallback)
+"""
+    bundle_number_coordinatesFromImg
+
+Absolute coordinates of an image's brightest point:
+`experimental_horizontal_argmax` and `experimental_vertical_argmax`.
+"""
 bundle_number_coordinatesFromImg = FunctionBundle(fallback)
+"""
+    bundle_number_relativeCoordinatesFromImg
+
+Coordinates of an image's brightest point as a fraction of its size:
+`experimental_horizontal_relative_argmax` and
+`experimental_vertical_relative_argmax`.
+
+Being size-relative, these compose with the region operators, which take
+relative coordinates.
+"""
 bundle_number_relativeCoordinatesFromImg = FunctionBundle(fallback)
 
 # FUNCTIONS ---

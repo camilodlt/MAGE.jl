@@ -1,21 +1,13 @@
-""" Region-statistics functions from image to Float64
-
-Local image-to-scalar reducers over fixed-size patches centered at normalized
+"""
+Statistics over a rectangular patch of an image, centred on normalised
 coordinates in `[0, 1]`.
 
-Exports :
+# Bundles
 
-- **bundle\\_number\\_regionFromImg** :
-    - `region_mean`
-    - `region_std`
-    - `region_min`
-    - `region_max`
-    - `region_sum`
-    - `region_median`
-    - `region_range`
-    - `region_contrast`
-    - `region_energy`
-    - `region_entropy`
+- [`bundle_number_regionFromImg`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module number_regionFromImg
 
@@ -29,6 +21,18 @@ using ..number_imgRegionCommon:
     _region_window
 
 fallback(args...) = return 0.0
+"""
+    bundle_number_regionFromImg
+
+Statistics over a rectangular region of an image, located by relative
+coordinates.
+
+Ten statistics — `region_mean`, `region_std`, `region_min`, `region_max`,
+`region_sum`, `region_median`, `region_range`, `region_contrast`,
+`region_energy`, `region_entropy` — each in four window sizes: the parametric
+one plus the `_5p`, `_10p` and `_20p` variants covering 5%, 10% and 20% of the
+image.
+"""
 bundle_number_regionFromImg = FunctionBundle(fallback)
 
 const _REGION_HALF_SIZE = 1

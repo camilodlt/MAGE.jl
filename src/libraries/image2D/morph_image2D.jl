@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
-""" Morphological functions
-
-Exports :
-
-- **bundle\\image2D\\_morph** :
-    - `erosion`
-    - `dilation`
-    - `opening` 
-    - `closing` 
-    - `tophat`
-    - `bothat`
-    - `mgradient`
-    - `mlaplace`
 """
+Mathematical morphology over images.
 
+# Bundles
+
+- [`bundle_image2DIntensity_morph_factory`](@ref)
+- [`bundle_image2DBinary_morph_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_morph
 
 using ImageMorphology
@@ -34,7 +30,29 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_morph_factory
+
+Grey-level morphology: `erosion_2D`, `dilation_2D`, `opening_2D`, `closing_2D`,
+`tophat_2D`, `bothat_2D`, `morphogradient_2D`, `morpholaplace_2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_morph_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_morph_factory
+
+Binary morphology over masks: `erosion_2D`, `dilation_2D`, `opening_2D`,
+`closing_2D`, `tophat_2D`, `bothat_2D`, `morphogradient_2D`, `morpholaplace_2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_morph_factory = FunctionBundle(fallback)
 # bundle_image2DSegment_morph_factory = FunctionBundle(fallback) # not applicable
 

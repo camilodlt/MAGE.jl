@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
 
-""" Simple arithmetic functions
+"""
+Scalar arithmetic.
 
-The default is int for the `fallback`. 
-To cast to other types, use `update_caster!` and `update_fallback!`
-Exports :
+The fallback returns an `Int`. To target another type, re-point the bundle with
+`update_caster!` and `update_fallback!`.
 
-- **bundle\\_number\\_arithmetic** :
-    - `number_sum`
-    - `number_minus`
-    - `number_mult`
-    - `number_div`
-    - `safe_div`
-    - `power_of`
+# Bundles
 
+- [`bundle_number_arithmetic`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module number_arithmetic
 
@@ -25,6 +23,13 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0
 
+"""
+    bundle_number_arithmetic
+
+Scalar arithmetic: `number_sum`, `number_minus`, `number_mult`, `number_div`,
+`power_of`, and `safe_div`, which returns `0` instead of failing on a zero
+denominator.
+"""
 bundle_number_arithmetic = FunctionBundle(fallback)
 
 # FUNCTIONS ---

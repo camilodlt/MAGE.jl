@@ -1,13 +1,14 @@
 # # -*- coding: utf-8 -*-
 
-""" `find` conditions and return the position
+"""
+Search a list and return the position found.
 
-Exports :
+# Bundles
 
-- **bundle\\_integer\\_find** :
-    - `find_first`
-    - `index_of_first_true`
+- [`bundle_integer_find`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module integer_find
 
@@ -19,6 +20,11 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0
 
+"""
+    bundle_integer_find
+
+Search inside a list: `find_first` and `index_of_first_true`.
+"""
 bundle_integer_find = FunctionBundle(fallback)
 
 # FUNCTIONS ---

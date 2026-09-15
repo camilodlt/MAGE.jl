@@ -181,7 +181,8 @@ function check_functionning_node(
             model_architecture,
         )
         arg_types = tuple([op.type for op in inputs]...)
-        return Base.hasmethod(fn.fn, arg_types)
+        arg_tuple_type = Tuple{([op.type for op in inputs]...)}
+        return Base.hasmethod(fn.fn, arg_tuple_type)
     catch e
         @show e
         @warn "Problem checking the node functionning state. False returned"
@@ -195,6 +196,17 @@ end
 # Get Active Nodes from a Individual Programs
 #############################################
 
+"""
+    get_active_nodes(ind_programs::IndividualPrograms)
+    get_active_nodes(program::Program)
+
+Return the genome nodes an individual's decoded programs actually call, without
+duplicates.
+
+These are the nodes on the path from the outputs back to the inputs; everything
+else in the genome is dormant material. Mutation operators sample from this set
+so that the change has a chance of affecting behaviour.
+"""
 function get_active_nodes(ind_programs::IndividualPrograms)::Vector{<:AbstractGenomeNode}
     active_nodes = AbstractGenomeNode[]
     for program in ind_programs
@@ -282,7 +294,8 @@ function get_active_node_material(
         model_architecture,
     )
     arg_types = tuple([op.type for op in inputs]...)
-    m = which(fn.fn, arg_types)
+    arg_tuple_type = Tuple{([op.type for op in inputs]...)}
+    m = which(fn.fn, arg_tuple_type)
     fn_arity = m.nargs - 2 # - fn, - args...
     material = [node[1].value] # the fn
     for (con_pos, i) in enumerate(1:fn_arity)

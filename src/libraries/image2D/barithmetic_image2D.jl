@@ -1,13 +1,13 @@
-""" Broadcasted Arithmetic ops between 2D images
-
-Exports :
-
-- **bundle\\_image2D\\_barithmetic** :
-    - bsubtract\\_image2D\\_factory 
-    - badd\\_image2D\\_factory 
-    - bmult\\_image2D\\_factory
 """
+Arithmetic between an image and a scalar.
 
+# Bundles
+
+- [`bundle_image2DIntensity_barithmetic_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_barithmetic
 
 using ..UTCGP: image2D_basic
@@ -30,6 +30,20 @@ using ..UTCGP:
 cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DIntensity_barithmetic_factory
+
+Arithmetic between an intensity image and a scalar: `badd_image2D`,
+`bsubtract_image2D`, `bmult_image2D`.
+
+The scalar comes from the number chromosome, which is how a statistic measured
+on one image parameterises the transform of another.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_barithmetic_factory = FunctionBundle(fallback)
 
 # ################### #

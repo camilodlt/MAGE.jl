@@ -21,23 +21,188 @@ const extension_binaryimg = [
     bundle_image2DBinary_pooler_factory,
 ]
 
+const extension_saliency_intensityimg = [
+    bundle_image2DIntensity_saliency_fixation_factory,
+]
+
+const extension_foreground_intensityimg = [
+    bundle_image2DIntensity_foreground_extraction_factory,
+]
+
+const extension_foreground_binaryimg = [
+    bundle_image2DBinary_foreground_extraction_factory,
+]
+
+const extension_blob_intensityimg = [
+    bundle_image2DIntensity_blob_extraction_factory,
+]
+
+const extension_blob_binaryimg = [
+    bundle_image2DBinary_blob_extraction_factory,
+]
+
+const extension_color_statistics_rgb_intensityimg = [
+    bundle_image2DIntensity_color_statistics_rgb_factory,
+]
+
+const extension_rgbimg = [
+    bundle_image3DIntensity_rgb_factory,
+]
+
+const extension_spatial_rgbimg = [
+    bundle_image3DIntensity_spatial_rgb_factory,
+]
+
+const extension_rgb_compositionimg = [
+    bundle_image3DIntensity_rgb_composition_factory,
+]
+
 const extension_segmentimg = [
     bundle_image2DSegment_pool_factory,
     bundle_image2DSegment_pooler_factory,
 ]
 
+"""
+    get_extension_nb()
+
+Fresh copies of the image-to-number bundles: region statistics, Haar features
+and orientation summaries.
+
+These are "extensions" in the sense that they extend a *number* library with
+operators that read an image and return a scalar — the bridge that lets a float
+chromosome consume the image chromosome.
+
+Bundles are deep-copied on every call, so the returned ones can be re-cast with
+update_caster! without touching the originals.
+"""
 function get_extension_nb()
     return [deepcopy(b) for b in extension_nb]
 end
 
+"""
+    get_extension_intensityimg()
+
+Fresh copies of the historical extra intensity-image bundles: block pooling,
+sliding-window pooling and orientation maps. New vision operators use dedicated
+getters so existing training configurations do not acquire them implicitly.
+"""
 function get_extension_intensityimg()
     return [deepcopy(b) for b in extension_intensityimg]
 end
 
+"""
+    get_extension_binaryimg()
+
+Fresh copies of the historical extra binary-image bundles: block and
+sliding-window pooling. New vision operators use dedicated getters so existing
+training configurations do not acquire them implicitly.
+"""
 function get_extension_binaryimg()
     return [deepcopy(b) for b in extension_binaryimg]
 end
 
+"""
+    get_extension_saliency_intensityimg()
+
+Fresh copies of the new intensity-output fixation-saliency bundles.
+"""
+function get_extension_saliency_intensityimg()
+    return [deepcopy(b) for b in extension_saliency_intensityimg]
+end
+
+"""
+    get_extension_foreground_intensityimg()
+
+Fresh copies of the new continuous foreground-extraction bundles.
+"""
+function get_extension_foreground_intensityimg()
+    return [deepcopy(b) for b in extension_foreground_intensityimg]
+end
+
+"""
+    get_extension_foreground_binaryimg()
+
+Fresh copies of the new discrete foreground-extraction bundles.
+"""
+function get_extension_foreground_binaryimg()
+    return [deepcopy(b) for b in extension_foreground_binaryimg]
+end
+
+"""
+    get_extension_blob_intensityimg()
+
+Fresh copies of the new intensity-output blob-extraction bundles.
+"""
+function get_extension_blob_intensityimg()
+    return [deepcopy(b) for b in extension_blob_intensityimg]
+end
+
+"""
+    get_extension_blob_binaryimg()
+
+Fresh copies of the new binary-output blob-extraction bundles.
+"""
+function get_extension_blob_binaryimg()
+    return [deepcopy(b) for b in extension_blob_binaryimg]
+end
+
+"""
+    get_extension_color_statistics_rgb_intensityimg()
+
+Fresh copies of the RGB-to-intensity color-statistics bundles. These factories
+consume a same-size, three-channel `SImage3D` and produce the specialized 2D
+intensity image type. They are not included by historical image getters.
+"""
+function get_extension_color_statistics_rgb_intensityimg()
+    return [deepcopy(b) for b in extension_color_statistics_rgb_intensityimg]
+end
+
+"""
+    get_extension_rgbimg()
+
+Fresh copies of the RGB-output bundles. Their factories specialize on a
+concrete three-channel RGB `SImage3D` type. The leading functions are
+`identity_rgb` and the parameter-free constructor `return_rgb`, followed by
+pairwise arithmetic, unary color transforms, bounded color adjustments, and
+masking by a same-size 2D binary image.
+"""
+function get_extension_rgbimg()
+    return [deepcopy(b) for b in extension_rgbimg]
+end
+
+"""
+    get_extension_spatial_rgbimg()
+
+Fresh copies of the opt-in RGB-to-RGB spatial-feature bundle. Its factories
+specialize on a concrete three-channel RGB `SImage3D` output type and provide
+fixed, training-free edge, scale, sharpening, local-statistics, and oriented
+texture transforms. Combine this after `get_extension_rgbimg()` so the RGB
+library retains its leading `identity_rgb` and `return_rgb` functions.
+"""
+function get_extension_spatial_rgbimg()
+    return [deepcopy(b) for b in extension_spatial_rgbimg]
+end
+
+"""
+    get_extension_rgb_compositionimg()
+
+Fresh copies of the opt-in 2D-intensity-to-RGB composition bundle. Its
+factories specialize on a concrete three-channel RGB `SImage3D` output type and
+provide channel composition and replacement, continuous intensity masking,
+spatial alpha blending, and luminance replacement. Combine this after
+`get_extension_rgbimg()` so the RGB library retains its leading `identity_rgb`
+and `return_rgb` functions.
+"""
+function get_extension_rgb_compositionimg()
+    return [deepcopy(b) for b in extension_rgb_compositionimg]
+end
+
+"""
+    get_extension_segmentimg()
+
+Fresh copies of the extra segment-image (label map) bundles: block and
+sliding-window pooling.
+"""
 function get_extension_segmentimg()
     return [deepcopy(b) for b in extension_segmentimg]
 end

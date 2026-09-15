@@ -5,8 +5,15 @@
 # HOLDER OF NODE ELEMENrS
 
 """
+    NodeMaterial()
+    NodeMaterial(material_list::Vector{<:AbstractElement})
 
-Holds the integers of a node. 
+Holds the integers of a node.
+
+A `NodeMaterial` is the ordered vector of [`CGPElement`](@ref)s that make up one
+node: one `FUNCTION` element, then `arity` `(CONNEXION, TYPE)` pairs. It
+supports `length`, `size`, and integer/vector indexing, so `node_material[1]` is
+the function element.
 """
 struct NodeMaterial
     material::Vector{<:AbstractElement}
@@ -30,6 +37,21 @@ Base.setindex!(node_elements::NodeMaterial, value, i::Int) =
 # ABSTRACT NODE
 ################
 
+"""
+    AbstractNode
+
+Supertype of every node in a MAGE genome.
+
+The hierarchy below it splits nodes by what mutation is allowed to touch:
+
+- `AbstractEvolvableNode`: carries mutable material.
+  - `AbstractGenomeNode`: [`CGPNode`](@ref) and [`ConstantNode`](@ref).
+  - `AbstractOutputNode`: [`OutputNode`](@ref).
+- `AbstractNonEvolvableNode`: [`InputNode`](@ref), which only carries a value.
+
+Every node supports `length`, integer indexing and iteration over its
+[`NodeMaterial`](@ref).
+"""
 abstract type AbstractNode end #All nodes
 abstract type AbstractEvolvableNode <: AbstractNode end # Everything that evolves
 abstract type AbstractNonEvolvableNode <: AbstractNode end # what doesn't evolves
@@ -52,6 +74,11 @@ end
 ###############################################################
 
 
+"""
+    initialize_node!(node::AbstractEvolvableNode)
+
+Initialise every element of `node` (see [`initialize_node_element!`](@ref)).
+"""
 function initialize_node!(node::AbstractEvolvableNode)
     for node_element in node
         initialize_node_element!(node_element)
@@ -59,17 +86,45 @@ function initialize_node!(node::AbstractEvolvableNode)
     return
 end
 
+"""
+    reset_node_value!(node::AbstractNode)
+
+Drop the cached output value of `node`, so the next decoding recomputes it.
+
+[`ConstantNode`](@ref)s are deliberately not reset.
+"""
 function reset_node_value!(node::AbstractNode)
     return node.value = nothing
 end
 
+"""
+    set_node_value!(node::AbstractNode, val::Any)
+
+Store `val` as the current output value of `node`.
+"""
 function set_node_value!(node::AbstractNode, val::Any)
     return node.value = val
 end
+
+"""
+    get_node_value(node::AbstractNode)
+
+Read the current output value of `node`, or `nothing` if it has not been
+computed yet.
+
+The method on [`ConstantNode`](@ref) dereferences the stored `Ref`, and the
+method on a plain value returns it unchanged, so this can be called uniformly on
+whatever a connexion resolves to.
+"""
 function get_node_value(node::AbstractNode)::Any
     return node.value
 end
 
+"""
+    extract_connexions_from_node(node::AbstractEvolvableNode)
+
+Return the `CONNEXION` elements of `node`, in argument order.
+"""
 function extract_connexions_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     connexions = [
         element for
@@ -78,6 +133,11 @@ function extract_connexions_from_node(node::AbstractEvolvableNode)::Vector{CGPEl
     return connexions
 end
 
+"""
+    extract_parameters_from_node(node::AbstractEvolvableNode)
+
+Return the `PARAMETER` elements of `node`, in order.
+"""
 function extract_parameters_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     params = [
         element for
@@ -86,6 +146,14 @@ function extract_parameters_from_node(node::AbstractEvolvableNode)::Vector{CGPEl
     return params
 end
 
+"""
+    extract_connexions_types_from_node(node::AbstractEvolvableNode)
+
+Return the `TYPE` elements of `node`, in argument order.
+
+The i-th value says which chromosome the i-th connexion of the node reads from;
+this is what makes a connexion type-correct.
+"""
 function extract_connexions_types_from_node(node::AbstractEvolvableNode)::Vector{CGPElement}
     connexions_types =
         [element for element in node.node_material.material if element.element_type == TYPE]
@@ -93,6 +161,13 @@ function extract_connexions_types_from_node(node::AbstractEvolvableNode)::Vector
 end
 
 
+"""
+    extract_function_from_node(node::AbstractEvolvableNode)
+
+Return the single `FUNCTION` element of `node`.
+
+Its value indexes the [`Library`](@ref) of the chromosome the node belongs to.
+"""
 function extract_function_from_node(node::AbstractEvolvableNode)::CGPElement
     function_element = [
         element for
@@ -101,8 +176,14 @@ function extract_function_from_node(node::AbstractEvolvableNode)::CGPElement
     return function_element[1]
 end
 
-# TODO
 """
+    node_to_vector(node::AbstractNode)
+
+Flatten `node` into the vector of its element values, with `NaN` for elements
+that have not been initialised.
+
+Used by the serialisation and hashing helpers that need a plain numeric view of
+the genome.
 """
 function node_to_vector(node::AbstractNode)::Vector{<:Number}
     vec_repr = Float64[]
@@ -132,6 +213,18 @@ Base.iterate(n::AbstractNode, state = 1) =
 ###############
 
 
+"""
+    InputNode(value, x_pos::Int, x_real_pos::Int, y_pos::Int)
+
+A leaf of the graph holding one program input.
+
+Input nodes have no evolvable material: only a value and a position. They live
+in a [`SharedInput`](@ref) so that every chromosome of a genome reads the same
+inputs.
+
+`y_pos` is the index of the chromosome (i.e. the type) this input belongs to,
+which is how a typed connexion can reach it.
+"""
 mutable struct InputNode <: AbstractNonEvolvableNode
     node_material::NodeMaterial
     value::Any
@@ -163,6 +256,15 @@ function get_node_value(x::Any)
     return x
 end
 
+"""
+    CGPNode(value, x_pos::Int, x_real_pos::Int, y_pos::Int)
+    CGPNode(nm::NodeMaterial, value, x_pos::Int, x_real_pos::Int, y_pos::Int)
+
+An evolvable node of a chromosome: a function index plus its typed connexions.
+
+Build one with [`make_evolvable_node`](@ref) rather than by hand — that helper
+computes the bounds that keep the graph feed-forward and type-correct.
+"""
 mutable struct CGPNode <: AbstractGenomeNode
     node_material::NodeMaterial
     value::Any
@@ -195,6 +297,18 @@ mutable struct CGPNode <: AbstractGenomeNode
     end
 end
 
+"""
+    OutputNode(value, x_pos::Int, x_real_pos::Int, y_pos::Int)
+    OutputNode(nm::NodeMaterial, value, x_pos::Int, x_real_pos::Int, y_pos::Int)
+
+The node that names one output of the genome.
+
+Its material is `[FUNCTION, CONNEXION, TYPE]`, where the function and the type
+are frozen: an output node only ever evolves *which* node it points at, never
+what it computes or which chromosome it reads.
+
+Use [`make_output_node`](@ref) to build one.
+"""
 mutable struct OutputNode <: AbstractOutputNode
     node_material::NodeMaterial
     value::Any
@@ -231,6 +345,16 @@ end
 # CONSTANT NODE
 ####################################
 
+"""
+    ConstantNode(value::T, x_pos::Int, x_real_pos::Int, y_pos::Int)
+
+A node holding a fixed value that programs can read but evolution cannot change.
+
+The value is stored in a `Ref`, so it can be updated from the outside (this is
+what the CMA-ES extension does, see [`make_cma_nodes!`](@ref)) while staying
+invisible to mutation. Unlike other nodes it is *not* cleared by
+[`reset_node_value!`](@ref).
+"""
 mutable struct ConstantNode <: AbstractGenomeNode
     node_material::NodeMaterial
     value::Ref

@@ -22,13 +22,16 @@ This typed composition is the core of the library:
 
 The current package already includes infrastructure for:
 
-- typed graph construction and decoding
+- typed graph construction, decoding, and compilation to readable Julia source
 - `FunctionBundle`, `Library`, and `MetaLibrary`
-- mutation operators and GA-based search
+- mutation operators, crossover, and GA-, MAP-Elites- and NSGA-II-based search
+- GraphMAGE: Monte-Carlo graph search over program behaviours
+- automatically defined functions: promoting evolved subprograms to library operators
+- LLM-synthesised library functions, validated before installation
 - search-network tooling and experiment tracing
 - multimodal function libraries over images, floats, integers, strings, lists, tuples, and element operators
 
-Existing image-oriented bundles in [`src/libraries/image2D/`](/home/camilo/.julia/dev/UTCGP/src/libraries/image2D) cover:
+Existing image-oriented bundles in [`src/libraries/image2D/`](src/libraries/image2D) cover:
 
 - basic image operators
 - filtering
@@ -39,7 +42,31 @@ Existing image-oriented bundles in [`src/libraries/image2D/`](/home/camilo/.juli
 - transcendental transforms
 - experimental masking operators
 
-There are also premade bundle collections for image-heavy setups, including Atari-oriented variants, in [`src/libraries/pre_made_libraries.jl`](/home/camilo/.julia/dev/UTCGP/src/libraries/pre_made_libraries.jl).
+There are also premade bundle collections for image-heavy setups, including Atari-oriented variants, in [`src/libraries/pre_made_libraries.jl`](src/libraries/pre_made_libraries.jl).
+
+## Documentation
+
+The manual is at <https://camilodlt.github.io/MAGE.jl/dev/>. Good places to
+start:
+
+- **Getting Started** — build a model and run a search end to end.
+- **Symbolic Regression** — a complete, runnable example.
+- **Genome and Nodes** — the representation: elements, nodes, chromosomes.
+- **Libraries** and the **Bundle Catalogue** — every operator MAGE ships,
+  generated from the source at build time.
+- **Fitters and Callbacks** — the search loop and the callback pipeline.
+- **GraphMAGE**, **Automatically Defined Functions**, **Generated Functions** —
+  the advanced search machinery.
+
+To build the docs locally:
+
+```bash
+julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+julia --project=docs docs/make.jl
+```
+
+The build is strict: `checkdocs = :exports` means every docstring in `UTCGP`
+must appear somewhere in the manual, and doctests run as part of it.
 
 ## Installation
 

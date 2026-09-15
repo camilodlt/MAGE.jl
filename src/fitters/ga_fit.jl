@@ -13,6 +13,65 @@ function _ga_init_params(genome::UTGenome, run_config::AbstractRunConf)
     return early_stop, best_programs, elite_idx, population, ind_performances
 end
 
+"""
+    fit_ga(X, Y, shared_inputs, genome, model_architecture, node_config, run_config,
+           meta_library, pre_callbacks, population_callbacks, mutation_callbacks,
+           output_mutation_callbacks, decoding_callbacks, endpoint_callback,
+           final_step_callbacks, elite_selection_callbacks, epoch_callbacks,
+           early_stop_callbacks, last_callback)
+        -> (UTGenome, IndividualPrograms, GenerationLossTracker)
+
+Run a generational genetic algorithm and return the best genome, its decoded
+programs, and the per-generation loss history.
+
+Same shape as [`fit`](@ref), but `run_config` is a [`RunConfGA`](@ref) — a real
+population of `n_elite + n_new` individuals with tournament selection — and the
+callbacks are the GA ones, which receive a single args struct
+([`GA_POP_ARGS`](@ref), [`GA_MUTATION_ARGS`](@ref),
+[`GA_SELECTION_ARGS`](@ref)) rather than a positional list:
+
+```julia
+best_genome, best_program, history = fit_ga(
+    X, Y, shared_inputs, ut_genome, model_arch, node_config, run_conf, ml,
+    nothing,
+    (:ga_population_callback,),
+    (:ga_numbered_new_material_mutation_callback,),
+    (:ga_output_mutation_callback,),
+    (:default_decoding_callback,),
+    endpoint,
+    nothing,
+    (:ga_elite_selection_callback,),
+    nothing,
+    (:default_early_stop_callback,),
+    nothing,
+)
+```
+
+# Callback pipeline
+
+Every generation runs the same phases, and each phase is a tuple of callbacks
+(a `Symbol` naming one of the built-ins, a `Function`, or any
+`UTCGP.AbstractCallable`):
+
+| Argument                    | Phase                                              |
+|:----------------------------|:---------------------------------------------------|
+| `pre_callbacks`             | once, before the first generation                  |
+| `population_callbacks`      | build this generation's population                 |
+| `mutation_callbacks`        | mutate the node material                           |
+| `output_mutation_callbacks` | mutate the output nodes                            |
+| `decoding_callbacks`        | genome -> programs                                 |
+| `endpoint_callback`         | programs + expected value -> one fitness per individual |
+| `final_step_callbacks`      | after each batch                                   |
+| `elite_selection_callbacks` | pick the survivor(s)                               |
+| `epoch_callbacks`           | after each generation (tracking, validation, ...)  |
+| `early_stop_callbacks`      | return `true` to stop the run                      |
+| `last_callback`             | once, after the loop                               |
+
+Passing your own callback is how tracking, validation and logging are added —
+see [`AIM_LossEpoch`](@ref) and [`SN_writer`](@ref) for ready-made ones.
+
+See also [`fit_ga_mt`](@ref) for the multithreaded variant.
+"""
 function fit_ga(
     X::Any,
     Y::Union{Any,Nothing},
@@ -262,6 +321,15 @@ function fit_ga(
 end
 
 
+"""
+    fit_ga_mt(args...)
+
+Multithreaded [`fit_ga`](@ref): individuals in a generation are evaluated in
+parallel across Julia threads.
+
+Same arguments and same return value. Start Julia with `-t` / `JULIA_NUM_THREADS`
+for it to do anything, and make sure any callback you pass is thread-safe.
+"""
 function fit_ga_mt(
     X::Any,
     Y::Union{Any,Nothing},

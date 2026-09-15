@@ -6,6 +6,66 @@ using ErrorTypes
 
 ### FIT API ###
 
+"""
+    fit(X, Y, shared_inputs, genome, model_architecture, node_config, run_config,
+        meta_library, pre_callbacks, population_callbacks, mutation_callbacks,
+        output_mutation_callbacks, decoding_callbacks, endpoint_callback,
+        final_step_callbacks, elite_selection_callbacks, epoch_callbacks,
+        early_stop_callbacks, last_callback)
+        -> (UTGenome, IndividualPrograms, GenerationLossTracker)
+
+Run a `1 + λ` evolutionary search and return the best genome, its decoded
+programs, and the per-generation loss history.
+
+`X` is the vector of input rows (each row itself a vector, one entry per input
+node) and `Y` the matching expected values. `run_config` is a
+[`runConf`](@ref); for a genetic algorithm with a real population use
+[`fit_ga`](@ref) with a [`RunConfGA`](@ref) instead.
+
+# Callback pipeline
+
+Every generation runs the same phases, and each phase is a tuple of callbacks
+(a `Symbol` naming one of the built-ins, a `Function`, or any
+`UTCGP.AbstractCallable`):
+
+| Argument                    | Phase                                              |
+|:----------------------------|:---------------------------------------------------|
+| `pre_callbacks`             | once, before the first generation                  |
+| `population_callbacks`      | build this generation's population                 |
+| `mutation_callbacks`        | mutate the node material                           |
+| `output_mutation_callbacks` | mutate the output nodes                            |
+| `decoding_callbacks`        | genome -> programs                                 |
+| `endpoint_callback`         | programs + expected value -> one fitness per individual |
+| `final_step_callbacks`      | after each batch                                   |
+| `elite_selection_callbacks` | pick the survivor(s)                               |
+| `epoch_callbacks`           | after each generation (tracking, validation, ...)  |
+| `early_stop_callbacks`      | return `true` to stop the run                      |
+| `last_callback`             | once, after the loop                               |
+
+Passing your own callback is how tracking, validation and logging are added —
+see [`AIM_LossEpoch`](@ref) and [`SN_writer`](@ref) for ready-made ones.
+
+# Example
+
+```julia
+best_genome, best_program, history = fit(
+    X, Y, shared_inputs, ut_genome, model_arch, node_config, run_conf, ml,
+    nothing,                                              # pre
+    (:default_population_callback,),
+    (:default_numbered_new_material_mutation_callback,),
+    (:default_ouptut_mutation_callback,),
+    (:default_decoding_callback,),
+    EndpointMAE,                                          # endpoint
+    nothing,                                              # final step
+    (:default_elite_selection_callback,),
+    nothing,                                              # epoch
+    (:default_early_stop_callback,),
+    nothing,                                              # last
+)
+```
+
+See also [`fit_mt`](@ref) for the multithreaded variant.
+"""
 function fit(
         X::Any,
         Y::Union{Any, Nothing},

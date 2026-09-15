@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
 
-""" Transcendental constants and fns 
+"""
+Transcendental constants and functions.
 
-The default is int for the `fallback` to 0 .  
-To cast to other types, use `update_caster!` and `update_fallback!`
+The fallback returns `0`. To target another type, re-point the bundle with
+`update_caster!` and `update_fallback!`.
 
-Exports :
+# Bundles
 
-- **bundle\\_number\\_transcendental** :
-    - `pi_`
-    - `exp_`
-    - `log_`
-    - `log10_`
+- [`bundle_number_transcendental`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module number_transcendental
 
@@ -24,6 +23,11 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0
 
+"""
+    bundle_number_transcendental
+
+Transcendental scalars: the constant `pi_`, and `exp_`, `log_`, `log10_`.
+"""
 bundle_number_transcendental = FunctionBundle(fallback)
 
 # FUNCTIONS ---

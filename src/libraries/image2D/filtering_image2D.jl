@@ -1,76 +1,13 @@
-""" Filtering functions
+"""
+Convolution filters: gradients, smoothing and second-order operators.
 
-Exports :
+# Bundles
 
-- **bundle\\image2DIntensity\\_filtering** :
-    - sobelx\\_image2D\\_factory
-    - sobely\\_image2D\\_factory
-    - sobelm\\_image2D\\_factory
-    - ando3x\\_image2D\\_factory
-    - ando3y\\_image2D\\_factory
-    - ando3m\\_image2D\\_factory
-    - ando4x\\_image2D\\_factory
-    - ando4y\\_image2D\\_factory
-    - ando4m\\_image2D\\_factory
-    - ando5x\\_image2D\\_factory
-    - ando5y\\_image2D\\_factory
-    - ando5m\\_image2D\\_factory
-    - bickleyx\\_image2D\\_factory
-    - bickleyy\\_image2D\\_factory
-    - bickleym\\_image2D\\_factory
-    - prewittx\\_image2D\\_factory
-    - prewitty\\_image2D\\_factory
-    - prewittm\\_image2D\\_factory
-    - scharrx\\_image2D\\_factory
-    - scharry\\_image2D\\_factory
-    - scharrm\\_image2D\\_factory
-    - gaussian5\\_image2D\\_factory
-    - gaussian9\\_image2D\\_factory
-    - gaussian13\\_image2D\\_factory
-    - gaussian17\\_image2D\\_factory
-    - gaussian25\\_image2D\\_factory
-    - laplacian3\\_image2D\\_factory
-    - dog\\_image2D\\_factory
-    - moffat5\\_image2D\\_factory
-    - moffat13\\_image2D\\_factory
-    - moffat25\\_image2D\\_factory
-    - find_local_maxima\\_image2D\\_factory
-    - find_local_minima\\_image2D\\_factory
+- [`bundle_image2DIntensity_filtering_factory`](@ref)
+- [`bundle_image2DBinary_filtering_factory`](@ref)
 
-- **bundle\\image2DBinary\\_filtering** :
-    - sobelx\\_image2D\\_factory
-    - sobely\\_image2D\\_factory
-    - sobelm\\_image2D\\_factory
-    - ando3x\\_image2D\\_factory
-    - ando3y\\_image2D\\_factory
-    - ando3m\\_image2D\\_factory
-    - ando4x\\_image2D\\_factory
-    - ando4y\\_image2D\\_factory
-    - ando4m\\_image2D\\_factory
-    - ando5x\\_image2D\\_factory
-    - ando5y\\_image2D\\_factory
-    - ando5m\\_image2D\\_factory
-    - bickleyx\\_image2D\\_factory
-    - bickleyy\\_image2D\\_factory
-    - bickleym\\_image2D\\_factory
-    - prewittx\\_image2D\\_factory
-    - prewitty\\_image2D\\_factory
-    - prewittm\\_image2D\\_factory
-    - scharrx\\_image2D\\_factory
-    - scharry\\_image2D\\_factory
-    - scharrm\\_image2D\\_factory
-    - gaussian5\\_image2D\\_factory
-    - gaussian9\\_image2D\\_factory
-    - gaussian13\\_image2D\\_factory
-    - gaussian17\\_image2D\\_factory
-    - gaussian25\\_image2D\\_factory
-    - laplacian3\\_image2D\\_factory
-    - dog\\_image2D\\_factory
-    - moffat5\\_image2D\\_factory
-    - moffat13\\_image2D\\_factory
-    - moffat25\\_image2D\\_factory
-    - find_local_maxima\\_image2D\\_factory
-    - find_local_minima\\_image2D\\_factory
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image2D_filtering
 
@@ -96,7 +33,34 @@ using ..UTCGP:
 cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DIntensity_filtering_factory
+
+Convolution filters on intensity images.
+
+Gradients, in x, y and magnitude (`m`) variants: `sobel`, `ando3`, `ando4`,
+`ando5`, `bickley`, `prewitt`, `scharr`. Smoothing: `gaussian5` through
+`gaussian25`, `moffat5`, `moffat13`, `moffat25`, and the difference of
+gaussians `dog_image2D`. Second order: `laplacian3_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_filtering_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_filtering_factory
+
+The filters of [`bundle_image2DIntensity_filtering_factory`](@ref) applied to
+masks, plus `findlocalminima_image2D` and `findlocalmaxima_image2D`, which
+return a mask of the extrema.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_filtering_factory = FunctionBundle(fallback)
 
 # SEPARATE FILTERS THAT RETURN X and Y AND FILTERS THAT ONLY RET 1 K

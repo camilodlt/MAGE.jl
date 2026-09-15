@@ -1,6 +1,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
   # PICK
   using UTCGP.element_pick:pick_element_from_vector
   using UTCGP.element_pick:pick_last_element
@@ -54,4 +55,38 @@ julia> pick_last_element([(1,2),(2,2)])
 julia> pick_last_element([])
 ERROR: BoundsError: attempt to access 0-element Vector{Any} at index [0]
 [...]
+```
+
+## Conditional
+
+### Module
+```@docs
+UTCGP.element_conditional
+```
+
+### Functions
+
+`if_else_multiplexer(cond, a, b, args...)` returns `a` when `cond > 0` and `b`
+otherwise. Both branches must have the same type, which is what keeps the node
+type-correct whichever way the condition goes.
+
+```@docs
+UTCGP.element_conditional.if_else_multiplexer
+```
+
+```jldoctest
+julia> UTCGP.element_conditional.if_else_multiplexer(1, "yes", "no")
+"yes"
+```
+```jldoctest
+julia> UTCGP.element_conditional.if_else_multiplexer(0, "yes", "no")
+"no"
+```
+
+### Bundles
+
+```@docs
+bundle_element_pick
+bundle_element_conditional
+bundle_element_conditional_factory
 ```

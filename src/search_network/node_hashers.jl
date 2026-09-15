@@ -53,7 +53,20 @@ function (::sn_softphenotype_hasher_except_last)(params::UTCGP.ParametersStandar
     return hashes
 end
 
-# STRICT PHENOTYPE
+"""
+    sn_strictphenotype_hasher()
+
+Node hasher identifying an individual by the *active part* of its decoded
+programs.
+
+For every operation it hashes the calling node's function index together with
+its actually-used connexions and types, ignoring the rest of the node and all
+dormant material. Two genomes that decode to the same computation therefore
+collapse to the same search-network node, even if their unused material differs.
+
+Compare with `sn_genotype_hasher` (the whole genome, so any silent mutation is a
+new node) and `sn_softphenotype_hasher` (the decoded programs as objects).
+"""
 struct sn_strictphenotype_hasher <: Abstract_Node_Hash_Function end
 
 function (::sn_strictphenotype_hasher)(params::UTCGP.ParametersStandardEpoch)
@@ -82,6 +95,19 @@ function individual_phen_hasher(p::IndividualPrograms)
 end
 # BEHAVIOR HASHER --- --- 
 
+"""
+    sn_behavior_hasher(example_set::Vector)
+
+Node hasher identifying an individual by what it *does*, not how it is written.
+
+Every individual is run on the fixed `example_set` and the resulting outputs are
+hashed, so two structurally unrelated programs that agree on every probe become
+the same search-network node. This is the coarsest of the hashers and the one
+that makes the network a map of behaviours rather than of genotypes.
+
+`example_set` is a vector of samples, each sample being the vector of input
+values for one evaluation.
+"""
 struct sn_behavior_hasher <: Abstract_Node_Hash_Function
     example_set::Vector{<:Any}
 end

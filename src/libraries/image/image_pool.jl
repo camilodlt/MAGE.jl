@@ -1,28 +1,15 @@
-""" Image pooling functions
+"""
+Block pooling: cut the image into a grid and reduce each block, producing a
+smaller image.
 
-Exports :
+# Bundles
 
-- **bundle\\_image2DIntensity\\_pool\\_factory** :
-    - `avgpool_blocks`
-    - `avgpool_cross_blocks`
-    - `maxpool_blocks`
-    - `maxpool_cross_blocks`
-    - `minpool_blocks`
-    - `minpool_cross_blocks`
-- **bundle\\_image2DBinary\\_pool\\_factory** :
-    - `avgpool_blocks`
-    - `avgpool_cross_blocks`
-    - `maxpool_blocks`
-    - `maxpool_cross_blocks`
-    - `minpool_blocks`
-    - `minpool_cross_blocks`
-- **bundle\\_image2DSegment\\_pool\\_factory** :
-    - `avgpool_blocks`
-    - `avgpool_cross_blocks`
-    - `maxpool_blocks`
-    - `maxpool_cross_blocks`
-    - `minpool_blocks`
-    - `minpool_cross_blocks`
+- [`bundle_image2DIntensity_pool_factory`](@ref)
+- [`bundle_image2DBinary_pool_factory`](@ref)
+- [`bundle_image2DSegment_pool_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image_pool
 
@@ -41,8 +28,44 @@ using ..UTCGP:
     _validate_factory_type, _get_image_pixel_type, IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_pool_factory
+
+Block pooling of intensity images: the image is cut into a grid and each block
+reduced.
+
+`avgpool_blocks`, `maxpool_blocks`, `minpool_blocks` pool over rectangular
+blocks; the `_cross_` variants pool over crosses instead. The output is a
+smaller image of the same pixel type.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_pool_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_pool_factory
+
+Block pooling of masks. See [`bundle_image2DIntensity_pool_factory`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_pool_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DSegment_pool_factory
+
+Block pooling of label maps. See
+[`bundle_image2DIntensity_pool_factory`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_pool_factory = FunctionBundle(fallback)
 
 function _block_pool_same_size(img::AbstractMatrix, k::Integer, pool_fn::F) where {F<:Function}

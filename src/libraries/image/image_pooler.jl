@@ -1,37 +1,15 @@
-""" Sliding-window image poolers
+"""
+Sliding-window pooling: reduce a window at every position, keeping the image's
+size.
 
-Exports :
+# Bundles
 
-- **bundle\\_image2DIntensity\\_pooler\\_factory** :
-    - `meanpool`
-    - `maxpool`
-    - `minpool`
-    - `stdpool`
-    - `medianpool`
-    - `uniquecountpool`
-    - `argmaxcountpool`
-    - `argmincountpool`
-    - `iqrpool`
-- **bundle\\_image2DBinary\\_pooler\\_factory** :
-    - `meanpool`
-    - `maxpool`
-    - `minpool`
-    - `stdpool`
-    - `medianpool`
-    - `uniquecountpool`
-    - `argmaxcountpool`
-    - `argmincountpool`
-    - `iqrpool`
-- **bundle\\_image2DSegment\\_pooler\\_factory** :
-    - `meanpool`
-    - `maxpool`
-    - `minpool`
-    - `stdpool`
-    - `medianpool`
-    - `uniquecountpool`
-    - `argmaxcountpool`
-    - `argmincountpool`
-    - `iqrpool`
+- [`bundle_image2DIntensity_pooler_factory`](@ref)
+- [`bundle_image2DBinary_pooler_factory`](@ref)
+- [`bundle_image2DSegment_pooler_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image_pooler
 
@@ -42,8 +20,46 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_pooler_factory
+
+Sliding-window pooling of intensity images: the window moves over the image and
+each position is reduced, so the output keeps the input's size.
+
+`meanpool`, `maxpool`, `minpool`, `stdpool`, `medianpool`, `uniquecountpool`,
+`argmaxcountpool`, `argmincountpool`, `iqrpool`.
+
+Compare `bundle_image2DIntensity_pool_factory`, which downsamples.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_pooler_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_pooler_factory
+
+Sliding-window pooling of masks. See
+[`bundle_image2DIntensity_pooler_factory`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_pooler_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DSegment_pooler_factory
+
+Sliding-window pooling of label maps. See
+[`bundle_image2DIntensity_pooler_factory`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_pooler_factory = FunctionBundle(fallback)
 
 _pooler_cast(::Type{<:BinaryPixel}, pooled) = pooled .>= 0.5
