@@ -379,15 +379,27 @@ function _grabcut_appearance_costs(
     return foreground_cost, background_cost
 end
 
+# changed from Float64 capacities to Int64 because push-relabel only has a termination
+# guarantee with exact arithmetic: with floats, rounding leaves residual excess that is pushed
+# back and forth forever (observed: one thread at 100% for hours inside _maximum_flow!).
+# Capacities are scaled by _FLOW_CAPACITY_SCALE when edges are added.
+const _FLOW_CAPACITY_SCALE = 2^20
+
+"""Float capacity -> scaled Int64. Non-finite or negative inputs are clamped (NaN -> 0)."""
+function _flow_capacity(capacity::Float64)
+    finite = isfinite(capacity) ? clamp(capacity, 0.0, 1.0e9) : (capacity > 0 ? 1.0e9 : 0.0)
+    return round(Int64, finite * _FLOW_CAPACITY_SCALE)
+end
+
 mutable struct _FlowNetwork
     head::Vector{Int}
     destination::Vector{Int}
     next_edge::Vector{Int}
-    capacity::Vector{Float64}
+    capacity::Vector{Int64}   # changed from Vector{Float64} to Vector{Int64} because integer capacities make push-relabel terminate
 end
 
 function _FlowNetwork(vertex_count::Int, edge_capacity::Int)
-    network = _FlowNetwork(fill(0, vertex_count), Int[], Int[], Float64[])
+    network = _FlowNetwork(fill(0, vertex_count), Int[], Int[], Int64[])   # changed from Float64[] to Int64[] because capacities are now integers
     sizehint!(network.destination, edge_capacity)
     sizehint!(network.next_edge, edge_capacity)
     sizehint!(network.capacity, edge_capacity)
@@ -402,12 +414,12 @@ function _add_directed_edge!(
     )
     push!(network.destination, sink)
     push!(network.next_edge, network.head[source])
-    push!(network.capacity, capacity)
+    push!(network.capacity, _flow_capacity(capacity))   # changed from capacity to _flow_capacity(capacity) because capacities are stored as scaled Int64
     network.head[source] = length(network.capacity)
 
     push!(network.destination, source)
     push!(network.next_edge, network.head[sink])
-    push!(network.capacity, 0.0)
+    push!(network.capacity, 0)   # changed from 0.0 to 0 because capacities are Int64
     network.head[sink] = length(network.capacity)
     return nothing
 end
@@ -420,12 +432,12 @@ function _add_bidirectional_edge!(
     )
     push!(network.destination, second)
     push!(network.next_edge, network.head[first])
-    push!(network.capacity, capacity)
+    push!(network.capacity, _flow_capacity(capacity))   # changed from capacity to _flow_capacity(capacity) because capacities are stored as scaled Int64
     network.head[first] = length(network.capacity)
 
     push!(network.destination, first)
     push!(network.next_edge, network.head[second])
-    push!(network.capacity, capacity)
+    push!(network.capacity, _flow_capacity(capacity))   # changed from capacity to _flow_capacity(capacity) because capacities are stored as scaled Int64
     network.head[second] = length(network.capacity)
     return nothing
 end
@@ -454,7 +466,7 @@ function _global_relabel!(
             predecessor = network.destination[edge]
             reverse = _reverse_edge(edge)
             if predecessor != source && height[predecessor] == unreachable &&
-                    network.capacity[reverse] > 1.0e-12
+                    network.capacity[reverse] > 0   # changed from > 1.0e-12 to > 0 because capacities are exact integers
                 height[predecessor] = height[vertex] + 1
                 queue_end += 1
                 queue[queue_end] = predecessor
@@ -474,10 +486,18 @@ function _recount_heights!(height_count::Vector{Int}, height::Vector{Int})
     return nothing
 end
 
+# Safety net on top of the integer capacities: no input may keep the evaluator busy for
+# ever. Push-relabel with global relabeling needs O(n^2)-ish operations in practice; the
+# budget is far above that (about 1e8 for a 32x32 image, well under a second) and, when hit,
+# throws so the caller falls back like for any other failing library call.
+const _MAX_FLOW_WORK_PER_VERTEX_SQUARED = 100
+
 function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
     vertex_count = length(network.head)
     height = zeros(Int, vertex_count)
-    excess = zeros(Float64, vertex_count)
+    excess = zeros(Int64, vertex_count)   # changed from zeros(Float64, ...) to zeros(Int64, ...) because flow is now exact integer arithmetic
+    work = 0   # added: push/relabel operation counter for the work budget
+    work_limit = _MAX_FLOW_WORK_PER_VERTEX_SQUARED * vertex_count^2   # added: budget after which the solve gives up
     current_edge = copy(network.head)
     active = falses(vertex_count)
     height_count = zeros(Int, 2vertex_count + 3)
@@ -491,9 +511,9 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
     edge = network.head[source]
     while edge != 0
         flow = network.capacity[edge]
-        if flow > 1.0e-12
+        if flow > 0   # changed from > 1.0e-12 to > 0 because capacities are exact integers
             destination = network.destination[edge]
-            network.capacity[edge] = 0.0
+            network.capacity[edge] = 0   # changed from 0.0 to 0 because capacities are Int64
             network.capacity[_reverse_edge(edge)] += flow
             excess[destination] += flow
             if destination != sink && !active[destination]
@@ -516,13 +536,16 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
         queue_count -= 1
         active[vertex] = false
 
-        while excess[vertex] > 1.0e-12
+        while excess[vertex] > 0   # changed from > 1.0e-12 to > 0 because excess is an exact integer
+            work += 1   # added: one push or relabel attempt
+            work > work_limit && throw(ErrorException(   # added: give up instead of spinning for ever
+                "_maximum_flow! exceeded its work budget ($(work_limit) operations); the cut is abandoned"))
             edge = current_edge[vertex]
             if edge == 0
                 minimum_height = typemax(Int)
                 candidate = network.head[vertex]
                 while candidate != 0
-                    if network.capacity[candidate] > 1.0e-12
+                    if network.capacity[candidate] > 0   # changed from > 1.0e-12 to > 0 because capacities are exact integers
                         minimum_height = min(
                             minimum_height,
                             height[network.destination[candidate]],
@@ -556,7 +579,7 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
             end
 
             destination = network.destination[edge]
-            if network.capacity[edge] > 1.0e-12 &&
+            if network.capacity[edge] > 0 &&   # changed from > 1.0e-12 to > 0 because capacities are exact integers
                     height[vertex] == height[destination] + 1
                 flow = min(excess[vertex], network.capacity[edge])
                 network.capacity[edge] -= flow
@@ -565,7 +588,7 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
                 previous_excess = excess[destination]
                 excess[destination] += flow
                 if destination != source && destination != sink &&
-                        previous_excess <= 1.0e-12 && !active[destination]
+                        previous_excess == 0 && !active[destination]   # changed from <= 1.0e-12 to == 0 because excess is an exact integer
                     active[destination] = true
                     queue_tail = queue_tail == vertex_count ? 1 : queue_tail + 1
                     queue[queue_tail] = destination
@@ -600,7 +623,7 @@ function _source_partition(network::_FlowNetwork, source::Int)
         edge = network.head[vertex]
         while edge != 0
             destination = network.destination[edge]
-            if network.capacity[edge] > 1.0e-12 && !reached[destination]
+            if network.capacity[edge] > 0 && !reached[destination]   # changed from > 1.0e-12 to > 0 because capacities are exact integers
                 reached[destination] = true
                 queue_end += 1
                 queue[queue_end] = destination
