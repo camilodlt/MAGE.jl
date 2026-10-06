@@ -67,6 +67,16 @@ const extension_descriptors_nb = [
     bundle_number_objectStatsFromImg,
     bundle_number_granulometryFromImg,
 ]
+const extension_volume_intensityimg = [bundle_image3DIntensity_volume_factory]
+const extension_volume_binaryimg = [bundle_image3DBinary_volume_factory]
+const extension_volume_to_intensityimg = [bundle_image2DIntensity_fromVolume_factory]
+const extension_volume_to_binaryimg = [bundle_image2DBinary_fromVolume_factory]
+const extension_volume_nb = [
+    bundle_number_intensityStatsFromImg,
+    bundle_number_volumeShapeFromImg,
+    bundle_number_volumeGranulometryFromImg,
+    bundle_number_volumeProfileFromImg,
+]
 const extension_maskshape_binaryimg = [bundle_image2DBinary_maskshape_factory]
 const extension_maskshape_intensityimg = [bundle_image2DIntensity_maskshape_factory]
 const extension_transform_intensityimg = [bundle_image2DIntensity_transform_factory]
@@ -242,6 +252,45 @@ descriptors and Hu invariants, statistics aggregated over objects, and
 granulometry.
 """
 get_extension_descriptors_nb() = [deepcopy(b) for b in extension_descriptors_nb]
+
+"""
+    get_extension_volume_intensityimg()
+
+Fresh copies of the 3D → 3D intensity-volume bundle (filters, intensity
+transforms, grey morphology, masking, distance maps, geometry, 2D extrusion).
+"""
+get_extension_volume_intensityimg() = [deepcopy(b) for b in extension_volume_intensityimg]
+
+"""
+    get_extension_volume_binaryimg()
+
+Fresh copies of the 3D → 3D binary-volume bundle (binarisation, binary
+morphology, 3D mask clean-up, logic, geometry, 2D extrusion).
+"""
+get_extension_volume_binaryimg() = [deepcopy(b) for b in extension_volume_binaryimg]
+
+"""
+    get_extension_volume_to_intensityimg()
+
+Fresh copies of the 3D → 2D intensity bundle: projections and slices of
+volumes, specialised on a 2D intensity image type.
+"""
+get_extension_volume_to_intensityimg() = [deepcopy(b) for b in extension_volume_to_intensityimg]
+
+"""
+    get_extension_volume_to_binaryimg()
+
+Fresh copies of the 3D → 2D binary bundle: silhouettes and slices of masks.
+"""
+get_extension_volume_to_binaryimg() = [deepcopy(b) for b in extension_volume_to_binaryimg]
+
+"""
+    get_extension_volume_nb()
+
+Fresh copies of the 3D → scalar bundles: intensity statistics (2D and 3D,
+with ROI forms), 3D shape, 3D granulometry and intensity profiles.
+"""
+get_extension_volume_nb() = [deepcopy(b) for b in extension_volume_nb]
 
 """
     get_extension_maskshape_binaryimg()

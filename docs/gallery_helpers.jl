@@ -120,3 +120,86 @@ end
 
 g_call(fn, args...) = Base.invokelatest(fn, args...)
 g_tag(v) = replace(string(v), "." => "", "-" => "m")
+
+# ---------------------------------------------------------------------------
+# Interactive volume viewer
+# ---------------------------------------------------------------------------
+
+using Base64: base64encode
+
+const G_VIEWER_COUNT = Ref(0)
+
+"PNG bytes of an RGB canvas, as a base64 data URI."
+function g_png_uri(canvas)
+    path = tempname() * ".png"
+    save(path, canvas)
+    uri = "data:image/png;base64," * base64encode(read(path))
+    rm(path; force = true)
+    return uri
+end
+
+"Display canvas of one volume slice (grey for intensity and binary, palette for segments)."
+g_slice_canvas(slice::AbstractMatrix) = g_gray(Float64.(slice))     # pixels convert with Float64
+
+"All slices along `axis`, upscaled and stacked vertically into one sprite strip."
+function g_sprite(volume::AbstractArray{T,3}, axis::Int, scale::Int) where {T}
+    n = size(volume, axis)
+    slices = [g_up(g_slice_canvas(selectdim(volume, axis, k)), scale) for k in 1:n]
+    return vcat(slices...), size(slices[1])
+end
+
+"""
+    g_volume_viewer(volumes; scale = 4, title = "") -> HTML
+
+An interactive viewer for one or more same-size volumes: one row per axis
+(`z`, `y`, `x`), one column per volume, and one slider per row that moves all
+volumes of that row together. `volumes` is a vector of `label => volume`
+(`SImageND` or 3D array). Sprites are embedded as data URIs, or with
+`assets = g_assets(page)` and `page` saved as asset files, and driven by a few
+lines of inline JavaScript.
+"""
+function g_volume_viewer(volumes; scale::Int = 4, title::AbstractString = "", assets = nothing, page = "")
+    G_VIEWER_COUNT[] += 1
+    id = "volview$(G_VIEWER_COUNT[])"
+    # With `assets` (from `g_assets(page)`), sprites are saved as files and
+    # linked; the relative path depends on Documenter's pretty URLs (CI).
+    prefix = get(ENV, "CI", "false") == "true" ? "../../assets/fns/$page/" : "../assets/fns/$page/"
+    arrays = [(label, v isa SizedImage ? v.img : v) for (label, v) in volumes]
+    dims = size(arrays[1][2])
+    io = IOBuffer()
+    print(io, """<div class="volume-viewer" id="$id" style="overflow-x:auto;margin:0.5em 0 1.5em 0;">""")
+    isempty(title) || print(io, """<div style="font-weight:600;margin-bottom:0.3em;">$title</div>""")
+    print(io, """<table style="border-collapse:collapse;border:none;"><tr><th style="border:none;"></th>""")
+    for (label, _) in arrays
+        print(io, """<th style="border:none;font-weight:500;font-size:0.85em;padding:2px 6px;">$label</th>""")
+    end
+    print(io, "</tr>")
+    for (axis, name) in ((3, "z"), (1, "y"), (2, "x"))
+        n = dims[axis]
+        start = cld(n, 2)
+        print(io, """<tr><td style="border:none;vertical-align:middle;padding-right:8px;white-space:nowrap;font-size:0.85em;">
+            <b>$name</b> <span id="$(id)_$(name)_label">$start</span>/$n<br>
+            <input type="range" min="1" max="$n" value="$start" id="$(id)_$(name)" style="width:110px;"
+              oninput="(function(v){var root=document.getElementById('$id');
+                root.querySelectorAll('.vv-$(name)').forEach(function(el){
+                  el.style.backgroundPosition='0px -'+((v-1)*parseInt(el.dataset.h))+'px';});
+                document.getElementById('$(id)_$(name)_label').textContent=v;})(this.value)">
+            </td>""")
+        for (column, (_, arr)) in enumerate(arrays)
+            sprite, (h, w) = g_sprite(arr, axis, scale)
+            uri = if assets === nothing
+                g_png_uri(sprite)
+            else
+                file = "$(id)_$(name)_$(column).png"
+                g_save(assets, file, sprite)
+                prefix * file
+            end
+            print(io, """<td style="border:none;padding:2px;"><div class="vv-$(name)" data-h="$h"
+                style="width:$(w)px;height:$(h)px;background-image:url($uri);background-repeat:no-repeat;
+                background-position:0px -$((start - 1) * h)px;image-rendering:pixelated;"></div></td>""")
+        end
+        print(io, "</tr>")
+    end
+    print(io, "</table></div>")
+    return HTML(String(take!(io)))
+end

@@ -38,14 +38,15 @@ Each statistic comes in three forms:
 - `stat_x_diff(img, roi)`: inside minus outside, e.g. how much brighter or more
   textured an object is than its surroundings.
 
-`roi` is a binary mask, or an intensity map thresholded at `0.5`.
+All statistics work on 2D images and on 3D volumes alike; `roi` is a binary
+mask, or an intensity map thresholded at `0.5`, of the same size.
 `stat_frac_above` takes the threshold as its last argument (default `0.5`).
 An empty selection gives `0.0`.
 """
 bundle_number_intensityStatsFromImg = FunctionBundle(fallback)
 
-const _Img = SImageND{S,T,2,C} where {S,T<:IntensityPixel,C}
-const _Mask = SImageND{S,T,2,C} where {S,T<:BinaryPixel,C}
+const _Img = SImageND{S,T,N,C} where {S,T<:IntensityPixel,N,C}            # 2D images and 3D volumes
+const _Mask = SImageND{S,T,N,C} where {S,T<:BinaryPixel,N,C}
 const _ENTROPY_BINS = 32
 
 # ---------------------------------------------------------------------------
@@ -101,7 +102,7 @@ _kind(::Type{IntensityPixel{N0f8}}) = 8
 _kind(::Type{IntensityPixel{N0f16}}) = 16
 _kind(::Type) = 0
 
-function _summary(pixels::AbstractMatrix{P}, selection) where {P}
+function _summary(pixels::AbstractArray{P}, selection) where {P}
     kind = _kind(P)
     hist = fill!(scratch(:stats_hist, Int, 256), 0)
     values = scratch(:stats_values, Float64, 0)
@@ -294,7 +295,7 @@ function _otsu(s::_Summary)
     return (best_b - 1) / 255, clamp(max(best, 0.0) / total_var, 0.0, 1.0)
 end
 
-function _frac_above(pixels::AbstractMatrix, selection, threshold::Float64)
+function _frac_above(pixels::AbstractArray, selection, threshold::Float64)
     n = 0
     above = 0
     @inbounds for i in eachindex(pixels)

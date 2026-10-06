@@ -363,8 +363,8 @@ struct _Lut8
 end
 @inline (p::_Lut8)(pixel) = @inbounds p.table[Int(reinterpret(pixel.pixel)) + 1]
 
-_fast_predicate(pixels::AbstractMatrix, is_foreground) = is_foreground
-function _fast_predicate(pixels::AbstractMatrix{IntensityPixel{N0f8}}, is_foreground::AtLeast)
+_fast_predicate(pixels::AbstractArray, is_foreground) = is_foreground
+function _fast_predicate(pixels::AbstractArray{IntensityPixel{N0f8}}, is_foreground::AtLeast)
     return _Lut8(ntuple(k -> Float64(reinterpret(N0f8, UInt8(k - 1))) >= is_foreground.threshold, 256))
 end
 

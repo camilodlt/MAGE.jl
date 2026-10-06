@@ -64,6 +64,7 @@ makedocs(;
             "Image Similarity and Template Matching" => "libraries/similarity.md",
             "Scalar Decisions and Motion" => "libraries/decision.md",
             "Descriptors for Image Classification" => "libraries/descriptors.md",
+            "3D Volumes: CT, MRI and Microscopy" => "libraries/volumes.md",
             "Vector Generic Lib" => "libraries/list_generic.md",
             "Vector Number Lib" => "libraries/list_number.md",
             "Vector Integer Lib" => "libraries/list_integer.md",

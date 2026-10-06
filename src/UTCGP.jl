@@ -596,6 +596,29 @@ module UTCGP
         bundle_image2DBinary_transform_factory,
         bundle_image2DSegment_transform_factory
 
+    # VOLUMES (3D grayscale)
+    include("libraries/image3D/volume_common.jl")
+    include("libraries/image3D/volume_image3D.jl")
+    import .image3D_volume:
+        bundle_image3DIntensity_volume_factory,
+        bundle_image3DBinary_volume_factory
+    export bundle_image3DIntensity_volume_factory,
+        bundle_image3DBinary_volume_factory
+    include("libraries/image3D/volume_to_image2D.jl")
+    import .image3D_to_image2D:
+        bundle_image2DIntensity_fromVolume_factory,
+        bundle_image2DBinary_fromVolume_factory
+    export bundle_image2DIntensity_fromVolume_factory,
+        bundle_image2DBinary_fromVolume_factory
+    include("libraries/number/volume_from_img.jl")
+    import .number_volumeFromImg:
+        bundle_number_volumeShapeFromImg,
+        bundle_number_volumeGranulometryFromImg,
+        bundle_number_volumeProfileFromImg
+    export bundle_number_volumeShapeFromImg,
+        bundle_number_volumeGranulometryFromImg,
+        bundle_number_volumeProfileFromImg
+
     # 2D IMAGES Segmentation
     include("libraries/image2D/segmentation_image2D.jl")
     import .image2D_segmentation: bundle_image2DSegment_segmentation_factory
@@ -689,6 +712,11 @@ module UTCGP
     export get_extension_decision_nb
     export get_extension_similarity_nb
     export get_extension_descriptors_nb
+    export get_extension_volume_intensityimg
+    export get_extension_volume_binaryimg
+    export get_extension_volume_to_intensityimg
+    export get_extension_volume_to_binaryimg
+    export get_extension_volume_nb
     export get_extension_maskshape_binaryimg
     export get_extension_maskshape_intensityimg
     export get_extension_transform_intensityimg

@@ -190,6 +190,11 @@ casters and fallbacks already set for the target type.
 | `UTCGP.get_extension_similarity_nb` | image similarity scores, shift estimation and template matching |
 | `UTCGP.get_extension_decision_nb` | scalar decision and motion operators |
 | `UTCGP.get_extension_descriptors_nb` | classification descriptors: intensity statistics (with ROI forms), shape and Hu invariants, object aggregates, granulometry |
+| `UTCGP.get_extension_volume_intensityimg` | 3D → 3D intensity-volume factories |
+| `UTCGP.get_extension_volume_binaryimg` | 3D → 3D binary-volume factories |
+| `UTCGP.get_extension_volume_to_intensityimg` | 3D → 2D projections and slices (intensity output) |
+| `UTCGP.get_extension_volume_to_binaryimg` | 3D → 2D silhouettes and slices (binary output) |
+| `UTCGP.get_extension_volume_nb` | 3D → scalar: intensity statistics, 3D shape, granulometry, profiles |
 | `UTCGP.get_extension_color_statistics_rgb_intensityimg` | RGB-to-2D intensity color-statistic factories |
 | `UTCGP.get_extension_rgbimg` | RGB-output factories, including binary-mask multiplication |
 | `UTCGP.get_extension_spatial_rgbimg` | opt-in RGB-to-RGB spatial-feature factories |
@@ -197,7 +202,7 @@ casters and fallbacks already set for the target type.
 
 The historical `get_extension_intensityimg` and `get_extension_binaryimg`
 functions retain only their original pooling and orientation bundles. Saliency,
-foreground extraction, blob extraction, object attention, mask shape, transform, similarity, decision, descriptor, and RGB operators use the dedicated
+foreground extraction, blob extraction, object attention, mask shape, transform, similarity, decision, descriptor, volume, and RGB operators use the dedicated
 getters in the table above, so training code opts into each new search space
 explicitly. Add `get_extension_spatial_rgbimg()` and/or
 `get_extension_rgb_compositionimg()` after `get_extension_rgbimg()` to preserve

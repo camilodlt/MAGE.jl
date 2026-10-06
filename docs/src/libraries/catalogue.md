@@ -113,6 +113,12 @@ groups = [
         ("descriptors", ["bundle_number_intensityStatsFromImg", "bundle_number_shapeFromImg",
             "bundle_number_objectStatsFromImg", "bundle_number_granulometryFromImg"]),
     ]),
+    ("3D volumes", [
+        ("volumes", ["bundle_image3DIntensity_volume_factory", "bundle_image3DBinary_volume_factory",
+            "bundle_image2DIntensity_fromVolume_factory", "bundle_image2DBinary_fromVolume_factory",
+            "bundle_number_volumeShapeFromImg", "bundle_number_volumeGranulometryFromImg",
+            "bundle_number_volumeProfileFromImg"]),
+    ]),
     ("Images: RGB", [
         ("color_statistics_rgb", [
             "bundle_image2DIntensity_color_statistics_rgb_factory",
