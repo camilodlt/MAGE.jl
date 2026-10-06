@@ -17,6 +17,9 @@ makedocs(;
         repolink = "https://github.com/camilodlt/MAGE.jl",
         edit_link = "main",
         assets = String[],
+        # The catalogue is one generated table per bundle; it outgrows the
+        # default 200 KiB page limit by design. Every other page keeps it.
+        size_threshold_ignore = ["libraries/catalogue.md"],
     ),
     pages = [
         "Home" => "index.md",
@@ -55,6 +58,12 @@ makedocs(;
             "Discrete Foreground Extraction Lib" => "libraries/foreground_extraction.md",
             "Continuous Foreground Extraction Lib" => "libraries/foreground_extraction_continuous.md",
             "Blob Extraction Lib" => "libraries/blob_extraction.md",
+            "Object Attention: Locate and Zoom" => "libraries/object_attention.md",
+            "Mask Shape Clean-up" => "libraries/mask_shape.md",
+            "Geometric Transforms" => "libraries/transform.md",
+            "Image Similarity and Template Matching" => "libraries/similarity.md",
+            "Scalar Decisions and Motion" => "libraries/decision.md",
+            "Descriptors for Image Classification" => "libraries/descriptors.md",
             "Vector Generic Lib" => "libraries/list_generic.md",
             "Vector Number Lib" => "libraries/list_number.md",
             "Vector Integer Lib" => "libraries/list_integer.md",

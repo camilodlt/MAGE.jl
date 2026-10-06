@@ -41,6 +41,38 @@ const extension_blob_binaryimg = [
     bundle_image2DBinary_blob_extraction_factory,
 ]
 
+const extension_locate_nb = [
+    bundle_number_locateFromImg,
+    bundle_number_objectLocateFromImg,
+    bundle_number_objectDescribeFromImg,
+]
+
+const extension_zoom_intensityimg = [
+    bundle_image2DIntensity_zoom_factory,
+]
+
+const extension_zoom_binaryimg = [
+    bundle_image2DBinary_zoom_factory,
+]
+
+const extension_zoom_segmentimg = [
+    bundle_image2DSegment_zoom_factory,
+]
+
+const extension_decision_nb = [bundle_number_decision, bundle_number_motion]
+const extension_similarity_nb = [bundle_number_similarityFromImg, bundle_number_templateFromImg]
+const extension_descriptors_nb = [
+    bundle_number_intensityStatsFromImg,
+    bundle_number_shapeFromImg,
+    bundle_number_objectStatsFromImg,
+    bundle_number_granulometryFromImg,
+]
+const extension_maskshape_binaryimg = [bundle_image2DBinary_maskshape_factory]
+const extension_maskshape_intensityimg = [bundle_image2DIntensity_maskshape_factory]
+const extension_transform_intensityimg = [bundle_image2DIntensity_transform_factory]
+const extension_transform_binaryimg = [bundle_image2DBinary_transform_factory]
+const extension_transform_segmentimg = [bundle_image2DSegment_transform_factory]
+
 const extension_color_statistics_rgb_intensityimg = [
     bundle_image2DIntensity_color_statistics_rgb_factory,
 ]
@@ -145,6 +177,107 @@ Fresh copies of the new binary-output blob-extraction bundles.
 function get_extension_blob_binaryimg()
     return [deepcopy(b) for b in extension_blob_binaryimg]
 end
+
+"""
+    get_extension_locate_nb()
+
+Fresh copies of the image-to-number localisation bundles: mask-free locators,
+object locators and object descriptors. Their coordinates use the same
+normalised convention as `region_*`, so a locator output can drive a region
+statistic or a zoom operator.
+"""
+function get_extension_locate_nb()
+    return [deepcopy(b) for b in extension_locate_nb]
+end
+
+"""
+    get_extension_zoom_intensityimg()
+
+Fresh copies of the intensity-output zoom (crop, resize and recenter) bundles.
+"""
+function get_extension_zoom_intensityimg()
+    return [deepcopy(b) for b in extension_zoom_intensityimg]
+end
+
+"""
+    get_extension_zoom_binaryimg()
+
+Fresh copies of the binary-output zoom (crop, resize and recenter) bundles.
+"""
+function get_extension_zoom_binaryimg()
+    return [deepcopy(b) for b in extension_zoom_binaryimg]
+end
+
+"""
+    get_extension_zoom_segmentimg()
+
+Fresh copies of the segment-output zoom (crop, resize and recenter) bundles.
+"""
+function get_extension_zoom_segmentimg()
+    return [deepcopy(b) for b in extension_zoom_segmentimg]
+end
+
+"""
+    get_extension_decision_nb()
+
+Fresh copies of the scalar decision and motion bundles: shaping, comparing and
+choosing between numbers, and geometry on normalised coordinates.
+"""
+get_extension_decision_nb() = [deepcopy(b) for b in extension_decision_nb]
+
+"""
+    get_extension_similarity_nb()
+
+Fresh copies of the image-comparison bundles: pairwise similarity scores,
+shift estimation and template matching.
+"""
+get_extension_similarity_nb() = [deepcopy(b) for b in extension_similarity_nb]
+
+"""
+    get_extension_descriptors_nb()
+
+Fresh copies of the classification descriptor bundles: intensity-distribution
+statistics (whole image, inside, outside and inside − outside a region), shape
+descriptors and Hu invariants, statistics aggregated over objects, and
+granulometry.
+"""
+get_extension_descriptors_nb() = [deepcopy(b) for b in extension_descriptors_nb]
+
+"""
+    get_extension_maskshape_binaryimg()
+
+Fresh copies of the binary mask clean-up bundles (fill holes, hulls,
+skeletons, size and border filters).
+"""
+get_extension_maskshape_binaryimg() = [deepcopy(b) for b in extension_maskshape_binaryimg]
+
+"""
+    get_extension_maskshape_intensityimg()
+
+Fresh copies of the mask distance-map bundles (intensity output).
+"""
+get_extension_maskshape_intensityimg() = [deepcopy(b) for b in extension_maskshape_intensityimg]
+
+"""
+    get_extension_transform_intensityimg()
+
+Fresh copies of the intensity geometric-transform bundles.
+"""
+get_extension_transform_intensityimg() = [deepcopy(b) for b in extension_transform_intensityimg]
+
+"""
+    get_extension_transform_binaryimg()
+
+Fresh copies of the binary geometric-transform bundles.
+"""
+get_extension_transform_binaryimg() = [deepcopy(b) for b in extension_transform_binaryimg]
+
+"""
+    get_extension_transform_segmentimg()
+
+Fresh copies of the segment geometric-transform bundles.
+"""
+get_extension_transform_segmentimg() = [deepcopy(b) for b in extension_transform_segmentimg]
 
 """
     get_extension_color_statistics_rgb_intensityimg()

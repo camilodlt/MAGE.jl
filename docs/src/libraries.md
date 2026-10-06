@@ -178,6 +178,18 @@ casters and fallbacks already set for the target type.
 | `UTCGP.get_extension_foreground_binaryimg` | new discrete foreground factories |
 | `UTCGP.get_extension_blob_intensityimg` | new masked-intensity blob factories |
 | `UTCGP.get_extension_blob_binaryimg` | new binary blob-mask factories |
+| `UTCGP.get_extension_locate_nb` | mask-free locators, object locators and object descriptors (image → number) |
+| `UTCGP.get_extension_zoom_intensityimg` | intensity crop, resize and recenter factories |
+| `UTCGP.get_extension_zoom_binaryimg` | binary-mask crop, resize and recenter factories |
+| `UTCGP.get_extension_zoom_segmentimg` | segment-map crop, resize and recenter factories |
+| `UTCGP.get_extension_maskshape_binaryimg` | mask clean-up factories: fill holes, hulls, skeleton, size and border filters |
+| `UTCGP.get_extension_maskshape_intensityimg` | mask distance-map factories (intensity output) |
+| `UTCGP.get_extension_transform_intensityimg` | intensity flips, rotations, shifts and canonical poses |
+| `UTCGP.get_extension_transform_binaryimg` | binary flips, rotations, shifts and canonical poses |
+| `UTCGP.get_extension_transform_segmentimg` | segment flips, rotations, shifts and canonical poses |
+| `UTCGP.get_extension_similarity_nb` | image similarity scores, shift estimation and template matching |
+| `UTCGP.get_extension_decision_nb` | scalar decision and motion operators |
+| `UTCGP.get_extension_descriptors_nb` | classification descriptors: intensity statistics (with ROI forms), shape and Hu invariants, object aggregates, granulometry |
 | `UTCGP.get_extension_color_statistics_rgb_intensityimg` | RGB-to-2D intensity color-statistic factories |
 | `UTCGP.get_extension_rgbimg` | RGB-output factories, including binary-mask multiplication |
 | `UTCGP.get_extension_spatial_rgbimg` | opt-in RGB-to-RGB spatial-feature factories |
@@ -185,7 +197,7 @@ casters and fallbacks already set for the target type.
 
 The historical `get_extension_intensityimg` and `get_extension_binaryimg`
 functions retain only their original pooling and orientation bundles. Saliency,
-foreground extraction, blob extraction, and RGB operators use the dedicated
+foreground extraction, blob extraction, object attention, mask shape, transform, similarity, decision, descriptor, and RGB operators use the dedicated
 getters in the table above, so training code opts into each new search space
 explicitly. Add `get_extension_spatial_rgbimg()` and/or
 `get_extension_rgb_compositionimg()` after `get_extension_rgbimg()` to preserve

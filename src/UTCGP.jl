@@ -394,6 +394,35 @@ module UTCGP
     import .number_reduceFromImg: bundle_number_relativeCoordinatesFromImg
     export bundle_number_relativeCoordinatesFromImg
 
+    include("libraries/image2D/object_common.jl")
+    include("libraries/number/locate_from_img.jl")
+    import .number_locateFromImg: bundle_number_locateFromImg
+    export bundle_number_locateFromImg
+    include("libraries/number/object_from_img.jl")
+    import .number_objectFromImg:
+        bundle_number_objectLocateFromImg,
+        bundle_number_objectDescribeFromImg
+    export bundle_number_objectLocateFromImg,
+        bundle_number_objectDescribeFromImg
+    include("libraries/number/decision.jl")
+    import .number_decision: bundle_number_decision, bundle_number_motion
+    export bundle_number_decision, bundle_number_motion
+    include("libraries/number/intensity_stats_from_img.jl")
+    import .number_intensityStatsFromImg: bundle_number_intensityStatsFromImg
+    export bundle_number_intensityStatsFromImg
+    include("libraries/number/shape_from_img.jl")
+    import .number_shapeFromImg: bundle_number_shapeFromImg, bundle_number_objectStatsFromImg
+    export bundle_number_shapeFromImg, bundle_number_objectStatsFromImg
+    include("libraries/number/granulometry_from_img.jl")
+    import .number_granulometryFromImg: bundle_number_granulometryFromImg
+    export bundle_number_granulometryFromImg
+    include("libraries/number/similarity_from_img.jl")
+    import .number_similarityFromImg:
+        bundle_number_similarityFromImg,
+        bundle_number_templateFromImg
+    export bundle_number_similarityFromImg,
+        bundle_number_templateFromImg
+
     include("libraries/number/img_region_common.jl")
     include("libraries/number/region_from_img.jl")
     import .number_regionFromImg: bundle_number_regionFromImg
@@ -542,6 +571,31 @@ module UTCGP
     export bundle_image2DBinary_blob_extraction_factory,
         bundle_image2DIntensity_blob_extraction_factory
 
+    include("libraries/image2D/zoom_image2D.jl")
+    import .image2D_zoom:
+        bundle_image2DIntensity_zoom_factory,
+        bundle_image2DBinary_zoom_factory,
+        bundle_image2DSegment_zoom_factory
+    export bundle_image2DIntensity_zoom_factory,
+        bundle_image2DBinary_zoom_factory,
+        bundle_image2DSegment_zoom_factory
+
+    include("libraries/image2D/mask_shape_image2D.jl")
+    import .image2D_mask_shape:
+        bundle_image2DBinary_maskshape_factory,
+        bundle_image2DIntensity_maskshape_factory
+    export bundle_image2DBinary_maskshape_factory,
+        bundle_image2DIntensity_maskshape_factory
+
+    include("libraries/image2D/transform_image2D.jl")
+    import .image2D_transform:
+        bundle_image2DIntensity_transform_factory,
+        bundle_image2DBinary_transform_factory,
+        bundle_image2DSegment_transform_factory
+    export bundle_image2DIntensity_transform_factory,
+        bundle_image2DBinary_transform_factory,
+        bundle_image2DSegment_transform_factory
+
     # 2D IMAGES Segmentation
     include("libraries/image2D/segmentation_image2D.jl")
     import .image2D_segmentation: bundle_image2DSegment_segmentation_factory
@@ -628,6 +682,18 @@ module UTCGP
     export get_extension_foreground_binaryimg
     export get_extension_blob_intensityimg
     export get_extension_blob_binaryimg
+    export get_extension_locate_nb
+    export get_extension_zoom_intensityimg
+    export get_extension_zoom_binaryimg
+    export get_extension_zoom_segmentimg
+    export get_extension_decision_nb
+    export get_extension_similarity_nb
+    export get_extension_descriptors_nb
+    export get_extension_maskshape_binaryimg
+    export get_extension_maskshape_intensityimg
+    export get_extension_transform_intensityimg
+    export get_extension_transform_binaryimg
+    export get_extension_transform_segmentimg
     export get_extension_color_statistics_rgb_intensityimg
     export get_extension_rgbimg
     export get_extension_spatial_rgbimg

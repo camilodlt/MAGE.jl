@@ -93,6 +93,26 @@ groups = [
         ("blob_extraction", ["bundle_image2DBinary_blob_extraction_factory",
             "bundle_image2DIntensity_blob_extraction_factory"]),
     ]),
+    ("Images: object attention", [
+        ("object_attention", ["bundle_number_locateFromImg",
+            "bundle_number_objectLocateFromImg", "bundle_number_objectDescribeFromImg",
+            "bundle_image2DIntensity_zoom_factory", "bundle_image2DBinary_zoom_factory",
+            "bundle_image2DSegment_zoom_factory"]),
+    ]),
+    ("Images: mask shape and geometric transforms", [
+        ("mask_shape", ["bundle_image2DBinary_maskshape_factory",
+            "bundle_image2DIntensity_maskshape_factory"]),
+        ("transform", ["bundle_image2DIntensity_transform_factory",
+            "bundle_image2DBinary_transform_factory", "bundle_image2DSegment_transform_factory"]),
+    ]),
+    ("Image comparison and scalar decisions", [
+        ("similarity", ["bundle_number_similarityFromImg", "bundle_number_templateFromImg"]),
+        ("decision", ["bundle_number_decision", "bundle_number_motion"]),
+    ]),
+    ("Classification descriptors", [
+        ("descriptors", ["bundle_number_intensityStatsFromImg", "bundle_number_shapeFromImg",
+            "bundle_number_objectStatsFromImg", "bundle_number_granulometryFromImg"]),
+    ]),
     ("Images: RGB", [
         ("color_statistics_rgb", [
             "bundle_image2DIntensity_color_statistics_rgb_factory",
