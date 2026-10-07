@@ -33,6 +33,21 @@ which is how MAGE passes unused inputs.
 The work itself is done by plain *kernels* on the raw pixel matrices (`src.img`);
 the factory methods only unpack the inputs, sanitise the scalars with
 `clamp_unit`, call the kernel and wrap the result back into an `SImageND`.
+
+# Example
+
+```julia
+using UTCGP, ImageCore
+m = zeros(40, 40); m[5:12, 25:36] .= 0.9          # one bright object, top right
+img = SImageND(IntensityPixel{N0f8}.(m))
+I = typeof(img)
+
+crop = bundle_image2DIntensity_zoom_factory[:zoom_crop_bbox].fn(I)
+crop(img)          # the object's box (grown by 10%) stretched to 40 × 40
+crop(img, 0.5, 0.0)   # threshold 0.5, no margin: the box exactly
+glimpse = bundle_image2DIntensity_zoom_factory[:zoom_glimpse_25p].fn(I)
+glimpse(img, 0.75, 0.2)   # a 10 × 10 window around column 30, row 9, resized to 40 × 40
+```
 """
 module image2D_zoom
 
@@ -64,6 +79,7 @@ using ..image2D_object_common:
     SELECTOR_DESCRIPTIONS,
     select_by_mean
 
+# Returned by the bundles when no method matches the inputs (MAGE then skips the node).
 fallback(args...) = return nothing
 
 const _COMMON_DOC = """
@@ -154,6 +170,9 @@ Convert a computed value to the storage type `T` of an intensity pixel:
 floats are kept, integers rounded, other numbers clamped to their range.
 Fixed-point types (`N0f8`, `N0f16`, …) are clamped to `[0, 1]` and rounded
 directly on their raw integer, which is faster than the checked conversion.
+
+Example for `N0f8`: `0.5 → 128/255` (raw `0.5 · 255 + 0.5 = 128`),
+`1.7 → 1.0`, `-0.3 → 0.0`.
 """
 @inline to_storage(::Type{T}, v::Float64) where {T<:AbstractFloat} = T(v)
 @inline to_storage(::Type{T}, v::Float64) where {T<:Integer} = round(T, v)
@@ -161,12 +180,15 @@ directly on their raw integer, which is faster than the checked conversion.
     T(clamp(v, Float64(typemin(T)), Float64(typemax(T))))
 @inline function to_storage(::Type{Normed{U,f}}, v::Float64) where {U,f}
     scale = Float64((one(UInt64) << f) - one(UInt64))         # raw value of 1.0, e.g. 255
-    raw = clamp(muladd(v, scale, 0.5), 0.0, Float64(typemax(U)))
-    return reinterpret(Normed{U,f}, unsafe_trunc(U, raw))
+    raw = clamp(muladd(v, scale, 0.5), 0.0, Float64(typemax(U)))   # v · scale + 0.5, then truncation = rounding
+    return reinterpret(Normed{U,f}, unsafe_trunc(U, raw))            # use the integer as the raw storage
 end
 
 # ---------------------------------------------------------------------------
 # Which source pixels survive the crop
+#
+# A "keep" functor answers keep(r, c) -> Bool for a source pixel; rejected
+# pixels are read as zero. The resamplers call it for every pixel they read.
 # ---------------------------------------------------------------------------
 
 "Keep every source pixel (plain crop)."
@@ -175,15 +197,15 @@ struct KeepEveryPixel end
 
 "Keep only the pixels of object `id` in `labels` (isolating crop of one object)."
 struct KeepObject
-    labels::Matrix{Int32}
-    id::Int32
+    labels::Matrix{Int32}    # object number of each pixel (from the object table)
+    id::Int32                # the object to keep
 end
 @inline (keep::KeepObject)(r::Int, c::Int) = @inbounds keep.labels[r, c] == keep.id
 
 "Keep only the mask's foreground pixels (isolating crop of the whole foreground)."
 struct KeepForeground{M<:AbstractMatrix,P}
-    mask::M
-    is_foreground::P
+    mask::M                  # the mask's pixel matrix
+    is_foreground::P         # pixel -> Bool (IsSet() or AtLeast(t))
 end
 @inline (keep::KeepForeground)(r::Int, c::Int) = @inbounds keep.is_foreground(keep.mask[r, c])
 
@@ -195,6 +217,8 @@ end
 Nearest-neighbour resize of the window `src[r0:r1, c0:c1]` to `size(src)`.
 Output pixel `i` reads the source pixel whose cell contains its centre.
 Pixels rejected by `keep(r, c)` become zero.
+
+Example: rows `5:6` stretched to 4 output rows → rows `5, 5, 6, 6`.
 """
 function _resample_nearest(src::AbstractMatrix{P}, r0::Int, r1::Int, c0::Int, c1::Int, keep::K) where {P,K}
     h, w = size(src)
@@ -202,12 +226,13 @@ function _resample_nearest(src::AbstractMatrix{P}, r0::Int, r1::Int, c0::Int, c1
     crop_w = c1 - c0 + 1
     rows = scratch(:zoom_nearest_rows, Int, h)       # source row of each output row
     @inbounds for i in 1:h
+        # Output centre i − 0.5 scaled by crop_h / h, in integer arithmetic.
         rows[i] = r0 + ((2i - 1) * crop_h) ÷ (2h)
     end
     out = similar(src)
     zero = zero_pixel(P)
     @inbounds for j in 1:w
-        c = c0 + ((2j - 1) * crop_w) ÷ (2w)
+        c = c0 + ((2j - 1) * crop_w) ÷ (2w)          # source column of output column j
         for i in 1:h
             r = rows[i]
             out[i, j] = keep(r, c) ? src[r, c] : zero
@@ -222,10 +247,14 @@ end
 When the window `lo:hi` is stretched over `n` output pixels, output pixel `i`
 falls between source pixels `a` and `b = a + 1`; its value is
 `(1 − weight) · src[a] + weight · src[b]`.
+
+Example: window `5:6` stretched to 4 pixels: output 2 sits at source position
+`4.5 + 1.5 · 0.5 = 5.25` → `(5, 6, 0.25)`.
 """
 @inline function _source_coordinate(i::Int, n::Int, lo::Int, hi::Int)
+    # Centre of output pixel i (i − 0.5 in [0, n]) mapped onto the window [lo − 0.5, hi + 0.5].
     position = lo - 0.5 + (i - 0.5) * (hi - lo + 1) / n
-    position = clamp(position, Float64(lo), Float64(hi))
+    position = clamp(position, Float64(lo), Float64(hi))    # the outermost half pixels repeat the edge
     a = unsafe_trunc(Int, position)                  # position ≥ lo ≥ 1, so truncation is floor
     b = min(a + 1, hi)
     return a, b, position - a
@@ -255,7 +284,7 @@ function _resample_bilinear(
     @inbounds for j in 1:w
         col_left, col_right, weight_x = _source_coordinate(j, w, c0, c1)
         @simd for k in 1:window_rows
-            r = r0 + k - 1
+            r = r0 + k - 1                           # source row of window row k
             left = keep(r, col_left) ? Float64(src[r, col_left].pixel) : 0.0
             right = keep(r, col_right) ? Float64(src[r, col_right].pixel) : 0.0
             horizontal[k, j] = left + weight_x * (right - left)
@@ -287,9 +316,15 @@ end
 @inline _resample(src::AbstractMatrix, r0, r1, c0, c1, keep) =
     _resample_nearest(src, r0, r1, c0, c1, keep)
 
-"Translate `src` without rescaling so the pixel position `(row, col)` lands on the image centre; the uncovered border is zero."
+"""
+Translate `src` without rescaling so the pixel position `(row, col)` lands on the image centre; the uncovered border is zero.
+
+Example: a 40-row image with the object at row 10.5 (centre 20.5): shift by
+`−10` rows, so output row `i` shows input row `i − 10`.
+"""
 function _translate(src::AbstractMatrix{P}, row::Float64, col::Float64) where {P}
     h, w = size(src)
+    # Offset from the image centre to the point (ties rounded up, so results do not flip with parity).
     shift_r = round(Int, row - (h + 1) / 2, RoundNearestTiesUp)
     shift_c = round(Int, col - (w + 1) / 2, RoundNearestTiesUp)
     out = similar(src)
@@ -297,7 +332,7 @@ function _translate(src::AbstractMatrix{P}, row::Float64, col::Float64) where {P
     @inbounds for j in 1:w
         c = j + shift_c
         for i in 1:h
-            r = i + shift_r
+            r = i + shift_r                          # source row
             out[i, j] = (1 <= r <= h && 1 <= c <= w) ? src[r, c] : zero
         end
     end
@@ -325,12 +360,17 @@ struct RecenterMode <: ZoomMode end
 Grow the box `r0:r1 × c0:c1` by `margin` of its own height and width on each
 side; with `aspect`, widen it further along the shorter direction until its
 proportions match the `h × w` image. The result is clipped to the image.
+
+Example in a `40 × 40` image: box rows `5:12`, columns `25:36` (8 × 12) with
+`margin = 0.1` grows by `round(0.8) = 1` row and `round(1.2) = 1` column:
+rows `4:13`, columns `24:37`. With `aspect`, the 10 × 14 box gets 4 more rows
+(2 above, 2 below) to become square like the image: rows `2:15`.
 """
 function _expand_box(r0::Int, r1::Int, c0::Int, c1::Int, h::Int, w::Int, margin::Float64, aspect::Bool)
     box_h = r1 - r0 + 1
     box_w = c1 - c0 + 1
-    grow_r = round(Int, margin * box_h)
-    grow_c = round(Int, margin * box_w)
+    grow_r = round(Int, margin * box_h)              # rows added above and below
+    grow_c = round(Int, margin * box_w)              # columns added left and right
     r0 -= grow_r
     r1 += grow_r
     c0 -= grow_c
@@ -341,7 +381,7 @@ function _expand_box(r0::Int, r1::Int, c0::Int, c1::Int, h::Int, w::Int, margin:
         # The box aspect box_h / box_w must equal the image aspect h / w.
         if box_h * w > box_w * h
             extra = cld(box_h * w, h) - box_w          # columns to add
-            c0 -= extra ÷ 2
+            c0 -= extra ÷ 2                          # half on each side (odd: one more on the right)
             c1 += extra - extra ÷ 2
         else
             extra = cld(box_w * h, w) - box_h          # rows to add
@@ -355,7 +395,7 @@ end
 "Bounding box `(r0, r1, c0, c1)` of every foreground pixel of `mask`, or `nothing` when it is empty."
 function _foreground_box(mask::AbstractMatrix, is_foreground::P) where {P}
     h, w = size(mask)
-    r0, r1, c0, c1 = h + 1, 0, w + 1, 0
+    r0, r1, c0, c1 = h + 1, 0, w + 1, 0              # start "inside out": any pixel will shrink/grow them
     @inbounds for c in 1:w, r in 1:h
         is_foreground(mask[r, c]) || continue
         r0 = min(r0, r)
@@ -363,7 +403,7 @@ function _foreground_box(mask::AbstractMatrix, is_foreground::P) where {P}
         c0 = min(c0, c)
         c1 = max(c1, c)
     end
-    r1 == 0 && return nothing
+    r1 == 0 && return nothing                        # no foreground pixel was seen
     return r0, r1, c0, c1
 end
 
@@ -378,7 +418,7 @@ function _foreground_centroid(mask::AbstractMatrix, is_foreground::P) where {P}
         sum_r += r
         sum_c += c
     end
-    return n, sum_r / max(n, 1), sum_c / max(n, 1)
+    return n, sum_r / max(n, 1), sum_c / max(n, 1)  # max(n, 1): no division by 0 when empty
 end
 
 "Kernel of the whole-foreground zooms: apply `mode` to the foreground of `mask`; returns a pixel matrix."
@@ -390,7 +430,8 @@ function _zoom_foreground(src::AbstractMatrix, mask::AbstractMatrix, is_foregrou
     box = _foreground_box(mask, is_foreground)
     box === nothing && return src                     # empty mask: image unchanged
     h, w = size(src)
-    r0, r1, c0, c1 = _expand_box(box..., h, w, margin, mode isa CropAspect)
+    r0, r1, c0, c1 = _expand_box(box..., h, w, margin, mode isa CropAspect)   # box... = r0, r1, c0, c1
+    # Isolating crops blank everything that is not foreground.
     keep = mode isa CropIsolate ? KeepForeground(mask, is_foreground) : KeepEveryPixel()
     return _resample(src, r0, r1, c0, c1, keep)
 end
@@ -400,23 +441,30 @@ Kernel of the selector zooms: label the objects of `mask`, pick one with
 `select(table, src) -> id`, apply `mode` to it; returns a pixel matrix.
 """
 function _zoom_object(src::AbstractMatrix, mask::AbstractMatrix, is_foreground, select::F, mode::ZoomMode, margin::Float64) where {F}
-    t = object_table(mask, is_foreground)
-    id = select(t, src)
+    t = object_table(mask, is_foreground)            # label the objects of the mask
+    id = select(t, src)                              # e.g. the largest one; 0 when there is none
     id == 0 && return src                             # no object: image unchanged
     mode isa RecenterMode && return _translate(src, centroid_row(t, id), centroid_col(t, id))
     h, w = size(src)
+    # The chosen object's bounding box, grown by the margin.
     r0, r1, c0, c1 = _expand_box(t.min_r[id], t.max_r[id], t.min_c[id], t.max_c[id],
         h, w, margin, mode isa CropAspect)
     keep = mode isa CropIsolate ? KeepObject(t.labels, Int32(id)) : KeepEveryPixel()
     return _resample(src, r0, r1, c0, c1, keep)
 end
 
-"Window covering `fraction` of each side of an `h × w` image, centred on the normalised point `(x, y)` and clipped."
+"""
+Window covering `fraction` of each side of an `h × w` image, centred on the normalised point `(x, y)` and clipped.
+
+Example: `40 × 40`, `fraction = 0.25` (10 pixels), `(x, y) = (0.5, 0.5)`:
+centre `20.5`, window rows and columns `16:25`.
+"""
 function _point_window(h::Int, w::Int, x::Float64, y::Float64, fraction::Float64)
-    half_r = (fraction * h) / 2
+    half_r = (fraction * h) / 2                      # half the window height, in pixels
     half_c = (fraction * w) / 2
-    centre_r = unit_to_position(y, h)
+    centre_r = unit_to_position(y, h)                # y ∈ [0, 1] → row in [1, h]
     centre_c = unit_to_position(x, w)
+    # ±0.5 converts between pixel edges and pixel centres; r1 ≥ r0 keeps at least one pixel.
     r0 = clamp(round(Int, centre_r - half_r + 0.5), 1, h)
     r1 = clamp(round(Int, centre_r + half_r - 0.5), r0, h)
     c0 = clamp(round(Int, centre_c - half_c + 0.5), 1, w)
@@ -433,10 +481,11 @@ end
 "Kernel of `zoom_rows` / `zoom_cols`: keep the band between normalised positions `a` and `b` along `axis` (1 = rows, 2 = columns) and stretch it."
 function _zoom_band(src::AbstractMatrix, axis::Int, a::Float64, b::Float64)
     h, w = size(src)
-    lo, hi = minmax(a, b)
-    n = axis == 1 ? h : w
-    i0 = clamp(round(Int, unit_to_position(lo, n)), 1, n)
-    i1 = clamp(round(Int, unit_to_position(hi, n)), i0, n)
+    lo, hi = minmax(a, b)                            # the two positions in any order
+    n = axis == 1 ? h : w                            # length of the axis
+    i0 = clamp(round(Int, unit_to_position(lo, n)), 1, n)     # first row/column of the band
+    i1 = clamp(round(Int, unit_to_position(hi, n)), i0, n)    # last (at least i0)
+    # Rows: crop rows i0:i1, all columns. Columns: all rows, columns i0:i1.
     return axis == 1 ? _resample(src, i0, i1, 1, w, KeepEveryPixel()) :
            _resample(src, 1, h, i0, i1, KeepEveryPixel())
 end
@@ -542,13 +591,16 @@ function _point_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, Symbol(I))
+    # (src, x, y): the point given by two coordinates.
     fn = @eval function $function_name(src::Source, x::Real, y::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, clamp_unit(x), clamp_unit(y)), $size_type)
     end
+    # (src, s): a point on the diagonal, x = y = s.
     @eval function $function_name(src::Source, s::Real, args::Vararg{Any}) where {Source<:$I}
         u = clamp_unit(s)
         return SImageND($kernel(src.img, u, u), $size_type)
     end
+    # (src): the image centre.
     @eval function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, 0.5, 0.5), $size_type)
     end
@@ -559,7 +611,16 @@ end
 # Operators
 # ---------------------------------------------------------------------------
 
-"Mask-driven operator families: `(prefix, mode, verb, tail)` for the generated descriptions."
+"""
+Mask-driven operator families: `(prefix, mode, verb, tail)` for the generated descriptions.
+
+- `prefix`: the operator name (and the start of its selector variants, e.g.
+  `zoom_crop_bbox_largest`);
+- `mode`: what to do with the window (`CropBox()`, …);
+- `verb`, `tail`: wording around the target in the descriptions, e.g.
+  "Zoom that *crops the bounding box of* the whole mask foreground *and
+  resizes it back*."
+"""
 const _MODES = (
     (:zoom_crop_bbox, CropBox(), "crops the bounding box of", "and resizes it back"),
     (:zoom_crop_aspect, CropAspect(), "crops the bounding box, widened to the image aspect ratio, of", "and resizes it back"),
@@ -598,6 +659,8 @@ _object_kernel(select, mode::ZoomMode) =
 _fixed_select(select_fn) = (t, src) -> select_fn(t)
 _mean_select(direction::Float64) = (t, src) -> select_by_mean(t, src, direction)
 _glimpse_kernel(fraction::Float64) = (src, x, y) -> _zoom_point(src, x, y, fraction)
+# Kernel signatures: mask-driven (src_pixels, mask_pixels, is_foreground, margin) -> pixels;
+# selectors (table, src_pixels) -> object id; point-driven (src_pixels, x, y) -> pixels.
 
 for (prefix, mode, verb, tail) in _MODES
     # Whole foreground: zoom_crop_bbox, zoom_crop_aspect, …
@@ -642,6 +705,7 @@ for (prefix, mode, verb, tail) in _MODES
     end
 end
 
+# Glimpses: (name suffix, window size as a fraction of each side), e.g. zoom_glimpse_25p.
 for (suffix, fraction) in ((:_10p, 0.10), (:_25p, 0.25), (:_50p, 0.50))
     operator = Symbol(:zoom_glimpse, suffix)
     pct = round(Int, 100fraction)
@@ -676,6 +740,7 @@ function _center_factory(::Type{I}) where {I}
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
     function_name = Symbol(:zoom_center_, Symbol(I))
+    # (img, z): never smaller than 5% of each side.
     fn = @eval function $function_name(src::Source, z::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND(_zoom_point(src.img, 0.5, 0.5, max(clamp_unit(z), 0.05)), $size_type)
     end
@@ -699,9 +764,11 @@ function _band_factory(::Type{I}, operator::Symbol, axis::Int) where {I}
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, Symbol(I))
+    # (img, a, b): the band between a and b.
     fn = @eval function $function_name(src::Source, a::Real, b::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND(_zoom_band(src.img, $axis, clamp_unit(a), clamp_unit(b)), $size_type)
     end
+    # (img, a): a band from a − 0.125 to a + 0.125 (25% of the image), clipped.
     @eval function $function_name(src::Source, a::Real, args::Vararg{Any}) where {Source<:$I}
         u = clamp_unit(a)
         return SImageND(_zoom_band(src.img, $axis, max(u - 0.125, 0.0), min(u + 0.125, 1.0)), $size_type)
@@ -709,6 +776,7 @@ function _band_factory(::Type{I}, operator::Symbol, axis::Int) where {I}
     return fn
 end
 _band_builder(operator::Symbol, axis::Int) = I -> _band_factory(I, operator, axis)
+# Bands: (operator name, axis (1 rows, 2 columns), wording).
 for (operator, axis, what) in ((:zoom_rows, 1, "rows"), (:zoom_cols, 2, "columns"))
     _define_factory!(Symbol(operator, :_image2D_factory), operator,
         _band_builder(operator, axis), _ALL_KINDS,

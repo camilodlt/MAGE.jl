@@ -22,6 +22,20 @@ Arbitrary transforms go through `_warp`, which maps each *output* pixel back
 to a *source* position (inverse mapping, so every output pixel gets exactly
 one value), then samples there: bilinearly for intensity images, nearest
 neighbour otherwise.
+
+# Example
+
+```julia
+using UTCGP, ImageCore
+img = SImageND(IntensityPixel{N0f8}.(rand(32, 32)))
+I = typeof(img)
+flip = bundle_image2DIntensity_transform_factory[:transform_flip_h].fn(I)
+flip(img)                 # column j of the result is column 33 − j of img
+shift = bundle_image2DIntensity_transform_factory[:transform_shift].fn(I)
+shift(img, 0.75, 0.5)     # moved round(0.25 · 32) = 8 columns right, not vertically
+rotate = bundle_image2DIntensity_transform_factory[:transform_rotate].fn(I)
+rotate(img, 0.25)         # a quarter turn counter-clockwise about the centre
+```
 """
 module image2D_transform
 
@@ -41,6 +55,7 @@ using ..UTCGP:
 using ..image2D_object_common: IsSet, AtLeast, clamp_unit
 using ..image2D_zoom: to_storage, zero_pixel
 
+# Returned by the bundles when no method matches the inputs (MAGE then skips the node).
 fallback(args...) = return nothing
 
 const _COMMON_DOC = """
@@ -115,9 +130,10 @@ no overflow checks.
 function _warp(src::AbstractMatrix{P}, source_of::F) where {P,F}
     h, w = size(src)
     out = similar(src)
-    zero = zero_pixel(P)
+    zero = zero_pixel(P)                     # value for samples outside the image
     @inbounds for j in 1:w, i in 1:h
-        r, c = source_of(i, j)
+        r, c = source_of(i, j)               # where output pixel (i, j) comes from
+        # Rounds to a pixel inside the image exactly when r ∈ [0.5, h + 0.5) and c likewise.
         if 0.5 <= r < h + 0.5 && 0.5 <= c < w + 0.5
             ri = unsafe_trunc(Int, round(r))
             ci = unsafe_trunc(Int, round(c))
@@ -134,9 +150,11 @@ function _warp(src::AbstractMatrix{IntensityPixel{T}}, source_of::F) where {T,F}
     h, w = size(src)
     out = similar(src)
     zero = IntensityPixel{T}(to_storage(T, 0.0))
+    # Pixel value, or 0 outside the image (used near the border only).
     @inline value(r, c) = (1 <= r <= h && 1 <= c <= w) ? Float64(src[r, c].pixel) : 0.0
     @inbounds for j in 1:w, i in 1:h
         r, c = source_of(i, j)
+        # Farther than one pixel outside: all four neighbours are outside, the result is 0.
         if !(0.0 < r < h + 1.0 && 0.0 < c < w + 1.0)
             out[i, j] = zero
             continue
@@ -157,6 +175,8 @@ function _warp(src::AbstractMatrix{IntensityPixel{T}}, source_of::F) where {T,F}
             bottom_left = value(r0 + 1, c0)
             bottom_right = value(r0 + 1, c0 + 1)
         end
+        # Interpolate along the two rows, then between them.
+        # Example: r = 2.25, c = 3.5 → 75% row 2 + 25% row 3, each the average of columns 3 and 4.
         top = top_left + frac_c * (top_right - top_left)
         bottom = bottom_left + frac_c * (bottom_right - bottom_left)
         out[i, j] = IntensityPixel{T}(to_storage(T, top + frac_r * (bottom - top)))
@@ -164,7 +184,7 @@ function _warp(src::AbstractMatrix{IntensityPixel{T}}, source_of::F) where {T,F}
     return out
 end
 
-"Mirror left-right."
+"Mirror left-right: output column `j` is input column `w + 1 − j`."
 function _flip_h(src::AbstractMatrix)
     h, w = size(src)
     out = similar(src)
@@ -174,7 +194,7 @@ function _flip_h(src::AbstractMatrix)
     return out
 end
 
-"Mirror top-bottom."
+"Mirror top-bottom: output row `i` is input row `h + 1 − i`."
 function _flip_v(src::AbstractMatrix)
     h, w = size(src)
     out = similar(src)
@@ -194,13 +214,19 @@ function _rotate_180(src::AbstractMatrix)
     return out
 end
 
-"Rotate 90° (`k = 1`) or 270° (`k = 3`) counter-clockwise on screen, stretched back to size."
+"""
+Rotate 90° (`k = 1`) or 270° (`k = 3`) counter-clockwise on screen, stretched back to size.
+
+Example (`k = 1`): `[1 2; 3 4]` → `[2 4; 1 3]` (the top-right pixel moves to
+the top-left corner).
+"""
 function _rotate_quarter(src::AbstractMatrix, k::Int)
     h, w = size(src)
     if h == w
         # Square: an exact permutation (what the sampler below computes too).
         out = similar(src)
         @inbounds for j in 1:w, i in 1:h
+            # k = 1: output row i is input column w + 1 − i read top to bottom; k = 3 the reverse.
             out[i, j] = k == 1 ? src[j, w + 1 - i] : src[h + 1 - j, i]
         end
         return out
@@ -219,9 +245,13 @@ end
 Rotate by `turns` (fraction of a full turn, counter-clockwise on screen)
 about the source point `(centre_r, centre_c)`, which ends up at
 `(target_r, target_c)` in the output.
+
+With the centre equal to the target this is a plain rotation; with different
+points it also translates (used by `transform_canonical_pose` to rotate about
+an object's centroid and move it to the image centre).
 """
 function _rotate(src::AbstractMatrix, turns::Float64, centre_r::Float64, centre_c::Float64, target_r::Float64, target_c::Float64)
-    sin_a, cos_a = sincospi(2turns)
+    sin_a, cos_a = sincospi(2turns)          # sin and cos of the angle 2π · turns
     return _warp(src, (i, j) -> begin
         dy = i - target_r
         dx = j - target_c
@@ -231,14 +261,23 @@ function _rotate(src::AbstractMatrix, turns::Float64, centre_r::Float64, centre_
     end)
 end
 
-"Rotate by `turns` about the image centre."
+"Rotate by `turns` about the image centre `((h + 1)/2, (w + 1)/2)`."
 _rotate(src::AbstractMatrix, turns::Float64) =
     (h = size(src, 1); w = size(src, 2); _rotate(src, turns, (h + 1) / 2, (w + 1) / 2, (h + 1) / 2, (w + 1) / 2))
 
-"Shift in pixels for parameter `u` along an axis of length `n`: `round((u − 0.5) · n)`."
+"""
+Shift in pixels for parameter `u` along an axis of length `n`: `round((u − 0.5) · n)`.
+
+Example with `n = 32`: `u = 0.5 → 0`, `u = 0.75 → 8`, `u = 0 → −16`.
+"""
 @inline _shift_amount(u::Float64, n::Int) = round(Int, (u - 0.5) * n)
 
-"Translate by `_shift_amount(dx, w)` columns and `_shift_amount(dy, h)` rows; zero fill, or wrap around when `wrap`."
+"""
+Translate by `_shift_amount(dx, w)` columns and `_shift_amount(dy, h)` rows; zero fill, or wrap around when `wrap`.
+
+Example on one row `[1 2 3 4]` shifted one column right: `[0 1 2 3]` (zero
+fill) or `[4 1 2 3]` (wrap).
+"""
 function _shift(src::AbstractMatrix{P}, dx::Float64, dy::Float64, wrap::Bool) where {P}
     h, w = size(src)
     col_shift = _shift_amount(dx, w)
@@ -248,11 +287,11 @@ function _shift(src::AbstractMatrix{P}, dx::Float64, dy::Float64, wrap::Bool) wh
     @inbounds for j in 1:w
         c = j - col_shift                       # source column
         if wrap
-            c = mod1(c, w)
+            c = mod1(c, w)                      # wrap the column into 1:w
             shift = mod(row_shift, h)           # 0 ≤ shift < h, so r ≥ 1 - h
             for i in 1:h
                 r = i - shift
-                out[i, j] = src[r < 1 ? r + h : r, c]
+                out[i, j] = src[r < 1 ? r + h : r, c]   # rows above the top come from the bottom
             end
         elseif 1 <= c <= w
             for i in 1:h
@@ -273,10 +312,14 @@ end
 
 Foreground pixel count, centroid and central second moments of `mask`
 (all zeros when empty).
+
+The second moments describe the shape's spread: `var_rr` along rows,
+`var_cc` along columns, `cov_rc` how they vary together (non-zero for a
+tilted shape).
 """
 function _foreground_moments(mask::AbstractMatrix, is_foreground::P) where {P}
     n = 0
-    sum_r = sum_c = sum_rr = sum_cc = sum_rc = 0.0
+    sum_r = sum_c = sum_rr = sum_cc = sum_rc = 0.0      # Σr, Σc, Σr², Σc², Σr·c
     @inbounds for c in axes(mask, 2), r in axes(mask, 1)
         is_foreground(mask[r, c]) || continue
         n += 1
@@ -288,11 +331,18 @@ function _foreground_moments(mask::AbstractMatrix, is_foreground::P) where {P}
     end
     n == 0 && return 0, 0.0, 0.0, 0.0, 0.0, 0.0
     mean_r, mean_c = sum_r / n, sum_c / n
+    # var = E[x²] − E[x]², cov = E[xy] − E[x]E[y]
     return n, mean_r, mean_c, sum_rr / n - mean_r^2, sum_cc / n - mean_c^2, sum_rc / n - mean_r * mean_c
 end
 
-"Main-axis angle in turns, counter-clockwise on screen from the +x axis (`0` for an isotropic shape)."
+"""
+Main-axis angle in turns, counter-clockwise on screen from the +x axis (`0` for an isotropic shape).
+
+Example: a horizontal bar gives `0`, a vertical bar `±0.25`, a bar rising to
+the right at 45° `0.125`.
+"""
 function _axis_turns(var_rr, var_cc, cov_rc)
+    # A disk or square has no main axis: equal variances and no covariance.
     abs(var_cc - var_rr) + 2abs(cov_rc) <= 1e-9 * (var_rr + var_cc + 1e-12) && return 0.0
     θ = 0.5 * atan(2cov_rc, var_cc - var_rr)    # towards +rows, i.e. clockwise on screen
     return -θ / 2π
@@ -301,9 +351,9 @@ end
 "Rotate so the mask's main axis is horizontal, about the image centre, or (when `recenter`) about the mask's centroid, moved to the centre."
 function _align(src::AbstractMatrix, mask::AbstractMatrix, is_foreground, recenter::Bool)
     n, mean_r, mean_c, var_rr, var_cc, cov_rc = _foreground_moments(mask, is_foreground)
-    n == 0 && return src
+    n == 0 && return src                     # empty mask: unchanged
     h, w = size(src)
-    turns = -_axis_turns(var_rr, var_cc, cov_rc)
+    turns = -_axis_turns(var_rr, var_cc, cov_rc)   # rotate back by the axis angle
     if recenter
         return _rotate(src, turns, mean_r, mean_c, (h + 1) / 2, (w + 1) / 2)
     end
@@ -315,6 +365,7 @@ function _flip_if(src::AbstractMatrix, mask::AbstractMatrix, is_foreground, axis
     n, mean_r, mean_c, _, _, _ = _foreground_moments(mask, is_foreground)
     n == 0 && return src
     h, w = size(src)
+    # (w + 1) / 2 is the middle column (e.g. 16.5 for 32 columns).
     if axis == 2
         return mean_c > (w + 1) / 2 ? _flip_h(src) : src
     end
@@ -405,8 +456,14 @@ end
 "`output_type -> factory(output_type, operator, kernel)`; a function so each closure captures its own arguments."
 _builder(factory, operator::Symbol, kernel) = I -> factory(I, operator, kernel)
 
-# (operator, factory, kernel, description). Kernel arguments follow the factory:
-# plain (pixels), scalar (pixels, u), point (pixels, x, y), mask (pixels, mask_pixels, is_foreground).
+# Each entry is (operator name, factory, kernel, description):
+#   - the factory sets the method shapes: plain (img), scalar (img, u),
+#     point (img, x, y) / (img, s), mask (img, mask) / (img);
+#   - the kernel's arguments follow the factory: plain (pixels), scalar
+#     (pixels, u), point (pixels, x, y), mask (pixels, mask_pixels, is_foreground);
+#   - the description is shown in the Bundle Catalogue.
+# Example: (:transform_flip_h, _plain_factory, src -> _flip_h(src), …) defines
+# transform_flip_h(img).
 const _OPERATORS = (
     (:transform_flip_h, _plain_factory, src -> _flip_h(src), "Mirrors left-right."),
     (:transform_flip_v, _plain_factory, src -> _flip_v(src), "Mirrors top-bottom."),
