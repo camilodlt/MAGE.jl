@@ -379,8 +379,8 @@ module UTCGP
     # -- Number
 
     include("libraries/number/arithmetic.jl")
-    import .number_arithmetic: bundle_number_arithmetic
-    export bundle_number_arithmetic
+    import .number_arithmetic: bundle_number_arithmetic, bundle_number_arithmetic_sr
+    export bundle_number_arithmetic, bundle_number_arithmetic_sr
 
     include("libraries/number/reduce.jl")
     import .number_reduce: bundle_number_reduce
@@ -432,8 +432,8 @@ module UTCGP
     export bundle_number_haarFromImg
 
     include("libraries/number/transcendental.jl")
-    import .number_transcendental: bundle_number_transcendental
-    export bundle_number_transcendental
+    import .number_transcendental: bundle_number_transcendental, bundle_number_transcendental_sr
+    export bundle_number_transcendental, bundle_number_transcendental_sr
 
     # --- FLOAT
 

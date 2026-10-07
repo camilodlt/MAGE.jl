@@ -9,6 +9,7 @@ The fallback returns an `Int`. To target another type, re-point the bundle with
 # Bundles
 
 - [`bundle_number_arithmetic`](@ref)
+- [`bundle_number_arithmetic_sr`](@ref)
 
 The exhaustive, always-current list of operators in each bundle is on the
 [Bundle Catalogue](@ref) page.
@@ -31,6 +32,16 @@ Scalar arithmetic: `number_sum`, `number_minus`, `number_mult`, `number_div`,
 denominator.
 """
 bundle_number_arithmetic = FunctionBundle(fallback)
+
+"""
+    bundle_number_arithmetic_sr
+
+Unary arithmetic used by symbolic regression: `number_square`, `number_cube`,
+`number_negate`, and `number_inverse`, which returns `0` for a zero input. Kept
+apart from `bundle_number_arithmetic` so libraries built from that bundle are
+unchanged.
+"""
+bundle_number_arithmetic_sr = FunctionBundle(fallback)
 
 # FUNCTIONS ---
 
@@ -103,6 +114,43 @@ function power_of(a::Number, b::Number, args...)
     return a^b
 end
 
+## Square, cube, negate, inverse
+"""
+    number_square(a::Number, args...)
+Returns `a`²
+"""
+function number_square(a::Number, args...)
+    return a * a
+end
+
+"""
+    number_cube(a::Number, args...)
+Returns `a`³
+"""
+function number_cube(a::Number, args...)
+    return a * a * a
+end
+
+"""
+    number_negate(a::Number, args...)
+Returns `-a`
+"""
+function number_negate(a::Number, args...)
+    return -a
+end
+
+"""
+    number_inverse(a::Number, args...)
+
+Returns `1/a`, or `0` when `a` is zero (same protection as `safe_div`).
+"""
+function number_inverse(a::Number, args...)
+    if a == 0
+        return zero(a)
+    end
+    return 1 / a
+end
+
 append_method!(
     bundle_number_arithmetic,
     number_sum;
@@ -132,6 +180,26 @@ append_method!(
     bundle_number_arithmetic,
     power_of;
     description = "Raises the first numeric input to the power of the second.",
+)
+append_method!(
+    bundle_number_arithmetic_sr,
+    number_square;
+    description = "Squares the numeric input.",
+)
+append_method!(
+    bundle_number_arithmetic_sr,
+    number_cube;
+    description = "Cubes the numeric input.",
+)
+append_method!(
+    bundle_number_arithmetic_sr,
+    number_negate;
+    description = "Negates the numeric input.",
+)
+append_method!(
+    bundle_number_arithmetic_sr,
+    number_inverse;
+    description = "Returns the reciprocal of the numeric input, or 0 when the input is zero.",
 )
 
 end

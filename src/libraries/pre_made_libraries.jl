@@ -735,6 +735,56 @@ function get_sr_float_bundles()
     return float_bundles
 end
 
+"""
+Functions picked for scalar symbolic regression, as (source bundle, function name).
+
+Each one is defined once in its own bundle; `get_scalar_sr_bundles` copies exactly these
+wrappers into a single new bundle, so this list is the whole SR function set. Constants
+are not functions here: pass them as program inputs.
+"""
+const SCALAR_SR_FUNCTIONS = [
+    # First by MAGE convention: output nodes use the library's first function (make_genome.jl).
+    (:bundle_float_basic, :identity_float),
+    (:bundle_number_arithmetic, :number_sum),
+    (:bundle_number_arithmetic, :number_minus),
+    (:bundle_number_arithmetic, :number_mult),
+    (:bundle_number_arithmetic, :safe_div),
+    (:bundle_number_arithmetic_sr, :number_square),
+    (:bundle_number_arithmetic_sr, :number_cube),
+    (:bundle_number_arithmetic_sr, :number_negate),
+    (:bundle_number_arithmetic_sr, :number_inverse),
+    (:bundle_number_transcendental_sr, :sqrt_),
+    (:bundle_number_transcendental, :exp_),
+    (:bundle_number_transcendental, :log_),
+    (:bundle_number_transcendental_sr, :sin_),
+    (:bundle_number_transcendental_sr, :cos_),
+    (:bundle_float_basic, :tanh),
+    (:bundle_number_decision, :number_abs),
+    (:bundle_number_decision, :number_min),
+    (:bundle_number_decision, :number_max),
+]
+
+"""
+    get_scalar_sr_bundles(selection = SCALAR_SR_FUNCTIONS)
+
+One bundle holding exactly the `selection` functions, copied from the bundles that define
+them, with the float caster and a `0.0` fallback. Unlike [`get_sr_float_bundles`](@ref),
+which adds whole bundles, nothing outside the selection is included.
+"""
+function get_scalar_sr_bundles(selection = SCALAR_SR_FUNCTIONS)
+    sr_bundle = FunctionBundle(float_caster, () -> 0.0)
+    for (bundle_name, fn_name) in selection
+        source = getfield(@__MODULE__, bundle_name)
+        idx = findfirst(w -> w.name == fn_name, source.functions)
+        isnothing(idx) && error("$(fn_name) is not in $(bundle_name)")
+        push!(sr_bundle.functions, deepcopy(source.functions[idx]))
+    end
+    @assert _unique_names_in_bundle(sr_bundle) "Duplicate function names in the SR selection"
+    update_caster!(sr_bundle, float_caster)
+    update_fallback!(sr_bundle, () -> 0.0)
+    return [sr_bundle]
+end
+
 # STRING LIBRARY
 
 """
