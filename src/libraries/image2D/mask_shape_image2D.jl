@@ -8,6 +8,15 @@ border filters, and distance maps.
 - bundle_image2DIntensity_maskshape_factory
 
 The exhaustive operator list is on the Bundle Catalogue page.
+
+# How this file is organised
+
+Every operator is a kernel `kernel(fg::Matrix{Bool}, p::Float64)` returning a
+`Bool` matrix (binary bundle) or a `Float64` matrix in `[0, 1]` (intensity
+bundle). `_shape_factory` specialises it on an output image type: it turns
+the input (a mask, or a saliency map and a threshold) into `fg`, sanitises
+`p`, calls the kernel and converts the result to pixels. Kernels without a
+parameter ignore `p`.
 """
 module image2D_mask_shape
 
@@ -23,9 +32,9 @@ using ..UTCGP:
     _get_image_tuple_size,
     _get_image_type,
     _validate_factory_type
-using ..image2D_object_common: ObjectTable, IsSet, AtLeast, _unit, object_table, scratch, squared_distance_map!, _fast_predicate,
+using ..image2D_object_common: ObjectTable, IsSet, AtLeast, clamp_unit, object_table, scratch, squared_distance_map!, fast_foreground_test,
     convex_hull_points, extreme_points, background_holes!
-using ..image2D_zoom: _store
+using ..image2D_zoom: to_storage
 
 fallback(args...) = return nothing
 
@@ -83,7 +92,7 @@ const bundle_image2DIntensity_maskshape_factory = FunctionBundle(fallback)
 "Foreground as a `Bool` matrix in per-task scratch (8-bit thresholds use a lookup table)."
 function _bits(pixels::AbstractMatrix, is_foreground)
     fg = scratch(:shape_fg, Bool, size(pixels)...)
-    predicate = _fast_predicate(pixels, is_foreground)
+    predicate = fast_foreground_test(pixels, is_foreground)
     @inbounds for i in eachindex(pixels, fg)
         fg[i] = predicate(pixels[i])
     end
@@ -110,6 +119,7 @@ function _holes_upto(fg::AbstractMatrix{Bool}, fraction::Float64)
     return holes
 end
 
+"The mask with its holes of at most `fraction` of the image filled."
 function _fill_holes(fg::AbstractMatrix{Bool}, fraction::Float64)
     out = _holes_upto(fg, fraction)
     @inbounds @simd for i in eachindex(out)
@@ -127,41 +137,48 @@ function _fill_hull!(out::AbstractMatrix{Bool}, hull::Vector{Tuple{Int,Int}})
     n = length(hull)
     r0, r1 = extrema(first.(hull))
     @inbounds for r in r0:r1
-        lo = Inf
+        lo = Inf                                  # leftmost and rightmost polygon column on row r
         hi = -Inf
         for k in 1:n
             a = hull[k]
             b = hull[k == n ? 1 : k + 1]
-            if a[1] == r
+            if a[1] == r                          # a hull vertex on row r
                 lo = min(lo, a[2])
                 hi = max(hi, a[2])
             end
             if (a[1] - r) * (b[1] - r) < 0       # the edge strictly crosses row r
-                x = a[2] + (r - a[1]) * (b[2] - a[2]) / (b[1] - a[1])
+                x = a[2] + (r - a[1]) * (b[2] - a[2]) / (b[1] - a[1])   # column where it crosses
                 lo = min(lo, x)
                 hi = max(hi, x)
             end
         end
         lo > hi && continue
-        for c in ceil(Int, lo - 1e-9):floor(Int, hi + 1e-9)
+        for c in ceil(Int, lo - 1e-9):floor(Int, hi + 1e-9)          # tolerance keeps pixels on the edges
             out[r, c] = true
         end
     end
     return out
 end
 
+"""
+Convex hull of the whole foreground. The hull is computed from the
+`extreme_points` (leftmost and rightmost pixel of each row), the only pixels
+that can be hull vertices.
+"""
 function _convex_hull(fg::AbstractMatrix{Bool})
     out = Matrix{Bool}(fg)
     any(fg) || return out
     h, w = size(fg)
-    r0, r1, c0, c1 = h + 1, 0, w + 1, 0
+    r0, r1, c0, c1 = h + 1, 0, w + 1, 0                  # bounding box of the foreground
     @inbounds for c in 1:w, r in 1:h
         fg[r, c] || continue
         r0 = min(r0, r); r1 = max(r1, r); c0 = min(c0, c); c1 = max(c1, c)
     end
+    # On a Bool matrix, label 0 selects every `true` pixel (see `extreme_points`).
     return _fill_hull!(out, convex_hull_points(extreme_points(fg, 0, r0, r1, c0, c1)))
 end
 
+"Convex hull of each 8-connected object, drawn over the mask (hulls may overlap)."
 function _convex_hull_objects(fg::AbstractMatrix{Bool})
     t = object_table(fg, identity)
     out = Matrix{Bool}(fg)
@@ -172,6 +189,7 @@ function _convex_hull_objects(fg::AbstractMatrix{Bool})
     return out
 end
 
+"Each object replaced by its filled bounding box."
 function _bbox_fill(fg::AbstractMatrix{Bool})
     t = object_table(fg, identity)
     out = zeros(Bool, size(fg))
@@ -181,8 +199,10 @@ function _bbox_fill(fg::AbstractMatrix{Bool})
     return out
 end
 
+"One-pixel-wide skeleton (Guo–Hall thinning from ImageMorphology)."
 _skeleton(fg::AbstractMatrix{Bool}) = any(fg) ? Matrix{Bool}(thinning(fg)) : zeros(Bool, size(fg))
 
+"Object pixels with a 4-neighbour in the background or on the image border."
 function _boundary(fg::AbstractMatrix{Bool})
     h, w = size(fg)
     out = zeros(Bool, h, w)
@@ -206,6 +226,7 @@ function _filter_objects(fg::AbstractMatrix{Bool}, keep::F) where {F}
     return out
 end
 
+"Whether the bounding box of object `i` touches the image border."
 _touches_border(t::ObjectTable, i::Int) =
     t.min_r[i] == 1 || t.min_c[i] == 1 || t.max_r[i] == t.h || t.max_c[i] == t.w
 
@@ -222,18 +243,20 @@ function _majority(fg::AbstractMatrix{Bool})
     end
     out = Matrix{Bool}(undef, h, w)
     @inbounds for c in 1:w
-        cl = max(c - 1, 1)
-        cr = min(c + 1, w)
-        ncols = cr - cl + 1
+        col_left = max(c - 1, 1)
+        col_right = min(c + 1, w)
+        n_cols = col_right - col_left + 1
         for r in 1:h
-            votes = Int(vertical[r, cl]) + (cl < c ? Int(vertical[r, c]) : 0) + (cr > c ? Int(vertical[r, cr]) : 0)
-            nrows = (r > 1) + 1 + (r < h)
-            out[r, c] = 2votes > nrows * ncols
+            votes = Int(vertical[r, col_left]) + (col_left < c ? Int(vertical[r, c]) : 0) + (col_right > c ? Int(vertical[r, col_right]) : 0)
+            n_rows = (r > 1) + 1 + (r < h)
+            # Strict majority of the window, which is smaller at the border.
+            out[r, c] = 2votes > n_rows * n_cols
         end
     end
     return out
 end
 
+"Distance from each object pixel to the background, divided by the largest such distance (`0` outside)."
 function _distance_inside(fg::AbstractMatrix{Bool})
     any(fg) || return zeros(size(fg))
     all(fg) && return ones(size(fg))
@@ -242,15 +265,16 @@ function _distance_inside(fg::AbstractMatrix{Bool})
         background[i] = !fg[i]
     end
     d = squared_distance_map!(Matrix{Float64}(undef, size(fg)), background)
-    m = 0.0
+    largest = 0.0
     @inbounds for i in eachindex(d)
         d[i] = fg[i] ? sqrt(d[i]) : 0.0
-        m = max(m, d[i])
+        largest = max(largest, d[i])
     end
-    m > 0 && (d ./= m)
+    largest > 0 && (d ./= largest)
     return d
 end
 
+"`1 − distance to the nearest object pixel / image diagonal`, clamped to `[0, 1]`."
 function _proximity(fg::AbstractMatrix{Bool})
     any(fg) || return zeros(size(fg))
     h, w = size(fg)
@@ -267,43 +291,57 @@ end
 # ---------------------------------------------------------------------------
 
 """
-Specialise a mask operator. `kernel(fg::Matrix{Bool}, p::Float64)` returns a
-`Bool` matrix (binary bundle) or a `Matrix{Float64}` (intensity bundle).
+    _shape_factory(I, operator, kernel, default) -> Function
+
+Specialise a mask operator on the output type `I`. Methods, with
+`p = clamp_unit(p, default)` (or `default` when absent):
+
+| Method | `fg` passed to `kernel(fg, p)` |
+|:--|:--|
+| `op(mask, p)`, `op(mask)` | the binary mask |
+| `op(saliency, threshold, p)`, `op(saliency, threshold)` | `saliency ≥ threshold` |
+| `op(saliency)` | `saliency ≥ 0.5` |
+
+The kernel result becomes `BinaryPixel`s, or intensity pixels (values stored
+with rounding and clamping), depending on `I`.
 """
 function _shape_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
-    IT = _get_image_type(I)
-    PT = _get_image_pixel_type(I)
-    S = _get_image_tuple_size(I)
-    _validate_factory_type(IT)
+    storage_type = _get_image_type(I)
+    pixel_type = _get_image_pixel_type(I)
+    size_type = _get_image_tuple_size(I)
+    _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, Symbol(I))
-    wrap = PT <: BinaryPixel ? :(SImageND($PT.(result), $S)) :
-           :(SImageND($PT.(_store.($IT, result)), $S))
-    fn = @eval function $function_name(mask::M, p::Real, args::Vararg{Any}) where {BT,M<:SizedImage{$S,BinaryPixel{BT}}}
-        result = $kernel(_bits(mask.img, IsSet()), _unit(p, $default))
-        return $wrap
+    # Expression turning the kernel's `result` into the output image, spliced into each method.
+    to_output = pixel_type <: BinaryPixel ? :(SImageND($pixel_type.(result), $size_type)) :
+                :(SImageND($pixel_type.(to_storage.($storage_type, result)), $size_type))
+    fn = @eval function $function_name(mask::Mask, p::Real, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+        result = $kernel(_bits(mask.img, IsSet()), clamp_unit(p, $default))
+        return $to_output
     end
-    @eval function $function_name(mask::M, args::Vararg{Any}) where {BT,M<:SizedImage{$S,BinaryPixel{BT}}}
+    @eval function $function_name(mask::Mask, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         result = $kernel(_bits(mask.img, IsSet()), $default)
-        return $wrap
+        return $to_output
     end
-    @eval function $function_name(saliency::M, threshold::Real, p::Real, args::Vararg{Any}) where {ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        result = $kernel(_bits(saliency.img, AtLeast(_unit(threshold))), _unit(p, $default))
-        return $wrap
+    @eval function $function_name(saliency::Saliency, threshold::Real, p::Real, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
+        result = $kernel(_bits(saliency.img, AtLeast(clamp_unit(threshold))), clamp_unit(p, $default))
+        return $to_output
     end
-    @eval function $function_name(saliency::M, threshold::Real, args::Vararg{Any}) where {ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        result = $kernel(_bits(saliency.img, AtLeast(_unit(threshold))), $default)
-        return $wrap
+    @eval function $function_name(saliency::Saliency, threshold::Real, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
+        result = $kernel(_bits(saliency.img, AtLeast(clamp_unit(threshold))), $default)
+        return $to_output
     end
-    @eval function $function_name(saliency::M, args::Vararg{Any}) where {ST,M<:SizedImage{$S,IntensityPixel{ST}}}
+    @eval function $function_name(saliency::Saliency, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
         result = $kernel(_bits(saliency.img, AtLeast(0.5)), $default)
-        return $wrap
+        return $to_output
     end
     return fn
 end
 
+"`output_type -> _shape_factory(output_type, …)`; a function so each closure captures its own arguments."
 _shape_builder(operator::Symbol, kernel, default::Float64) =
     I -> _shape_factory(I, operator, kernel, default)
 
+# (operator, kernel(fg, p), default p, description)
 const _BINARY_OPERATORS = (
     (:shape_fill_holes, (fg, p) -> _fill_holes(fg, p), 1.0,
         "Fills enclosed background regions of at most p of the image (default: all)."),

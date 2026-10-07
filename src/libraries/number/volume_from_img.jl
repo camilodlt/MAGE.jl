@@ -21,7 +21,7 @@ module number_volumeFromImg
 using LinearAlgebra: Symmetric, eigvals
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
-using ..image2D_object_common: _unit, _value, IsSet, AtLeast, scratch
+using ..image2D_object_common: clamp_unit, pixel_value, IsSet, AtLeast, scratch
 using ..image3D_volume_common:
     voxel_values,
     voxel_foreground,
@@ -96,12 +96,16 @@ Where the intensity is, relative to the centre and the axes.
 """
 bundle_number_volumeProfileFromImg = FunctionBundle(fallback)
 
-const _Vol = SImageND{S,T,3,C} where {S,T<:IntensityPixel,C}
-const _VMask = SImageND{S,T,3,C} where {S,T<:BinaryPixel,C}
+"Any intensity volume (3D image of `IntensityPixel`s)."
+const _IntensityVolume = SImageND{S,T,3,C} where {S,T<:IntensityPixel,C}
+"Any binary volume (3D mask)."
+const _BinaryVolume = SImageND{S,T,3,C} where {S,T<:BinaryPixel,C}
 
+"Whether a region voxel is inside: binary voxels when set, intensity voxels at or above `0.5`."
 @inline _roi_in(p::BinaryPixel) = p.pixel == true
 @inline _roi_in(p) = Float64(p) >= 0.5
 
+"Restrict the foreground `fg` to the region `roi` (voxel array of the same size), in place."
 function _intersect!(fg, roi)
     size(fg) == size(roi) || throw(DimensionMismatch("mask and region must have the same size"))
     @inbounds for i in eachindex(fg, roi)
@@ -127,41 +131,54 @@ function _surface(fg::AbstractArray{Bool,3})
     return faces
 end
 
+"""
+Sphericity `π^(1/3) (6V)^(2/3) / A`: `1` for a perfect sphere, lower for
+less compact shapes (`V` voxels, `A` exposed faces; `0` when `A = 0`).
+"""
 _sphericity(volume, area) = area == 0 ? 0.0 : clamp(π^(1 / 3) * (6volume)^(2 / 3) / area, 0.0, 1.0)
 
-"Principal variances λ1 ≥ λ2 ≥ λ3 of the whole foreground."
-function _whole_eigen(fg)
+"""
+    _principal_axes(fg) -> (λ, n, mean) or nothing
+
+Principal variances `λ = [λ1 ≥ λ2 ≥ λ3]` (eigenvalues of the covariance
+matrix, each variance `+1/12` for the voxel width), voxel count `n` and mean
+position `mean = [y, x, z]` of the whole foreground; `nothing` when empty.
+"""
+function _principal_axes(fg)
     n = 0
-    s = zeros(3)
-    ss = zeros(3, 3)
+    sums = zeros(3)                  # Σ position along each axis
+    cross_sums = zeros(3, 3)         # Σ position_a · position_b (upper triangle)
     @inbounds for idx in CartesianIndices(fg)
         fg[idx] || continue
         p = Tuple(idx)
         n += 1
         for a in 1:3
-            s[a] += p[a]
+            sums[a] += p[a]
             for b in a:3
-                ss[a, b] += p[a] * p[b]
+                cross_sums[a, b] += p[a] * p[b]
             end
         end
     end
     n == 0 && return nothing
-    m = s ./ n
-    C = [(a <= b ? ss[a, b] : ss[b, a]) / n - m[a] * m[b] + (a == b ? 1 / 12 : 0.0) for a in 1:3, b in 1:3]
-    return sort(max.(eigvals(Symmetric(C)), 0.0); rev = true), n, m
+    mean = sums ./ n
+    C = [(a <= b ? cross_sums[a, b] : cross_sums[b, a]) / n - mean[a] * mean[b] + (a == b ? 1 / 12 : 0.0) for a in 1:3, b in 1:3]
+    return (λ = sort(max.(eigvals(Symmetric(C)), 0.0); rev = true), n = n, mean = mean)
 end
 
-function _elongation(eig)
-    eig === nothing && return 0.0
-    λ = eig[1]
+"`1 − sqrt(λ2/λ1)`: `0` when the two longest axes are equal, towards `1` for a needle."
+function _elongation(axes)
+    axes === nothing && return 0.0
+    λ = axes.λ
     return λ[1] <= 0 ? 0.0 : clamp(1 - sqrt(λ[2] / λ[1]), 0.0, 1.0)
 end
-function _flatness(eig)
-    eig === nothing && return 0.0
-    λ = eig[1]
+"`1 − sqrt(λ3/λ2)`: `0` when the two shortest axes are equal, towards `1` for a plate."
+function _flatness(axes)
+    axes === nothing && return 0.0
+    λ = axes.λ
     return λ[2] <= 0 ? 0.0 : clamp(1 - sqrt(λ[3] / λ[2]), 0.0, 1.0)
 end
 
+"Foreground voxels over the voxels of its bounding box (`0` when empty)."
 function _extent(fg)
     n = count(fg)
     n == 0 && return 0.0
@@ -176,13 +193,19 @@ function _extent(fg)
     return n / prod(hi .- lo .+ 1)
 end
 
+"Normalised position (`0` first, `1` last voxel) of the foreground's centroid along `axis`; `0.5` when empty."
 function _centroid_unit(fg, axis)
-    eig = _whole_eigen(fg)
-    eig === nothing && return 0.5
+    axes = _principal_axes(fg)
+    axes === nothing && return 0.5
     n_axis = size(fg, axis)
-    return n_axis <= 1 ? 0.5 : (eig[3][axis] - 1) / (n_axis - 1)
+    return n_axis <= 1 ? 0.5 : (axes.mean[axis] - 1) / (n_axis - 1)
 end
 
+"""
+One value of `descriptor` per 26-connected component: `:volume` (share of
+all voxels), `:extent`, `:elongation` or `:sphericity`. Empty when there is
+no component.
+"""
 function _component_values(fg, descriptor::Symbol)
     t = volume_table(fg, identity)
     t.n == 0 && return Float64[]
@@ -195,9 +218,9 @@ function _component_values(fg, descriptor::Symbol)
             λ = sort(max.(eigvals(Symmetric(covariance3(t, i))), 0.0); rev = true)
             λ[1] <= 0 ? 0.0 : clamp(1 - sqrt(λ[2] / λ[1]), 0.0, 1.0)
         end for i in 1:t.n]
-    else                                                    # sphericity: faces per component
+    else                                                    # sphericity: exposed faces per component
         faces = zeros(Int, t.n)
-        L = t.labels
+        L = t.labels                                        # a face is exposed when the neighbour has another label
         h, w, d = size(L)
         @inbounds for s in 1:d, c in 1:w, r in 1:h
             l = L[r, c, s]
@@ -210,9 +233,11 @@ function _component_values(fg, descriptor::Symbol)
     end
 end
 
+# Aggregates of per-component values (population standard deviation).
 _mean(v) = sum(v) / length(v)
 _std(v) = (m = _mean(v); sqrt(sum(x -> (x - m)^2, v) / length(v)))
 _median(v) = (s = sort(v); n = length(s); isodd(n) ? s[(n + 1) ÷ 2] : (s[n ÷ 2] + s[n ÷ 2 + 1]) / 2)
+"`(name, reducer)` pairs: each descriptor gets one `vobjs_<descriptor>_<name>` operator per pair; `cv` is std / mean."
 const _AGGREGATES = (
     (:mean, _mean), (:std, _std), (:min, minimum), (:max, maximum), (:median, _median),
     (:cv, v -> (m = _mean(v); m == 0 ? 0.0 : _std(v) / m)),
@@ -222,9 +247,18 @@ const _AGGREGATES = (
 # Granulometry
 # ---------------------------------------------------------------------------
 
+"""
+    _open_fraction(fg, radius, invert) -> Float64
+
+Fraction of the foreground (of the background when `invert`) that survives a
+binary opening by a Euclidean ball of `radius` voxels. The opening is done
+with two bounded distance maps: erosion keeps the voxels farther than
+`radius` from the other phase, dilation keeps the voxels within `radius` of
+the eroded set.
+"""
 function _open_fraction(fg, radius::Int, invert::Bool)
-    phase = scratch(:vg_phase, Bool, size(fg)...)
-    other = scratch(:vg_other, Bool, size(fg)...)
+    phase = scratch(:vg_phase, Bool, size(fg)...)       # the set being opened
+    other = scratch(:vg_other, Bool, size(fg)...)       # its complement, then reused for the eroded set
     @inbounds for i in eachindex(fg)
         phase[i] = fg[i] != invert
         other[i] = !phase[i]
@@ -238,15 +272,20 @@ function _open_fraction(fg, radius::Int, invert::Bool)
     @inbounds for i in eachindex(D)
         other[i] = phase[i] && D[i] > r2                   # eroded set
     end
-    any(other) || return 0.0
-    volume_distance_map_upto!(D, other, radius)
+    any(other) || return 0.0                                # erosion removed everything
+    volume_distance_map_upto!(D, other, radius)             # distance to the eroded set
     survived = 0
     @inbounds for i in eachindex(D)
-        survived += phase[i] && D[i] <= r2
+        survived += phase[i] && D[i] <= r2                  # dilation, restricted to the original set
     end
     return survived / n
 end
 
+"""
+Mean (`statistic = :mean`) or largest (`:max`) distance from a foreground
+voxel to the background, over half the shortest side, clamped to `[0, 1]`.
+A volume entirely foreground gives `1`.
+"""
 function _thickness(fg, statistic::Symbol)
     n = count(fg)
     n == 0 && return 0.0
@@ -264,6 +303,11 @@ function _thickness(fg, statistic::Symbol)
     return clamp((statistic === :mean ? total / n : largest) * 2 / minimum(size(fg)), 0.0, 1.0)
 end
 
+"""
+Share of the total intensity surviving a grey opening by a `(2r+1)³` cube
+(`closing = false`), or of the total darkness `1 − v` surviving a closing
+(`closing = true`). Only voxels inside `roi` count when it is not `nothing`.
+"""
 function _grey_fraction(voxels, radius::Int, closing::Bool, roi)
     v = voxel_values(:vg_values, voxels)
     clamp!(v, 0.0, 1.0)
@@ -283,6 +327,10 @@ end
 # Profiles
 # ---------------------------------------------------------------------------
 
+"""
+Mean intensity in three concentric shells around `centre` (`(y, x, z)`):
+the inner, middle and outer third of the distance to the farthest corner.
+"""
 function _shells(v, centre)
     dims = size(v)
     radius = sqrt(sum(abs2, max.(centre .- 1, dims .- centre)))
@@ -290,14 +338,15 @@ function _shells(v, centre)
     counts = zeros(Int, 3)
     @inbounds for idx in CartesianIndices(v)
         p = Tuple(idx)
-        ρ = sqrt(sum(abs2, p .- centre)) / max(radius, 1e-9)
-        k = clamp(floor(Int, 3ρ) + 1, 1, 3)
+        ρ = sqrt(sum(abs2, p .- centre)) / max(radius, 1e-9)      # relative distance, 0 to 1
+        k = clamp(floor(Int, 3ρ) + 1, 1, 3)                       # shell 1, 2 or 3
         sums[k] += v[idx]
         counts[k] += 1
     end
     return [counts[k] == 0 ? 0.0 : sums[k] / counts[k] for k in 1:3]
 end
 
+"Centroid `(y, x, z)` of a region (voxel array); the volume centre when it is empty."
 function _mask_centre(mask)
     n = 0
     s = (0.0, 0.0, 0.0)
@@ -309,6 +358,7 @@ function _mask_centre(mask)
     return n == 0 ? (size(mask) .+ 1) ./ 2 : s ./ n
 end
 
+"Mean intensity in the first (`part = :low`), middle (`:mid`) or last (`:high`) third along `axis`."
 function _slab(v, axis, part)
     n = size(v, axis)
     third = max(1, n ÷ 3)
@@ -323,16 +373,23 @@ function _slab(v, axis, part)
     return count == 0 ? 0.0 : total / count
 end
 
+"`1 − mean |v − mirror(v)|` with the mirror across the middle of `axis`, clamped to `[0, 1]`."
 function _symmetry(v, axis)
     mirrored = reverse(v; dims = axis)
     return clamp(1.0 - sum(abs.(v .- mirrored)) / length(v), 0.0, 1.0)
 end
 
+"""
+Intensity-weighted centre along `axis`, normalised to `[0, 1]` (`spread =
+false`; `0.5` when the volume is black), or the weighted standard deviation
+over the axis length (`spread = true`; `0` when black). Negative values
+weigh nothing.
+"""
 function _com(v, axis, spread::Bool)
     n = size(v, axis)
     mass = 0.0
-    s1 = 0.0
-    s2 = 0.0
+    s1 = 0.0                                                # Σ weight · position
+    s2 = 0.0                                                # Σ weight · position²
     @inbounds for idx in CartesianIndices(v)
         x = max(v[idx], 0.0)
         p = idx[axis]
@@ -350,23 +407,36 @@ end
 # Registration
 # ---------------------------------------------------------------------------
 
+"""
+    @_mask_methods name compute
+
+Define the mask-input methods of `name`, each calling `compute(fg)` on a
+foreground `Bool` array:
+
+- `name(mask)`: the binary voxels;
+- `name(vol)`: an intensity volume at or above `0.5`;
+- `name(vol, threshold)`: at or above `threshold`;
+- `name(mask, roi)`: the mask restricted to a region (binary, or intensity at `0.5`).
+"""
 macro _mask_methods(name, compute)
     name, compute = esc(name), esc(compute)
     return quote
-        $name(mask::_VMask, args...) = $compute(voxel_foreground(:vn_fg, mask.img, IsSet()))
-        $name(vol::_Vol, args...) = $compute(voxel_foreground(:vn_fg, vol.img, AtLeast(0.5)))
-        $name(vol::_Vol, threshold::Number, args...) =
-            $compute(voxel_foreground(:vn_fg, vol.img, AtLeast(_unit(threshold))))
-        $name(mask::_VMask, roi::Union{_VMask,_Vol}, args...) =
+        $name(mask::_BinaryVolume, args...) = $compute(voxel_foreground(:vn_fg, mask.img, IsSet()))
+        $name(vol::_IntensityVolume, args...) = $compute(voxel_foreground(:vn_fg, vol.img, AtLeast(0.5)))
+        $name(vol::_IntensityVolume, threshold::Number, args...) =
+            $compute(voxel_foreground(:vn_fg, vol.img, AtLeast(clamp_unit(threshold))))
+        $name(mask::_BinaryVolume, roi::Union{_BinaryVolume,_IntensityVolume}, args...) =
             $compute(_intersect!(voxel_foreground(:vn_fg, mask.img, IsSet()), roi.img))
     end
 end
 
+"Attach `doc` to the function `name` and register it in `bundle`."
 function _register!(bundle, name::Symbol, description::String, doc::String)
     @eval @doc $doc $name
     append_method!(bundle, getfield(@__MODULE__, name), name; description = description)
 end
 
+"Docstring of an operator defined by `@_mask_methods`."
 _mask_doc(name, what) = """
     $name(mask, args...)
     $name(vol, [threshold], args...)
@@ -380,8 +450,8 @@ const _SHAPE = bundle_number_volumeShapeFromImg
 for (name, compute, what) in (
         (:vshape_fill, fg -> count(fg) / length(fg), "Fraction of voxels in the foreground."),
         (:vshape_sphericity, fg -> _sphericity(count(fg), _surface(fg)), "Sphericity π^(1/3)(6V)^(2/3)/A of the foreground (voxel-face surface)."),
-        (:vshape_elongation, fg -> _elongation(_whole_eigen(fg)), "1 − sqrt(λ2/λ1) of the foreground's principal axes."),
-        (:vshape_flatness, fg -> _flatness(_whole_eigen(fg)), "1 − sqrt(λ3/λ2) of the foreground's principal axes."),
+        (:vshape_elongation, fg -> _elongation(_principal_axes(fg)), "1 − sqrt(λ2/λ1) of the foreground's principal axes."),
+        (:vshape_flatness, fg -> _flatness(_principal_axes(fg)), "1 − sqrt(λ3/λ2) of the foreground's principal axes."),
         (:vshape_extent, fg -> _extent(fg), "Foreground voxels over bounding-box voxels."),
         (:vshape_components, fg -> Float64(volume_table(fg, identity).n), "Number of 26-connected components."),
         (:vshape_largest_fraction, fg -> (t = volume_table(fg, identity); t.n == 0 ? 0.0 : maximum(t.area) / sum(t.area)), "Share of the foreground in its largest component."),
@@ -425,8 +495,8 @@ for radius in (1, 2), (stem, closing, what) in ((:vgran_grey_open_r, false, "int
                                                (:vgran_grey_close_r, true, "darkness surviving a grey closing"))
     name = Symbol(stem, radius)
     @eval begin
-        $name(vol::_Vol, args...) = _grey_fraction(vol.img, $radius, $closing, nothing)
-        function $name(vol::_Vol, roi::Union{_VMask,_Vol}, args...)
+        $name(vol::_IntensityVolume, args...) = _grey_fraction(vol.img, $radius, $closing, nothing)
+        function $name(vol::_IntensityVolume, roi::Union{_BinaryVolume,_IntensityVolume}, args...)
             size(vol) == size(roi) || throw(DimensionMismatch("volume and region must have the same size"))
             return _grey_fraction(vol.img, $radius, $closing, roi.img)
         end
@@ -443,8 +513,8 @@ end
 const _PROF = bundle_number_volumeProfileFromImg
 for (k, name, what) in ((1, :vprof_shell_inner, "inner"), (2, :vprof_shell_middle, "middle"), (3, :vprof_shell_outer, "outer"))
     @eval begin
-        $name(vol::_Vol, args...) = (v = voxel_values(:vp_values, vol.img); _shells(v, (size(v) .+ 1) ./ 2)[$k])
-        function $name(vol::_Vol, mask::Union{_VMask,_Vol}, args...)
+        $name(vol::_IntensityVolume, args...) = (v = voxel_values(:vp_values, vol.img); _shells(v, (size(v) .+ 1) ./ 2)[$k])
+        function $name(vol::_IntensityVolume, mask::Union{_BinaryVolume,_IntensityVolume}, args...)
             size(vol) == size(mask) || throw(DimensionMismatch("volume and mask must have the same size"))
             return _shells(voxel_values(:vp_values, vol.img), _mask_centre(mask.img))[$k]
         end
@@ -456,8 +526,8 @@ for (k, name, what) in ((1, :vprof_shell_inner, "inner"), (2, :vprof_shell_middl
     or around the centroid of `mask`.
     """)
 end
-vprof_center_contrast(vol::_Vol, args...) = (s = _shells(voxel_values(:vp_values, vol.img), (size(vol) .+ 1) ./ 2); s[1] - s[3])
-function vprof_center_contrast(vol::_Vol, mask::Union{_VMask,_Vol}, args...)
+vprof_center_contrast(vol::_IntensityVolume, args...) = (s = _shells(voxel_values(:vp_values, vol.img), (size(vol) .+ 1) ./ 2); s[1] - s[3])
+function vprof_center_contrast(vol::_IntensityVolume, mask::Union{_BinaryVolume,_IntensityVolume}, args...)
     size(vol) == size(mask) || throw(DimensionMismatch("volume and mask must have the same size"))
     s = _shells(voxel_values(:vp_values, vol.img), _mask_centre(mask.img))
     return s[1] - s[3]
@@ -470,7 +540,7 @@ _register!(_PROF, :vprof_center_contrast, "Inner-shell minus outer-shell mean in
 for (axis, letter) in ((1, :y), (2, :x), (3, :z))
     for part in (:low, :mid, :high)
         name = Symbol(:vprof_slab_, letter, :_, part)
-        @eval $name(vol::_Vol, args...) = _slab(voxel_values(:vp_values, vol.img), $axis, $(QuoteNode(part)))
+        @eval $name(vol::_IntensityVolume, args...) = _slab(voxel_values(:vp_values, vol.img), $axis, $(QuoteNode(part)))
         _register!(_PROF, name, "Mean intensity in the $part third along $letter.", """
             $name(vol, args...)
 
@@ -478,7 +548,7 @@ for (axis, letter) in ((1, :y), (2, :x), (3, :z))
         """)
     end
     name = Symbol(:vprof_symmetry_, letter)
-    @eval $name(vol::_Vol, args...) = _symmetry(voxel_values(:vp_values, vol.img), $axis)
+    @eval $name(vol::_IntensityVolume, args...) = _symmetry(voxel_values(:vp_values, vol.img), $axis)
     _register!(_PROF, name, "Mirror symmetry across the middle of $letter.", """
         $name(vol, args...)
 
@@ -487,7 +557,7 @@ for (axis, letter) in ((1, :y), (2, :x), (3, :z))
     """)
     for (stem, spread, what) in ((:vprof_com_, false, "intensity-weighted centre"), (:vprof_spread_, true, "intensity-weighted spread"))
         name = Symbol(stem, letter)
-        @eval $name(vol::_Vol, args...) = _com(voxel_values(:vp_values, vol.img), $axis, $spread)
+        @eval $name(vol::_IntensityVolume, args...) = _com(voxel_values(:vp_values, vol.img), $axis, $spread)
         _register!(_PROF, name, "Normalised $what along $letter.", """
             $name(vol, args...)
 

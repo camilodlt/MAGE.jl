@@ -18,7 +18,7 @@ using ..image2D_object_common:
     ObjectTable,
     IsSet,
     AtLeast,
-    _unit,
+    clamp_unit,
     object_table,
     unit_x,
     unit_y,
@@ -86,6 +86,7 @@ where the object is. Empty masks return `0.0`.
 """
 bundle_number_objectDescribeFromImg = FunctionBundle(fallback)
 
+# (name, measure(table, id), wording). Properties are in [0, 1], so `obj_*_like_<prop>(mask, v)` can target them.
 const _PROPERTIES = (
     (:area, area_fraction, "area fraction"),
     (:width, width_fraction, "bounding-box width fraction"),
@@ -94,18 +95,27 @@ const _PROPERTIES = (
     (:circularity, circularity, "moment circularity"),
     (:extent, extent, "extent"),
 )
+"Descriptors returned by `obj_<desc>_<sel>`: the properties plus orientation."
 const _DESCRIPTORS = (_PROPERTIES..., (:orientation, orientation, "orientation"))
+"(name, normalised centroid coordinate `(table, id) -> [0, 1]`, wording)."
 const _COORDINATES = ((:x, unit_x, "column (x)"), (:y, unit_y, "row (y)"))
+"Selector pairs `(a, b)` of the `obj_dx_<a>_<b>` / `obj_dy_<a>_<b>` offsets."
 const _PAIRS = ((:smallest, :largest), (:smallest, :most_elongated), (:second_largest, :largest))
 
-@inline _result(out::F, t::ObjectTable, id::Int, empty::Float64) where {F} =
-    id == 0 ? empty : Float64(out(t, id))
+"`measure(t, id)` for the selected object, or `empty` when no object was selected (`id == 0`)."
+@inline _result(measure::F, t::ObjectTable, id::Int, empty::Float64) where {F} =
+    id == 0 ? empty : Float64(measure(t, id))
 
+"Object table of a binary mask."
 _mask_table(mask) = object_table(mask.img, IsSet())
-_intensity_table(img, threshold) = object_table(img.img, AtLeast(_unit(threshold)))
+"Object table of an intensity map thresholded at `threshold` (clamped to `[0, 1]`)."
+_intensity_table(img, threshold) = object_table(img.img, AtLeast(clamp_unit(threshold)))
 
+"Binary 2D image."
 const _Mask = SImageND{S,T,2,C} where {S,T<:BinaryPixel,C}
+"Intensity 2D image."
 const _Intensity = SImageND{S,T,2,C} where {S,T<:IntensityPixel,C}
+"Image whose values are averaged over objects (`obj_*_brightest`, `obj_*_darkest`)."
 const _Source = SImageND{S,T,2,C} where {S,T<:Union{IntensityPixel,BinaryPixel},C}
 
 """
@@ -130,12 +140,12 @@ macro _parametric_input(name, compute)
     name, compute = esc(name), esc(compute)
     return quote
         $name(mask::_Mask, args...) = $compute(_mask_table(mask), 0.5)
-        $name(mask::_Mask, v::Number, args...) = $compute(_mask_table(mask), _unit(v))
+        $name(mask::_Mask, v::Number, args...) = $compute(_mask_table(mask), clamp_unit(v))
         $name(img::_Intensity, args...) = $compute(_intensity_table(img, 0.5), 0.5)
         $name(img::_Intensity, v::Number, args...) =
-            $compute(_intensity_table(img, 0.5), _unit(v))
+            $compute(_intensity_table(img, 0.5), clamp_unit(v))
         $name(img::_Intensity, v::Number, threshold::Number, args...) =
-            $compute(_intensity_table(img, threshold), _unit(v))
+            $compute(_intensity_table(img, threshold), clamp_unit(v))
     end
 end
 
@@ -148,23 +158,25 @@ macro _point_input(name, compute)
     return quote
         $name(mask::_Mask, args...) = $compute(_mask_table(mask), 0.5, 0.5)
         $name(mask::_Mask, s::Number, args...) =
-            (u = _unit(s); $compute(_mask_table(mask), u, u))
+            (u = clamp_unit(s); $compute(_mask_table(mask), u, u))
         $name(mask::_Mask, x::Number, y::Number, args...) =
-            $compute(_mask_table(mask), _unit(x), _unit(y))
+            $compute(_mask_table(mask), clamp_unit(x), clamp_unit(y))
         $name(img::_Intensity, args...) = $compute(_intensity_table(img, 0.5), 0.5, 0.5)
         $name(img::_Intensity, s::Number, args...) =
-            (u = _unit(s); $compute(_intensity_table(img, 0.5), u, u))
+            (u = clamp_unit(s); $compute(_intensity_table(img, 0.5), u, u))
         $name(img::_Intensity, x::Number, y::Number, args...) =
-            $compute(_intensity_table(img, 0.5), _unit(x), _unit(y))
+            $compute(_intensity_table(img, 0.5), clamp_unit(x), clamp_unit(y))
     end
 end
 
+"Attach `doc` to the function `name` and register it in `bundle`."
 function _register!(bundle, name::Symbol, description::String, doc::String)
     fn = getfield(@__MODULE__, name)
     @eval @doc $doc $name
     append_method!(bundle, fn, name; description = description)
 end
 
+"Docstring of an operator defined by `@_single_input`."
 _single_doc(name, what) = """
     $name(mask, args...)
     $name(img, [threshold], args...)
@@ -176,11 +188,11 @@ $what Intensity inputs are thresholded at `threshold` (default `0.5`).
 # Locators
 # ---------------------------------------------------------------------------
 
-for (coord, out, coord_doc) in _COORDINATES
+for (coord, coordinate_of, coord_doc) in _COORDINATES
     for (selector, select) in SELECTOR_FUNCTIONS
         name = Symbol(:obj_, coord, :_, selector)
         criterion = SELECTOR_DESCRIPTIONS[selector]
-        @eval @_single_input $name (t -> _result($out, t, $select(t), 0.5))
+        @eval @_single_input $name (t -> _result($coordinate_of, t, $select(t), 0.5))
         _register!(bundle_number_objectLocateFromImg, name,
             "Normalised $coord_doc of the object with the $criterion.",
             _single_doc(name, "Normalised $coord_doc of the centroid of the object with the $criterion. Empty → `0.5`."))
@@ -190,11 +202,11 @@ for (coord, out, coord_doc) in _COORDINATES
         name = Symbol(:obj_, coord, :_, selector)
         @eval begin
             $name(mask::_Mask, source::_Source, args...) =
-                (t = _mask_table(mask); _result($out, t, select_by_mean(t, source.img, $direction), 0.5))
+                (t = _mask_table(mask); _result($coordinate_of, t, select_by_mean(t, source.img, $direction), 0.5))
             $name(saliency::_Intensity, source::_Source, args...) =
-                (t = _intensity_table(saliency, 0.5); _result($out, t, select_by_mean(t, source.img, $direction), 0.5))
+                (t = _intensity_table(saliency, 0.5); _result($coordinate_of, t, select_by_mean(t, source.img, $direction), 0.5))
             $name(saliency::_Intensity, source::_Source, threshold::Number, args...) =
-                (t = _intensity_table(saliency, threshold); _result($out, t, select_by_mean(t, source.img, $direction), 0.5))
+                (t = _intensity_table(saliency, threshold); _result($coordinate_of, t, select_by_mean(t, source.img, $direction), 0.5))
         end
         _register!(bundle_number_objectLocateFromImg, name,
             "Normalised $coord_doc of the object with the $criterion mean source value.",
@@ -208,7 +220,7 @@ for (coord, out, coord_doc) in _COORDINATES
     end
 
     name = Symbol(:obj_, coord, :_rank_area)
-    @eval @_parametric_input $name ((t, k) -> _result($out, t, select_rank_area(t, k), 0.5))
+    @eval @_parametric_input $name ((t, k) -> _result($coordinate_of, t, select_rank_area(t, k), 0.5))
     _register!(bundle_number_objectLocateFromImg, name,
         "Normalised $coord_doc of the object at relative area rank k (0 smallest, 1 largest).",
         """
@@ -221,7 +233,7 @@ for (coord, out, coord_doc) in _COORDINATES
 
     for (property, measure, property_doc) in _PROPERTIES
         name = Symbol(:obj_, coord, :_like_, property)
-        @eval @_parametric_input $name ((t, v) -> _result($out, t, select_like($measure, t, v), 0.5))
+        @eval @_parametric_input $name ((t, v) -> _result($coordinate_of, t, select_like($measure, t, v), 0.5))
         _register!(bundle_number_objectLocateFromImg, name,
             "Normalised $coord_doc of the object whose $property_doc is closest to v.",
             """
@@ -234,7 +246,7 @@ for (coord, out, coord_doc) in _COORDINATES
     end
 
     name = Symbol(:obj_, coord, :_nearest)
-    @eval @_point_input $name ((t, x, y) -> _result($out, t, select_nearest(t, x, y), 0.5))
+    @eval @_point_input $name ((t, x, y) -> _result($coordinate_of, t, select_nearest(t, x, y), 0.5))
     _register!(bundle_number_objectLocateFromImg, name,
         "Normalised $coord_doc of the object closest to a point.",
         """
@@ -248,15 +260,15 @@ for (coord, out, coord_doc) in _COORDINATES
         """)
 end
 
-for (delta, out, coord_doc) in ((:dx, unit_x, "column (x)"), (:dy, unit_y, "row (y)"))
+for (delta, coordinate_of, coord_doc) in ((:dx, unit_x, "column (x)"), (:dy, unit_y, "row (y)"))
     for (a, b) in _PAIRS
         name = Symbol(:obj_, delta, :_, a, :_, b)
         select_a = Dict(SELECTOR_FUNCTIONS)[a]
         select_b = Dict(SELECTOR_FUNCTIONS)[b]
         compute = t -> begin
-            ia = select_a(t)
-            ib = select_b(t)
-            (ia == 0 || ib == 0) ? 0.0 : out(t, ia) - out(t, ib)
+            id_a = select_a(t)
+            id_b = select_b(t)
+            (id_a == 0 || id_b == 0) ? 0.0 : coordinate_of(t, id_a) - coordinate_of(t, id_b)
         end
         @eval @_single_input $name $compute
         _register!(bundle_number_objectLocateFromImg, name,
@@ -296,6 +308,10 @@ _register!(bundle_number_objectDescribeFromImg, :obj_count,
     "Number of 8-connected objects.",
     _single_doc(:obj_count, "Number of 8-connected foreground objects."))
 
+"""
+Distance from the normalised point `(x, y)` to the nearest object centroid,
+over the diagonal of the unit square (`sqrt(2)`); `1` when there is no object.
+"""
 function _distance_to_nearest(t::ObjectTable, x::Float64, y::Float64)
     id = select_nearest(t, x, y)
     id == 0 && return 1.0

@@ -10,7 +10,7 @@ electron-microscopy volumes). They cover the three directions a program needs:
 
 | Direction | Bundles | Getter |
 |:--|:--|:--|
-| 3D → 3D | `bundle_image3DIntensity_volume_factory`, `bundle_image3DBinary_volume_factory` | `get_extension_volume_intensityimg()`, `get_extension_volume_binaryimg()` |
+| 3D → 3D | `bundle_image3DIntensity_volume_basic_factory`, `bundle_image3DBinary_volume_basic_factory` (identity, constants, casts), `bundle_image3DIntensity_volume_factory`, `bundle_image3DBinary_volume_factory` | `get_extension_volume_intensityimg()`, `get_extension_volume_binaryimg()` |
 | 3D → 2D | `bundle_image2DIntensity_fromVolume_factory`, `bundle_image2DBinary_fromVolume_factory` | `get_extension_volume_to_intensityimg()`, `get_extension_volume_to_binaryimg()` |
 | 3D → scalar | `bundle_number_volumeShapeFromImg`, `bundle_number_volumeGranulometryFromImg`, `bundle_number_volumeProfileFromImg`, and `bundle_number_intensityStatsFromImg` (2D and 3D) | `get_extension_volume_nb()` |
 
@@ -18,6 +18,13 @@ The 3D → 2D bundles are the bridge to every 2D library: once a program has a
 projection or a slice, all 2D image and descriptor operators apply. The 3D →
 3D bundles also take 2D inputs (`vol_extrude_*`, `vol_mask2d_*`), so a 2D mask
 found on a projection can be pushed back into the volume.
+
+**Basic bundles first.** As for 2D images, a library for a volume type must
+start with identity (index 1) and a function that takes no input and returns
+that type (index 2): node correction and mutation fall back to them. The basic
+volume bundles provide exactly that (`vol_identity`, then `vol_ones`), and the
+two 3D → 3D getters put them first. The intensity one also has
+`vol_from_mask`, which turns a mask into a `0`/`1` intensity volume.
 
 **Axes.** Dimension 1 is `y` (rows), 2 is `x` (columns), 3 is `z` (slices).
 Collapsing an axis keeps the other two in order: a `_z` result is `(y, x)`, a
@@ -296,6 +303,9 @@ reused per task.
 
 ```@docs
 UTCGP.image3D_volume_common
+UTCGP.image3D_volume_basic
+UTCGP.image3D_volume_basic.bundle_image3DIntensity_volume_basic_factory
+UTCGP.image3D_volume_basic.bundle_image3DBinary_volume_basic_factory
 UTCGP.image3D_volume
 UTCGP.image3D_volume.bundle_image3DIntensity_volume_factory
 UTCGP.image3D_volume.bundle_image3DBinary_volume_factory

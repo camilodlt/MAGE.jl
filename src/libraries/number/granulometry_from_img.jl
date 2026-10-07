@@ -14,7 +14,7 @@ module number_granulometryFromImg
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
 using ..image2D_object_common:
-    IsSet, AtLeast, _unit, _value, _fast_predicate, scratch, squared_distance_map!,
+    IsSet, AtLeast, clamp_unit, pixel_value, fast_foreground_test, scratch, squared_distance_map!,
     squared_distance_map_upto!
 
 fallback(args...) = return 0.0
@@ -49,17 +49,21 @@ image border is not treated as background. Empty inputs → `0.0`.
 """
 bundle_number_granulometryFromImg = FunctionBundle(fallback)
 
+"Intensity 2D image."
 const _Img = SImageND{S,T,2,C} where {S,T<:IntensityPixel,C}
+"Binary 2D image."
 const _Mask = SImageND{S,T,2,C} where {S,T<:BinaryPixel,C}
+"Radii of the fixed-size operators (`gran_open_r<k>`, `gran_grey_open_r<k>`, …)."
 const _RADII = (1, 2, 3, 4, 6, 8)
 
 # ---------------------------------------------------------------------------
 # Binary openings by Euclidean disks
 # ---------------------------------------------------------------------------
 
+"Foreground as a `Bool` matrix in per-task scratch (`is_foreground` is `IsSet()` or `AtLeast(t)`)."
 function _foreground(pixels::AbstractMatrix, is_foreground)
     fg = scratch(:gran_fg, Bool, size(pixels)...)
-    predicate = _fast_predicate(pixels, is_foreground)
+    predicate = fast_foreground_test(pixels, is_foreground)
     @inbounds for i in eachindex(pixels, fg)
         fg[i] = predicate(pixels[i])
     end
@@ -99,6 +103,11 @@ function _open_fraction(fg::AbstractMatrix{Bool}, radius::Int, invert::Bool)
     return survived / n
 end
 
+"""
+Mean (`statistic = :mean`) or largest (`:max`) distance from a foreground
+pixel to the background, over half the shorter image side, clamped to
+`[0, 1]`. An image entirely foreground gives `1`.
+"""
 function _thickness(fg::AbstractMatrix{Bool}, statistic::Symbol)
     h, w = size(fg)
     n = count(fg)
@@ -169,7 +178,9 @@ function _filter_columns!(dst::Matrix{Float64}, src::Matrix{Float64}, k::Int, ta
     return dst
 end
 
+"Branch-free minimum of two `Float64`s (vectorises better than `min`, which handles `NaN` and `-0.0`)."
 @inline _fmin(a::Float64, b::Float64) = ifelse(a < b, a, b)
+"Branch-free maximum of two `Float64`s."
 @inline _fmax(a::Float64, b::Float64) = ifelse(a > b, a, b)
 
 """
@@ -219,15 +230,20 @@ function _square_filter!(dst::Matrix{Float64}, src::Matrix{Float64}, k::Int, tak
     return dst
 end
 
+"Whether a region pixel is inside: binary pixels when set, intensity pixels at or above `0.5`."
 @inline _roi_in(p::BinaryPixel) = p.pixel == true
 @inline _roi_in(p) = Float64(p) >= 0.5
 
-"Share of the intensity (`closing = false`) or darkness surviving a grey opening (closing)."
+"""
+Share of the total intensity surviving a grey opening by a `(2k+1)²` square
+(`closing = false`), or of the total darkness `1 − v` surviving a closing
+(`closing = true`). Only pixels inside `roi` count when it is not `nothing`.
+"""
 function _grey_fraction(pixels::AbstractMatrix, k::Int, closing::Bool, roi)
     h, w = size(pixels)
     values = scratch(:gran_values, Float64, h, w)
     @inbounds for i in eachindex(pixels)
-        values[i] = clamp(_value(pixels[i]), 0.0, 1.0)
+        values[i] = clamp(pixel_value(pixels[i]), 0.0, 1.0)
     end
     first_pass = scratch(:gran_first, Float64, h, w)
     result = scratch(:gran_result, Float64, h, w)
@@ -257,22 +273,30 @@ end
 # Registration
 # ---------------------------------------------------------------------------
 
+"""
+    @_mask_methods name compute
+
+Define `name(mask)`, `name(img)` (at `0.5`) and `name(img, threshold)`, each
+calling `compute(fg)` on the foreground `Bool` matrix.
+"""
 macro _mask_methods(name, compute)
     name, compute = esc(name), esc(compute)
     return quote
         $name(mask::_Mask, args...) = $compute(_foreground(mask.img, IsSet()))
         $name(img::_Img, args...) = $compute(_foreground(img.img, AtLeast(0.5)))
         $name(img::_Img, threshold::Number, args...) =
-            $compute(_foreground(img.img, AtLeast(_unit(threshold))))
+            $compute(_foreground(img.img, AtLeast(clamp_unit(threshold))))
     end
 end
 
+"Attach `doc` to the function `name` and register it in the bundle."
 function _register!(name::Symbol, description::String, doc::String)
     @eval @doc $doc $name
     append_method!(bundle_number_granulometryFromImg, getfield(@__MODULE__, name), name;
         description = description)
 end
 
+"Docstring of an operator defined by `@_mask_methods`."
 _mask_doc(name, what) = """
     $name(mask, args...)
     $name(img, [threshold], args...)
@@ -324,10 +348,13 @@ _register!(:gran_thickness_mean, "Mean distance from foreground pixels to the ba
 _register!(:gran_thickness_max, "Largest distance from a foreground pixel to the background.",
     _mask_doc(:gran_thickness_max, "Largest distance from a foreground pixel to the nearest background pixel (the radius of the largest inscribed disk), over half the shorter image side."))
 
-gran_open(mask::_Mask, r::Number, args...) = _open_fraction(_foreground(mask.img, IsSet()), 1 + round(Int, 15 * _unit(r)), false)
-gran_open(img::_Img, r::Number, args...) = _open_fraction(_foreground(img.img, AtLeast(0.5)), 1 + round(Int, 15 * _unit(r)), false)
+"Disk radius of `gran_open` for parameter `r ∈ [0, 1]`: 1 to 16 pixels."
+_open_radius(r::Number) = 1 + round(Int, 15 * clamp_unit(r))
+
+gran_open(mask::_Mask, r::Number, args...) = _open_fraction(_foreground(mask.img, IsSet()), _open_radius(r), false)
+gran_open(img::_Img, r::Number, args...) = _open_fraction(_foreground(img.img, AtLeast(0.5)), _open_radius(r), false)
 gran_open(img::_Img, r::Number, threshold::Number, args...) =
-    _open_fraction(_foreground(img.img, AtLeast(_unit(threshold))), 1 + round(Int, 15 * _unit(r)), false)
+    _open_fraction(_foreground(img.img, AtLeast(clamp_unit(threshold))), _open_radius(r), false)
 _register!(:gran_open, "Fraction of the foreground surviving an opening of radius 1 + round(15 r).", """
     gran_open(mask, r, args...)
     gran_open(img, r, [threshold], args...)

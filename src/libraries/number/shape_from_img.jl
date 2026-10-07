@@ -18,9 +18,9 @@ using ..image2D_object_common:
     ObjectTable,
     IsSet,
     AtLeast,
-    _unit,
-    _value,
-    _fast_predicate,
+    clamp_unit,
+    pixel_value,
+    fast_foreground_test,
     scratch,
     object_table,
     unit_x,
@@ -75,22 +75,26 @@ objects whose centroid lies inside `roi`. No objects → `0.0`.
 """
 bundle_number_objectStatsFromImg = FunctionBundle(fallback)
 
+"Intensity 2D image."
 const _Img = SImageND{S,T,2,C} where {S,T<:IntensityPixel,C}
+"Binary 2D image."
 const _Mask = SImageND{S,T,2,C} where {S,T<:BinaryPixel,C}
 
 # ---------------------------------------------------------------------------
 # Foreground as a Bool matrix
 # ---------------------------------------------------------------------------
 
+"Foreground as a `Bool` matrix in per-task scratch (`is_foreground` is `IsSet()` or `AtLeast(t)`)."
 function _foreground(pixels::AbstractMatrix, is_foreground)
     fg = scratch(:shape_desc_fg, Bool, size(pixels)...)
-    predicate = _fast_predicate(pixels, is_foreground)
+    predicate = fast_foreground_test(pixels, is_foreground)
     @inbounds for i in eachindex(pixels, fg)
         fg[i] = predicate(pixels[i])
     end
     return fg
 end
 
+"Whether a region pixel is inside: binary pixels when set, intensity pixels at or above `0.5`."
 @inline _roi_in(p::BinaryPixel) = p.pixel == true
 @inline _roi_in(p) = Float64(p) >= 0.5
 
@@ -109,9 +113,14 @@ end
 
 """
 Hu's seven invariants of a non-negative weight matrix (x = column, y = row).
-Central moments are accumulated per column: the inner loop over rows keeps
-`Σ w`, `Σ w y`, `Σ w y²`, `Σ w y³` (vectorised), and the column's powers of `x`
-are applied once per column.
+
+1. Raw moments `m00`, `m10`, `m01` give the centroid.
+2. Central moments `mu_pq = Σ w (x − x̄)^p (y − ȳ)^q` (p + q = 2, 3) are
+   accumulated per column: the inner loop over rows keeps `Σ w`, `Σ w y`,
+   `Σ w y²`, `Σ w y³` (vectorised), and the column's powers of `x` are
+   applied once per column.
+3. Normalised moments `eta_pq = mu_pq / m00^(1 + (p+q)/2)` (scale
+   invariant) are combined into Hu's formulas (rotation invariant).
 """
 function _hu(weights::AbstractMatrix{Float64})
     h, w = size(weights)
@@ -119,7 +128,7 @@ function _hu(weights::AbstractMatrix{Float64})
     m10 = 0.0
     m01 = 0.0
     @inbounds for c in 1:w
-        s0 = 0.0
+        s0 = 0.0                                 # column sums: Σ w, Σ w·r
         s1 = 0.0
         @simd for r in 1:h
             v = weights[r, c]
@@ -131,12 +140,12 @@ function _hu(weights::AbstractMatrix{Float64})
         m01 += s1
     end
     m00 <= 0.0 && return ntuple(_ -> 0.0, 7)
-    xc = m10 / m00
+    xc = m10 / m00                               # centroid (x = column, y = row)
     yc = m01 / m00
     mu20 = mu02 = mu11 = mu30 = mu03 = mu21 = mu12 = 0.0
     @inbounds for c in 1:w
         x = c - xc
-        s0 = 0.0
+        s0 = 0.0                                 # column sums: Σ w·y^k for k = 0…3
         s1 = 0.0
         s2 = 0.0
         s3 = 0.0
@@ -157,12 +166,12 @@ function _hu(weights::AbstractMatrix{Float64})
         mu12 += s2 * x
         mu03 += s3
     end
-    n2 = m00^2                  # normalisation m00^(1 + (p+q)/2)
-    n3 = m00^2.5
+    norm2 = m00^2                # m00^(1 + (p+q)/2) for p + q = 2
+    norm3 = m00^2.5              # … and for p + q = 3
     # Normalised central moments (named eta_pq: `4e11` would parse as 4×10¹¹).
-    eta20, eta02, eta11 = mu20 / n2, mu02 / n2, mu11 / n2
-    eta30, eta03, eta21, eta12 = mu30 / n3, mu03 / n3, mu21 / n3, mu12 / n3
-    a = eta30 + eta12
+    eta20, eta02, eta11 = mu20 / norm2, mu02 / norm2, mu11 / norm2
+    eta30, eta03, eta21, eta12 = mu30 / norm3, mu03 / norm3, mu21 / norm3, mu12 / norm3
+    a = eta30 + eta12            # recurring sums in Hu's formulas
     b = eta21 + eta03
     h1 = eta20 + eta02
     h2 = (eta20 - eta02)^2 + 4 * eta11^2
@@ -177,6 +186,7 @@ end
 "`−sign(h) log10 |h|`; `0` for `h == 0`."
 @inline _log_hu(h::Float64) = (abs(h) < 1e-300 || !isfinite(h)) ? 0.0 : -sign(h) * log10(abs(h))
 
+"Hu invariants of a mask (weight `1` on the foreground)."
 function _hu_mask(fg::AbstractMatrix{Bool})
     weights = scratch(:hu_weights, Float64, size(fg)...)
     @inbounds @simd for i in eachindex(fg, weights)
@@ -196,7 +206,7 @@ function _hu_weighted(pixels::AbstractMatrix, roi)
     weights = scratch(:hu_weights, Float64, h, w)
     largest = 0.0
     @inbounds for i in eachindex(pixels)
-        v = _value(pixels[i])
+        v = pixel_value(pixels[i])
         v = ifelse(v > 0.0, v, 0.0)
         roi === nothing || _roi_in(roi[i]) || (v = 0.0)
         weights[i] = v
@@ -214,27 +224,35 @@ end
 # Whole-foreground descriptors
 # ---------------------------------------------------------------------------
 
-"Moment summary of the whole foreground: `(area, v_rr, v_cc, v_rc, r0, r1, c0, c1)`."
+"""
+    _whole_moments(fg) -> (area, var_rr, var_cc, cov_rc, r0, r1, c0, c1) or nothing
+
+Moment summary of the whole foreground: pixel count, row / column variances
+(each `+1/12`, the variance of a unit-width pixel) and covariance, and the
+bounding box `r0:r1 × c0:c1`. `nothing` when empty.
+"""
 function _whole_moments(fg::AbstractMatrix{Bool})
     h, w = size(fg)
     n = 0
-    sr = sc = srr = scc = src_ = 0.0
+    sum_r = sum_c = sum_rr = sum_cc = sum_rc = 0.0
     r0, r1, c0, c1 = h + 1, 0, w + 1, 0
     @inbounds for c in 1:w, r in 1:h
         fg[r, c] || continue
         n += 1
-        sr += r
-        sc += c
-        srr += r * r
-        scc += c * c
-        src_ += r * c
+        sum_r += r
+        sum_c += c
+        sum_rr += r * r
+        sum_cc += c * c
+        sum_rc += r * c
         r0 = min(r0, r); r1 = max(r1, r); c0 = min(c0, c); c1 = max(c1, c)
     end
     n == 0 && return nothing
-    mr, mc = sr / n, sc / n
-    return (n, max(srr / n - mr^2, 0.0) + 1 / 12, max(scc / n - mc^2, 0.0) + 1 / 12, src_ / n - mr * mc, r0, r1, c0, c1)
+    mean_r, mean_c = sum_r / n, sum_c / n
+    return (n, max(sum_rr / n - mean_r^2, 0.0) + 1 / 12, max(sum_cc / n - mean_c^2, 0.0) + 1 / 12,
+            sum_rc / n - mean_r * mean_c, r0, r1, c0, c1)
 end
 
+"Foreground area over the pixel area of its convex hull (computed from the extreme pixels of each row)."
 function _shape_solidity(fg)
     m = _whole_moments(fg)
     m === nothing && return 0.0
@@ -243,22 +261,26 @@ function _shape_solidity(fg)
     return clamp(n / max(hull_pixel_count(hull), 1), 0.0, 1.0)
 end
 
+"Moment circularity `area / (2π (var_rr + var_cc))`: `1` for a disk, which minimises the second moment for its area."
 function _shape_circularity(fg)
     m = _whole_moments(fg)
     m === nothing && return 0.0
-    n, v_rr, v_cc, _ = m
-    return clamp(n / (2π * (v_rr + v_cc)), 0.0, 1.0)
+    n, var_rr, var_cc, _ = m
+    return clamp(n / (2π * (var_rr + var_cc)), 0.0, 1.0)
 end
 
+"`1 − sqrt(λmin / λmax)` of the covariance matrix: `0` for a disk or square, towards `1` for a line."
 function _shape_elongation(fg)
     m = _whole_moments(fg)
     m === nothing && return 0.0
-    _, v_rr, v_cc, v_rc = m
-    half = (v_rr + v_cc) / 2
-    disc = sqrt(max(half^2 - (v_rr * v_cc - v_rc^2), 0.0))
+    _, var_rr, var_cc, cov_rc = m
+    # Eigenvalues of [var_rr cov_rc; cov_rc var_cc] are half ± disc.
+    half = (var_rr + var_cc) / 2
+    disc = sqrt(max(half^2 - (var_rr * var_cc - cov_rc^2), 0.0))
     return clamp(1.0 - sqrt(max(half - disc, 0.0) / (half + disc)), 0.0, 1.0)
 end
 
+"Foreground area over its bounding-box area."
 function _shape_extent(fg)
     m = _whole_moments(fg)
     m === nothing && return 0.0
@@ -266,8 +288,10 @@ function _shape_extent(fg)
     return n / ((r1 - r0 + 1) * (c1 - c0 + 1))
 end
 
+"Foreground area over the image area."
 _shape_fill(fg) = count(fg) / length(fg)
 
+"Hole area (4-connected background not reaching the border) over the filled foreground area."
 function _shape_hole_fraction(fg)
     area = count(fg)
     area == 0 && return 0.0
@@ -286,6 +310,7 @@ end
 # Per-object aggregates
 # ---------------------------------------------------------------------------
 
+"Distance from each object's centroid to the nearest other centroid, normalised by the unit-square diagonal; `0` for a lone object."
 function _nn_distances(t::ObjectTable)
     d = zeros(t.n)
     t.n <= 1 && return d
@@ -302,6 +327,7 @@ function _nn_distances(t::ObjectTable)
     return d
 end
 
+# (name, values(table, ids) -> one value per object, wording)
 const _DESCRIPTORS = (
     (:area, (t, ids) -> [area_fraction(t, i) for i in ids], "area fraction"),
     (:circularity, (t, ids) -> [circularity(t, i) for i in ids], "moment circularity"),
@@ -311,10 +337,12 @@ const _DESCRIPTORS = (
     (:nn_distance, (t, ids) -> _nn_distances(t)[ids], "nearest-neighbour distance"),
 )
 
+# Aggregates of per-object values (population standard deviation).
 _median(v) = (s = sort(v); n = length(s); isodd(n) ? s[(n + 1) ÷ 2] : (s[n ÷ 2] + s[n ÷ 2 + 1]) / 2)
 _mean(v) = sum(v) / length(v)
 _std(v) = (m = _mean(v); sqrt(sum(x -> (x - m)^2, v) / length(v)))
 
+# (name, reducer, wording); `cv` is std / mean.
 const _AGGREGATES = (
     (:mean, _mean, "mean"),
     (:std, _std, "standard deviation"),
@@ -336,26 +364,29 @@ function _object_ids(t::ObjectTable, roi)
     return ids
 end
 
+"`aggregate` of `descriptor`'s values over the selected objects; `0` when none."
 function _aggregate(descriptor::D, aggregate::A, t::ObjectTable, roi) where {D,A}
     ids = _object_ids(t, roi)
     isempty(ids) && return 0.0
     return Float64(aggregate(descriptor(t, ids)))
 end
 
+"Gini coefficient of the selected objects' areas: `Σ (2i − n − 1) aᵢ / (n Σ a)` over the sorted areas."
 function _gini(t::ObjectTable, roi)
     ids = _object_ids(t, roi)
     length(ids) <= 1 && return 0.0
-    a = sort(Float64.(t.area[ids]))
-    n = length(a)
-    return sum((2i - n - 1) * a[i] for i in 1:n) / (n * sum(a))
+    areas = sort(Float64.(t.area[ids]))
+    n = length(areas)
+    return sum((2i - n - 1) * areas[i] for i in 1:n) / (n * sum(areas))
 end
 
+"Mean pixel value of `pixels` inside each object."
 function _intensity_means(t::ObjectTable, pixels::AbstractMatrix)
     sums = zeros(t.n)
     @inbounds for i in eachindex(t.labels)
         l = t.labels[i]
         l == 0 && continue
-        sums[l] += _value(pixels[i])
+        sums[l] += pixel_value(pixels[i])
     end
     return [sums[i] / t.area[i] for i in 1:t.n]
 end
@@ -365,8 +396,13 @@ end
 # ---------------------------------------------------------------------------
 
 """
-Define the mask methods of a whole-foreground or aggregate operator whose value
-is `compute(fg::Matrix{Bool}, roi_or_nothing)`.
+    @_mask_methods name compute
+
+Define the mask methods of a whole-foreground or aggregate operator whose
+value is `compute(fg::Matrix{Bool}, roi_pixels_or_nothing)`:
+
+- `name(mask)`, `name(img)` (at `0.5`), `name(img, threshold)`: no region;
+- `name(mask, roi)` (binary or intensity region), `name(img, roi_mask)`.
 """
 macro _mask_methods(name, compute)
     name, compute = esc(name), esc(compute)
@@ -374,7 +410,7 @@ macro _mask_methods(name, compute)
         $name(mask::_Mask, args...) = $compute(_foreground(mask.img, IsSet()), nothing)
         $name(img::_Img, args...) = $compute(_foreground(img.img, AtLeast(0.5)), nothing)
         $name(img::_Img, threshold::Number, args...) =
-            $compute(_foreground(img.img, AtLeast(_unit(threshold))), nothing)
+            $compute(_foreground(img.img, AtLeast(clamp_unit(threshold))), nothing)
         $name(mask::_Mask, roi::Union{_Mask,_Img}, args...) =
             $compute(_foreground(mask.img, IsSet()), roi.img)
         $name(img::_Img, roi::_Mask, args...) =
@@ -382,6 +418,7 @@ macro _mask_methods(name, compute)
     end
 end
 
+"Attach `doc` to the function `name` and register it in `bundle`."
 function _register!(bundle, name::Symbol, description::String, doc::String)
     @eval @doc $doc $name
     append_method!(bundle, getfield(@__MODULE__, name), name; description = description)
@@ -393,6 +430,7 @@ const _MASK_SIGNATURES = """
     NAME(mask, roi, args...)
 """
 
+"Docstring of an operator defined by `@_mask_methods`."
 _mask_doc(name, what) = replace(_MASK_SIGNATURES, "NAME" => string(name)) * "\n" * what *
     " Intensity inputs are thresholded at `threshold` (default `0.5`); with `roi`, only the foreground inside it counts."
 
@@ -468,7 +506,7 @@ for (aggregate, reducer, aggregate_doc) in _AGGREGATES
         end
         function $name(img::_Img, saliency::_Img, threshold::Number, args...)
             size(img) == size(saliency) || throw(DimensionMismatch("image and mask must have the same size"))
-            t = object_table(saliency.img, AtLeast(_unit(threshold)))
+            t = object_table(saliency.img, AtLeast(clamp_unit(threshold)))
             t.n == 0 && return 0.0
             return Float64($reducer(_intensity_means(t, img.img)))
         end

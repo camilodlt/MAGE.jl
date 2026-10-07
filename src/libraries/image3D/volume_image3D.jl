@@ -9,6 +9,28 @@ distance maps and geometry, plus 2D → 3D extrusion.
 - bundle_image3DBinary_volume_factory
 
 The exhaustive operator list is on the Bundle Catalogue page.
+
+# How this file is organised
+
+Each operator is a *kernel* (plain Julia on arrays) wrapped by a *factory*.
+
+Kernels come in three kinds:
+
+| Kind | Input | Output |
+|:--|:--|:--|
+| intensity kernels | `Array{Float64,3}` of voxel values (from `voxel_values`) | `Array{Float64,3}` |
+| binary kernels | `Array{Bool,3}` foreground (from `voxel_foreground`) | `Array{Bool,3}` |
+| geometry kernels | the voxel array itself (`src.img`) | an array of the same pixels |
+
+A factory is a function of the output volume type `I` (e.g.
+`SImage3D{28,28,28,IntensityPixel{N0f8}}`): it defines the operator's methods
+for that type and returns the function. Each method unpacks its inputs into
+what the kernel expects (`_kernel_input`), sanitises scalar arguments with
+`clamp_unit` (clamped to `[0, 1]`, `NaN` → default), calls the kernel and
+converts the result back into pixels (`_as_output_pixels`). The factory
+builders below each document the exact methods they create. Every method also
+accepts and ignores extra trailing arguments (`args...`), which is how MAGE
+passes unused inputs.
 """
 module image3D_volume
 
@@ -23,8 +45,8 @@ using ..UTCGP:
     _get_image_tuple_size,
     _get_image_type,
     _validate_factory_type
-using ..image2D_object_common: scratch, _unit, IsSet, AtLeast
-using ..image2D_zoom: _zero
+using ..image2D_object_common: scratch, clamp_unit, IsSet, AtLeast
+using ..image2D_zoom: zero_pixel
 using ..image3D_volume_common:
     voxel_values,
     voxel_foreground,
@@ -106,12 +128,16 @@ $_CONVENTIONS
 const bundle_image3DBinary_volume_factory = FunctionBundle(fallback)
 
 # ---------------------------------------------------------------------------
-# Intensity kernels: Array{Float64,3} → Array{Float64,3}
+# Intensity kernels: voxel values (Array{Float64,3}) → Array{Float64,3}
 # ---------------------------------------------------------------------------
 
+"Gaussian blur with standard deviation `sigma` (voxels), separable, edges replicated."
 _gaussian(v, sigma) = (k = gaussian_kernel(sigma); separable_convolve!(similar(v), v, k[1], k[2]))
+
+"Mean over the `(2r+1)³` cube around each voxel, edges replicated."
 _box_mean(v, r) = separable_convolve!(similar(v), v, fill(1.0 / (2r + 1), 2r + 1), r)
 
+"Gradient magnitude from central differences along y, x and z (one-sided at the edges)."
 function _gradient(v)
     h, w, d = size(v)
     out = similar(v)
@@ -124,6 +150,7 @@ function _gradient(v)
     return out
 end
 
+"Absolute 6-neighbour Laplacian: |Σ neighbours − 6 · voxel|, edges replicated."
 function _laplacian(v)
     h, w, d = size(v)
     out = similar(v)
@@ -136,29 +163,32 @@ function _laplacian(v)
     return out
 end
 
+"Difference of Gaussians `G(σ) − G(1.6σ)` with `σ = 0.5 + 1.5p`, doubled and centred on `0.5`."
 function _dog(v, p)
-    s1 = 0.5 + 1.5p
-    a = _gaussian(v, s1)
-    b = _gaussian(v, 1.6s1)
-    @inbounds @simd for i in eachindex(a)
-        a[i] = 0.5 + 2.0 * (a[i] - b[i])
+    sigma = 0.5 + 1.5p
+    fine = _gaussian(v, sigma)
+    coarse = _gaussian(v, 1.6sigma)
+    @inbounds @simd for i in eachindex(fine)
+        fine[i] = 0.5 + 2.0 * (fine[i] - coarse[i])
     end
-    return a
+    return fine
 end
 
+"Twice the standard deviation over the 3³ cube around each voxel (local texture)."
 function _local_std(v)
-    m = _box_mean(v, 1)
-    sq = similar(v)
+    mean = _box_mean(v, 1)
+    squares = similar(v)
     @inbounds @simd for i in eachindex(v)
-        sq[i] = v[i]^2
+        squares[i] = v[i]^2
     end
-    m2 = _box_mean(sq, 1)
-    @inbounds @simd for i in eachindex(m)
-        m[i] = 2.0 * sqrt(max(m2[i] - m[i]^2, 0.0))
+    mean_of_squares = _box_mean(squares, 1)
+    @inbounds @simd for i in eachindex(mean)
+        mean[i] = 2.0 * sqrt(max(mean_of_squares[i] - mean[i]^2, 0.0))
     end
-    return m
+    return mean
 end
 
+"Unsharp masking: `v + 2p · (v − G₁(v))`, sharpening edges (`p = 0.5` doubles the detail)."
 function _unsharp(v, p)
     blurred = _gaussian(v, 1.0)
     amount = 2.0 * p
@@ -169,13 +199,23 @@ function _unsharp(v, p)
     return out
 end
 
+"Min–max normalisation to `[0, 1]`; a constant volume becomes all zeros."
 function _normalize(v)
     lo, hi = extrema(v)
     hi - lo <= 1e-12 && return zeros(size(v))
     return (v .- lo) ./ (hi - lo)
 end
 
-"Value at quantile `p` from a 256-level histogram of `clamp(v, 0, 1)`."
+"256-level histogram of `clamp(v, 0, 1)` (level `k` ↔ value `(k − 1)/255`)."
+function _levels(v)
+    hist = zeros(Int, 256)
+    @inbounds for x in v
+        hist[clamp(round(Int, clamp(x, 0.0, 1.0) * 255), 0, 255) + 1] += 1
+    end
+    return hist
+end
+
+"Smallest level value whose cumulative count reaches the fraction `p` of `n` voxels."
 function _level_quantile(hist::Vector{Int}, n::Int, p::Float64)
     target = max(1, ceil(Int, p * n))
     running = 0
@@ -186,14 +226,7 @@ function _level_quantile(hist::Vector{Int}, n::Int, p::Float64)
     return 1.0
 end
 
-function _levels(v)
-    hist = zeros(Int, 256)
-    @inbounds for x in v
-        hist[clamp(round(Int, clamp(x, 0.0, 1.0) * 255), 0, 255) + 1] += 1
-    end
-    return hist
-end
-
+"Normalisation between the 2nd and 98th percentiles, clamped to `[0, 1]`: robust to a few extreme voxels."
 function _robust_normalize(v)
     hist = _levels(v)
     lo = _level_quantile(hist, length(v), 0.02)
@@ -202,47 +235,66 @@ function _robust_normalize(v)
     return clamp.((v .- lo) ./ (hi - lo), 0.0, 1.0)
 end
 
+"CT windowing: map `[level − width/2, level + width/2]` linearly to `[0, 1]`, clamping outside."
 function _window(v, level, width)
     width = max(width, 1 / 255)
     lo = level - width / 2
     return clamp.((v .- lo) ./ width, 0.0, 1.0)
 end
 
+"Gamma correction with exponent `2^(4p − 2)` (from 0.25 to 4; `p = 0.5` is the identity)."
 _gamma(v, p) = clamp.(v, 0.0, 1.0) .^ (2.0^(4p - 2))
+
+"`1 − v`."
 _invert(v) = 1.0 .- v
 
+"Histogram equalisation: each voxel becomes the fraction of voxels at or below its level."
 function _equalize(v)
     hist = _levels(v)
     cdf = cumsum(hist) ./ length(v)
     return [cdf[clamp(round(Int, clamp(x, 0.0, 1.0) * 255), 0, 255) + 1] for x in v]
 end
 
+"Keep voxels at or above `t`, set the others to zero."
 _threshold_zero(v, t) = ifelse.(v .>= t, v, 0.0)
 
+"Structuring-element radius for morphology parameter `p`: 1, 2 or 3 voxels."
 _radius(p) = 1 + round(Int, 2p)
+
+"Grey erosion: minimum over the `(2r+1)³` cube."
 _erode(v, p) = box_extremum!(similar(v), v, _radius(p), fmin)
+"Grey dilation: maximum over the `(2r+1)³` cube."
 _dilate(v, p) = box_extremum!(similar(v), v, _radius(p), fmax)
+"Grey opening: erosion then dilation (removes small bright structures)."
 _open(v, p) = (r = _radius(p); box_extremum!(similar(v), box_extremum!(similar(v), v, r, fmin), r, fmax))
+"Grey closing: dilation then erosion (removes small dark structures)."
 _close(v, p) = (r = _radius(p); box_extremum!(similar(v), box_extremum!(similar(v), v, r, fmax), r, fmin))
+"Dilation minus erosion: large where intensity changes."
 _morph_gradient(v, p) = _dilate(v, p) .- _erode(v, p)
+"White top-hat: the small bright structures removed by the opening."
 _tophat(v, p) = v .- _open(v, p)
+"Black top-hat: the small dark structures removed by the closing."
 _bothat(v, p) = _close(v, p) .- v
+"Grey erosion with the 6-neighbour cross."
 _erode_cross(v) = cross_extremum!(similar(v), v, fmin)
+"Grey dilation with the 6-neighbour cross."
 _dilate_cross(v) = cross_extremum!(similar(v), v, fmax)
 
+"Distance from each foreground voxel to the background, divided by the largest such distance (`0` outside)."
 function _distance_inside(fg::AbstractArray{Bool,3})
     any(fg) || return zeros(size(fg))
     all(fg) && return ones(size(fg))
-    background = map(!, fg)                                   # Array{Bool}, not a BitArray
+    background = map(!, fg)                                   # Array{Bool}: faster to read than a BitArray
     d = volume_distance_map!(Array{Float64,3}(undef, size(fg)), background)
-    m = 0.0
+    largest = 0.0
     @inbounds for i in eachindex(d)
         d[i] = fg[i] ? sqrt(d[i]) : 0.0
-        m = max(m, d[i])
+        largest = max(largest, d[i])
     end
-    return m > 0 ? d ./ m : d
+    return largest > 0 ? d ./ largest : d
 end
 
+"`1 − distance to the foreground / volume diagonal`: `1` on the mask, fading with distance."
 function _proximity(fg::AbstractArray{Bool,3})
     any(fg) || return zeros(size(fg))
     scale = 1.0 / max(sqrt(sum(abs2, size(fg) .- 1)), 1.0)
@@ -251,39 +303,57 @@ function _proximity(fg::AbstractArray{Bool,3})
 end
 
 # ---------------------------------------------------------------------------
-# Binary kernels: Array{Bool,3} → Array{Bool,3}
+# Binary kernels: foreground (Array{Bool,3}) → Array{Bool,3}
 # ---------------------------------------------------------------------------
 
+"A mask as 0/1 values (scratch), so binary morphology can reuse the grey filters."
 _as_float(fg) = (v = scratch(:vb_float, Float64, size(fg)...); v .= fg; v)
+"Values back to a mask (`> 0.5`)."
 _as_bool(v) = v .> 0.5
 
-_b_erode(fg, p) = _as_bool(_erode(_as_float(fg), p))
-_b_dilate(fg, p) = _as_bool(_dilate(_as_float(fg), p))
-_b_open(fg, p) = _as_bool(_open(_as_float(fg), p))
-_b_close(fg, p) = _as_bool(_close(_as_float(fg), p))
-_b_morph_gradient(fg, p) = _b_dilate(fg, p) .& .!_b_erode(fg, p)
-_b_erode_cross(fg) = _as_bool(_erode_cross(_as_float(fg)))
-_b_dilate_cross(fg) = _as_bool(_dilate_cross(_as_float(fg)))
+"Binary erosion with a `(2r+1)³` cube."
+_binary_erode(fg, p) = _as_bool(_erode(_as_float(fg), p))
+"Binary dilation with a `(2r+1)³` cube."
+_binary_dilate(fg, p) = _as_bool(_dilate(_as_float(fg), p))
+"Binary opening with a `(2r+1)³` cube."
+_binary_open(fg, p) = _as_bool(_open(_as_float(fg), p))
+"Binary closing with a `(2r+1)³` cube."
+_binary_close(fg, p) = _as_bool(_close(_as_float(fg), p))
+"Dilation minus erosion: a shell around the object boundaries."
+_binary_morph_gradient(fg, p) = _binary_dilate(fg, p) .& .!_binary_erode(fg, p)
+"Binary erosion with the 6-neighbour cross."
+_binary_erode_cross(fg) = _as_bool(_erode_cross(_as_float(fg)))
+"Binary dilation with the 6-neighbour cross."
+_binary_dilate_cross(fg) = _as_bool(_dilate_cross(_as_float(fg)))
 
+"The mask with its enclosed cavities filled."
 function _fill_holes(fg)
     holes = Array{Bool,3}(undef, size(fg))
     volume_holes!(holes, fg)
     return holes .| fg
 end
+
+"The enclosed cavities of the mask alone."
 _holes(fg) = (holes = Array{Bool,3}(undef, size(fg)); volume_holes!(holes, fg); holes)
 
+"Keep only the component `choose(table)` of the 26-connected components."
 function _keep_component(fg, choose)
     t = volume_table(fg, identity)
     t.n == 0 && return zeros(Bool, size(fg))
     id = choose(t)
     return t.labels .== id
 end
+
+"Keep the largest component."
 _largest_component(fg) = _keep_component(fg, t -> argmax(t.area))
+
+"Keep the component whose centroid is closest to the volume centre."
 function _central_component(fg)
     centre = (size(fg) .+ 1) ./ 2
     return _keep_component(fg, t -> argmin([sum(abs2, centroid(t, i) .- centre) for i in 1:t.n]))
 end
 
+"Keep the components for which `keep(table, id)` holds."
 function _filter_components(fg, keep)
     t = volume_table(fg, identity)
     kept = [keep(t, i) for i in 1:t.n]
@@ -294,14 +364,20 @@ function _filter_components(fg, keep)
     end
     return out
 end
+
+"Remove components smaller than the fraction `p` of all voxels."
 _remove_small(fg, p) = _filter_components(fg, (t, i) -> t.area[i] >= p * length(fg))
+
+"Remove components whose bounding box touches the volume border."
 _clear_border(fg) = _filter_components(fg, (t, i) -> !any(t.lo[i, k] == 1 || t.hi[i, k] == t.dims[k] for k in 1:3))
 
+"3³ majority vote: a voxel is set when most of its cube is (edges replicated)."
 function _majority(fg)
-    counts = _box_mean(_as_float(fg), 1)            # replicate border: edge voxels vote as interior
-    return counts .> 0.5
+    share = _box_mean(_as_float(fg), 1)
+    return share .> 0.5
 end
 
+"Replace each component by its filled bounding box."
 function _bbox_fill(fg)
     t = volume_table(fg, identity)
     out = zeros(Bool, size(fg))
@@ -311,36 +387,39 @@ function _bbox_fill(fg)
     return out
 end
 
+"Otsu's threshold on the 256-level histogram: voxels above the level that best separates two classes."
 function _otsu_mask(v)
     hist = _levels(v)
     n = length(v)
     total = sum((b - 1) / 255 * hist[b] for b in 1:256)
-    best, best_b, weight, partial = -1.0, 1, 0, 0.0
+    best_between, best_level, weight, partial = -1.0, 1, 0, 0.0
     for b in 1:255
-        weight += hist[b]
-        partial += hist[b] * (b - 1) / 255
+        weight += hist[b]                          # voxels at levels ≤ b
+        partial += hist[b] * (b - 1) / 255         # their intensity sum
         (weight == 0 || weight == n) && continue
         w0 = weight / n
         between = w0 * (1 - w0) * (partial / weight - (total - partial) / (n - weight))^2
-        between > best && ((best, best_b) = (between, b))
+        between > best_between && ((best_between, best_level) = (between, b))
     end
-    t = (best_b - 1) / 255
-    return v .> t
+    threshold = (best_level - 1) / 255
+    return v .> threshold
 end
 
+"The brightest fraction `p` of the voxels (ties at the cut-off level are kept)."
 function _top_fraction(v, p)
     hist = _levels(v)
-    t = _level_quantile(hist, length(v), 1.0 - p)
-    return v .>= t
+    threshold = _level_quantile(hist, length(v), 1.0 - p)
+    return v .>= threshold
 end
 
 # ---------------------------------------------------------------------------
-# Geometry kernels on pixel arrays (shared by both bundles)
+# Geometry kernels on the voxel arrays (shared by both bundles)
 # ---------------------------------------------------------------------------
 
+"Mirror along `axis`."
 _flip(src, axis) = reverse(src; dims = axis)
 
-"Quarter turn in the plane of axes `(a, b)`; identity when that plane is not square."
+"Quarter turn in the plane of axes `(a, b)`; returns an unchanged copy when that plane is not square."
 function _rot90(src, a, b)
     size(src, a) == size(src, b) || return copy(src)
     perm = collect(1:3)
@@ -348,20 +427,25 @@ function _rot90(src, a, b)
     return reverse(permutedims(src, perm); dims = a)
 end
 
+"Shift along `axis` by `round((u − 0.5) · size)` voxels; uncovered voxels are zero."
 function _shift(src::AbstractArray{P,3}, axis::Int, u::Float64) where {P}
     n = size(src, axis)
     k = round(Int, (u - 0.5) * n)
     out = similar(src)
-    z = _zero(P)
+    zero = zero_pixel(P)
     @inbounds for idx in CartesianIndices(src)
         source = Tuple(idx)
         j = source[axis] - k
-        out[idx] = 1 <= j <= n ? src[Base.setindex(source, j, axis)...] : z
+        out[idx] = 1 <= j <= n ? src[Base.setindex(source, j, axis)...] : zero
     end
     return out
 end
 
-"Bounding box of the foreground (or of its largest component), grown by `margin` of its size."
+"""
+Bounding box `(lo, hi)` of the foreground (or of its largest component when
+`largest`), grown by `margin` of its size on each side and clipped; `nothing`
+for an empty mask.
+"""
 function _box(fg::AbstractArray{Bool,3}, largest::Bool, margin::Float64)
     t = volume_table(fg, identity)
     t.n == 0 && return nothing
@@ -373,6 +457,7 @@ function _box(fg::AbstractArray{Bool,3}, largest::Bool, margin::Float64)
     return ntuple(k -> max(lo[k] - grow[k], 1), 3), ntuple(k -> min(hi[k] + grow[k], dims[k]), 3)
 end
 
+"Crop the box of the mask and resize it back to full size (trilinear for intensity, nearest otherwise); unchanged when the mask is empty."
 function _crop(src::AbstractArray{P,3}, fg, largest::Bool, margin::Float64) where {P}
     box = _box(fg, largest, margin)
     box === nothing && return src
@@ -382,152 +467,38 @@ function _crop(src::AbstractArray{P,3}, fg, largest::Bool, margin::Float64) wher
     return resample_box_nearest(src, box...)
 end
 
+"Translate so the mask's centroid (or its largest component's) lands on the volume centre; uncovered voxels are zero."
 function _recenter(src::AbstractArray{P,3}, fg, largest::Bool) where {P}
     t = volume_table(fg, identity)
     t.n == 0 && return src
     target = largest ? centroid(t, argmax(t.area)) : _overall_centroid(t)
     h, w, d = size(src)
-    dr = round(Int, target[1] - (h + 1) / 2)
-    dc = round(Int, target[2] - (w + 1) / 2)
-    ds = round(Int, target[3] - (d + 1) / 2)
+    shift_r = round(Int, target[1] - (h + 1) / 2)
+    shift_c = round(Int, target[2] - (w + 1) / 2)
+    shift_s = round(Int, target[3] - (d + 1) / 2)
     out = similar(src)
-    z = _zero(P)
+    zero = zero_pixel(P)
     @inbounds for s in 1:d, c in 1:w, r in 1:h
-        rr, cc, ss = r + dr, c + dc, s + ds
-        out[r, c, s] = (1 <= rr <= h && 1 <= cc <= w && 1 <= ss <= d) ? src[rr, cc, ss] : z
+        rr, cc, ss = r + shift_r, c + shift_c, s + shift_s
+        out[r, c, s] = (1 <= rr <= h && 1 <= cc <= w && 1 <= ss <= d) ? src[rr, cc, ss] : zero
     end
     return out
 end
 
+"Centroid `(y, x, z)` of all components together."
 function _overall_centroid(t)
     total = sum(t.area)
     return (sum(t.s1[:, 1]) / total, sum(t.s1[:, 2]) / total, sum(t.s1[:, 3]) / total)
 end
 
 # ---------------------------------------------------------------------------
-# Factory builders
+# 2D → 3D kernels
 # ---------------------------------------------------------------------------
 
-function _prelude(::Type{I}, operator::Symbol) where {I}
-    IT = _get_image_type(I)
-    _validate_factory_type(IT)
-    return _get_image_pixel_type(I), _get_image_tuple_size(I), Symbol(operator, :_, Symbol(I))
-end
-
-_wrap(::Type{P}, result::AbstractArray{Float64,3}) where {P<:IntensityPixel} = to_pixels(P, result)
-_wrap(::Type{P}, result::AbstractArray{Bool,3}) where {P<:BinaryPixel} = to_pixels(P, result)
-_wrap(::Type{P}, result::AbstractArray{P,3}) where {P} = result
-
-"Read the source volume as the kernel expects it."
-_read(src::SizedImage{S,<:IntensityPixel}) where {S} = voxel_values(:vol_in, src.img)
-_read(src::SizedImage{S,<:BinaryPixel}) where {S} = voxel_foreground(:vol_in_fg, src.img, IsSet())
-
-"`kernel(read(src), p)`: `(vol)` with the default, `(vol, p)`."
-function _unary_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
-    PT, S, name = _prelude(I, operator)
-    fn = @eval function $name(src::CONCT, p::Real, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND(_wrap($PT, $kernel(_read(src), _unit(p, $default))), $S)
-    end
-    @eval function $name(src::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND(_wrap($PT, $kernel(_read(src), $default)), $S)
-    end
-    return fn
-end
-
-"`kernel(read(src), p1, p2)`: `(vol)`, `(vol, p1)`, `(vol, p1, p2)`."
-function _binary_param_factory(::Type{I}, operator::Symbol, kernel::K, d1::Float64, d2::Float64) where {I,K}
-    PT, S, name = _prelude(I, operator)
-    fn = @eval function $name(src::CONCT, p1::Real, p2::Real, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND(_wrap($PT, $kernel(_read(src), _unit(p1, $d1), _unit(p2, $d2))), $S)
-    end
-    @eval function $name(src::CONCT, p1::Real, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND(_wrap($PT, $kernel(_read(src), _unit(p1, $d1), $d2)), $S)
-    end
-    @eval function $name(src::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND(_wrap($PT, $kernel(_read(src), $d1, $d2)), $S)
-    end
-    return fn
-end
-
-"`kernel(values(src), values(other))` for two same-type volumes."
-function _pair_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
-    PT, S, name = _prelude(I, operator)
-    return @eval function $name(src::CONCT, other::CONCT2, args::Vararg{Any}) where {CONCT<:$I,CONCT2<:$I}
-        a = copy(_read(src))
-        return SImageND(_wrap($PT, $kernel(a, _read(other))), $S)
-    end
-end
-
-"`kernel(read(src), fg)` with a mask: `(vol, mask[, p])`; masks binary or intensity at 0.5."
-function _masked_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
-    PT, S, name = _prelude(I, operator)
-    fn = @eval function $name(src::CONCT, mask::M, p::Real, args::Vararg{Any}) where {CONCT<:$I,BT,M<:SizedImage{$S,BinaryPixel{BT}}}
-        return SImageND(_wrap($PT, $kernel(src, voxel_foreground(:vol_mask, mask.img, IsSet()), _unit(p, $default))), $S)
-    end
-    @eval function $name(src::CONCT, mask::M, args::Vararg{Any}) where {CONCT<:$I,BT,M<:SizedImage{$S,BinaryPixel{BT}}}
-        return SImageND(_wrap($PT, $kernel(src, voxel_foreground(:vol_mask, mask.img, IsSet()), $default)), $S)
-    end
-    @eval function $name(src::CONCT, mask::M, p::Real, args::Vararg{Any}) where {CONCT<:$I,ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        return SImageND(_wrap($PT, $kernel(src, voxel_foreground(:vol_mask, mask.img, AtLeast(0.5)), _unit(p, $default))), $S)
-    end
-    @eval function $name(src::CONCT, mask::M, args::Vararg{Any}) where {CONCT<:$I,ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        return SImageND(_wrap($PT, $kernel(src, voxel_foreground(:vol_mask, mask.img, AtLeast(0.5)), $default)), $S)
-    end
-    return fn
-end
-
-"`kernel(fg, p)` from a mask: `(mask[, p])`, `(intensity)` at 0.5, `(intensity, t)`."
-function _from_mask_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
-    PT, S, name = _prelude(I, operator)
-    fn = @eval function $name(mask::M, p::Real, args::Vararg{Any}) where {BT,M<:SizedImage{$S,BinaryPixel{BT}}}
-        return SImageND(_wrap($PT, $kernel(copy(voxel_foreground(:vol_mask, mask.img, IsSet())), _unit(p, $default))), $S)
-    end
-    @eval function $name(mask::M, args::Vararg{Any}) where {BT,M<:SizedImage{$S,BinaryPixel{BT}}}
-        return SImageND(_wrap($PT, $kernel(copy(voxel_foreground(:vol_mask, mask.img, IsSet())), $default)), $S)
-    end
-    @eval function $name(vol::M, t::Real, args::Vararg{Any}) where {ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        return SImageND(_wrap($PT, $kernel(copy(voxel_foreground(:vol_mask, vol.img, AtLeast(_unit(t)))), $default)), $S)
-    end
-    @eval function $name(vol::M, args::Vararg{Any}) where {ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        return SImageND(_wrap($PT, $kernel(copy(voxel_foreground(:vol_mask, vol.img, AtLeast(0.5))), $default)), $S)
-    end
-    return fn
-end
-
-"Geometry on the voxels themselves: `kernel(src.img, u)`, `(vol)` or `(vol, u)`."
-function _geom_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
-    PT, S, name = _prelude(I, operator)
-    fn = @eval function $name(src::CONCT, u::Real, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND($kernel(src.img, _unit(u, $default)), $S)
-    end
-    @eval function $name(src::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND($kernel(src.img, $default), $S)
-    end
-    return fn
-end
-
-"""
-2D → 3D along `axis`: `(img2d)` extrudes it; with `combine`, `(vol, img2d)`
-applies it to every slice. The 2D size must match the volume's other axes.
-"""
-function _from2d_factory(::Type{I}, operator::Symbol, axis::Int, mode::Symbol) where {I}
-    PT, S, name = _prelude(I, operator)
-    dims = Tuple(S.parameters)
-    keep = Tuple(k for k in 1:3 if k != axis)
-    A, B = dims[keep[1]], dims[keep[2]]
-    if mode === :extrude
-        return @eval function $name(img::M, args::Vararg{Any}) where {P2,M<:SizedImage{Tuple{$A,$B},P2}}
-            plane = img.img
-            return SImageND(_extrude($PT, plane, $axis, $dims), $S)
-        end
-    end
-    return @eval function $name(src::CONCT, mask::M, args::Vararg{Any}) where {CONCT<:$I,P2,M<:SizedImage{Tuple{$A,$B},P2}}
-        return SImageND(_apply_plane(src.img, mask.img, $axis), $S)
-    end
-end
-
+"Indices in a 2D plane of the voxel `idx` when the plane spans every axis but `axis`."
 @inline _plane_index(idx, axis) = axis == 1 ? (idx[2], idx[3]) : axis == 2 ? (idx[1], idx[3]) : (idx[1], idx[2])
 
+"Repeat a 2D image along `axis` into a volume of size `dims` and pixel type `P`."
 function _extrude(::Type{P}, plane::AbstractMatrix, axis::Int, dims) where {P}
     out = Array{P,3}(undef, dims)
     @inbounds for idx in CartesianIndices(out)
@@ -536,32 +507,271 @@ function _extrude(::Type{P}, plane::AbstractMatrix, axis::Int, dims) where {P}
     return out
 end
 
+"Convert a 2D pixel to the volume's pixel type (intensity ↔ binary at 0.5)."
 _convert_pixel(::Type{IntensityPixel{T}}, p::IntensityPixel) where {T} = IntensityPixel{T}(convert(T, clamp(Float64(p), 0.0, 1.0)))
 _convert_pixel(::Type{IntensityPixel{T}}, p::BinaryPixel) where {T} = IntensityPixel{T}(p.pixel ? one(T) : zero(T))
 _convert_pixel(::Type{BinaryPixel{T}}, p::BinaryPixel) where {T} = BinaryPixel{T}(p.pixel)
 _convert_pixel(::Type{BinaryPixel{T}}, p::IntensityPixel) where {T} = BinaryPixel{T}(Float64(p) >= 0.5)
 
+"Whether a 2D mask pixel is set (binary, or intensity at `0.5`)."
 @inline _plane_in(p::BinaryPixel) = p.pixel == true
 @inline _plane_in(p) = Float64(p) >= 0.5
 
+"Zero every voxel whose position, projected along `axis`, falls outside the 2D mask."
 function _apply_plane(src::AbstractArray{P,3}, plane::AbstractMatrix, axis::Int) where {P}
     out = similar(src)
-    z = _zero(P)
+    zero = zero_pixel(P)
     @inbounds for idx in CartesianIndices(src)
-        out[idx] = _plane_in(plane[_plane_index(Tuple(idx), axis)...]) ? src[idx] : z
+        out[idx] = _plane_in(plane[_plane_index(Tuple(idx), axis)...]) ? src[idx] : zero
     end
     return out
+end
+
+# ---------------------------------------------------------------------------
+# Factory plumbing
+# ---------------------------------------------------------------------------
+
+"""
+    _factory_setup(I, operator) -> (pixel_type, size_type, function_name)
+
+Validate the output type `I` and return its pixel type (e.g.
+`IntensityPixel{N0f8}`), its size as a tuple type (e.g. `Tuple{28,28,28}`) and
+the name of the specialised function (`operator` followed by the type).
+"""
+function _factory_setup(::Type{I}, operator::Symbol) where {I}
+    _validate_factory_type(_get_image_type(I))
+    return _get_image_pixel_type(I), _get_image_tuple_size(I), Symbol(operator, :_, Symbol(I))
+end
+
+"""
+    _kernel_input(src) -> Array
+
+The source volume in the form its kernels expect: voxel values
+(`Array{Float64,3}`) for an intensity volume, the foreground (`Array{Bool,3}`)
+for a binary one. Both live in per-task scratch buffers.
+"""
+_kernel_input(src::SizedImage{S,<:IntensityPixel}) where {S} = voxel_values(:vol_in, src.img)
+_kernel_input(src::SizedImage{S,<:BinaryPixel}) where {S} = voxel_foreground(:vol_in_fg, src.img, IsSet())
+
+"""
+    _as_output_pixels(pixel_type, result) -> Array{pixel_type,3}
+
+Convert a kernel result into pixels of the output type: values are stored
+(rounded and clamped to the storage range), Booleans become `BinaryPixel`s,
+and pixel arrays (from geometry kernels) are returned as they are.
+"""
+_as_output_pixels(::Type{P}, result::AbstractArray{Float64,3}) where {P<:IntensityPixel} = to_pixels(P, result)
+_as_output_pixels(::Type{P}, result::AbstractArray{Bool,3}) where {P<:BinaryPixel} = to_pixels(P, result)
+_as_output_pixels(::Type{P}, result::AbstractArray{P,3}) where {P} = result
+
+"""
+    _one_param_factory(I, operator, kernel, default) -> Function
+
+Methods:
+
+- `op(vol, p)` → `kernel(input, clamp_unit(p, default))`
+- `op(vol)` → `kernel(input, default)`
+
+where `input = _kernel_input(vol)`.
+"""
+function _one_param_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(src::Source, p::Real, args::Vararg{Any}) where {Source<:$I}
+        return SImageND(_as_output_pixels($pixel_type, $kernel(_kernel_input(src), clamp_unit(p, $default))), $size_type)
+    end
+    @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        return SImageND(_as_output_pixels($pixel_type, $kernel(_kernel_input(src), $default)), $size_type)
+    end
+    return fn
+end
+
+"""
+    _two_param_factory(I, operator, kernel, default_first, default_second) -> Function
+
+Methods, with `input = _kernel_input(vol)`:
+
+- `op(vol, p1, p2)` → `kernel(input, clamp_unit(p1, default_first), clamp_unit(p2, default_second))`
+- `op(vol, p1)` → `kernel(input, clamp_unit(p1, default_first), default_second)`
+- `op(vol)` → `kernel(input, default_first, default_second)`
+"""
+function _two_param_factory(::Type{I}, operator::Symbol, kernel::K, default_first::Float64, default_second::Float64) where {I,K}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(src::Source, p1::Real, p2::Real, args::Vararg{Any}) where {Source<:$I}
+        input = _kernel_input(src)
+        return SImageND(_as_output_pixels($pixel_type, $kernel(input, clamp_unit(p1, $default_first), clamp_unit(p2, $default_second))), $size_type)
+    end
+    @eval function $name(src::Source, p1::Real, args::Vararg{Any}) where {Source<:$I}
+        input = _kernel_input(src)
+        return SImageND(_as_output_pixels($pixel_type, $kernel(input, clamp_unit(p1, $default_first), $default_second)), $size_type)
+    end
+    @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        return SImageND(_as_output_pixels($pixel_type, $kernel(_kernel_input(src), $default_first, $default_second)), $size_type)
+    end
+    return fn
+end
+
+"""
+    _two_volumes_factory(I, operator, kernel) -> Function
+
+Method `op(vol_a, vol_b)` → `kernel(input_a, input_b)` for two volumes of the
+output type. The first input is copied because both inputs come from the same
+scratch buffer.
+"""
+function _two_volumes_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    return @eval function $name(src::Source, other::Other, args::Vararg{Any}) where {Source<:$I,Other<:$I}
+        first_input = copy(_kernel_input(src))
+        return SImageND(_as_output_pixels($pixel_type, $kernel(first_input, _kernel_input(other))), $size_type)
+    end
+end
+
+"""
+    _volume_and_mask_factory(I, operator, kernel, default) -> Function
+
+Methods, with `fg` the mask's foreground:
+
+- `op(vol, binary_mask, p)`, `op(vol, binary_mask)`
+- `op(vol, intensity_mask, p)`, `op(vol, intensity_mask)` — thresholded at `0.5`
+
+each calling `kernel(vol, fg, p)` (`p` = `clamp_unit(p, default)` or
+`default`). The kernel receives the volume itself (`SImageND`), not its
+values, because crop and recentre work on the voxels directly.
+"""
+function _volume_and_mask_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(src::Source, mask::Mask, p::Real, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+        fg = voxel_foreground(:vol_mask, mask.img, IsSet())
+        return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, clamp_unit(p, $default))), $size_type)
+    end
+    @eval function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+        fg = voxel_foreground(:vol_mask, mask.img, IsSet())
+        return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, $default)), $size_type)
+    end
+    @eval function $name(src::Source, mask::Mask, p::Real, args::Vararg{Any}) where {Source<:$I,MaskStorage,Mask<:SizedImage{$size_type,IntensityPixel{MaskStorage}}}
+        fg = voxel_foreground(:vol_mask, mask.img, AtLeast(0.5))
+        return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, clamp_unit(p, $default))), $size_type)
+    end
+    @eval function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskStorage,Mask<:SizedImage{$size_type,IntensityPixel{MaskStorage}}}
+        fg = voxel_foreground(:vol_mask, mask.img, AtLeast(0.5))
+        return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, $default)), $size_type)
+    end
+    return fn
+end
+
+"""
+    _mask_input_factory(I, operator, kernel, default) -> Function
+
+Operators whose input is a mask (distance maps, binary thresholding). Methods:
+
+- `op(binary_mask, p)`, `op(binary_mask)` → `kernel(fg, p)` / `kernel(fg, default)`
+- `op(intensity_vol, t)` → `kernel(fg, default)` with `fg = intensity_vol ≥ t`
+- `op(intensity_vol)` → same with `t = 0.5`
+
+`fg` is a fresh copy, so kernels may modify or return it.
+"""
+function _mask_input_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(mask::Mask, p::Real, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+        fg = copy(voxel_foreground(:vol_mask, mask.img, IsSet()))
+        return SImageND(_as_output_pixels($pixel_type, $kernel(fg, clamp_unit(p, $default))), $size_type)
+    end
+    @eval function $name(mask::Mask, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+        fg = copy(voxel_foreground(:vol_mask, mask.img, IsSet()))
+        return SImageND(_as_output_pixels($pixel_type, $kernel(fg, $default)), $size_type)
+    end
+    @eval function $name(vol::Vol, t::Real, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+        fg = copy(voxel_foreground(:vol_mask, vol.img, AtLeast(clamp_unit(t))))
+        return SImageND(_as_output_pixels($pixel_type, $kernel(fg, $default)), $size_type)
+    end
+    @eval function $name(vol::Vol, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+        fg = copy(voxel_foreground(:vol_mask, vol.img, AtLeast(0.5)))
+        return SImageND(_as_output_pixels($pixel_type, $kernel(fg, $default)), $size_type)
+    end
+    return fn
+end
+
+"""
+    _binarize_factory(I, operator, kernel, default) -> Function
+
+Binary output from an intensity volume. Methods:
+`op(intensity_vol, p)` → `kernel(values, clamp_unit(p, default))` and
+`op(intensity_vol)` → `kernel(values, default)`, where `kernel` returns a
+`Bool` array.
+"""
+function _binarize_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(vol::Vol, p::Real, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+        return SImageND(to_pixels($pixel_type, $kernel(voxel_values(:vol_in, vol.img), clamp_unit(p, $default))), $size_type)
+    end
+    @eval function $name(vol::Vol, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+        return SImageND(to_pixels($pixel_type, $kernel(voxel_values(:vol_in, vol.img), $default)), $size_type)
+    end
+    return fn
+end
+
+"""
+    _voxel_geometry_factory(I, operator, kernel, default) -> Function
+
+Geometry on the voxels themselves (no value conversion, so it works for both
+bundles). Methods: `op(vol, u)` → `kernel(vol.img, clamp_unit(u, default))`
+and `op(vol)` → `kernel(vol.img, default)`.
+"""
+function _voxel_geometry_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(src::Source, u::Real, args::Vararg{Any}) where {Source<:$I}
+        return SImageND($kernel(src.img, clamp_unit(u, $default)), $size_type)
+    end
+    @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        return SImageND($kernel(src.img, $default), $size_type)
+    end
+    return fn
+end
+
+"""
+    _plane_to_volume_factory(I, operator, axis, mode) -> Function
+
+2D → 3D operators. The 2D input must have the size of the volume's two other
+axes (for `axis = 3`: `(y, x)`).
+
+- `mode = :extrude`: `op(img2d)` repeats the 2D image along `axis`.
+- `mode = :apply`: `op(vol, mask2d)` zeroes every voxel outside the 2D mask
+  (binary, or intensity at `0.5`), slice by slice along `axis`.
+
+The 2D input must hold intensity or binary pixels; segment images have no
+method, so MAGE skips them instead of crashing inside the kernel.
+"""
+function _plane_to_volume_factory(::Type{I}, operator::Symbol, axis::Int, mode::Symbol) where {I}
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    dims = Tuple(size_type.parameters)
+    plane_axes = Tuple(k for k in 1:3 if k != axis)
+    A, B = dims[plane_axes[1]], dims[plane_axes[2]]
+    if mode === :extrude
+        return @eval function $name(img::Plane, args::Vararg{Any}) where {PlanePixel<:Union{IntensityPixel,BinaryPixel},Plane<:SizedImage{Tuple{$A,$B},PlanePixel}}
+            return SImageND(_extrude($pixel_type, img.img, $axis, $dims), $size_type)
+        end
+    end
+    return @eval function $name(src::Source, mask::Plane, args::Vararg{Any}) where {Source<:$I,PlanePixel<:Union{IntensityPixel,BinaryPixel},Plane<:SizedImage{Tuple{$A,$B},PlanePixel}}
+        return SImageND(_apply_plane(src.img, mask.img, $axis), $size_type)
+    end
 end
 
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
 
+"The bundle of a pixel kind (`:intensity` or `:binary`)."
 _bundle(kind::Symbol) = kind === :intensity ? bundle_image3DIntensity_volume_factory : bundle_image3DBinary_volume_factory
 
+"""
+    _define!(operator, kinds, builder, description)
+
+Define the factory function for `operator` (calling `builder(output_type)`)
+and register it in the bundle of each kind in `kinds`. An operator present in
+both bundles with different kernels (e.g. grey and binary `vol_erode`) is
+registered once per kind under a kind-specific factory name; a shared operator
+(geometry) has a single factory.
+"""
 function _define!(operator::Symbol, kinds, builder, description::String)
-    # Operators existing in both bundles with different kernels get one factory
-    # per kind; shared geometry operators have a single factory.
     factory_name = length(kinds) == 1 ? Symbol(operator, :_, kinds[1], :_image3D_factory) :
                    Symbol(operator, :_image3D_factory)
     @eval function $factory_name(output_type::Type{I}) where {S1,S2,S3,P,I<:SizedImage3D{S1,S2,S3,P}}
@@ -578,9 +788,23 @@ function _define!(operator::Symbol, kinds, builder, description::String)
     end
 end
 
-_unary(op, kernel, default) = I -> _unary_factory(I, op, kernel, default)
+# Builders return `output_type -> factory(output_type, …)`. They are functions,
+# not inline closures, so each closure captures its own arguments: a loop
+# variable reassigned later in the same loop body would otherwise be seen by
+# every closure created in that body.
+_one_param(op, kernel, default) = I -> _one_param_factory(I, op, kernel, default)
+_two_params(op, kernel, first, second) = I -> _two_param_factory(I, op, kernel, first, second)
+_two_volumes(op, kernel) = I -> _two_volumes_factory(I, op, kernel)
+_volume_and_mask(op, kernel, default) = I -> _volume_and_mask_factory(I, op, kernel, default)
+_mask_input(op, kernel, default) = I -> _mask_input_factory(I, op, kernel, default)
+_binarize(op, kernel, default) = I -> _binarize_factory(I, op, kernel, default)
+_voxel_geometry(op, kernel, default) = I -> _voxel_geometry_factory(I, op, kernel, default)
+_plane_to_volume(op, axis, mode) = I -> _plane_to_volume_factory(I, op, axis, mode)
+_crop_kernel(largest::Bool) = (src, fg, margin) -> _crop(src.img, fg, largest, margin)
+_recenter_kernel(largest::Bool) = (src, fg, margin) -> _recenter(src.img, fg, largest)
 
-# Intensity filters and transforms.
+# --- Intensity bundle: filters, intensity transforms, grey morphology.
+#     Each kernel is (values, p) -> values; `p` is ignored when the operator has no parameter.
 for (op, kernel, default, description) in (
         (:vol_gaussian, (v, p) -> _gaussian(v, 0.3 + 2.7p), 0.26, "Gaussian blur, σ = 0.3 + 2.7p voxels (default 1)."),
         (:vol_gaussian_s05, (v, p) -> _gaussian(v, 0.5), 0.0, "Gaussian blur, σ = 0.5 voxel."),
@@ -609,62 +833,56 @@ for (op, kernel, default, description) in (
         (:vol_erode_cross, (v, p) -> _erode_cross(v), 0.0, "Grey erosion with the 6-neighbour cross."),
         (:vol_dilate_cross, (v, p) -> _dilate_cross(v), 0.0, "Grey dilation with the 6-neighbour cross."),
     )
-    _define!(op, (:intensity,), _unary(op, kernel, default), description)
+    _define!(op, (:intensity,), _one_param(op, kernel, default), description)
 end
 _define!(:vol_window, (:intensity,),
-    I -> _binary_param_factory(I, :vol_window, (v, level, width) -> _window(v, level, width), 0.5, 0.5),
+    _two_params(:vol_window, (v, level, width) -> _window(v, level, width), 0.5, 0.5),
     "CT windowing: maps [level − width/2, level + width/2] to [0, 1] (defaults 0.5, 0.5).")
 
+# --- Intensity bundle: two volumes, voxel by voxel.
 for (op, kernel, description) in (
-        (:vol_add, (a, b) -> a .+ b, "Sum of two volumes."),
-        (:vol_sub, (a, b) -> a .- b, "Difference of two volumes (clamped at 0)."),
+        (:vol_add, (a, b) -> a .+ b, "Sum of two volumes (clamped to the pixel range)."),
+        (:vol_sub, (a, b) -> a .- b, "Difference of two volumes (clamped to the pixel range)."),
         (:vol_absdiff, (a, b) -> abs.(a .- b), "Absolute difference."),
         (:vol_mult, (a, b) -> a .* b, "Voxel-wise product."),
         (:vol_min, (a, b) -> min.(a, b), "Voxel-wise minimum."),
         (:vol_max, (a, b) -> max.(a, b), "Voxel-wise maximum."),
         (:vol_average, (a, b) -> (a .+ b) ./ 2, "Voxel-wise mean."),
     )
-    _define!(op, (:intensity,), I -> _pair_factory(I, op, kernel), description)
+    _define!(op, (:intensity,), _two_volumes(op, kernel), description)
 end
 
-_keep(src, fg, p) = (v = copy(voxel_values(:vol_in, src.img)); v[.!fg] .= 0.0; v)
+# --- Intensity bundle: masks.
+"Keep the voxels inside the mask and zero the others (kernel of `vol_mask_keep`)."
+_keep_inside(src, fg, p) = (v = copy(voxel_values(:vol_in, src.img)); v[.!fg] .= 0.0; v)
+"Zero the voxels inside the mask (kernel of `vol_mask_zero`)."
 _zero_inside(src, fg, p) = (v = copy(voxel_values(:vol_in, src.img)); v[fg] .= 0.0; v)
-_define!(:vol_mask_keep, (:intensity,), I -> _masked_factory(I, :vol_mask_keep, _keep, 0.0),
+_define!(:vol_mask_keep, (:intensity,), _volume_and_mask(:vol_mask_keep, _keep_inside, 0.0),
     "Keeps the voxels inside the mask, zeroes the rest.")
-_define!(:vol_mask_zero, (:intensity,), I -> _masked_factory(I, :vol_mask_zero, _zero_inside, 0.0),
+_define!(:vol_mask_zero, (:intensity,), _volume_and_mask(:vol_mask_zero, _zero_inside, 0.0),
     "Zeroes the voxels inside the mask.")
-_define!(:vol_distance_inside, (:intensity,), I -> _from_mask_factory(I, :vol_distance_inside, (fg, p) -> _distance_inside(fg), 0.0),
+_define!(:vol_distance_inside, (:intensity,), _mask_input(:vol_distance_inside, (fg, p) -> _distance_inside(fg), 0.0),
     "Distance from each mask voxel to the background, normalised by its maximum.")
-_define!(:vol_proximity, (:intensity,), I -> _from_mask_factory(I, :vol_proximity, (fg, p) -> _proximity(fg), 0.0),
+_define!(:vol_proximity, (:intensity,), _mask_input(:vol_proximity, (fg, p) -> _proximity(fg), 0.0),
     "1 on the mask, decreasing with the distance to it (over the volume diagonal).")
 
-# Binarisation (intensity in, binary out).
-_define!(:vol_threshold, (:binary,), I -> _from_mask_factory(I, :vol_threshold, (fg, p) -> fg, 0.5),
+# --- Binary bundle: binarisation of intensity volumes.
+_define!(:vol_threshold, (:binary,), _mask_input(:vol_threshold, (fg, p) -> fg, 0.5),
     "Voxels at or above a threshold (default 0.5); a binary input is returned as is.")
-_bin_from_values(op, kernel, default) = I -> begin
-    PT, S, name = _prelude(I, op)
-    fn = @eval function $name(vol::M, p::Real, args::Vararg{Any}) where {ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        return SImageND(to_pixels($PT, $kernel(voxel_values(:vol_in, vol.img), _unit(p, $default))), $S)
-    end
-    @eval function $name(vol::M, args::Vararg{Any}) where {ST,M<:SizedImage{$S,IntensityPixel{ST}}}
-        return SImageND(to_pixels($PT, $kernel(voxel_values(:vol_in, vol.img), $default)), $S)
-    end
-    fn
-end
-_define!(:vol_otsu, (:binary,), _bin_from_values(:vol_otsu, (v, p) -> _otsu_mask(v), 0.0),
+_define!(:vol_otsu, (:binary,), _binarize(:vol_otsu, (v, p) -> _otsu_mask(v), 0.0),
     "Otsu threshold of an intensity volume.")
-_define!(:vol_top_fraction, (:binary,), _bin_from_values(:vol_top_fraction, _top_fraction, 0.1),
+_define!(:vol_top_fraction, (:binary,), _binarize(:vol_top_fraction, _top_fraction, 0.1),
     "The brightest fraction p of the voxels (default 0.1).")
 
-# Binary morphology and clean-up.
+# --- Binary bundle: morphology and clean-up. Each kernel is (fg, p) -> fg.
 for (op, kernel, default, description) in (
-        (:vol_erode, _b_erode, 0.0, "Binary erosion with a (2r+1)³ cube, r = 1 + round(2p)."),
-        (:vol_dilate, _b_dilate, 0.0, "Binary dilation with a (2r+1)³ cube."),
-        (:vol_open, _b_open, 0.0, "Binary opening with a (2r+1)³ cube."),
-        (:vol_close, _b_close, 0.0, "Binary closing with a (2r+1)³ cube."),
-        (:vol_morph_gradient, _b_morph_gradient, 0.0, "Dilation minus erosion: a shell around the boundary."),
-        (:vol_erode_cross, (fg, p) -> _b_erode_cross(fg), 0.0, "Binary erosion with the 6-neighbour cross."),
-        (:vol_dilate_cross, (fg, p) -> _b_dilate_cross(fg), 0.0, "Binary dilation with the 6-neighbour cross."),
+        (:vol_erode, _binary_erode, 0.0, "Binary erosion with a (2r+1)³ cube, r = 1 + round(2p)."),
+        (:vol_dilate, _binary_dilate, 0.0, "Binary dilation with a (2r+1)³ cube."),
+        (:vol_open, _binary_open, 0.0, "Binary opening with a (2r+1)³ cube."),
+        (:vol_close, _binary_close, 0.0, "Binary closing with a (2r+1)³ cube."),
+        (:vol_morph_gradient, _binary_morph_gradient, 0.0, "Dilation minus erosion: a shell around the boundary."),
+        (:vol_erode_cross, (fg, p) -> _binary_erode_cross(fg), 0.0, "Binary erosion with the 6-neighbour cross."),
+        (:vol_dilate_cross, (fg, p) -> _binary_dilate_cross(fg), 0.0, "Binary dilation with the 6-neighbour cross."),
         (:vol_fill_holes, (fg, p) -> _fill_holes(fg), 0.0, "Fills enclosed cavities (6-connected background)."),
         (:vol_holes, (fg, p) -> _holes(fg), 0.0, "The enclosed cavities alone."),
         (:vol_largest_component, (fg, p) -> _largest_component(fg), 0.0, "Keeps the largest 26-connected component."),
@@ -675,17 +893,17 @@ for (op, kernel, default, description) in (
         (:vol_bbox_fill, (fg, p) -> _bbox_fill(fg), 0.0, "Replaces each component by its filled bounding box."),
         (:vol_not, (fg, p) -> .!fg, 0.0, "Logical not."),
     )
-    _define!(op, (:binary,), _unary(op, kernel, default), description)
+    _define!(op, (:binary,), _one_param(op, kernel, default), description)
 end
 for (op, kernel, description) in (
         (:vol_and, (a, b) -> a .& b, "Logical and."),
         (:vol_or, (a, b) -> a .| b, "Logical or."),
         (:vol_xor, (a, b) -> a .⊻ b, "Logical exclusive or."),
     )
-    _define!(op, (:binary,), I -> _pair_factory(I, op, kernel), description)
+    _define!(op, (:binary,), _two_volumes(op, kernel), description)
 end
 
-# Geometry, both bundles.
+# --- Both bundles: geometry. Each kernel is (voxels, u) -> voxels.
 for (op, kernel, default, description) in (
         (:vol_flip_y, (src, u) -> _flip(src, 1), 0.0, "Mirrors along y (rows)."),
         (:vol_flip_x, (src, u) -> _flip(src, 2), 0.0, "Mirrors along x (columns)."),
@@ -697,28 +915,28 @@ for (op, kernel, default, description) in (
         (:vol_shift_x, (src, u) -> _shift(src, 2, u), 0.5, "Shifts along x by (u − 0.5) of the size, zero fill."),
         (:vol_shift_z, (src, u) -> _shift(src, 3, u), 0.5, "Shifts along z by (u − 0.5) of the size, zero fill."),
     )
-    _define!(op, (:intensity, :binary), I -> _geom_factory(I, op, kernel, default), description)
+    _define!(op, (:intensity, :binary), _voxel_geometry(op, kernel, default), description)
 end
 for (op, largest, description) in (
         (:vol_crop_bbox, false, "Crops the bounding box of the mask (grown by margin, default 0.1) and resizes it back."),
         (:vol_crop_bbox_largest, true, "Crops the bounding box of the mask's largest component and resizes it back."),
     )
-    _define!(op, (:intensity, :binary), I -> _masked_factory(I, op, (src, fg, m) -> _crop(src.img, fg, largest, m), 0.1), description)
+    _define!(op, (:intensity, :binary), _volume_and_mask(op, _crop_kernel(largest), 0.1), description)
 end
 for (op, largest, description) in (
         (:vol_recenter, false, "Translates the mask's centroid to the centre of the volume."),
         (:vol_recenter_largest, true, "Translates the largest component's centroid to the centre."),
     )
-    _define!(op, (:intensity, :binary), I -> _masked_factory(I, op, (src, fg, m) -> _recenter(src.img, fg, largest), 0.0), description)
+    _define!(op, (:intensity, :binary), _volume_and_mask(op, _recenter_kernel(largest), 0.0), description)
 end
 
-# 2D → 3D.
+# --- Both bundles: 2D → 3D.
 for (axis, letter) in ((1, :y), (2, :x), (3, :z))
-    op = Symbol(:vol_extrude_, letter)
-    _define!(op, (:intensity, :binary), I -> _from2d_factory(I, op, axis, :extrude),
+    extrude_op = Symbol(:vol_extrude_, letter)
+    _define!(extrude_op, (:intensity, :binary), _plane_to_volume(extrude_op, axis, :extrude),
         "Repeats a 2D image along $letter to fill the volume.")
-    op = Symbol(:vol_mask2d_, letter)
-    _define!(op, (:intensity, :binary), I -> _from2d_factory(I, op, axis, :apply),
+    mask2d_op = Symbol(:vol_mask2d_, letter)
+    _define!(mask2d_op, (:intensity, :binary), _plane_to_volume(mask2d_op, axis, :apply),
         "Applies a 2D mask (binary, or intensity at 0.5) to every slice along $letter.")
 end
 

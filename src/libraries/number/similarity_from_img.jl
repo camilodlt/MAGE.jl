@@ -15,7 +15,7 @@ module number_similarityFromImg
 using ImageCore: N0f8
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
-using ..image2D_object_common: _unit, _to_unit, _value, scratch, squared_distance_map!
+using ..image2D_object_common: clamp_unit, position_to_unit, pixel_value, scratch, squared_distance_map!
 
 fallback(args...) = return 0.0
 
@@ -62,70 +62,85 @@ then find the same-looking object in later frames.
 """
 bundle_number_templateFromImg = FunctionBundle(fallback)
 
+"Comparable 2D image: intensity or binary."
 const _Img = SImageND{S,T,2,C} where {S,T<:Union{IntensityPixel,BinaryPixel},C}
+"Binary 2D image."
 const _Mask = SImageND{S,T,2,C} where {S,T<:BinaryPixel,C}
+"Bins of the value histograms."
 const _HIST_BINS = 32
+"Side of the SSIM blocks."
 const _SSIM_BLOCK = 8
+"SSIM stabilisers `(K·L)²` with the usual `K1 = 0.01`, `K2 = 0.03` and dynamic range `L = 1`."
 const _SSIM_C1 = 0.01^2
 const _SSIM_C2 = 0.03^2
 
-function _check(a, b)
+"Throw a `DimensionMismatch` unless `a` and `b` have the same size."
+function _check_same_size(a, b)
     size(a) == size(b) || throw(DimensionMismatch("images must have the same size"))
     return nothing
 end
 
-@inline _in(mask::Nothing, i) = true
-@inline _in(mask::AbstractMatrix, i) = @inbounds mask[i].pixel == true
+"Whether pixel `i` is compared: always without a mask, else when the mask pixel is set."
+@inline _compared(mask::Nothing, i) = true
+@inline _compared(mask::AbstractMatrix, i) = @inbounds mask[i].pixel == true
 
+"Mean squared difference over the compared pixels (`0` when none)."
 function _mse(a, b, mask)
-    _check(a, b)
-    s = 0.0
+    _check_same_size(a, b)
+    total = 0.0
     n = 0
     @inbounds for i in eachindex(a)
-        _in(mask, i) || continue
-        d = _value(a[i]) - _value(b[i])
-        s += d * d
+        _compared(mask, i) || continue
+        d = pixel_value(a[i]) - pixel_value(b[i])
+        total += d * d
         n += 1
     end
-    return n == 0 ? 0.0 : s / n
+    return n == 0 ? 0.0 : total / n
 end
 
+"Mean absolute difference over the compared pixels (`0` when none)."
 function _mae(a, b, mask)
-    _check(a, b)
-    s = 0.0
+    _check_same_size(a, b)
+    total = 0.0
     n = 0
     @inbounds for i in eachindex(a)
-        _in(mask, i) || continue
-        s += abs(_value(a[i]) - _value(b[i]))
+        _compared(mask, i) || continue
+        total += abs(pixel_value(a[i]) - pixel_value(b[i]))
         n += 1
     end
-    return n == 0 ? 0.0 : s / n
+    return n == 0 ? 0.0 : total / n
 end
 
+"Pearson correlation over the compared pixels; `0` when fewer than two or when either image is flat."
 function _correlation(a, b, mask)
-    _check(a, b)
+    _check_same_size(a, b)
     n = 0
-    sa = sb = saa = sbb = sab = 0.0
+    sum_a = sum_b = sum_aa = sum_bb = sum_ab = 0.0
     @inbounds for i in eachindex(a)
-        _in(mask, i) || continue
-        x = _value(a[i])
-        y = _value(b[i])
+        _compared(mask, i) || continue
+        x = pixel_value(a[i])
+        y = pixel_value(b[i])
         n += 1
-        sa += x
-        sb += y
-        saa += x * x
-        sbb += y * y
-        sab += x * y
+        sum_a += x
+        sum_b += y
+        sum_aa += x * x
+        sum_bb += y * y
+        sum_ab += x * y
     end
     n < 2 && return 0.0
-    va = saa - sa * sa / n
-    vb = sbb - sb * sb / n
-    (va <= 1e-12 || vb <= 1e-12) && return 0.0
-    return clamp((sab - sa * sb / n) / sqrt(va * vb), -1.0, 1.0)
+    var_a = sum_aa - sum_a * sum_a / n
+    var_b = sum_bb - sum_b * sum_b / n
+    (var_a <= 1e-12 || var_b <= 1e-12) && return 0.0
+    return clamp((sum_ab - sum_a * sum_b / n) / sqrt(var_a * var_b), -1.0, 1.0)
 end
 
+"""
+Mean SSIM over non-overlapping `8 × 8` blocks (smaller at the right and
+bottom edges). Per block, with means `μ`, variances `σ²` and covariance
+`σ_ab`: `(2μ_a μ_b + C1)(2σ_ab + C2) / ((μ_a² + μ_b² + C1)(σ_a² + σ_b² + C2))`.
+"""
 function _ssim(a, b)
-    _check(a, b)
+    _check_same_size(a, b)
     h, w = size(a)
     total = 0.0
     blocks = 0
@@ -133,33 +148,35 @@ function _ssim(a, b)
         r1 = min(r0 + _SSIM_BLOCK - 1, h)
         c1 = min(c0 + _SSIM_BLOCK - 1, w)
         n = (r1 - r0 + 1) * (c1 - c0 + 1)
-        sa = sb = saa = sbb = sab = 0.0
+        sum_a = sum_b = sum_aa = sum_bb = sum_ab = 0.0
         @inbounds for c in c0:c1, r in r0:r1
-            x = _value(a[r, c])
-            y = _value(b[r, c])
-            sa += x
-            sb += y
-            saa += x * x
-            sbb += y * y
-            sab += x * y
+            x = pixel_value(a[r, c])
+            y = pixel_value(b[r, c])
+            sum_a += x
+            sum_b += y
+            sum_aa += x * x
+            sum_bb += y * y
+            sum_ab += x * y
         end
-        ma, mb = sa / n, sb / n
-        va = max(saa / n - ma^2, 0.0)
-        vb = max(sbb / n - mb^2, 0.0)
-        cov = sab / n - ma * mb
-        total += ((2ma * mb + _SSIM_C1) * (2cov + _SSIM_C2)) /
-                 ((ma^2 + mb^2 + _SSIM_C1) * (va + vb + _SSIM_C2))
+        mean_a, mean_b = sum_a / n, sum_b / n
+        var_a = max(sum_aa / n - mean_a^2, 0.0)
+        var_b = max(sum_bb / n - mean_b^2, 0.0)
+        cov = sum_ab / n - mean_a * mean_b
+        total += ((2mean_a * mean_b + _SSIM_C1) * (2cov + _SSIM_C2)) /
+                 ((mean_a^2 + mean_b^2 + _SSIM_C1) * (var_a + var_b + _SSIM_C2))
         blocks += 1
     end
     return clamp(total / blocks, -1.0, 1.0)
 end
 
+"Histogram bin (1 to 32) of a value in `[0, 1]`: equal-width bins, `1.0` in the last."
 @inline _hist_bin(v::Float64) = min(unsafe_trunc(Int, clamp(v, 0.0, 1.0) * _HIST_BINS), _HIST_BINS - 1) + 1
-@inline _hist_bin(p) = _hist_bin(_value(p))
+@inline _hist_bin(p) = _hist_bin(pixel_value(p))
 # 8-bit pixels: the bin of every raw byte, computed once with the same formula.
 const _HIST_BIN_N0F8 = ntuple(k -> _hist_bin(Float64(reinterpret(N0f8, UInt8(k - 1)))), 256)
 @inline _hist_bin(p::IntensityPixel{N0f8}) = @inbounds _HIST_BIN_N0F8[Int(reinterpret(p.pixel)) + 1]
 
+"Normalised 32-bin value histogram (sums to `1`)."
 function _histogram(pixels)
     counts = zeros(Int, _HIST_BINS)
     @inbounds for p in pixels
@@ -168,17 +185,21 @@ function _histogram(pixels)
     return counts ./ length(pixels)
 end
 
+"Σ min of the two histograms: `1` for identical value distributions."
 _hist_intersection(a, b) = sum(min.(_histogram(a), _histogram(b)))
+"Bhattacharyya coefficient Σ sqrt(p·q) of the two histograms: `1` for identical distributions."
 _hist_bhattacharyya(a, b) = clamp(sum(sqrt.(_histogram(a) .* _histogram(b))), 0.0, 1.0)
 
-@inline _fg(p, threshold) = _value(p) >= threshold
+"Whether a pixel is foreground (value at or above `threshold`; binary pixels are `0` or `1`)."
+@inline _is_fg(p, threshold) = pixel_value(p) >= threshold
 
+"Foreground counts `(n_a, n_b, n_both)` of the two images."
 function _overlap(a, b, threshold)
-    _check(a, b)
+    _check_same_size(a, b)
     na = nb = nab = 0
     @inbounds for i in eachindex(a)
-        x = _fg(a[i], threshold)
-        y = _fg(b[i], threshold)
+        x = _is_fg(a[i], threshold)
+        y = _is_fg(b[i], threshold)
         na += x
         nb += y
         nab += x & y
@@ -186,56 +207,65 @@ function _overlap(a, b, threshold)
     return na, nb, nab
 end
 
+"Intersection over union of the foregrounds; `1` when both are empty."
 function _iou(a, b, t)
     na, nb, nab = _overlap(a, b, t)
     union = na + nb - nab
     return union == 0 ? 1.0 : nab / union
 end
 
+"Dice coefficient `2|a ∩ b| / (|a| + |b|)`; `1` when both are empty."
 function _dice(a, b, t)
     na, nb, nab = _overlap(a, b, t)
     return na + nb == 0 ? 1.0 : 2nab / (na + nb)
 end
 
+"Share of `a`'s foreground also in `b`'s; `1` when `a` is empty."
 function _coverage(a, b, t)
     na, _, nab = _overlap(a, b, t)
     return na == 0 ? 1.0 : nab / na
 end
 
+"Share of pixels whose foreground status differs."
 function _hamming(a, b, t)
-    _check(a, b)
+    _check_same_size(a, b)
     d = 0
     @inbounds for i in eachindex(a)
-        d += _fg(a[i], t) != _fg(b[i], t)
+        d += _is_fg(a[i], t) != _is_fg(b[i], t)
     end
     return d / length(a)
 end
 
+"""
+Symmetric chamfer distance: the mean distance from `a`'s foreground pixels
+to `b`'s foreground and vice versa, averaged and divided by the image
+diagonal. `0` when both are empty, `1` when only one is.
+"""
 function _chamfer(a, b, t)
-    _check(a, b)
+    _check_same_size(a, b)
     h, w = size(a)
-    fa = scratch(:chamfer_a, Bool, h, w)
-    fb = scratch(:chamfer_b, Bool, h, w)
+    fg_a = scratch(:chamfer_a, Bool, h, w)
+    fg_b = scratch(:chamfer_b, Bool, h, w)
     @inbounds for i in eachindex(a)
-        fa[i] = _fg(a[i], t)
-        fb[i] = _fg(b[i], t)
+        fg_a[i] = _is_fg(a[i], t)
+        fg_b[i] = _is_fg(b[i], t)
     end
-    na, nb = count(fa), count(fb)
+    na, nb = count(fg_a), count(fg_b)
     (na == 0 && nb == 0) && return 0.0
     (na == 0 || nb == 0) && return 1.0
     d = scratch(:chamfer_d, Float64, h, w)
     diagonal = max(hypot(h - 1, w - 1), 1.0)
-    squared_distance_map!(d, fb)                 # distance to b's foreground
-    mean_ab = 0.0
+    squared_distance_map!(d, fg_b)                 # distance to b's foreground
+    total_a_to_b = 0.0
     @inbounds for i in eachindex(d)
-        fa[i] && (mean_ab += sqrt(d[i]))
+        fg_a[i] && (total_a_to_b += sqrt(d[i]))
     end
-    squared_distance_map!(d, fa)                 # distance to a's foreground
-    mean_ba = 0.0
+    squared_distance_map!(d, fg_a)                 # distance to a's foreground
+    total_b_to_a = 0.0
     @inbounds for i in eachindex(d)
-        fb[i] && (mean_ba += sqrt(d[i]))
+        fg_b[i] && (total_b_to_a += sqrt(d[i]))
     end
-    return clamp((mean_ab / na + mean_ba / nb) / (2diagonal), 0.0, 1.0)
+    return clamp((total_a_to_b / na + total_b_to_a / nb) / (2diagonal), 0.0, 1.0)
 end
 
 "Best lag (in pixels) of `q` against `p` by cross-correlation of mean-removed profiles."
@@ -247,14 +277,14 @@ function _best_lag(p::Vector{Float64}, q::Vector{Float64})
     best_lag = 0
     best = -Inf
     for lag in -max_lag:max_lag
-        s = 0.0
+        dot = 0.0
         overlap = 0
         @inbounds for i in max(1, 1 - lag):min(n, n - lag)
-            s += p[i] * q[i+lag]
+            dot += p[i] * q[i+lag]
             overlap += 1
         end
         overlap == 0 && continue
-        score = s / overlap
+        score = dot / overlap
         if score > best + 1e-12
             best = score
             best_lag = lag
@@ -271,7 +301,7 @@ function _profile(axis::Int, pixels)
         @inbounds for c in 1:w
             acc = 0.0
             @simd for r in 1:h
-                acc += _value(pixels[r, c])
+                acc += pixel_value(pixels[r, c])
             end
             profile[c] = acc
         end
@@ -280,33 +310,37 @@ function _profile(axis::Int, pixels)
     profile = zeros(h)
     @inbounds for c in 1:w
         @simd for r in 1:h
-            profile[r] += _value(pixels[r, c])
+            profile[r] += pixel_value(pixels[r, c])
         end
     end
     return profile
 end
 
+"Lag of `b`'s profile against `a`'s along `axis` (1: columns, 2: rows), over the profile length."
 function _shift(axis::Int, a, b)
-    _check(a, b)
-    pa = _profile(axis, a)
-    pb = _profile(axis, b)
-    return _best_lag(pa, pb) / length(pa)
+    _check_same_size(a, b)
+    profile_a = _profile(axis, a)
+    profile_b = _profile(axis, b)
+    return _best_lag(profile_a, profile_b) / length(profile_a)
 end
 
 # ---------------------------------------------------------------------------
 # Template matching
 # ---------------------------------------------------------------------------
 
-"Central (or around `(x, y)`) window of `fraction` of `ref`'s sides."
+"""
+Template values: a window of `fraction` of `ref`'s sides (at least 3 pixels)
+centred on the normalised point `(x, y)`, shifted to stay inside `ref`.
+"""
 function _template(ref::AbstractMatrix, x::Float64, y::Float64, fraction::Float64)
     h, w = size(ref)
-    th = clamp(round(Int, fraction * h), 3, h)
-    tw = clamp(round(Int, fraction * w), 3, w)
-    cr = round(Int, 1 + y * (h - 1))
-    cc = round(Int, 1 + x * (w - 1))
-    r0 = clamp(cr - th ÷ 2, 1, h - th + 1)
-    c0 = clamp(cc - tw ÷ 2, 1, w - tw + 1)
-    return [_value(ref[r, c]) for r in r0:r0+th-1, c in c0:c0+tw-1]
+    tmpl_h = clamp(round(Int, fraction * h), 3, h)
+    tmpl_w = clamp(round(Int, fraction * w), 3, w)
+    centre_r = round(Int, 1 + y * (h - 1))
+    centre_c = round(Int, 1 + x * (w - 1))
+    r0 = clamp(centre_r - tmpl_h ÷ 2, 1, h - tmpl_h + 1)
+    c0 = clamp(centre_c - tmpl_w ÷ 2, 1, w - tmpl_w + 1)
+    return [pixel_value(ref[r, c]) for r in r0:r0+tmpl_h-1, c in c0:c0+tmpl_w-1]
 end
 
 """
@@ -329,9 +363,13 @@ function _correlate_column!(acc::Vector{Float64}, values::Matrix{Float64}, t::Ma
 end
 
 """
-Score candidate rows `1:stride:nr` of column `c0` and fold the best into
-`best`. Window variances come from the integral images `s1`, `s2`; both loops
-are branch-free and vectorise.
+Score the candidate windows with top-left corner `(1 + (k − 1)·stride, c0)`
+and fold the best into `best = (score, row, col)`.
+
+The score is the normalised cross-correlation `Σ t·v / (‖t‖ · sqrt(var))`
+with `t` the mean-removed template (norm `tnorm`) and `var` the window's
+variance times `n`, read from the integral images `s1` (Σ v) and `s2`
+(Σ v²). Flat windows score `-Inf`. Both loops are branch-free and vectorise.
 """
 function _scan_column(best::Tuple{Float64,Int,Int}, acc, scores, values, t, s1, s2, c0, n, tnorm, stride)
     th, tw = size(t)
@@ -370,13 +408,14 @@ function _match(img::AbstractMatrix, template::Matrix{Float64})
     th, tw = size(template)
     (th > h || tw > w) && return (h + 1) / 2, (w + 1) / 2, 0.0
     n = th * tw
-    t = template .- sum(template) / n
+    t = template .- sum(template) / n                   # mean-removed template
     tnorm = sqrt(sum(abs2, t))
     tnorm <= 1e-12 && return (h + 1) / 2, (w + 1) / 2, 0.0
     values = scratch(:match_values, Float64, h, w)
     @inbounds for i in eachindex(values, img)
-        values[i] = _value(img[i])
+        values[i] = pixel_value(img[i])
     end
+    # Integral images with a zero first row and column: s1[r+1, c+1] = Σ values[1:r, 1:c] (s2: of squares).
     s1 = scratch(:match_s1, Float64, h + 1, w + 1)
     s2 = scratch(:match_s2, Float64, h + 1, w + 1)
     s1[1, :] .= 0.0
@@ -388,7 +427,7 @@ function _match(img::AbstractMatrix, template::Matrix{Float64})
         s1[r+1, c+1] = v + s1[r, c+1] + s1[r+1, c] - s1[r, c]
         s2[r+1, c+1] = v * v + s2[r, c+1] + s2[r+1, c] - s2[r, c]
     end
-    nr = h - th + 1
+    nr = h - th + 1                                     # candidate top-left rows 1:nr, columns 1:nc
     nc = w - tw + 1
     stride = max(1, min(th, tw) ÷ 8)
     # Strided row loads only pay off from a step of 3; at 2 the coarse pass
@@ -396,29 +435,32 @@ function _match(img::AbstractMatrix, template::Matrix{Float64})
     row_stride = stride >= 3 ? stride : 1
     acc = scratch(:match_acc, Float64, cld(nr, row_stride))
     scores = scratch(:match_scores, Float64, cld(nr, row_stride))
-    best = (-Inf, 1, 1)
+    best = (-Inf, 1, 1)                                 # (score, top-left row, top-left column)
+    # Coarse pass: every `stride`-th column.
     for c0 in 1:stride:nc
         best = _scan_column(best, acc, scores, values, t, s1, s2, c0, n, tnorm, row_stride)
     end
+    # Fine pass: every row of the columns within one step of the best coarse column.
     if stride > 1 && best[1] > -Inf
         coarse_c = best[3]
         acc = scratch(:match_acc_fine, Float64, nr)
         scores = scratch(:match_scores_fine, Float64, nr)
         for c0 in max(1, coarse_c - stride + 1):min(nc, coarse_c + stride - 1)
-            (c0 == coarse_c && row_stride == 1) && continue
+            (c0 == coarse_c && row_stride == 1) && continue         # already fully scored
             best = _scan_column(best, acc, scores, values, t, s1, s2, c0, n, tnorm, 1)
         end
     end
     best_score, best_r, best_c = best
     best_score == -Inf && return (h + 1) / 2, (w + 1) / 2, 0.0
-    return best_r + (th - 1) / 2, best_c + (tw - 1) / 2, clamp(best_score, -1.0, 1.0)
+    return best_r + (th - 1) / 2, best_c + (tw - 1) / 2, clamp(best_score, -1.0, 1.0)   # centre of the match
 end
 
+"The `what` (`:x`, `:y` or `:score`) of the best match in `img` of the template taken from `ref`."
 function _match_output(what::Symbol, img::AbstractMatrix, ref::AbstractMatrix, x, y, fraction)
     r, c, score = _match(img, _template(ref, x, y, fraction))
     h, w = size(img)
-    what === :x && return _to_unit(c, w)
-    what === :y && return _to_unit(r, h)
+    what === :x && return position_to_unit(c, w)
+    what === :y && return position_to_unit(r, h)
     return score
 end
 
@@ -426,6 +468,7 @@ end
 # Registration
 # ---------------------------------------------------------------------------
 
+"Attach `doc` to the function `name` and register it in `bundle`."
 function _register!(bundle, name::Symbol, description::String, doc::String)
     @eval @doc $doc $name
     append_method!(bundle, getfield(@__MODULE__, name), name; description = description)
@@ -438,7 +481,7 @@ for (name, kernel, what) in (
     )
     @eval begin
         $name(a::_Img, b::_Img, args...) = $kernel(a.img, b.img, nothing)
-        $name(a::_Img, b::_Img, mask::_Mask, args...) = ($(_check)(a, mask); $kernel(a.img, b.img, mask.img))
+        $name(a::_Img, b::_Img, mask::_Mask, args...) = ($(_check_same_size)(a, mask); $kernel(a.img, b.img, mask.img))
     end
     _register!(bundle_number_similarityFromImg, name, what, """
         $name(a, b, [mask], args...)
@@ -452,7 +495,7 @@ for (name, kernel, what) in (
         (:sim_hist_intersection, :_hist_intersection, "Histogram intersection (32 bins), in [0, 1]."),
         (:sim_hist_bhattacharyya, :_hist_bhattacharyya, "Bhattacharyya coefficient of the histograms (32 bins), in [0, 1]."),
     )
-    @eval $name(a::_Img, b::_Img, args...) = ($(_check)(a, b); $kernel(a.img, b.img))
+    @eval $name(a::_Img, b::_Img, args...) = ($(_check_same_size)(a, b); $kernel(a.img, b.img))
     _register!(bundle_number_similarityFromImg, name, what, """
         $name(a, b, args...)
 
@@ -469,7 +512,7 @@ for (name, kernel, what) in (
     )
     @eval begin
         $name(a::_Img, b::_Img, args...) = $kernel(a.img, b.img, 0.5)
-        $name(a::_Img, b::_Img, threshold::Number, args...) = $kernel(a.img, b.img, _unit(threshold))
+        $name(a::_Img, b::_Img, threshold::Number, args...) = $kernel(a.img, b.img, clamp_unit(threshold))
     end
     _register!(bundle_number_similarityFromImg, name, what, """
         $name(a, b, [threshold], args...)
@@ -503,7 +546,7 @@ for (suffix, fraction) in ((:_10p, 0.10), (:_20p, 0.20), (:_30p, 0.30))
             $name(img::_Img, ref::_Img, args...) =
                 _match_output($(QuoteNode(what)), img.img, ref.img, 0.5, 0.5, $fraction)
             $name(img::_Img, ref::_Img, s::Number, args...) =
-                (u = _unit(s); _match_output($(QuoteNode(what)), img.img, ref.img, u, u, $fraction))
+                (u = clamp_unit(s); _match_output($(QuoteNode(what)), img.img, ref.img, u, u, $fraction))
         end
         _register!(bundle_number_templateFromImg, name,
             "Template matching ($pct% template): $doc.", """

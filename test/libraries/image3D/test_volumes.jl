@@ -109,6 +109,29 @@ using Statistics: quantile, mean, std
     iop(name) = bundle_image3DIntensity_volume_factory[name].fn(I)
     bop(name) = bundle_image3DBinary_volume_factory[name].fn(B)
 
+    @testset "Basic volume bundles" begin
+        for (bundle, T, proto) in ((bundle_image3DIntensity_volume_basic_factory, I, vol),
+                                   (bundle_image3DBinary_volume_basic_factory, B, mask))
+            # Search convention: identity first, then a constant taking no input.
+            @test bundle[1].name == :vol_identity
+            @test bundle[2].name == :vol_ones
+            @test _v_call(bundle[1].fn(T), proto) === proto
+            ones_vol = _v_call(bundle[2].fn(T))
+            @test ones_vol isa T
+            @test all(isone, _v_values(ones_vol))
+            @test _v_call(bundle[2].fn(T), proto, 0.3) isa T          # extra inputs are ignored
+            @test !any(!iszero, _v_values(_v_call(bundle[:vol_zeros].fn(T))))
+        end
+        as_intensity = _v_call(bundle_image3DIntensity_volume_basic_factory[:vol_from_mask].fn(I), mask)
+        @test as_intensity isa I
+        @test _v_values(as_intensity) == Float64.(_v_bits(mask))
+        # The 3D → 3D getters put the basic bundle first.
+        for getter in (UTCGP.get_extension_volume_intensityimg, UTCGP.get_extension_volume_binaryimg)
+            basic = first(getter())
+            @test basic[1].name == :vol_identity && basic[2].name == :vol_ones
+        end
+    end
+
     @testset "3D → 3D intensity" begin
         v = _v_values(vol)
         @test _v_close(_v_values(_v_call(iop(:vol_invert), vol)), 1 .- v, 0.003)
@@ -180,6 +203,13 @@ using Statistics: quantile, mean, std
         @test applied == _v_values(vol) .* plane
         side = rand(MersenneTwister(4), 24, 16) .> 0.5          # (x, z) plane for the y axis
         @test all(_v_bits(_v_call(bop(:vol_extrude_y), _v_binary(side)))[k, :, :] == side for k in 1:20)
+        # Each operator has only its own methods: mask2d needs a volume, extrude takes the 2D image alone.
+        @test !_v_call(hasmethod, bop(:vol_mask2d_z), Tuple{typeof(_v_binary(plane))})
+        @test !_v_call(hasmethod, bop(:vol_extrude_z), Tuple{typeof(mask),typeof(_v_binary(plane))})
+        # Segment images have no method (the kernels only read intensity or binary pixels).
+        segments = SImageND(SegmentPixel{UInt8}.(rand(MersenneTwister(5), UInt8(1):UInt8(3), 20, 24)))
+        @test !_v_call(hasmethod, bop(:vol_extrude_z), Tuple{typeof(segments)})
+        @test !_v_call(hasmethod, iop(:vol_mask2d_z), Tuple{typeof(vol),typeof(segments)})
     end
 
     @testset "3D → 2D" begin
@@ -211,6 +241,9 @@ using Statistics: quantile, mean, std
             @test _v_bits(_v_call(g(:proj_any), vol, 0.7)) == dropdims(any(v .>= 0.7; dims = a); dims = a)
             @test _v_bits(_v_call(g(:proj_all), mask)) == dropdims(all(m; dims = a); dims = a)
             @test _v_bits(_v_call(g(:slice_largest), mask)) == selectdim(m, a, argmax(counts))
+            # Operators keep their own methods: slice_largest ignores a scalar (it once ran proj_any's).
+            @test _v_bits(_v_call(g(:slice_largest), vol, 0.7)) == _v_bits(_v_call(g(:slice_largest), vol))
+            @test _v_bits(_v_call(g(:proj_any), vol, 0.7)) == dropdims(any(v .>= 0.7; dims = a); dims = a)
         end
     end
 

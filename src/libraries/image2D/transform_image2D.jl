@@ -9,6 +9,19 @@ mask-driven canonical poses.
 - bundle_image2DSegment_transform_factory
 
 The exhaustive operator list is on the Bundle Catalogue page.
+
+# How this file is organised
+
+Each operator is a *kernel* on pixel matrices (`Matrix{P} -> Matrix{P}`)
+wrapped by a *factory*. A factory is a function of the output image type `I`;
+it defines the operator's methods for `I` and returns the function. There
+are four method shapes (see each `_*_factory`): image only, image and one
+scalar, image and a point, image and a mask.
+
+Arbitrary transforms go through `_warp`, which maps each *output* pixel back
+to a *source* position (inverse mapping, so every output pixel gets exactly
+one value), then samples there: bilinearly for intensity images, nearest
+neighbour otherwise.
 """
 module image2D_transform
 
@@ -25,8 +38,8 @@ using ..UTCGP:
     _get_image_tuple_size,
     _get_image_type,
     _validate_factory_type
-using ..image2D_object_common: IsSet, AtLeast, _unit
-using ..image2D_zoom: _store, _zero
+using ..image2D_object_common: IsSet, AtLeast, clamp_unit
+using ..image2D_zoom: to_storage, zero_pixel
 
 fallback(args...) = return nothing
 
@@ -89,61 +102,69 @@ const bundle_image2DSegment_transform_factory = FunctionBundle(fallback)
 # ---------------------------------------------------------------------------
 
 """
-Resample `src` through `source_of(i, j) -> (row, col)`, a map from each output
-pixel to a continuous source position. Out-of-image samples are zero.
+    _warp(src, source_of) -> Matrix
+
+Resample `src` through `source_of(i, j) -> (row, col)`, which maps each
+output pixel to a continuous source position (pixel centres at integers).
+Out-of-image samples are zero.
+
+This method (binary and segment pixels) takes the nearest source pixel.
 Positions are range-checked as floats first, so the integer conversions need
 no overflow checks.
 """
 function _warp(src::AbstractMatrix{P}, source_of::F) where {P,F}
     h, w = size(src)
     out = similar(src)
-    z = _zero(P)
+    zero = zero_pixel(P)
     @inbounds for j in 1:w, i in 1:h
         r, c = source_of(i, j)
         if 0.5 <= r < h + 0.5 && 0.5 <= c < w + 0.5
             ri = unsafe_trunc(Int, round(r))
             ci = unsafe_trunc(Int, round(c))
-            out[i, j] = (1 <= ri <= h && 1 <= ci <= w) ? src[ri, ci] : z
+            out[i, j] = (1 <= ri <= h && 1 <= ci <= w) ? src[ri, ci] : zero
         else
-            out[i, j] = z
+            out[i, j] = zero
         end
     end
     return out
 end
 
+"Bilinear `_warp` for intensity images: pixels outside the image count as `0` in the interpolation."
 function _warp(src::AbstractMatrix{IntensityPixel{T}}, source_of::F) where {T,F}
     h, w = size(src)
     out = similar(src)
-    zero_pixel = IntensityPixel{T}(_store(T, 0.0))
+    zero = IntensityPixel{T}(to_storage(T, 0.0))
     @inline value(r, c) = (1 <= r <= h && 1 <= c <= w) ? Float64(src[r, c].pixel) : 0.0
     @inbounds for j in 1:w, i in 1:h
         r, c = source_of(i, j)
         if !(0.0 < r < h + 1.0 && 0.0 < c < w + 1.0)
-            out[i, j] = zero_pixel
+            out[i, j] = zero
             continue
         end
         r0 = unsafe_trunc(Int, r)             # r > 0, so truncation is floor
         c0 = unsafe_trunc(Int, c)
-        fr = r - r0
-        fc = c - c0
+        frac_r = r - r0                       # weights of the next row / column
+        frac_c = c - c0
+        # The four surrounding pixels; the bounds-checked path only near the border.
         if 1 <= r0 < h && 1 <= c0 < w
-            v_aa = Float64(src[r0, c0].pixel)
-            v_ab = Float64(src[r0, c0+1].pixel)
-            v_ba = Float64(src[r0+1, c0].pixel)
-            v_bb = Float64(src[r0+1, c0+1].pixel)
+            top_left = Float64(src[r0, c0].pixel)
+            top_right = Float64(src[r0, c0+1].pixel)
+            bottom_left = Float64(src[r0+1, c0].pixel)
+            bottom_right = Float64(src[r0+1, c0+1].pixel)
         else
-            v_aa = value(r0, c0)
-            v_ab = value(r0, c0 + 1)
-            v_ba = value(r0 + 1, c0)
-            v_bb = value(r0 + 1, c0 + 1)
+            top_left = value(r0, c0)
+            top_right = value(r0, c0 + 1)
+            bottom_left = value(r0 + 1, c0)
+            bottom_right = value(r0 + 1, c0 + 1)
         end
-        top = v_aa + fc * (v_ab - v_aa)
-        bottom = v_ba + fc * (v_bb - v_ba)
-        out[i, j] = IntensityPixel{T}(_store(T, top + fr * (bottom - top)))
+        top = top_left + frac_c * (top_right - top_left)
+        bottom = bottom_left + frac_c * (bottom_right - bottom_left)
+        out[i, j] = IntensityPixel{T}(to_storage(T, top + frac_r * (bottom - top)))
     end
     return out
 end
 
+"Mirror left-right."
 function _flip_h(src::AbstractMatrix)
     h, w = size(src)
     out = similar(src)
@@ -153,6 +174,7 @@ function _flip_h(src::AbstractMatrix)
     return out
 end
 
+"Mirror top-bottom."
 function _flip_v(src::AbstractMatrix)
     h, w = size(src)
     out = similar(src)
@@ -162,6 +184,7 @@ function _flip_v(src::AbstractMatrix)
     return out
 end
 
+"Rotate by 180° (both mirrors)."
 function _rotate_180(src::AbstractMatrix)
     h, w = size(src)
     out = similar(src)
@@ -171,7 +194,7 @@ function _rotate_180(src::AbstractMatrix)
     return out
 end
 
-"Rotate 90° (k = 1) or 270° (k = 3) counter-clockwise on screen, stretched back to size."
+"Rotate 90° (`k = 1`) or 270° (`k = 3`) counter-clockwise on screen, stretched back to size."
 function _rotate_quarter(src::AbstractMatrix, k::Int)
     h, w = size(src)
     if h == w
@@ -190,164 +213,200 @@ function _rotate_quarter(src::AbstractMatrix, k::Int)
     end)
 end
 
-"Rotate by `turns` (fraction of a full turn, counter-clockwise on screen) about `(cr, cc)`, then put that point at `(tr, tc)`."
-function _rotate(src::AbstractMatrix, turns::Float64, cr::Float64, cc::Float64, tr::Float64, tc::Float64)
-    s, c = sincospi(2turns)
+"""
+    _rotate(src, turns, centre_r, centre_c, target_r, target_c)
+
+Rotate by `turns` (fraction of a full turn, counter-clockwise on screen)
+about the source point `(centre_r, centre_c)`, which ends up at
+`(target_r, target_c)` in the output.
+"""
+function _rotate(src::AbstractMatrix, turns::Float64, centre_r::Float64, centre_c::Float64, target_r::Float64, target_c::Float64)
+    sin_a, cos_a = sincospi(2turns)
     return _warp(src, (i, j) -> begin
-        dy = i - tr
-        dx = j - tc
+        dy = i - target_r
+        dx = j - target_c
         # Inverse of a counter-clockwise screen rotation (rows point down):
         # rotate the output offset clockwise to find its source.
-        (cr + c * dy + s * dx, cc + c * dx - s * dy)
+        (centre_r + cos_a * dy + sin_a * dx, centre_c + cos_a * dx - sin_a * dy)
     end)
 end
 
+"Rotate by `turns` about the image centre."
 _rotate(src::AbstractMatrix, turns::Float64) =
     (h = size(src, 1); w = size(src, 2); _rotate(src, turns, (h + 1) / 2, (w + 1) / 2, (h + 1) / 2, (w + 1) / 2))
 
-@inline _offset(u::Float64, n::Int) = round(Int, (u - 0.5) * n)
+"Shift in pixels for parameter `u` along an axis of length `n`: `round((u − 0.5) · n)`."
+@inline _shift_amount(u::Float64, n::Int) = round(Int, (u - 0.5) * n)
 
+"Translate by `_shift_amount(dx, w)` columns and `_shift_amount(dy, h)` rows; zero fill, or wrap around when `wrap`."
 function _shift(src::AbstractMatrix{P}, dx::Float64, dy::Float64, wrap::Bool) where {P}
     h, w = size(src)
-    oc = _offset(dx, w)
-    or = _offset(dy, h)
+    col_shift = _shift_amount(dx, w)
+    row_shift = _shift_amount(dy, h)
     out = similar(src)
-    z = _zero(P)
+    zero = zero_pixel(P)
     @inbounds for j in 1:w
-        c = j - oc
+        c = j - col_shift                       # source column
         if wrap
             c = mod1(c, w)
-            shift = mod(or, h)                  # 0 ≤ shift < h
+            shift = mod(row_shift, h)           # 0 ≤ shift < h, so r ≥ 1 - h
             for i in 1:h
                 r = i - shift
                 out[i, j] = src[r < 1 ? r + h : r, c]
             end
         elseif 1 <= c <= w
             for i in 1:h
-                r = i - or
-                out[i, j] = (1 <= r <= h) ? src[r, c] : z
+                r = i - row_shift
+                out[i, j] = (1 <= r <= h) ? src[r, c] : zero
             end
-        else
+        else                                    # source column outside the image
             for i in 1:h
-                out[i, j] = z
+                out[i, j] = zero
             end
         end
     end
     return out
 end
 
-"Foreground count, centroid and central second moments of `mask`."
+"""
+    _foreground_moments(mask, is_foreground) -> (n, mean_r, mean_c, var_rr, var_cc, cov_rc)
+
+Foreground pixel count, centroid and central second moments of `mask`
+(all zeros when empty).
+"""
 function _foreground_moments(mask::AbstractMatrix, is_foreground::P) where {P}
     n = 0
-    sr = sc = srr = scc = src_ = 0.0
+    sum_r = sum_c = sum_rr = sum_cc = sum_rc = 0.0
     @inbounds for c in axes(mask, 2), r in axes(mask, 1)
         is_foreground(mask[r, c]) || continue
         n += 1
-        sr += r
-        sc += c
-        srr += r * r
-        scc += c * c
-        src_ += r * c
+        sum_r += r
+        sum_c += c
+        sum_rr += r * r
+        sum_cc += c * c
+        sum_rc += r * c
     end
     n == 0 && return 0, 0.0, 0.0, 0.0, 0.0, 0.0
-    mr, mc = sr / n, sc / n
-    return n, mr, mc, srr / n - mr^2, scc / n - mc^2, src_ / n - mr * mc
+    mean_r, mean_c = sum_r / n, sum_c / n
+    return n, mean_r, mean_c, sum_rr / n - mean_r^2, sum_cc / n - mean_c^2, sum_rc / n - mean_r * mean_c
 end
 
-"Main-axis angle in turns, counter-clockwise on screen from the +x axis."
-function _axis_turns(v_rr, v_cc, v_rc)
-    abs(v_cc - v_rr) + 2abs(v_rc) <= 1e-9 * (v_rr + v_cc + 1e-12) && return 0.0
-    θ = 0.5 * atan(2v_rc, v_cc - v_rr)        # towards +rows, i.e. clockwise on screen
+"Main-axis angle in turns, counter-clockwise on screen from the +x axis (`0` for an isotropic shape)."
+function _axis_turns(var_rr, var_cc, cov_rc)
+    abs(var_cc - var_rr) + 2abs(cov_rc) <= 1e-9 * (var_rr + var_cc + 1e-12) && return 0.0
+    θ = 0.5 * atan(2cov_rc, var_cc - var_rr)    # towards +rows, i.e. clockwise on screen
     return -θ / 2π
 end
 
+"Rotate so the mask's main axis is horizontal, about the image centre, or (when `recenter`) about the mask's centroid, moved to the centre."
 function _align(src::AbstractMatrix, mask::AbstractMatrix, is_foreground, recenter::Bool)
-    n, mr, mc, v_rr, v_cc, v_rc = _foreground_moments(mask, is_foreground)
+    n, mean_r, mean_c, var_rr, var_cc, cov_rc = _foreground_moments(mask, is_foreground)
     n == 0 && return src
     h, w = size(src)
-    turns = -_axis_turns(v_rr, v_cc, v_rc)
+    turns = -_axis_turns(var_rr, var_cc, cov_rc)
     if recenter
-        return _rotate(src, turns, mr, mc, (h + 1) / 2, (w + 1) / 2)
+        return _rotate(src, turns, mean_r, mean_c, (h + 1) / 2, (w + 1) / 2)
     end
     return _rotate(src, turns)
 end
 
+"Mirror across `axis` (2: left-right, 1: top-bottom) when the mask's centroid is past the middle."
 function _flip_if(src::AbstractMatrix, mask::AbstractMatrix, is_foreground, axis::Int)
-    n, mr, mc, _, _, _ = _foreground_moments(mask, is_foreground)
+    n, mean_r, mean_c, _, _, _ = _foreground_moments(mask, is_foreground)
     n == 0 && return src
     h, w = size(src)
     if axis == 2
-        return mc > (w + 1) / 2 ? _flip_h(src) : src
+        return mean_c > (w + 1) / 2 ? _flip_h(src) : src
     end
-    return mr > (h + 1) / 2 ? _flip_v(src) : src
+    return mean_r > (h + 1) / 2 ? _flip_v(src) : src
 end
 
 # ---------------------------------------------------------------------------
 # Factories
 # ---------------------------------------------------------------------------
 
+"The bundle of a pixel kind."
 _bundle_for(::Type{<:IntensityPixel}) = bundle_image2DIntensity_transform_factory
 _bundle_for(::Type{<:BinaryPixel}) = bundle_image2DBinary_transform_factory
 _bundle_for(::Type{<:SegmentPixel}) = bundle_image2DSegment_transform_factory
 
-function _prelude(::Type{I}, operator::Symbol) where {I}
-    IT = _get_image_type(I)
-    _validate_factory_type(IT)
+"""
+    _factory_setup(I, operator) -> (pixel_type, size_type, function_name)
+
+Validate the output type `I` and return its pixel type, its size as a tuple
+type, and the name of the specialised function.
+"""
+function _factory_setup(::Type{I}, operator::Symbol) where {I}
+    _validate_factory_type(_get_image_type(I))
     return _get_image_pixel_type(I), _get_image_tuple_size(I), Symbol(operator, :_, Symbol(I))
 end
 
-"`kernel(src)`; signature `(img)`."
+"Method `op(img)` → `kernel(pixels)`."
 function _plain_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
-    _, S, name = _prelude(I, operator)
-    return @eval function $name(src::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND($kernel(src.img), $S)
+    _, size_type, name = _factory_setup(I, operator)
+    return @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        return SImageND($kernel(src.img), $size_type)
     end
 end
 
-"`kernel(src, u)`; signature `(img, u)`."
+"Method `op(img, u)` → `kernel(pixels, clamp_unit(u))`."
 function _scalar_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
-    _, S, name = _prelude(I, operator)
-    return @eval function $name(src::CONCT, u::Real, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND($kernel(src.img, _unit(u)), $S)
+    _, size_type, name = _factory_setup(I, operator)
+    return @eval function $name(src::Source, u::Real, args::Vararg{Any}) where {Source<:$I}
+        return SImageND($kernel(src.img, clamp_unit(u)), $size_type)
     end
 end
 
-"`kernel(src, x, y)`; signatures `(img, s)` (x = y = s) and `(img, x, y)`."
+"Methods `op(img, x, y)` → `kernel(pixels, x, y)` and `op(img, s)` → `kernel(pixels, s, s)` (clamped to `[0, 1]`)."
 function _point_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
-    _, S, name = _prelude(I, operator)
-    fn = @eval function $name(src::CONCT, x::Real, y::Real, args::Vararg{Any}) where {CONCT<:$I}
-        return SImageND($kernel(src.img, _unit(x), _unit(y)), $S)
+    _, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(src::Source, x::Real, y::Real, args::Vararg{Any}) where {Source<:$I}
+        return SImageND($kernel(src.img, clamp_unit(x), clamp_unit(y)), $size_type)
     end
-    @eval function $name(src::CONCT, s::Real, args::Vararg{Any}) where {CONCT<:$I}
-        u = _unit(s)
-        return SImageND($kernel(src.img, u, u), $S)
+    @eval function $name(src::Source, s::Real, args::Vararg{Any}) where {Source<:$I}
+        u = clamp_unit(s)
+        return SImageND($kernel(src.img, u, u), $size_type)
     end
     return fn
 end
 
-"`kernel(src, mask, is_foreground)`; signatures `(img, mask)` and `(img)`."
+"""
+Mask-driven methods, each calling `kernel(pixels, mask_pixels, is_foreground)`:
+
+- `op(img, binary_mask)` with `is_foreground = IsSet()`;
+- `op(img, saliency)` (intensity map) with `AtLeast(0.5)`;
+- `op(img)` using the image as its own mask — binary and intensity images
+  only (a segment map has no foreground of its own).
+"""
 function _mask_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
-    PT, S, name = _prelude(I, operator)
-    fn = @eval function $name(src::CONCT, mask::MASK, args::Vararg{Any}) where {CONCT<:$I,BT,MASK<:SizedImage{$S,BinaryPixel{BT}}}
-        return SImageND($kernel(src.img, mask.img, IsSet()), $S)
+    pixel_type, size_type, name = _factory_setup(I, operator)
+    fn = @eval function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+        return SImageND($kernel(src.img, mask.img, IsSet()), $size_type)
     end
-    @eval function $name(src::CONCT, saliency::SAL, args::Vararg{Any}) where {CONCT<:$I,ST,SAL<:SizedImage{$S,IntensityPixel{ST}}}
-        return SImageND($kernel(src.img, saliency.img, AtLeast(0.5)), $S)
+    @eval function $name(src::Source, saliency::Saliency, args::Vararg{Any}) where {Source<:$I,SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
+        return SImageND($kernel(src.img, saliency.img, AtLeast(0.5)), $size_type)
     end
-    if PT <: BinaryPixel
-        @eval function $name(src::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-            return SImageND($kernel(src.img, src.img, IsSet()), $S)
+    if pixel_type <: BinaryPixel
+        @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+            return SImageND($kernel(src.img, src.img, IsSet()), $size_type)
         end
-    elseif PT <: IntensityPixel
-        @eval function $name(src::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-            return SImageND($kernel(src.img, src.img, AtLeast(0.5)), $S)
+    elseif pixel_type <: IntensityPixel
+        @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+            return SImageND($kernel(src.img, src.img, AtLeast(0.5)), $size_type)
         end
     end
     return fn
 end
 
+# ---------------------------------------------------------------------------
+# Registration
+# ---------------------------------------------------------------------------
+
+"`output_type -> factory(output_type, operator, kernel)`; a function so each closure captures its own arguments."
 _builder(factory, operator::Symbol, kernel) = I -> factory(I, operator, kernel)
 
+# (operator, factory, kernel, description). Kernel arguments follow the factory:
+# plain (pixels), scalar (pixels, u), point (pixels, x, y), mask (pixels, mask_pixels, is_foreground).
 const _OPERATORS = (
     (:transform_flip_h, _plain_factory, src -> _flip_h(src), "Mirrors left-right."),
     (:transform_flip_v, _plain_factory, src -> _flip_v(src), "Mirrors top-bottom."),
@@ -372,6 +431,8 @@ const _OPERATORS = (
         "Moves the mask's centroid to the centre and its main axis to horizontal."),
 )
 
+# One factory per operator, shared by the three bundles: the pixel kind comes
+# from the output type the factory is specialised with.
 for (operator, factory, kernel, description) in _OPERATORS
     factory_name = Symbol(operator, :_image2D_factory)
     builder = _builder(factory, operator, kernel)

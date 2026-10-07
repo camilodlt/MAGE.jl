@@ -67,8 +67,10 @@ const extension_descriptors_nb = [
     bundle_number_objectStatsFromImg,
     bundle_number_granulometryFromImg,
 ]
-const extension_volume_intensityimg = [bundle_image3DIntensity_volume_factory]
-const extension_volume_binaryimg = [bundle_image3DBinary_volume_factory]
+# The basic bundles come first: identity at index 1 and the input-free constant
+# at index 2, which node correction and mutation fall back to.
+const extension_volume_intensityimg = [bundle_image3DIntensity_volume_basic_factory, bundle_image3DIntensity_volume_factory]
+const extension_volume_binaryimg = [bundle_image3DBinary_volume_basic_factory, bundle_image3DBinary_volume_factory]
 const extension_volume_to_intensityimg = [bundle_image2DIntensity_fromVolume_factory]
 const extension_volume_to_binaryimg = [bundle_image2DBinary_fromVolume_factory]
 const extension_volume_nb = [
@@ -256,16 +258,19 @@ get_extension_descriptors_nb() = [deepcopy(b) for b in extension_descriptors_nb]
 """
     get_extension_volume_intensityimg()
 
-Fresh copies of the 3D → 3D intensity-volume bundle (filters, intensity
-transforms, grey morphology, masking, distance maps, geometry, 2D extrusion).
+Fresh copies of the 3D → 3D intensity-volume bundles: the basic bundle first
+(identity, then the input-free `vol_ones`, `vol_zeros`, `vol_from_mask`), then
+filters, intensity transforms, grey morphology, masking, distance maps,
+geometry and 2D extrusion.
 """
 get_extension_volume_intensityimg() = [deepcopy(b) for b in extension_volume_intensityimg]
 
 """
     get_extension_volume_binaryimg()
 
-Fresh copies of the 3D → 3D binary-volume bundle (binarisation, binary
-morphology, 3D mask clean-up, logic, geometry, 2D extrusion).
+Fresh copies of the 3D → 3D binary-volume bundles: the basic bundle first
+(identity, then the input-free `vol_ones`, `vol_zeros`), then binarisation,
+binary morphology, 3D mask clean-up, logic, geometry and 2D extrusion.
 """
 get_extension_volume_binaryimg() = [deepcopy(b) for b in extension_volume_binaryimg]
 

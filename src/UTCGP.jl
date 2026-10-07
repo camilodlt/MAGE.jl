@@ -599,6 +599,12 @@ module UTCGP
     # VOLUMES (3D grayscale)
     include("libraries/image3D/volume_common.jl")
     include("libraries/image3D/volume_image3D.jl")
+    include("libraries/image3D/volume_basic_image3D.jl")
+    import .image3D_volume_basic:
+        bundle_image3DIntensity_volume_basic_factory,
+        bundle_image3DBinary_volume_basic_factory
+    export bundle_image3DIntensity_volume_basic_factory,
+        bundle_image3DBinary_volume_basic_factory
     import .image3D_volume:
         bundle_image3DIntensity_volume_factory,
         bundle_image3DBinary_volume_factory

@@ -41,7 +41,8 @@ borders `0` and `1` (a Pong ball).
 """
 bundle_number_motion = FunctionBundle(fallback)
 
-@inline _f(x::Number) = Float64(x)
+"Every operator computes in `Float64`, whatever number type it is given."
+@inline _float(x::Number) = Float64(x)
 
 # ---------------------------------------------------------------------------
 # Shaping
@@ -52,21 +53,21 @@ bundle_number_motion = FunctionBundle(fallback)
 
 `|a|`.
 """
-number_abs(a::Number, args...) = abs(_f(a))
+number_abs(a::Number, args...) = abs(_float(a))
 
 """
     number_sign(a, args...)
 
 `-1.0`, `0.0` or `1.0`.
 """
-number_sign(a::Number, args...) = sign(_f(a))
+number_sign(a::Number, args...) = sign(_float(a))
 
 """
     number_clamp01(a, args...)
 
 `a` clamped to `[0, 1]`.
 """
-number_clamp01(a::Number, args...) = clamp(_f(a), 0.0, 1.0)
+number_clamp01(a::Number, args...) = clamp(_float(a), 0.0, 1.0)
 
 """
     number_clamp(a, lo, hi, args...)
@@ -74,8 +75,8 @@ number_clamp01(a::Number, args...) = clamp(_f(a), 0.0, 1.0)
 `a` clamped to `[min(lo, hi), max(lo, hi)]`.
 """
 function number_clamp(a::Number, lo::Number, hi::Number, args...)
-    l, h = minmax(_f(lo), _f(hi))
-    return clamp(_f(a), l, h)
+    lower, upper = minmax(_float(lo), _float(hi))
+    return clamp(_float(a), lower, upper)
 end
 
 """
@@ -83,8 +84,8 @@ end
 
 `1.0` when `a >= t` (default `0`), else `0.0`.
 """
-number_step(a::Number, t::Number, args...) = _f(a) >= _f(t) ? 1.0 : 0.0
-number_step(a::Number, args...) = _f(a) >= 0.0 ? 1.0 : 0.0
+number_step(a::Number, t::Number, args...) = _float(a) >= _float(t) ? 1.0 : 0.0
+number_step(a::Number, args...) = _float(a) >= 0.0 ? 1.0 : 0.0
 
 """
     number_deadzone(a, w, args...)
@@ -92,7 +93,7 @@ number_step(a::Number, args...) = _f(a) >= 0.0 ? 1.0 : 0.0
 `0.0` while `|a| < |w|`, otherwise `a`. Stops a controller from jittering
 around its target.
 """
-number_deadzone(a::Number, w::Number, args...) = abs(_f(a)) < abs(_f(w)) ? 0.0 : _f(a)
+number_deadzone(a::Number, w::Number, args...) = abs(_float(a)) < abs(_float(w)) ? 0.0 : _float(a)
 
 """
     number_band(a, lo, hi, args...)
@@ -100,8 +101,8 @@ number_deadzone(a::Number, w::Number, args...) = abs(_f(a)) < abs(_f(w)) ? 0.0 :
 `1.0` when `a` lies between `lo` and `hi` (any order), else `0.0`.
 """
 function number_band(a::Number, lo::Number, hi::Number, args...)
-    l, h = minmax(_f(lo), _f(hi))
-    return l <= _f(a) <= h ? 1.0 : 0.0
+    lower, upper = minmax(_float(lo), _float(hi))
+    return lower <= _float(a) <= upper ? 1.0 : 0.0
 end
 
 """
@@ -111,9 +112,9 @@ Smooth `0 → 1` transition as `a` goes from `lo` to `hi` (cubic Hermite);
 `0.5` when `lo == hi`.
 """
 function number_smoothstep(a::Number, lo::Number, hi::Number, args...)
-    l, h = _f(lo), _f(hi)
-    l == h && return 0.5
-    t = clamp((_f(a) - l) / (h - l), 0.0, 1.0)
+    lower, upper = _float(lo), _float(hi)
+    lower == upper && return 0.5
+    t = clamp((_float(a) - lower) / (upper - lower), 0.0, 1.0)
     return t * t * (3.0 - 2.0t)
 end
 
@@ -126,21 +127,21 @@ end
 
 The smaller of `a` and `b`.
 """
-number_min(a::Number, b::Number, args...) = min(_f(a), _f(b))
+number_min(a::Number, b::Number, args...) = min(_float(a), _float(b))
 
 """
     number_max(a, b, args...)
 
 The larger of `a` and `b`.
 """
-number_max(a::Number, b::Number, args...) = max(_f(a), _f(b))
+number_max(a::Number, b::Number, args...) = max(_float(a), _float(b))
 
 """
     number_mean(a, b, args...)
 
 `(a + b) / 2`, e.g. the midpoint between two objects.
 """
-number_mean(a::Number, b::Number, args...) = (_f(a) + _f(b)) / 2
+number_mean(a::Number, b::Number, args...) = (_float(a) + _float(b)) / 2
 
 """
     number_median3(a, b, c, args...)
@@ -148,7 +149,7 @@ number_mean(a::Number, b::Number, args...) = (_f(a) + _f(b)) / 2
 The middle value of three: a robust vote between three estimates.
 """
 function number_median3(a::Number, b::Number, c::Number, args...)
-    x, y, z = _f(a), _f(b), _f(c)
+    x, y, z = _float(a), _float(b), _float(c)
     return max(min(x, y), min(max(x, y), z))
 end
 
@@ -157,14 +158,14 @@ end
 
 `1.0` when `a > b`, else `0.0`.
 """
-number_gt(a::Number, b::Number, args...) = _f(a) > _f(b) ? 1.0 : 0.0
+number_gt(a::Number, b::Number, args...) = _float(a) > _float(b) ? 1.0 : 0.0
 
 """
     number_lt(a, b, args...)
 
 `1.0` when `a < b`, else `0.0`.
 """
-number_lt(a::Number, b::Number, args...) = _f(a) < _f(b) ? 1.0 : 0.0
+number_lt(a::Number, b::Number, args...) = _float(a) < _float(b) ? 1.0 : 0.0
 
 """
     number_closer(a, b, ref, args...)
@@ -172,7 +173,7 @@ number_lt(a::Number, b::Number, args...) = _f(a) < _f(b) ? 1.0 : 0.0
 Whichever of `a` and `b` is closer to `ref` (`a` on ties).
 """
 number_closer(a::Number, b::Number, ref::Number, args...) =
-    abs(_f(a) - _f(ref)) <= abs(_f(b) - _f(ref)) ? _f(a) : _f(b)
+    abs(_float(a) - _float(ref)) <= abs(_float(b) - _float(ref)) ? _float(a) : _float(b)
 
 """
     number_argmax3(a, b, c, args...)
@@ -181,7 +182,7 @@ Which of three values is largest, as `0.0`, `0.5` or `1.0` (first on ties).
 Useful to pick one of three actions.
 """
 function number_argmax3(a::Number, b::Number, c::Number, args...)
-    x, y, z = _f(a), _f(b), _f(c)
+    x, y, z = _float(a), _float(b), _float(c)
     x >= y && x >= z && return 0.0
     y >= z && return 0.5
     return 1.0
@@ -200,17 +201,17 @@ greater, `-1.0` when smaller, `0.0` when they are within `deadzone` (default
 move.
 """
 function number_toward(target::Number, current::Number, deadzone::Number, args...)
-    d = _f(target) - _f(current)
-    return abs(d) <= abs(_f(deadzone)) ? 0.0 : sign(d)
+    d = _float(target) - _float(current)
+    return abs(d) <= abs(_float(deadzone)) ? 0.0 : sign(d)
 end
-number_toward(target::Number, current::Number, args...) = sign(_f(target) - _f(current))
+number_toward(target::Number, current::Number, args...) = sign(_float(target) - _float(current))
 
 """
     number_lerp(a, b, t, args...)
 
 `a + t (b − a)`: `a` at `t = 0`, `b` at `t = 1`.
 """
-number_lerp(a::Number, b::Number, t::Number, args...) = _f(a) + _f(t) * (_f(b) - _f(a))
+number_lerp(a::Number, b::Number, t::Number, args...) = _float(a) + _float(t) * (_float(b) - _float(a))
 
 # ---------------------------------------------------------------------------
 # Motion and geometry
@@ -222,7 +223,7 @@ number_lerp(a::Number, b::Number, t::Number, args...) = _f(a) + _f(t) * (_f(b) -
 Euclidean length `sqrt(dx² + dy²)`, e.g. the distance between two objects from
 `obj_dx_*` and `obj_dy_*`.
 """
-number_dist(dx::Number, dy::Number, args...) = hypot(_f(dx), _f(dy))
+number_dist(dx::Number, dy::Number, args...) = hypot(_float(dx), _float(dy))
 
 """
     number_angle(dx, dy, args...)
@@ -231,7 +232,7 @@ Direction of `(dx, dy)` as a fraction of a turn in `[0, 1)`: `0` points to
 `+x`, `0.25` to `+y` (down in image coordinates).
 """
 function number_angle(dx::Number, dy::Number, args...)
-    θ = atan(_f(dy), _f(dx))
+    θ = atan(_float(dy), _float(dx))
     return mod(θ / 2π, 1.0)
 end
 
@@ -240,14 +241,14 @@ end
 
 `sin(2π · turns)`: the input is a fraction of a turn, as from `number_angle`.
 """
-number_sin(a::Number, args...) = sinpi(2 * _f(a))
+number_sin(a::Number, args...) = sinpi(2 * _float(a))
 
 """
     number_cos(turns, args...)
 
 `cos(2π · turns)`.
 """
-number_cos(a::Number, args...) = cospi(2 * _f(a))
+number_cos(a::Number, args...) = cospi(2 * _float(a))
 
 """
     number_wrap01(a, args...)
@@ -255,7 +256,7 @@ number_cos(a::Number, args...) = cospi(2 * _f(a))
 `a` wrapped into `[0, 1)`: leaving at `1` re-enters at `0` (wrap-around
 playfields).
 """
-number_wrap01(a::Number, args...) = isfinite(_f(a)) ? mod(_f(a), 1.0) : 0.0
+number_wrap01(a::Number, args...) = isfinite(_float(a)) ? mod(_float(a), 1.0) : 0.0
 
 """
     number_reflect01(a, args...)
@@ -264,7 +265,7 @@ number_wrap01(a::Number, args...) = isfinite(_f(a)) ? mod(_f(a), 1.0) : 0.0
 `-0.3 → 0.3`, `2.5 → 0.5`.
 """
 function number_reflect01(a::Number, args...)
-    x = _f(a)
+    x = _float(a)
     isfinite(x) || return 0.0
     m = mod(x, 2.0)
     return m <= 1.0 ? m : 2.0 - m
@@ -275,7 +276,7 @@ end
 
 `p + v · t`: where a point at `p` moving at speed `v` will be after time `t`.
 """
-number_extrapolate(p::Number, v::Number, t::Number, args...) = _f(p) + _f(v) * _f(t)
+number_extrapolate(p::Number, v::Number, t::Number, args...) = _float(p) + _float(v) * _float(t)
 
 """
     number_bounce(p, v, t, args...)
@@ -285,7 +286,7 @@ between `0` and `1`. With `p` the ball's y, `v` its y-speed (e.g. the
 difference of `obj_y_smallest` over two frames) and `t` the time to reach the
 paddle, this predicts where to put the paddle.
 """
-number_bounce(p::Number, v::Number, t::Number, args...) = number_reflect01(_f(p) + _f(v) * _f(t))
+number_bounce(p::Number, v::Number, t::Number, args...) = number_reflect01(_float(p) + _float(v) * _float(t))
 
 # ---------------------------------------------------------------------------
 # Registration
