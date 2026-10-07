@@ -91,6 +91,10 @@ kmoffat = ImageFiltering.Kernel.moffat(1.0, 0.1, 11) # two params
 # also findlocalminima
 
 # Convolution Border Decision ---
+"`x` clamped to `[lo, hi]` as a Float64; `NaN` and `±Inf` give `default`."
+_finite_clamp(x::Real, lo::Float64, hi::Float64, default::Float64) =
+    (v = Float64(x); isfinite(v) ? clamp(v, lo, hi) : default)
+
 function _border_type(border_index::Real)
     how = "replicate" # if b  == 0 # abcdef | ffff (replicates last)
     if border_index < 0
@@ -315,10 +319,12 @@ function dog_factory(i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixe
     FUNCTION_NAME = Symbol(:dog_image2D, :_, Symbol(I))
     f = @eval function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
-        p1, p2 = convert(Float64, clamp(p1_, 0.1, 10)), convert(Float64, clamp(p1_, 0.1, 10))
+        # σ along y (p1) and along x (p2), in pixels, clamped to [0.1, 10]; NaN → 0.5.
+        p1, p2 = _finite_clamp(p1_, 0.1, 10.0, 0.5), _finite_clamp(p2_, 0.1, 10.0, 0.5)
         img_as_float = Matrix{Float64}(undef, s)
         img_as_float .= float64.(img)
         out_float = Matrix{Float64}(undef, s)
+        # G(σ) − G(√2·σ) per axis: a band-pass that highlights blobs about σ pixels wide.
         kernel = ImageFiltering.Kernel.DoG((p1, p2))
         conv!(
             img_as_float,
@@ -346,10 +352,12 @@ function moffat_factories(ksize::Int)
         IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
         S1, S2 = S.parameters[1], S.parameters[2]
         _validate_factory_type(IT)
-        FUNCTION_NAME = Symbol(:moffat_image2D, :_, Symbol(I))
+        # The kernel size is in the name: moffat5, moffat13 and moffat25 must not share a function.
+        FUNCTION_NAME = Symbol(:moffat, ksize, :_image2D, :_, Symbol(I))
         f = @eval function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
             s = ($S1, $S2)
-            p1, p2 = convert(Float64, clamp(p1_, 0.1, 100)), convert(Float64, clamp(p1_, 0.1, 100))
+            # α (core width, p1) and β (fall-off, p2), clamped to [0.1, 100]; NaN → 0.5.
+            p1, p2 = _finite_clamp(p1_, 0.1, 100.0, 0.5), _finite_clamp(p2_, 0.1, 100.0, 0.5)
             img_as_float = Matrix{Float64}(undef, s)
             img_as_float .= float64.(img)
             out_float = Matrix{Float64}(undef, s)
@@ -385,7 +393,8 @@ function findlocalminima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
     FUNCTION_NAME = Symbol(:findlocalminima_image2D, :_, Symbol(I))
     f = @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
-        w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
+        # Window rows (w1) and columns (w2), clamped to [2, 25]; NaN → 3.
+        w1, w2 = round(Int, _finite_clamp(w1_, 2.0, 25.0, 3.0)), round(Int, _finite_clamp(w2_, 2.0, 25.0, 3.0))
         minimums = findlocalminima(reinterpret(img.img); window = (w1, w2))
         canvas = zeros($IT, s)
         canvas[minimums] .= 1.0
@@ -410,7 +419,8 @@ function findlocalmaxima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
     FUNCTION_NAME = Symbol(:findlocalmaxima_image2D, :_, Symbol(I))
     f = @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
-        w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
+        # Window rows (w1) and columns (w2), clamped to [2, 25]; NaN → 3.
+        w1, w2 = round(Int, _finite_clamp(w1_, 2.0, 25.0, 3.0)), round(Int, _finite_clamp(w2_, 2.0, 25.0, 3.0))
         maximums = findlocalmaxima(reinterpret(img.img); window = (w1, w2))
         canvas = zeros($IT, s)
         canvas[maximums] .= 1.0
@@ -493,16 +503,16 @@ for (factory, name, description) in (
     (scharrx_image2D_factory, :scharrx_image2D, "Applies Scharr X derivative filter."),
     (scharry_image2D_factory, :scharry_image2D, "Applies Scharr Y derivative filter."),
     (scharrm_image2D_factory, :scharrm_image2D, "Computes Scharr gradient magnitude response."),
-    (gaussian5_image2D_factory, :gaussian5_image2D, "Applies Gaussian smoothing with sigma 5."),
-    (gaussian9_image2D_factory, :gaussian9_image2D, "Applies Gaussian smoothing with sigma 9."),
-    (gaussian13_image2D_factory, :gaussian13_image2D, "Applies Gaussian smoothing with sigma 13."),
-    (gaussian17_image2D_factory, :gaussian17_image2D, "Applies Gaussian smoothing with sigma 17."),
-    (gaussian25_image2D_factory, :gaussian25_image2D, "Applies Gaussian smoothing with sigma 25."),
+    (gaussian5_image2D_factory, :gaussian5_image2D, "Gaussian blur, sigma 1 pixels (5x5 kernel), then rescaled to [0, 1]."),
+    (gaussian9_image2D_factory, :gaussian9_image2D, "Gaussian blur, sigma 2 pixels (9x9 kernel), then rescaled to [0, 1]."),
+    (gaussian13_image2D_factory, :gaussian13_image2D, "Gaussian blur, sigma 3 pixels (13x13 kernel), then rescaled to [0, 1]."),
+    (gaussian17_image2D_factory, :gaussian17_image2D, "Gaussian blur, sigma 4 pixels (17x17 kernel), then rescaled to [0, 1]."),
+    (gaussian25_image2D_factory, :gaussian25_image2D, "Gaussian blur, sigma 6 pixels (25x25 kernel), then rescaled to [0, 1]."),
     (laplacian3_image2D_factory, :laplacian3_image2D, "Applies Laplacian filter for second-order edge response."),
-    (dog_factory, :dog_image2D, "Applies Difference-of-Gaussians filtering."),
-    (moffat5_image2D_factory, :moffat5_image2D, "Applies Moffat smoothing filter with beta 5."),
-    (moffat13_image2D_factory, :moffat13_image2D, "Applies Moffat smoothing filter with beta 13."),
-    (moffat25_image2D_factory, :moffat25_image2D, "Applies Moffat smoothing filter with beta 25."),
+    (dog_factory, :dog_image2D, "Difference of Gaussians (img, sigma_y, sigma_x): band-pass highlighting blobs of about sigma pixels; rescaled to [0, 1]."),
+    (moffat5_image2D_factory, :moffat5_image2D, "Moffat blur on a 5x5 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat13_image2D_factory, :moffat13_image2D, "Moffat blur on a 13x13 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat25_image2D_factory, :moffat25_image2D, "Moffat blur on a 25x25 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
 )
     append_method!(
         bundle_image2DIntensity_filtering_factory,
@@ -535,16 +545,16 @@ for (factory, name, description) in (
     (scharrx_image2D_factory, :scharrx_image2D, "Applies Scharr X derivative filter."),
     (scharry_image2D_factory, :scharry_image2D, "Applies Scharr Y derivative filter."),
     (scharrm_image2D_factory, :scharrm_image2D, "Computes Scharr gradient magnitude response."),
-    (gaussian5_image2D_factory, :gaussian5_image2D, "Applies Gaussian smoothing with sigma 5."),
-    (gaussian9_image2D_factory, :gaussian9_image2D, "Applies Gaussian smoothing with sigma 9."),
-    (gaussian13_image2D_factory, :gaussian13_image2D, "Applies Gaussian smoothing with sigma 13."),
-    (gaussian17_image2D_factory, :gaussian17_image2D, "Applies Gaussian smoothing with sigma 17."),
-    (gaussian25_image2D_factory, :gaussian25_image2D, "Applies Gaussian smoothing with sigma 25."),
+    (gaussian5_image2D_factory, :gaussian5_image2D, "Gaussian blur, sigma 1 pixels (5x5 kernel), then rescaled to [0, 1]."),
+    (gaussian9_image2D_factory, :gaussian9_image2D, "Gaussian blur, sigma 2 pixels (9x9 kernel), then rescaled to [0, 1]."),
+    (gaussian13_image2D_factory, :gaussian13_image2D, "Gaussian blur, sigma 3 pixels (13x13 kernel), then rescaled to [0, 1]."),
+    (gaussian17_image2D_factory, :gaussian17_image2D, "Gaussian blur, sigma 4 pixels (17x17 kernel), then rescaled to [0, 1]."),
+    (gaussian25_image2D_factory, :gaussian25_image2D, "Gaussian blur, sigma 6 pixels (25x25 kernel), then rescaled to [0, 1]."),
     (laplacian3_image2D_factory, :laplacian3_image2D, "Applies Laplacian filter for second-order edge response."),
-    (dog_factory, :dog_image2D, "Applies Difference-of-Gaussians filtering."),
-    (moffat5_image2D_factory, :moffat5_image2D, "Applies Moffat smoothing filter with beta 5."),
-    (moffat13_image2D_factory, :moffat13_image2D, "Applies Moffat smoothing filter with beta 13."),
-    (moffat25_image2D_factory, :moffat25_image2D, "Applies Moffat smoothing filter with beta 25."),
+    (dog_factory, :dog_image2D, "Difference of Gaussians (img, sigma_y, sigma_x): band-pass highlighting blobs of about sigma pixels; rescaled to [0, 1]."),
+    (moffat5_image2D_factory, :moffat5_image2D, "Moffat blur on a 5x5 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat13_image2D_factory, :moffat13_image2D, "Moffat blur on a 13x13 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat25_image2D_factory, :moffat25_image2D, "Moffat blur on a 25x25 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
     (findlocalminima_factory, :findlocalminima_image2D, "Marks local minima locations in the filtered image."),
     (findlocalmaxima_factory, :findlocalmaxima_image2D, "Marks local maxima locations in the filtered image."),
 )

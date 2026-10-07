@@ -235,7 +235,8 @@ end
 function _to_intensity(img::SizedImage{S, SegmentPixel{T}}, TOTYPE) where {S, T}
     r = float.(img)
     max_ = maximum(r)
-    r .= r ./ max_
+    max_ > 0 || return IntensityPixel.(TOTYPE.(zero(r)))   # all labels 0 (or negative): a black image
+    r .= r ./ max_                                         # label / largest label, in [0, 1]
     r_typed = TOTYPE.(r)
     return IntensityPixel.(r_typed)
 end

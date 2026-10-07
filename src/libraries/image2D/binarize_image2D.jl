@@ -33,6 +33,10 @@ using Statistics: mean
 using Logging
 
 cast = image2D_morph.cast
+
+"`x` clamped to `[lo, hi]` as a Float64; `NaN` and `±Inf` give `default`."
+_finite_clamp(x::Real, lo::Float64, hi::Float64, default::Float64) =
+    (v = Float64(x); isfinite(v) ? clamp(v, lo, hi) : default)
 fallback(args...) = return nothing
 """
     bundle_image2DBinary_binarize_factory
@@ -87,8 +91,8 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
-        p = round(Int, p_n)
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
+        p = round(Int, _finite_clamp(p_n, 0.0, 100.0, 15.0))     # NaN/Inf → 15 (%)
         max_w::Int = $SMALLER_AXIS
         p = clamp(p, 0, 100) # percentage diff of pixel t for calling it background
         w = clamp(w, 5, max_w)
@@ -99,7 +103,7 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
     end
 
     m2 = @eval ((img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         f = AdaptiveThreshold(window_size = w)
@@ -128,8 +132,8 @@ function binarizeNiblack_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
-        p = convert(Float64, p_n)
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
+        p = _finite_clamp(p_n, -1.0, 1.0, 0.2)                   # bias; NaN/Inf → 0.2
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         p = clamp(p, -1, +1) 
@@ -140,7 +144,7 @@ function binarizeNiblack_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     end
 
     m2 = @eval ((img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         f = Niblack(;window_size = w)
@@ -183,8 +187,8 @@ function binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
-        p = convert(Float64, p_n)
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
+        p = _finite_clamp(p_n, -1.0, 1.0, 0.2)                   # bias; NaN/Inf → 0.2
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         p = clamp(p, -1, +1) 
@@ -195,7 +199,7 @@ function binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     end
 
     m2 = @eval ((img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         f = Sauvola(;window_size = w)
@@ -224,7 +228,7 @@ function binarizeOtsu_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:B
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Otsu()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -250,7 +254,7 @@ function binarizeMinimumintermodes_image2D_factory(i::Type{I}) where {I<:SizedIm
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = MinimumIntermodes()
         res = with_logger(NullLogger()) do 
@@ -280,7 +284,7 @@ function binarizeIntermodes_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZ
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Intermodes()
         res = with_logger(NullLogger()) do 
@@ -310,7 +314,7 @@ function binarizeMinimumError_image2D_factory(i::Type{I}) where {I<:SizedImage{S
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = MinimumError()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -336,7 +340,7 @@ function binarizeMoments_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Moments()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -362,7 +366,7 @@ function binarizeUnimodalRosin_image2D_factory(i::Type{I}) where {I<:SizedImage{
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = UnimodalRosin()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -388,7 +392,7 @@ function binarizeEntropy_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Entropy()
         res = with_logger(NullLogger()) do 
@@ -418,7 +422,7 @@ function binarizeBalanced_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Balanced()
         res = with_logger(NullLogger()) do 
@@ -448,7 +452,7 @@ function binarizeYen_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Bi
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Yen()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)

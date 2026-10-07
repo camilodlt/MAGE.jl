@@ -151,19 +151,19 @@ append_method!(
     bundle_image2DIntensity_transcendental_factory,
     exp_image2D_factory,
     :exp_image2D;
-    description = "Applies exponential transform to each pixel.",
+    description = "Applies exp to each pixel, then rescales to [0, 1].",
 )
 append_method!(
     bundle_image2DIntensity_transcendental_factory,
     loginv_image2D_factory,
     :loginv_image2D;
-    description = "Applies logarithm to inverse-intensity transformed pixels.",
+    description = "Computes -log(v) per pixel, clamped to [0, 1]: dark pixels (v <= 1/e) become 1, v = 1 becomes 0.",
 )
 append_method!(
     bundle_image2DIntensity_transcendental_factory,
     log_image2D_factory,
     :log_image2D;
-    description = "Applies logarithm transform to each pixel with safe clipping.",
+    description = "Applies log to each pixel's raw stored value (zeros treated as the smallest), then rescales to [0, 1].",
 )
 append_method!(
     bundle_image2DIntensity_transcendental_factory,

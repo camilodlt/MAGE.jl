@@ -1,3 +1,24 @@
+"""
+Shared orientation machinery: Sobel derivatives, gradient and edge
+orientations, and the four-bin orientation energies.
+
+# Angle conventions
+
+Rows grow downwards, so angles are measured from the `+x` axis (pointing
+right) **clockwise on screen**, in `[0, π)` (an orientation has no head or
+tail). `0` is horizontal, `π/4` is a `\\` diagonal (going down to the right),
+`π/2` vertical, `3π/4` a `/` diagonal.
+
+Two different angles are used, 90° apart:
+
+- the **gradient orientation** is the direction in which the intensity
+  changes fastest, perpendicular to an edge: a vertical edge (dark left,
+  bright right) has gradient orientation `0`. Used by `grad_orientation` and
+  `orientation_select`.
+- the **edge (structure) orientation** is the direction along the edge: the
+  same vertical edge has edge orientation `π/2`. Used by the scalar summaries
+  (`orientation_energy_*`, `dominant_orientation`, `orientation_coherence`).
+"""
 module image2D_orientation_common
 
 using ImageFiltering: Kernel, reflect, imfilter
@@ -6,24 +27,38 @@ using ..UTCGP: SImageND
 
 const _YSOBEL, _XSOBEL = reflect.(Kernel.sobel())
 
+"Derivatives smaller than this are floating-point noise from the filter on flat areas (around 1e-17), not edges."
+const _FLAT = 1e-12
+
+"""
+Sobel derivatives `(gx, gy)` along columns (x) and rows (y). Their signs are
+flipped by the kernel convention, which does not affect magnitudes or
+orientations modulo π. Noise-level values (below `_FLAT`) are set to `0`, so
+flat pixels have no magnitude and orientation `0` instead of a random angle.
+"""
 function _sobel_xy(from::SImageND)
     img = Float64.(reinterpret(from.img))
     gx = imfilter(img, _XSOBEL, "replicate")
     gy = imfilter(img, _YSOBEL, "replicate")
+    gx[abs.(gx) .< _FLAT] .= 0.0
+    gy[abs.(gy) .< _FLAT] .= 0.0
     return gx, gy
 end
 
+"Gradient magnitude `sqrt(gx² + gy²)` (and `gx`, `gy`)."
 function _grad_magnitude_matrix(from::SImageND)
     gx, gy = _sobel_xy(from)
     return sqrt.(gx .^ 2 .+ gy .^ 2), gx, gy
 end
 
+"Gradient orientation in `[0, π)` per pixel (flat pixels get `0`), with `gx`, `gy`."
 function _gradient_orientation_matrix(from::SImageND)
     _, gx, gy = _grad_magnitude_matrix(from)
     theta = atan.(gy, gx)
     return mod.(theta .+ π, π), gx, gy
 end
 
+"Edge (structure) orientation: the gradient orientation turned by 90°, in `[0, π)`."
 function _structure_orientation_matrix(from::SImageND)
     grad_theta, gx, gy = _gradient_orientation_matrix(from)
     return mod.(grad_theta .+ (π / 2), π), gx, gy
@@ -41,11 +76,27 @@ function _angle_distance(a::AbstractMatrix, theta::Real)
     return min.(d, π .- d)
 end
 
+"Centres of the four orientation bins: horizontal, `\\`, vertical, `/` (clockwise convention)."
 const _ORIENTATION_CENTERS = (0.0, π / 4, π / 2, 3π / 4)
 
+"""
+Magnitude and edge orientation from a single Sobel pass (the same arithmetic
+as `_grad_magnitude_matrix` and `_structure_orientation_matrix`).
+"""
+function _magnitude_and_edge_orientation(from::SImageND)
+    gx, gy = _sobel_xy(from)
+    mag = sqrt.(gx .^ 2 .+ gy .^ 2)
+    grad_theta = mod.(atan.(gy, gx) .+ π, π)
+    return mag, mod.(grad_theta .+ (π / 2), π)
+end
+
+"""
+Share of the total gradient magnitude in each of the four edge-orientation
+bins (nearest bin centre). Example: an image of vertical stripes puts all its
+energy in bin 3 (`[0, 0, 1, 0]`).
+"""
 function _orientation_energy_proportions(from::SImageND)
-    mag, _, _ = _grad_magnitude_matrix(from)
-    theta, _, _ = _structure_orientation_matrix(from)
+    mag, theta = _magnitude_and_edge_orientation(from)
     total = sum(mag)
     total == 0 && return zeros(Float64, 4)
 
@@ -66,14 +117,19 @@ function _orientation_energy_proportions(from::SImageND)
     return energies ./ total
 end
 
+"Centre of the strongest bin over `π`: `0` horizontal, `0.25` `\\`, `0.5` vertical, `0.75` `/`."
 function _dominant_orientation_value(from::SImageND)
     energies = _orientation_energy_proportions(from)
     return _ORIENTATION_CENTERS[argmax(energies)] / π
 end
 
+"""
+Length of the magnitude-weighted mean of the doubled edge angles, over the
+total magnitude: `1` when every edge has the same orientation, near `0` when
+orientations are spread evenly. (Doubling makes `θ` and `θ + π` agree.)
+"""
 function _orientation_coherence_value(from::SImageND)
-    mag, _, _ = _grad_magnitude_matrix(from)
-    theta, _, _ = _structure_orientation_matrix(from)
+    mag, theta = _magnitude_and_edge_orientation(from)
     total = sum(mag)
     total == 0 && return 0.0
     c = sum(mag .* cos.(2 .* theta))

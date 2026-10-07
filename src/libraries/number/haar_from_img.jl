@@ -28,10 +28,22 @@ Haar-like contrasts between neighbouring regions of an image: `haar_lr`,
 `haar_three_h`, `haar_three_v`.
 
 The same family of features used by cascade detectors, here available as
-evolvable operators.
+evolvable operators. Every operator takes `(img, position, size)`:
+
+- `position ∈ [0, 1]` picks the window's centre pixel by walking the pixels in
+  column-major order (down the first column, then down the second, …): `0` is
+  the top-left pixel, `1` the bottom-right one. One number therefore encodes
+  both row and column.
+- `size` is the window's half-width in pixels (`round(abs(size))`, at least
+  1): the window is `(2·size + 1)` pixels square, clipped at the border.
+
+The value is the mean of the "+" rectangles minus the mean of the "−"
+rectangles (see the pictures in the docs, drawn from the same weight masks).
+Non-finite inputs fall back to the centre and to `size = 1`.
 """
 bundle_number_haarFromImg = FunctionBundle(fallback)
 
+"Window `(row_lo, row_hi, col_lo, col_hi)` of a Haar feature: centre from the flattened `position`, half-width from `region_size`, clipped."
 function _haar_bounds(from::SImageND, position::Number, region_size::Number)
     half = _half_extent(region_size)
     return _region_bounds_from_position(from, position, half, half)
@@ -47,6 +59,22 @@ function _safe_mean(values)
     return Float64(mean(values))
 end
 
+"""
+Side of the `+` centre of `haar_center_surround` in a window side `n`: about a
+third, with the parity of `n` so that it sits exactly in the middle (`3 → 1`,
+`5 → 3`, `7 → 3`), unless that would leave no surround (`2 → 1`).
+"""
+function _centre_side(n::Int)
+    c = max(cld(n, 3), 1)
+    return isodd(n - c) && c + 1 < n ? c + 1 : c
+end
+
+"""
+`+1` / `−1` / `0` weight mask of a Haar feature over an `h × w` window: the
+feature value is mean(window where `+1`) − mean(window where `−1`). Pixels
+with weight `0` (e.g. the middle column of an odd-width `haar_lr`) are
+ignored. This is the mask the docs draw.
+"""
 function _haar_weight_matrix(kind::Symbol, h::Int, w::Int)
     weights = zeros(Float64, h, w)
 
@@ -84,8 +112,8 @@ function _haar_weight_matrix(kind::Symbol, h::Int, w::Int)
         col_mid = fld(w, 2)
         row_mid == 0 && return weights
         col_mid == 0 && return weights
-        center_h = max(cld(h, 3), 1)
-        center_w = max(cld(w, 3), 1)
+        center_h = _centre_side(h)
+        center_w = _centre_side(w)
         row_start = clamp(fld(h - center_h, 2) + 1, 1, h)
         row_end = clamp(row_start + center_h - 1, 1, h)
         col_start = clamp(fld(w - center_w, 2) + 1, 1, w)
@@ -94,15 +122,19 @@ function _haar_weight_matrix(kind::Symbol, h::Int, w::Int)
     elseif kind === :haar_three_h
         third = fld(w, 3)
         third == 0 && return weights
-        weights[:, 1:third] .= 1.0
-        weights[:, third + 1:2 * third] .= -1.0
-        weights[:, 2 * third + 1:3 * third] .= 1.0
+        # Three equal bands centred in the window; the `w - 3·third` leftover
+        # columns are split between both sides and ignored.
+        o = fld(w - 3 * third, 2)
+        weights[:, o + 1:o + third] .= 1.0
+        weights[:, o + third + 1:o + 2 * third] .= -1.0
+        weights[:, o + 2 * third + 1:o + 3 * third] .= 1.0
     elseif kind === :haar_three_v
         third = fld(h, 3)
         third == 0 && return weights
-        weights[1:third, :] .= 1.0
-        weights[third + 1:2 * third, :] .= -1.0
-        weights[2 * third + 1:3 * third, :] .= 1.0
+        o = fld(h - 3 * third, 2)    # centred, as for `haar_three_h`
+        weights[o + 1:o + third, :] .= 1.0
+        weights[o + third + 1:o + 2 * third, :] .= -1.0
+        weights[o + 2 * third + 1:o + 3 * third, :] .= 1.0
     else
         error("Unknown Haar feature kind: $kind")
     end
@@ -122,6 +154,10 @@ function _normalize01(img::AbstractMatrix{<:Real})
     return maxv == minv ? zeros(size(vals)) : (vals .- minv) ./ (maxv - minv)
 end
 
+"""
+The image in grey with the feature's window tinted: red where the weight mask
+is `+1`, blue where it is `−1` (used by the docs pictures).
+"""
 function _haar_overlay_canvas(from::SImageND, kind::Symbol, position::Number, region_size::Number)
     img = _normalize01(_image_numeric(from))
     canvas = RGB.(img, img, img)
@@ -131,19 +167,23 @@ function _haar_overlay_canvas(from::SImageND, kind::Symbol, position::Number, re
     for local_r in axes(weights, 1), local_c in axes(weights, 2)
         global_r = row_lo + local_r - 1
         global_c = col_lo + local_c - 1
+        # Tint rather than paint, so the pixel's brightness stays visible.
+        v = img[global_r, global_c]
         if weights[local_r, local_c] > 0
-            canvas[global_r, global_c] = RGB(0.85, 0.2, 0.2)
+            canvas[global_r, global_c] = RGB(0.5 * v + 0.5, 0.5 * v + 0.05, 0.5 * v + 0.05)
         elseif weights[local_r, local_c] < 0
-            canvas[global_r, global_c] = RGB(0.2, 0.35, 0.9)
+            canvas[global_r, global_c] = RGB(0.5 * v + 0.05, 0.5 * v + 0.15, 0.5 * v + 0.5)
         end
     end
 
     return canvas
 end
 
+"Feature value: mean of the `+1` pixels of the window minus mean of the `−1` pixels."
 function _haar_feature_value(from::SImageND, kind::Symbol, position::Number, region_size::Number)
     row_lo, row_hi, col_lo, col_hi = _haar_bounds(from, position, region_size)
-    patch = @view _image_numeric(from)[row_lo:row_hi, col_lo:col_hi]
+    # Only the window is converted to Float64, not the whole image.
+    patch = [Float64(from.img[r, c]) for r in row_lo:row_hi, c in col_lo:col_hi]
     weights = _haar_weight_matrix(kind, size(patch, 1), size(patch, 2))
 
     pos_values = patch[weights .> 0]

@@ -59,7 +59,7 @@ with InputType = SizedImage2D{S1,S2,T,IT} where {S1,S2,T<:Normed,IT}
 
     m1 = @eval ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT<:\$I})
 
-Which broadcasts the subtraction of `p` from `img2` (as floats) and then clamps the result between [0,1].
+Which computes `img1 − p` for every pixel (as floats) and clamps the result to [0,1].
 
 **Returns**:
 
@@ -79,15 +79,15 @@ function bsubtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intens
 end
 
 """
-    add_image2D_factory(i::Type{I}) where {I<:InputType}
+    badd_image2D_factory(i::Type{I}) where {I<:InputType}
 
 with InputType = SizedImage2D{S1,S2,T,IT} where {S1,S2,T<:Normed,IT}
 
 **Exposes** : 
 
-    m1 = @eval ((img1::CONCT, img2::CONCT, args::Vararg{Any}) where {CONCT<:\$I})
+    m1 = @eval ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT<:\$I})
 
-Which adds `img1` and `img2` (as floats) and then clamps the result between [0,1].
+Which computes `img1 + p` for every pixel (as floats) and clamps the result to [0,1].
 
 **Returns**:
 
@@ -107,15 +107,15 @@ function badd_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPi
 end
 
 """
-    mult_image2D_factory(i::Type{I}) where {I<:InputType}
+    bmult_image2D_factory(i::Type{I}) where {I<:InputType}
 
 with InputType = SizedImage2D{S1,S2,T,IT} where {S1,S2,T<:Normed,IT}
 
 **Exposes** : 
 
-    m1 = @eval ((img1::CONCT, img2::CONCT, args::Vararg{Any}) where {CONCT<:\$I})
+    m1 = @eval ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT<:\$I})
 
-Which multiplies `img1` and `img2` (as floats) and then clamps the result between [0,1].
+Which computes `img1 · p` for every pixel (as floats) and clamps the result to [0,1].
 
 **Returns**:
 

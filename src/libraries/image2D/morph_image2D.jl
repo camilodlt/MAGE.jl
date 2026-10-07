@@ -57,6 +57,10 @@ bundle_image2DBinary_morph_factory = FunctionBundle(fallback)
 # bundle_image2DSegment_morph_factory = FunctionBundle(fallback) # not applicable
 
 # Bool => Intensity
+"`x` clamped to `[lo, hi]` as a Float64; `NaN` and `±Inf` give `default`."
+_finite_clamp(x::Real, lo::Float64, hi::Float64, default::Float64) =
+    (v = Float64(x); isfinite(v) ? clamp(v, lo, hi) : default)
+
 function cast(to_type::Type{T}, img::Array{Bool}) where {T<: Real}
     to_type.(img) # 0. or 1. we can always promote
 end
@@ -103,7 +107,7 @@ function erosion_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{
 
     # the method accepts binary/intensity of the same size
     m1 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -144,7 +148,7 @@ function dilation_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union
     _validate_factory_type(IT)
 
     m1 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -183,7 +187,7 @@ function opening_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{
     _validate_factory_type(IT)
 
     m1 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -223,7 +227,7 @@ function closing_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{
     _validate_factory_type(IT)
 
     m1 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -259,7 +263,7 @@ function tophat_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{B
     _validate_factory_type(IT)
 
     m1 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -294,7 +298,7 @@ function bothat_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{B
     _validate_factory_type(IT)
 
     m1 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -337,7 +341,7 @@ function morphogradient_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <
         else
             mode_ = :external
         end
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -348,7 +352,7 @@ function morphogradient_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <
     end
 
     m2 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))
@@ -385,7 +389,7 @@ function morpholaplace_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:
     _validate_factory_type(IT)
 
     m1 = @eval ((img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        k = round(Int, k_n)
+        k = round(Int, _finite_clamp(k_n, 0.0, 13.0, 3.0))   # NaN/Inf → 3; huge values cannot overflow
         k = k % 2 == 0 ? k + 1 : k
         k = clamp(k, 3, 13)
         se = strel_diamond((k, k))

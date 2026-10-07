@@ -20,9 +20,23 @@ fallback(args...) = return nothing
 """
     bundle_image2DIntensity_orientation_factory
 
-Gradient orientation maps from Sobel derivatives: `grad_magnitude`,
-`grad_orientation`, and `orientation_select`, which keeps only the pixels whose
-orientation falls in a band.
+Gradient orientation maps from Sobel derivatives:
+
+- `grad_magnitude(img)`: edge strength, rescaled so the strongest edge of the
+  image is `1`.
+- `grad_orientation(img)`: the **gradient** orientation (the direction across
+  the edge) over `π`, in `[0, 1)`: `0` for a vertical edge, `0.5` for a
+  horizontal one. Angles run clockwise on screen. Flat pixels also read `0`.
+- `orientation_select(img, θ, bandwidth)`: the gradient magnitude, kept only
+  where the gradient orientation is within `bandwidth · 90°` of `θ · 180°`
+  (`θ` wraps around `1`), then rescaled to `[0, 1]`. So `θ = 0` keeps
+  **vertical** edges and `θ = 0.5` horizontal ones. Defaults `θ = 0`,
+  `bandwidth = 0.2` (±18°).
+
+These use the gradient direction, perpendicular to the edge; the scalar
+summaries in `bundle_float_orientation` use the edge direction, so
+`orientation_energy_90` measures the same vertical edges that
+`orientation_select(img, 0)` keeps.
 
 For the scalar counterparts see `bundle_float_orientation`.
 
@@ -33,8 +47,10 @@ into a library.
 """
 bundle_image2DIntensity_orientation_factory = FunctionBundle(fallback)
 
-_theta_from_number(theta::Number) = mod(Float64(theta), 1.0) * π
-_bandwidth_from_number(bw::Number) = clamp(abs(Float64(bw)), 0.01, 1.0) * (π / 2)
+"Target gradient angle in radians from a number: wraps around 1, `θ · π`; NaN/Inf → 0."
+_theta_from_number(theta::Number) = (t = Float64(theta); isfinite(t) ? mod(t, 1.0) * π : 0.0)
+"Half-width of the selected band in radians: `clamp(abs(bw), 0.01, 1) · π/2`; NaN/Inf → 0.2."
+_bandwidth_from_number(bw::Number) = (b = Float64(bw); clamp(isfinite(b) ? abs(b) : 0.2, 0.01, 1.0) * (π / 2))
 
 function grad_magnitude_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)

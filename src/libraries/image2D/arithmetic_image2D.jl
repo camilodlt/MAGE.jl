@@ -71,7 +71,8 @@ with InputType = SizedImage2D{S1,S2,T,IT} where {S1,S2,T<:Normed,IT}
 
     m1 = @eval ((img1::CONCT, img2::CONCT, args::Vararg{Any}) where {CONCT<:\$I})
 
-Which subtracts `img1` from `img2` (as floats) and then clamps the result between [0,1].
+Which computes `img1 − img2` (as floats), pixel by pixel, and clamps the result to [0,1]:
+pixels where `img2` is brighter become 0.
 
 **Returns**:
 

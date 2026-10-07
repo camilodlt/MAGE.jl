@@ -57,6 +57,14 @@ Non-finite values use the listed defaults. The result has the same size and
 accepted and ignored for compatibility with the MAGE node-calling convention.
 The first example uses both defaults.
 
+!!! note "Resolution on small images"
+    The map is computed at level 4 of the pyramid, which is `1/16` of the
+    input size along each side (each level keeps every second pixel), and is
+    then resized back to the input size. On a 64×64 image the map has
+    4×4 cells; on a 28×28 image only 2×2. It marks which *part* of a small
+    image stands out, not which pixel. For pixel-level detail use
+    `spectral_residual_saliency`.
+
 ```@example
 using UTCGP
 using ImageCore: N0f8
@@ -347,170 +355,120 @@ Reference: [Hou and Zhang (2007)](https://doi.org/10.1109/CVPR.2007.383267).
 
 ## Orientation Image Maps
 
-These orientation maps are exposed through:
+`bundle_image2DIntensity_orientation_factory` turns an intensity image into
+maps of its edges, from Sobel derivatives:
 
-- `bundle_image2DIntensity_orientation_factory`
+| Operator | Output |
+|:--|:--|
+| `grad_magnitude(img)` | Edge strength at each pixel, rescaled so the strongest edge of the image is `1`. |
+| `grad_orientation(img)` | The **gradient** orientation (the direction *across* the edge, where the intensity changes fastest) divided by 180°, in `[0, 1)`. Flat pixels also read `0`. |
+| `orientation_select(img, θ, bandwidth)` | The edge strength, kept only where the gradient orientation is within `bandwidth · 90°` of `θ · 180°` (`θ` wraps around `1`), then rescaled to `[0, 1]`. Defaults `θ = 0`, `bandwidth = 0.2` (±18°). |
 
-They currently operate on intensity images and use raw Sobel derivatives
-internally.
+**Angle conventions.** Image rows grow downwards, so angles are measured from
+"pointing right" **clockwise on screen**: `0` = right, `0.25` (45°) = down
+and to the right, `0.5` (90°) = down, `0.75` (135°) = down and to the left.
+An orientation has no head or tail, so `0` and `1` are the same.
 
-```@example
+These maps use the **gradient** direction, which is perpendicular to the
+edge: a vertical edge (dark left, bright right) has gradient orientation `0`,
+and `orientation_select(img, 0)` keeps vertical edges. The scalar summaries
+of the number library (`orientation_energy_*`, `dominant_orientation`) use
+the **edge** direction instead, so `orientation_energy_90` measures those same
+vertical edges.
+
+```@setup orientation_maps
 using UTCGP
-using ImageCore: N0f8
-
-function orientation_vertical_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[:, fld(n, 2)+1:end] .= 1.0
-    return img
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+assets = g_assets("orientation")
+# A bright disk on black: its border has edges at every orientation. The
+# border is a 2-pixel ramp, so the angles are not quantised by a pixel staircase.
+disk = g_intensity([0.1 + 0.8 * clamp((23 - hypot(r - 32.5, c - 32.5)) / 2, 0, 1) for r in 1:64, c in 1:64])
+I = typeof(disk)
+op(name) = bundle_image2DIntensity_orientation_factory[name].fn(I)
+save3(name, img) = g_save(assets, name, g_up(g_canvas(img), 3))
+save3("disk.png", disk)
+save3("disk_magnitude.png", g_call(op(:grad_magnitude), disk))
+save3("disk_orientation.png", g_call(op(:grad_orientation), disk))
+for θ in (0.0, 0.25, 0.5, 0.75)
+    save3("disk_select_$(g_tag(θ)).png", g_call(op(:orientation_select), disk, θ, 0.1))
 end
-
-function orientation_horizontal_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[fld(n, 2)+1:end, :] .= 1.0
-    return img
+for bw in (0.05, 0.2, 0.5, 1.0)
+    save3("disk_select_bw_$(g_tag(bw)).png", g_call(op(:orientation_select), disk, 0.0, bw))
 end
-
-function orientation_diag45_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    for i in 1:n, j in 1:n
-        img[i, j] = j >= i ? 1.0 : 0.0
-    end
-    return img
+# Straight edges at four orientations, for the reference table.
+steps = [
+    ("vertical edge", [c > 32 ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+    ("horizontal edge", [r > 32 ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+    ("\\ edge", [c >= r ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+    ("/ edge", [c + r >= 65 ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+]
+for (k, (_, values)) in enumerate(steps)
+    save3("step_$(k).png", g_intensity(values))
 end
-
-orientation_intensity_image(arr::AbstractMatrix{<:Real}) =
-    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
-
-img = orientation_intensity_image(orientation_vertical_step_array())
-grad_mag = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
-grad_ori = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
-
-(typeof(grad_mag), typeof(grad_ori))
+cell_values = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end]
+cell = g_intensity(cell_values)
+cop(name) = bundle_image2DIntensity_orientation_factory[name].fn(typeof(cell))
+g_save(assets, "cell.png", g_canvas(cell))
+g_save(assets, "cell_magnitude.png", g_canvas(g_call(cop(:grad_magnitude), cell)))
+g_save(assets, "cell_orientation.png", g_canvas(g_call(cop(:grad_orientation), cell)))
+g_save(assets, "cell_select_0.png", g_canvas(g_call(cop(:orientation_select), cell, 0.0, 0.2)))
+g_save(assets, "cell_select_05.png", g_canvas(g_call(cop(:orientation_select), cell, 0.5, 0.2)))
 ```
 
-```@setup orientation_image_assets
-using UTCGP
-using FileIO
-using Images
-using ImageCore: N0f8
+On a bright disk, every edge orientation appears once around the border, so
+the disk shows the conventions at a glance (the original is shown at 3×):
 
-function orientation_vertical_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[:, fld(n, 2)+1:end] .= 1.0
-    return img
+| Input | `grad_magnitude` | `grad_orientation` |
+|:--:|:--:|:--:|
+| ![disk](../assets/fns/orientation/disk.png) | ![magnitude](../assets/fns/orientation/disk_magnitude.png) | ![orientation](../assets/fns/orientation/disk_orientation.png) |
+
+In `grad_orientation`, the left and right sides of the disk (vertical edges,
+gradient pointing left/right) are near `0` (black) or `1` (white, the same
+angle after wrapping around); the top and bottom (horizontal edges, gradient
+pointing up/down) are mid-grey (`0.5`). The black inside and outside the disk
+are flat pixels, which also read `0`: use `grad_magnitude` to tell them
+apart.
+
+**Effect of `θ`** on `orientation_select(disk, θ, 0.1)` (±9°): each value
+keeps the part of the border whose gradient points that way.
+
+| `θ = 0`: gradient → right/left, **vertical** edges | `θ = 0.25`: ↘/↖, the `/` parts of the border | `θ = 0.5`: ↓/↑, **horizontal** edges | `θ = 0.75`: ↙/↗, the `\` parts of the border |
+|:--:|:--:|:--:|:--:|
+| ![θ 0](../assets/fns/orientation/disk_select_00.png) | ![θ 0.25](../assets/fns/orientation/disk_select_025.png) | ![θ 0.5](../assets/fns/orientation/disk_select_05.png) | ![θ 0.75](../assets/fns/orientation/disk_select_075.png) |
+
+**Effect of `bandwidth`** on `orientation_select(disk, 0, bandwidth)`: the
+band is `±bandwidth · 90°`, so `1` keeps every edge.
+
+| `0.05` (±4.5°) | `0.2` (±18°, default) | `0.5` (±45°) | `1.0` (±90°: everything) |
+|:--:|:--:|:--:|:--:|
+| ![bw 0.05](../assets/fns/orientation/disk_select_bw_005.png) | ![bw 0.2](../assets/fns/orientation/disk_select_bw_02.png) | ![bw 0.5](../assets/fns/orientation/disk_select_bw_05.png) | ![bw 1](../assets/fns/orientation/disk_select_bw_10.png) |
+
+The values `grad_orientation` gives on straight edges, and which `θ` of
+`orientation_select` keeps them:
+
+```@example orientation_maps
+println(rpad("edge", 18), rpad("grad_orientation on the edge", 32), "kept by orientation_select(img, θ) with θ =")
+for (name, values) in steps
+    img = g_intensity(values)
+    inside = (8:57, 8:57)                       # away from the image border
+    pixels(out) = Float64.(reinterpret(out.img))[inside...]
+    orientation = pixels(g_call(op(:grad_orientation), img))
+    on_edge = pixels(g_call(op(:grad_magnitude), img)) .> 0.5
+    mean_orientation = round(sum(orientation .* on_edge) / count(on_edge), digits = 2)
+    kept = [θ for θ in (0.0, 0.25, 0.5, 0.75) if any(>(0), pixels(g_call(op(:orientation_select), img, θ, 0.1)))]
+    println(rpad(name, 18), rpad(mean_orientation, 32), kept)
 end
-
-function orientation_horizontal_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[fld(n, 2)+1:end, :] .= 1.0
-    return img
-end
-
-function orientation_diag45_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    for i in 1:n, j in 1:n
-        img[i, j] = j >= i ? 1.0 : 0.0
-    end
-    return img
-end
-
-orientation_intensity_image(arr::AbstractMatrix{<:Real}) =
-    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
-
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
-input_path = joinpath(repo_root, "assets", "000_img.png")
-docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "orientation")
-docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "orientation")
-mkpath(docs_assets_src)
-mkpath(docs_assets_build)
-
-function _save_orientation_gray(name, img)
-    vals = Float64.(img)
-    minv = minimum(vals)
-    maxv = maximum(vals)
-    scaled = maxv == minv ? zeros(size(vals)) : (vals .- minv) ./ (maxv - minv)
-    g = Gray.(scaled)
-    save(joinpath(docs_assets_src, name), g)
-    save(joinpath(docs_assets_build, name), g)
-    return nothing
-end
-
-function _save_image_orientation_triplet(prefix, original, output)
-    _save_orientation_gray(prefix * "_original.png", reinterpret(original.img))
-    _save_orientation_gray(prefix * "_output.png", reinterpret(output.img))
-    return nothing
-end
-
-vertical = orientation_intensity_image(orientation_vertical_step_array())
-horizontal = orientation_intensity_image(orientation_horizontal_step_array())
-diag45 = orientation_intensity_image(orientation_diag45_step_array())
-asset_gray = Float64.(Gray.(load(input_path)))
-asset_gray_small = asset_gray[1:2:end, 1:2:end]
-asset_img = orientation_intensity_image(asset_gray_small)
-
-grad_mag = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(asset_img))
-grad_ori = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(asset_img))
-orient_sel = UTCGP.bundle_image2DIntensity_orientation_factory[:orientation_select].fn(typeof(asset_img))
-
-mag_out = grad_mag(asset_img)
-ori_out = grad_ori(asset_img)
-sel_out = orient_sel(asset_img, 0.25, 0.1)
-
-_save_image_orientation_triplet("grad_magnitude", asset_img, mag_out)
-_save_image_orientation_triplet("grad_orientation", asset_img, ori_out)
-_save_image_orientation_triplet("orientation_select", asset_img, sel_out)
 ```
 
-### `grad_magnitude`
+| vertical edge | horizontal edge | `\` edge | `/` edge |
+|:--:|:--:|:--:|:--:|
+| ![](../assets/fns/orientation/step_1.png) | ![](../assets/fns/orientation/step_2.png) | ![](../assets/fns/orientation/step_3.png) | ![](../assets/fns/orientation/step_4.png) |
 
-Gradient magnitude computed from Sobel x/y derivatives.
+On a microscopy image:
 
-```@example orientation_image_assets
-img = asset_img
-fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
-fn(img)
-```
-
-```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-<img src="../assets/fns/orientation/grad_magnitude_original.png" alt="grad_magnitude original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-<img src="../assets/fns/orientation/grad_magnitude_output.png" alt="grad_magnitude output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-</div>
-```
-
-### `grad_orientation`
-
-Gradient orientation map encoded in `[0, 1]` over `[0, π]`.
-
-```@example orientation_image_assets
-img = asset_img
-fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
-fn(img)
-```
-
-```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-<img src="../assets/fns/orientation/grad_orientation_original.png" alt="grad_orientation original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-<img src="../assets/fns/orientation/grad_orientation_output.png" alt="grad_orientation output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-</div>
-```
-
-### `orientation_select`
-
-Keep only gradient responses whose orientation is near a target angle.
-
-```@example orientation_image_assets
-img = asset_img
-fn = UTCGP.bundle_image2DIntensity_orientation_factory[:orientation_select].fn(typeof(img))
-fn(img, 0.25, 0.1)
-```
-
-```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-<img src="../assets/fns/orientation/orientation_select_original.png" alt="orientation_select original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-<img src="../assets/fns/orientation/orientation_select_output.png" alt="orientation_select output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-</div>
-```
+| Input | `grad_magnitude` | `grad_orientation` | `orientation_select(img, 0, 0.2)`: vertical edges | `orientation_select(img, 0.5, 0.2)`: horizontal edges |
+|:--:|:--:|:--:|:--:|:--:|
+| ![cell](../assets/fns/orientation/cell.png) | ![](../assets/fns/orientation/cell_magnitude.png) | ![](../assets/fns/orientation/cell_orientation.png) | ![](../assets/fns/orientation/cell_select_0.png) | ![](../assets/fns/orientation/cell_select_05.png) |
 
 ## Block Pooling Functions
 
@@ -531,8 +489,20 @@ The pooling functions are exposed through the typed image pooling bundles:
 
 These functions use non-overlapping block windows scanned from left to right and
 top to bottom. Each block is reduced to a single value, and that value is
-written back over the covered block. There is no padding; the last block on the
-right or bottom may be partial if the image size is not divisible by `k`.
+written back over the covered block, so **the output has the same size as the
+input** and looks like a mosaic of `k × k` tiles. There is no padding; the last
+block on the right or bottom may be partial if the image size is not divisible
+by `k`.
+
+- `k` is rounded and clamped to `1` … the longer image side; `NaN`/`±Inf`
+  use `2`. `k = 1` returns the image unchanged.
+- **Segment images** (label maps): averaging label numbers would invent labels
+  that are not in the image (the mean of labels `1` and `3` is `2`), so the
+  `avg` poolers return the **most frequent label** of each block instead (ties
+  go to the smallest label). `max`/`min` keep the largest/smallest label.
+- **Binary images**: `avg` is a majority vote (the mean rounded to `0`/`1`),
+  `max` is a dilation-like "any pixel set", `min` an erosion-like "all pixels
+  set".
 
 To obtain a callable function, first select the function from the bundle, then
 specialize it on the concrete image type.
@@ -1182,6 +1152,21 @@ These functions use full sliding `k × k` windows with no padding. Only windows
 that fully fit in the image are reduced, using the provided `stride`, and the
 reduced image is then resized back to the original size with nearest-neighbor
 sampling.
+
+- `k` is rounded and clamped to `1` … the shorter image side, and `stride` to
+  `1` … the longer side (`NaN`/`±Inf` use `k = 2`, `stride = 1`).
+- The number of windows along a side is `fld(n - k, stride) + 1`. With
+  `n = 28`, `k = 5`, `stride = 1` that is 24 windows, stretched back over 28
+  pixels: output pixel `1` shows the window centred on pixel `3`, output
+  pixel `28` the window centred on pixel `26`, and a few rows and columns are
+  repeated in between. The result is a slightly zoomed-in version of the
+  input; with a larger `stride` it also looks blocky.
+- The count poolers (`uniquecountpool`, `argmaxcountpool`, `argmincountpool`)
+  count pixels, so they are rescaled to `[0, 1]` over the whole image before
+  being stored.
+- **Segment images**: `meanpool` returns the most frequent label of each
+  window (ties go to the smallest label) rather than an invented average
+  label.
 
 The sliding-window poolers are exposed through:
 
