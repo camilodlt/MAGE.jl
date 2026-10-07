@@ -77,7 +77,7 @@ function correct_node!(
         )
         mutate_one_element_from_node!(node)
         if call_nb > max_calls
-            if isdefined(Main, :Infiltrator)
+            if isinteractive() && isdefined(Main, :infiltrate)
                 Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
             end
             @warn "Can't find a correct mutation after $call_nb"

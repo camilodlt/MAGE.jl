@@ -816,5 +816,6 @@ module UTCGP
 
     # EXT PYCMA
     include("ext.jl")
+    include("dso/TypedGraphBridge.jl")
     export make_cma_nodes!, get_cma_nodes, mutate_cma!
 end

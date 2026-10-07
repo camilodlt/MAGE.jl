@@ -301,7 +301,7 @@ function evaluate_fn_wrapper(
                     end
                 catch e
                     if e isa MethodError
-                        if isdefined(Main, :Infiltrator)
+                        if isinteractive() && isdefined(Main, :infiltrate)
                             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
                         end
                         tuple_type = _runtime_arg_tuple_type(inputs_)
@@ -332,7 +332,7 @@ end
     @debug "Running fn : $(fn_wrapper.name)"
     pre = _invoke_fn(fn_wrapper.fn, inputs...)
     if isnothing(pre)
-        if isdefined(Main, :Infiltrator)
+        if isinteractive() && isdefined(Main, :infiltrate)
             Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
         end
     end
