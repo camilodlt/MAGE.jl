@@ -19,6 +19,20 @@ have any length), then converts the matrix into pixels of `I`.
 
 Each operator lists the *method forms* it supports (see `_bridge_factory`):
 which pixel kind the volume may have and whether a scalar or a mask follows.
+
+# Example
+
+```julia
+using UTCGP, ImageCore
+vol = SImageND(IntensityPixel{N0f8}.(rand(28, 28, 16)))   # (y, x, z)
+I2 = typeof(SImageND(IntensityPixel{N0f8}.(rand(28, 28))))  # 2D output type (y, x)
+
+mip = bundle_image2DIntensity_fromVolume_factory[:proj_max_z].fn(I2)
+mip(vol)          # 28 × 28 image: the brightest voxel of each (y, x) column across the 16 slices
+
+slice = bundle_image2DIntensity_fromVolume_factory[:slice_at_z].fn(I2)
+slice(vol, 0.0)   # slice 1;  slice(vol, 1.0) is slice 16, slice(vol, 0.5) slice 8 (round(8.5) = 8)
+```
 """
 module image3D_to_image2D
 
@@ -37,8 +51,10 @@ using ..image2D_object_common: clamp_unit, pixel_value, IsSet, AtLeast
 using ..image2D_zoom: to_storage
 using ..image3D_volume_common: voxel_values, voxel_foreground
 
+# Returned by the bundles when no method matches the inputs (MAGE then skips the node).
 fallback(args...) = return nothing
 
+# Shared paragraph appended to both bundle docstrings below.
 const _AXES_DOC = """
 Axis `y` is dimension 1 (rows), `x` dimension 2 (columns), `z` dimension 3
 (slices). Collapsing an axis leaves the other two in order: a `_z` result is
@@ -88,13 +104,23 @@ const bundle_image2DBinary_fromVolume_factory = FunctionBundle(fallback)
 
 # ---------------------------------------------------------------------------
 # Kernels: 3D arrays → Float64 / Bool matrices
+#
+# `axis` is the axis being collapsed: 1 (y), 2 (x) or 3 (z).
 # ---------------------------------------------------------------------------
 
-"Size of the 2D result when `axis` of a volume of size `dims` is collapsed."
+"""
+Size of the 2D result when `axis` of a volume of size `dims` is collapsed.
+
+Example: `dims = (28, 24, 16)` → axis 1: `(24, 16)`, axis 2: `(28, 16)`,
+axis 3: `(28, 24)`.
+"""
 _out_size(dims, axis) = axis == 1 ? (dims[2], dims[3]) : axis == 2 ? (dims[1], dims[3]) : (dims[1], dims[2])
-"Position in the 2D result of voxel `(r, c, s)` when `axis` is collapsed."
+"""
+Position in the 2D result of voxel `(r, c, s)` when `axis` is collapsed: the
+two coordinates other than `axis`, in order. Example: `_plane(5, 7, 2, 3) == (5, 7)`.
+"""
 @inline _plane(r, c, s, axis) = axis == 1 ? (c, s) : axis == 2 ? (r, s) : (r, c)
-"Index of voxel `(r, c, s)` along `axis`."
+"Index of voxel `(r, c, s)` along `axis` (the coordinate that is collapsed). Example: `_along(5, 7, 2, 3) == 2`."
 @inline _along(r, c, s, axis) = axis == 1 ? r : axis == 2 ? c : s
 
 """
@@ -104,19 +130,22 @@ Reduce `values` along `axis`: each output pixel starts at `init`, folds every
 voxel of its line with `acc = step(acc, voxel)`, and ends as
 `finish(acc, line_length)`. The loop runs over the volume in memory order
 whatever the axis.
+
+Example: the mean projection is `init = 0.0`, `step = +`,
+`finish = (sum, n) -> sum / n`.
 """
 function _project(values::Array{Float64,3}, axis::Int, init, step::S, finish::F) where {S,F}
-    out = fill(init, _out_size(size(values), axis))
+    out = fill(init, _out_size(size(values), axis))    # one accumulator per output pixel
     h, w, d = size(values)
     @inbounds for s in 1:d, c in 1:w, r in 1:h
-        i, j = _plane(r, c, s, axis)
+        i, j = _plane(r, c, s, axis)                   # the output pixel this voxel projects onto
         out[i, j] = step(out[i, j], values[r, c, s])
     end
-    n = size(values, axis)
+    n = size(values, axis)                             # voxels per line
     return [finish(x, n) for x in out]
 end
 
-"Maximum along the axis."
+"Maximum along the axis (maximum intensity projection, MIP)."
 _proj_max(v, axis) = _project(v, axis, -Inf, max, (x, n) -> x)
 "Minimum along the axis."
 _proj_min(v, axis) = _project(v, axis, Inf, min, (x, n) -> x)
@@ -127,18 +156,24 @@ _proj_mean(v, axis) = _project(v, axis, 0.0, +, (x, n) -> x / n)
 function _proj_std(v, axis)
     mean = _proj_mean(v, axis)
     mean_of_squares = _project(v, axis, 0.0, (acc, x) -> acc + x * x, (x, n) -> x / n)
+    # std = sqrt(E[v²] − E[v]²), negatives from rounding clipped to 0; ×2 spreads it over [0, 1].
     return map((m, m2) -> 2.0 * sqrt(max(m2 - m^2, 0.0)), mean, mean_of_squares)
 end
 
-"Normalised position (`0` = first, `1` = last voxel) of the maximum along the axis; first maximum on ties."
+"""
+Normalised position (`0` = first, `1` = last voxel) of the maximum along the axis; first maximum on ties.
+
+Example along z with 16 slices: the brightest voxel of a line in slice 6 →
+`(6 − 1) / 15 ≈ 0.33`. A "depth map" of where the bright structures are.
+"""
 function _proj_argmax(v, axis)
     dims = size(v)
-    best = fill(-Inf, _out_size(dims, axis))
-    best_index = zeros(Int, _out_size(dims, axis))
+    best = fill(-Inf, _out_size(dims, axis))           # best value seen per output pixel
+    best_index = zeros(Int, _out_size(dims, axis))     # index along `axis` of that value
     @inbounds for s in 1:dims[3], c in 1:dims[2], r in 1:dims[1]
         i, j = _plane(r, c, s, axis)
         x = v[r, c, s]
-        if x > best[i, j]
+        if x > best[i, j]                              # strict: keeps the first maximum
             best[i, j] = x
             best_index[i, j] = _along(r, c, s, axis)
         end
@@ -147,39 +182,49 @@ function _proj_argmax(v, axis)
     return n <= 1 ? fill(0.5, size(best)) : (best_index .- 1) ./ (n - 1)
 end
 
-"Maximum (`mode = :max`) or mean (`:mean`) along the axis over the voxels inside `fg`; `0` where a line has none."
+"""
+Maximum (`mode = :max`) or mean (`:mean`) along the axis over the voxels inside `fg`; `0` where a line has none.
+
+Example: a mask of the lungs makes `proj_mean_masked_z` the average density of
+lung tissue at each `(y, x)`, ignoring the ribs and air outside.
+"""
 function _proj_masked(v, fg, axis, mode::Symbol)
     dims = size(v)
-    acc = fill(mode === :max ? -Inf : 0.0, _out_size(dims, axis))
-    count = zeros(Int, _out_size(dims, axis))
+    acc = fill(mode === :max ? -Inf : 0.0, _out_size(dims, axis))   # running max or sum per output pixel
+    count = zeros(Int, _out_size(dims, axis))                         # mask voxels per line
     @inbounds for s in 1:dims[3], c in 1:dims[2], r in 1:dims[1]
-        fg[r, c, s] || continue
+        fg[r, c, s] || continue                        # voxel outside the mask
         i, j = _plane(r, c, s, axis)
         x = v[r, c, s]
         acc[i, j] = mode === :max ? max(acc[i, j], x) : acc[i, j] + x
         count[i, j] += 1
     end
+    # Lines without mask voxels give 0; otherwise the max, or the sum divided by the count.
     return map((a, n) -> n == 0 ? 0.0 : (mode === :max ? a : a / n), acc, count)
 end
 
-"Index of the slice at normalised position `u` (`0` = first, `1` = last) among `n`."
+"""
+Index of the slice at normalised position `u` (`0` = first, `1` = last) among `n`.
+
+Example with `n = 16`: `u = 0 → 1`, `u = 0.5 → round(8.5) = 8`, `u = 1 → 16`.
+"""
 _slice_index(n, u) = clamp(round(Int, 1 + u * (n - 1)), 1, n)
 
-"Slice `k` of a 3D array across `axis` (a copy)."
+"Slice `k` of a 3D array across `axis` (a copy). Example: `_slice(a, 3, 5) == a[:, :, 5]`."
 function _slice(a::AbstractArray{T,3}, axis::Int, k::Int) where {T}
     return axis == 1 ? a[k, :, :] : axis == 2 ? a[:, k, :] : a[:, :, k]
 end
 
 "Index along `axis` of the brightest voxel (first one on ties)."
 function _brightest_index(v, axis)
-    index = argmax(v)
+    index = argmax(v)                         # CartesianIndex (r, c, s) of the maximum
     return Tuple(index)[axis]
 end
 
 "Index along `axis` of the mask's centroid; the middle slice for an empty mask."
 function _centroid_index(fg, axis)
-    total = 0
-    weighted = 0
+    total = 0                                 # mask voxels
+    weighted = 0                              # Σ index along `axis` of the mask voxels
     @inbounds for idx in CartesianIndices(fg)
         fg[idx] || continue
         total += 1
@@ -188,17 +233,22 @@ function _centroid_index(fg, axis)
     return total == 0 ? cld(size(fg, axis), 2) : round(Int, weighted / total)
 end
 
-"Index along `axis` of the slice with the most mask voxels; the middle slice for an empty mask."
+"""
+Index along `axis` of the slice with the most mask voxels; the middle slice for an empty mask.
+
+Example: for a tumour mask, `slice_largest_z` picks the slice where the
+tumour's cross-section is biggest.
+"""
 function _largest_index(fg, axis)
     n = size(fg, axis)
-    counts = zeros(Int, n)
+    counts = zeros(Int, n)                    # counts[k] = mask voxels in slice k
     @inbounds for idx in CartesianIndices(fg)
         fg[idx] && (counts[Tuple(idx)[axis]] += 1)
     end
     return maximum(counts) == 0 ? cld(n, 2) : argmax(counts)
 end
 
-"Any / all voxels set along the axis (2D result)."
+"Any / all voxels set along the axis (2D result). `dropdims` removes the collapsed axis of length 1."
 _proj_any(fg, axis) = dropdims(any(fg; dims = axis); dims = axis)
 _proj_all(fg, axis) = dropdims(all(fg; dims = axis); dims = axis)
 
@@ -213,7 +263,7 @@ _fg(vol::SizedImage{S,<:IntensityPixel}, t = 0.5) where {S} = voxel_foreground(:
 # Factories
 # ---------------------------------------------------------------------------
 
-"Convert a kernel result into a pixel matrix of the output type."
+"Convert a kernel result into a pixel matrix of the output type (values rounded and clamped to the storage range)."
 _to_image(::Type{IntensityPixel{T}}, m::AbstractMatrix{Float64}) where {T} = [IntensityPixel{T}(to_storage(T, x)) for x in m]
 _to_image(::Type{BinaryPixel{T}}, m::AbstractMatrix{Bool}) where {T} = BinaryPixel{T}.(m)
 
@@ -221,6 +271,9 @@ _to_image(::Type{BinaryPixel{T}}, m::AbstractMatrix{Bool}) where {T} = BinaryPix
 Size pattern (an expression) of the volumes accepted when `axis` is
 collapsed into an `(A, B)` image: the collapsed axis is the free type
 variable `N`, e.g. `Tuple{A,B,N}` for `axis = 3`.
+
+Example: for a `28 × 28` output and `axis = 3`, the pattern `Tuple{28,28,N}`
+accepts `28 × 28 × 16` and `28 × 28 × 64` volumes alike.
 """
 function _volume_pattern(axis::Int, A, B)
     axis == 1 && return :(Tuple{N,$A,$B})
@@ -235,9 +288,9 @@ Validate the 2D output type `I` and return its pixel type, its size as a
 tuple type, its two sizes `A × B`, and the name of the specialised function.
 """
 function _factory_setup(::Type{I}, operator::Symbol) where {I}
-    _validate_factory_type(_get_image_type(I))
-    size_type = _get_image_tuple_size(I)
-    A, B = size_type.parameters
+    _validate_factory_type(_get_image_type(I))         # throws for unsupported storage types
+    size_type = _get_image_tuple_size(I)               # e.g. Tuple{28,28}
+    A, B = size_type.parameters                        # e.g. 28, 28
     return _get_image_pixel_type(I), size_type, A, B, Symbol(operator, :_, Symbol(I))
 end
 
@@ -257,40 +310,49 @@ other axes must match `I`'s size. `forms` selects the methods:
 
 Calling it again for the same `I` adds methods to the same function, which
 is how an operator gets forms with different kernels.
+
+Example: `slice_at_z` for masks uses `forms = (:binary_scalar,
+:intensity_scalar)`, so it accepts `(mask, s)` and `(vol, s)`.
 """
 function _bridge_factory(::Type{I}, operator::Symbol, axis::Int, kernel::K, forms) where {I,K}
     pixel_type, size_type, A, B, name = _factory_setup(I, operator)
-    volume_size = _volume_pattern(axis, A, B)
+    volume_size = _volume_pattern(axis, A, B)          # spliced into each method's signature
     fn = nothing
     for form in forms
         f = if form === :intensity
+            # op(intensity_vol, extra...)
             @eval function $name(vol::Vol, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol)), $size_type)
             end
         elseif form === :binary
+            # op(binary_vol, extra...)
             @eval function $name(vol::Vol, args::Vararg{Any}) where {N,VolBool,Vol<:SizedImage{$volume_size,BinaryPixel{VolBool}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol)), $size_type)
             end
         elseif form === :intensity_scalar
+            # op(intensity_vol, u, extra...), u clamped to [0, 1]
             @eval function $name(vol::Vol, u::Real, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol, clamp_unit(u))), $size_type)
             end
         elseif form === :binary_scalar
+            # op(binary_vol, u, extra...)
             @eval function $name(vol::Vol, u::Real, args::Vararg{Any}) where {N,VolBool,Vol<:SizedImage{$volume_size,BinaryPixel{VolBool}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol, clamp_unit(u))), $size_type)
             end
         elseif form === :intensity_mask
             # The size pattern lets the volume and mask differ along the collapsed axis, hence the check.
+            # op(intensity_vol, binary_mask, extra...)
             @eval function $name(vol::Vol, mask::Mask, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}},MaskBool,Mask<:SizedImage{$volume_size,BinaryPixel{MaskBool}}}
                 size(vol) == size(mask) || throw(DimensionMismatch("volume and mask must have the same size"))
                 return SImageND(_to_image($pixel_type, $kernel(vol, voxel_foreground(:bridge_mask, mask.img, IsSet()))), $size_type)
             end
+            # op(intensity_vol, intensity_mask, extra...): mask voxels ≥ 0.5 are inside
             @eval function $name(vol::Vol, mask::Mask, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}},MaskStorage,Mask<:SizedImage{$volume_size,IntensityPixel{MaskStorage}}}
                 size(vol) == size(mask) || throw(DimensionMismatch("volume and mask must have the same size"))
                 return SImageND(_to_image($pixel_type, $kernel(vol, voxel_foreground(:bridge_mask, mask.img, AtLeast(0.5)))), $size_type)
             end
         end
-        fn === nothing && (fn = f)
+        fn === nothing && (fn = f)                     # return the function (all forms share it)
     end
     return fn
 end
@@ -304,9 +366,13 @@ end
 
 Define the factory `<operator>_<kind>_image2D_factory(I) = builder(I)`,
 document it and register it in `bundle`.
+
+Example: `_define!(_BINARY, :binary, :proj_any_z, …)` defines
+`proj_any_z_binary_image2D_factory`.
 """
 function _define!(bundle, kind::Symbol, operator::Symbol, builder, description::String)
     factory_name = Symbol(operator, :_, kind, :_image2D_factory)
+    # The factory accepts any 2D image type and forwards it to the builder.
     @eval function $factory_name(output_type::Type{I}) where {S1,S2,P,I<:SizedImage2D{S1,S2,P}}
         return $builder(output_type)
     end
@@ -327,7 +393,9 @@ end
 _builder(op, axis, kernel, forms) = I -> _bridge_factory(I, op, axis, kernel, forms)
 "Builder for `proj_any`: thresholds at `0.5` with one argument, at `t` with `(vol, t)`."
 _proj_any_builder(op, axis) = I -> begin
+    # (mask) and (intensity_vol) forms, intensity at 0.5 …
     fn = _bridge_factory(I, op, axis, vol -> _proj_any(_fg(vol), axis), (:binary, :intensity))
+    # … plus (intensity_vol, t) on the same function, thresholded at t.
     _bridge_factory(I, op, axis, (vol, t) -> _proj_any(_fg(vol, t), axis), (:intensity_scalar,))
     fn
 end
@@ -335,26 +403,36 @@ end
 const _INTENSITY = bundle_image2DIntensity_fromVolume_factory
 const _BINARY = bundle_image2DBinary_fromVolume_factory
 
+# Every operator exists once per axis: <name>_y, <name>_x and <name>_z.
 for (axis, letter) in ((1, :y), (2, :x), (3, :z))
     # --- Intensity: projections and slices of the volume alone.
+    #
+    # Each entry is (name stem, kernel(vol) -> Matrix{Float64}, wording for the
+    # description); the operator is named <stem>_<letter>, e.g. proj_max_z,
+    # and takes (intensity_vol). The kernels capture `axis` from the loop.
     for (stem, kernel, what) in (
             (:proj_max, vol -> _proj_max(_values(vol), axis), "maximum intensity projection"),
             (:proj_min, vol -> _proj_min(_values(vol), axis), "minimum intensity projection"),
             (:proj_mean, vol -> _proj_mean(_values(vol), axis), "mean intensity projection"),
             (:proj_std, vol -> _proj_std(_values(vol), axis), "twice the standard deviation along the axis"),
             (:proj_argmax, vol -> _proj_argmax(_values(vol), axis), "position (0 to 1) of the maximum along the axis"),
+            # cld(n, 2): the middle slice (slice 8 of 16, slice 14 of 28)
             (:slice_center, vol -> _slice(_values(vol), axis, cld(size(vol, axis), 2)), "central slice"),
             (:slice_brightest, vol -> (v = _values(vol); _slice(v, axis, _brightest_index(v, axis))), "slice through the brightest voxel"),
         )
         op = Symbol(stem, :_, letter)
         _define!(_INTENSITY, :intensity, op, _builder(op, axis, kernel, (:intensity,)), "The $what along $letter.")
     end
+    # slice_at_<letter>(vol, s): the slice at normalised position s.
     op = Symbol(:slice_at_, letter)
     _define!(_INTENSITY, :intensity, op,
         _builder(op, axis, (vol, u) -> _slice(_values(vol), axis, _slice_index(size(vol, axis), u)), (:intensity_scalar,)),
         "The slice at normalised position s along $letter.")
 
     # --- Intensity: guided by a mask.
+    #
+    # Each entry is (name stem, kernel(vol, fg) -> Matrix{Float64}, wording);
+    # the operator takes (intensity_vol, mask), `fg` being the mask's foreground.
     for (stem, kernel, what) in (
             (:proj_max_masked, (vol, fg) -> _proj_masked(_values(vol), fg, axis, :max), "maximum projection over the mask's voxels"),
             (:proj_mean_masked, (vol, fg) -> _proj_masked(_values(vol), fg, axis, :mean), "mean projection over the mask's voxels"),
@@ -366,6 +444,7 @@ for (axis, letter) in ((1, :y), (2, :x), (3, :z))
     end
 
     # --- Binary: projections and slices of masks (intensity volumes thresholded at 0.5).
+    # Kernels receive the volume and call _fg(vol) for its foreground.
     op = Symbol(:proj_any_, letter)
     _define!(_BINARY, :binary, op, _proj_any_builder(op, axis),
         "Silhouette along $letter: set where any voxel is (intensity at 0.5 or a given threshold).")

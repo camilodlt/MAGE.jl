@@ -9,6 +9,31 @@ the whole foreground, and statistics aggregated over all objects of a mask.
 
 The exhaustive, always-current list of operators in each bundle is on the
 [Bundle Catalogue](@ref) page.
+
+# How this file is organised
+
+Each descriptor is a kernel `compute(fg, roi) -> Float64` on the foreground
+`Bool` matrix (`roi` is a region's pixel array or `nothing`). The macro
+`@_mask_methods` writes the public methods, and the loops at the end register
+one operator per kernel (whole-foreground descriptors and Hu moments) or per
+(descriptor, aggregate) pair (`objs_*`).
+
+# Example
+
+```julia
+using UTCGP, ImageCore
+m = falses(30, 30)
+m[5:9, 5:9] .= true            # a 5 × 5 square (25 pixels)
+m[15:24, 20:22] .= true        # a 10 × 3 bar (30 pixels)
+mask = SImageND(BinaryPixel.(m))
+S = UTCGP.number_shapeFromImg
+
+S.shape_fill(mask)             # 55 / 900 ≈ 0.061
+S.shape_euler(mask)            # 2.0: two objects, no hole
+S.objs_area_max(mask)          # 30 / 900 ≈ 0.033: the bar
+S.objs_extent_mean(mask)       # 1.0: both fill their bounding box
+S.objs_elongation_max(mask)    # ≈ 0.70: the bar (the square scores 0)
+```
 """
 module number_shapeFromImg
 
@@ -35,6 +60,7 @@ using ..image2D_object_common:
     hull_pixel_count,
     background_holes!
 
+# Returned by the bundles when no method matches the inputs.
 fallback(args...) = return 0.0
 
 """
@@ -87,6 +113,7 @@ const _Mask = SImageND{S,T,2,C} where {S,T<:BinaryPixel,C}
 "Foreground as a `Bool` matrix in per-task scratch (`is_foreground` is `IsSet()` or `AtLeast(t)`)."
 function _foreground(pixels::AbstractMatrix, is_foreground)
     fg = scratch(:shape_desc_fg, Bool, size(pixels)...)
+    # A fast version of the test for this pixel type (e.g. a lookup table for 8-bit pixels).
     predicate = fast_foreground_test(pixels, is_foreground)
     @inbounds for i in eachindex(pixels, fg)
         fg[i] = predicate(pixels[i])
@@ -102,7 +129,7 @@ end
 function _intersect!(fg::AbstractMatrix{Bool}, roi::AbstractMatrix)
     size(fg) == size(roi) || throw(DimensionMismatch("mask and region must have the same size"))
     @inbounds for i in eachindex(fg, roi)
-        fg[i] &= _roi_in(roi[i])
+        fg[i] &= _roi_in(roi[i])        # foreground AND inside the region
     end
     return fg
 end
@@ -121,12 +148,16 @@ Hu's seven invariants of a non-negative weight matrix (x = column, y = row).
    applied once per column.
 3. Normalised moments `eta_pq = mu_pq / m00^(1 + (p+q)/2)` (scale
    invariant) are combined into Hu's formulas (rotation invariant).
+
+Example: a shape and the same shape rotated by 30°, scaled ×2 or moved give
+(nearly, up to pixelation) the same seven values; `h7` changes sign for its
+mirror image.
 """
 function _hu(weights::AbstractMatrix{Float64})
     h, w = size(weights)
-    m00 = 0.0
-    m10 = 0.0
-    m01 = 0.0
+    m00 = 0.0                                    # Σ w (total mass)
+    m10 = 0.0                                    # Σ w·x (x = column)
+    m01 = 0.0                                    # Σ w·y (y = row)
     @inbounds for c in 1:w
         s0 = 0.0                                 # column sums: Σ w, Σ w·r
         s1 = 0.0
@@ -139,7 +170,7 @@ function _hu(weights::AbstractMatrix{Float64})
         m10 += s0 * c
         m01 += s1
     end
-    m00 <= 0.0 && return ntuple(_ -> 0.0, 7)
+    m00 <= 0.0 && return ntuple(_ -> 0.0, 7)    # no mass: all invariants 0
     xc = m10 / m00                               # centroid (x = column, y = row)
     yc = m01 / m00
     mu20 = mu02 = mu11 = mu30 = mu03 = mu21 = mu12 = 0.0
@@ -158,6 +189,7 @@ function _hu(weights::AbstractMatrix{Float64})
             s2 += vy * y
             s3 += vy * y * y
         end
+        # Column contribution to each central moment Σ w x^p y^q (x is constant in the column).
         mu20 += s0 * x * x
         mu11 += s1 * x
         mu02 += s2
@@ -173,6 +205,8 @@ function _hu(weights::AbstractMatrix{Float64})
     eta30, eta03, eta21, eta12 = mu30 / norm3, mu03 / norm3, mu21 / norm3, mu12 / norm3
     a = eta30 + eta12            # recurring sums in Hu's formulas
     b = eta21 + eta03
+    # Hu's seven invariants (Hu, 1962). h1 is the spread around the centroid,
+    # h2 the elongation; h3…h7 use the third moments (asymmetry).
     h1 = eta20 + eta02
     h2 = (eta20 - eta02)^2 + 4 * eta11^2
     h3 = (eta30 - 3 * eta12)^2 + (3 * eta21 - eta03)^2
@@ -183,7 +217,12 @@ function _hu(weights::AbstractMatrix{Float64})
     return (h1, h2, h3, h4, h5, h6, h7)
 end
 
-"`−sign(h) log10 |h|`; `0` for `h == 0`."
+"""
+`−sign(h) log10 |h|`; `0` for `h == 0`.
+
+Hu invariants span many orders of magnitude (`1e-1` to `1e-20`), so the log
+puts them on a usable scale. Example: `h = 0.001 → 3`, `h = −0.001 → −3`.
+"""
 @inline _log_hu(h::Float64) = (abs(h) < 1e-300 || !isfinite(h)) ? 0.0 : -sign(h) * log10(abs(h))
 
 "Hu invariants of a mask (weight `1` on the foreground)."
@@ -204,11 +243,11 @@ scratch matrix, then read by the moment passes.
 function _hu_weighted(pixels::AbstractMatrix, roi)
     h, w = size(pixels)
     weights = scratch(:hu_weights, Float64, h, w)
-    largest = 0.0
+    largest = 0.0                                # largest weight, to normalise by
     @inbounds for i in eachindex(pixels)
         v = pixel_value(pixels[i])
-        v = ifelse(v > 0.0, v, 0.0)
-        roi === nothing || _roi_in(roi[i]) || (v = 0.0)
+        v = ifelse(v > 0.0, v, 0.0)              # negative values weigh nothing
+        roi === nothing || _roi_in(roi[i]) || (v = 0.0)   # outside the region: weight 0
         weights[i] = v
         largest = ifelse(v > largest, v, largest)
     end
@@ -230,12 +269,15 @@ end
 Moment summary of the whole foreground: pixel count, row / column variances
 (each `+1/12`, the variance of a unit-width pixel) and covariance, and the
 bounding box `r0:r1 × c0:c1`. `nothing` when empty.
+
+Example: a horizontal 1 × 5 bar at row 3, columns 2–6 →
+`(5, 1/12, 2 + 1/12, 0.0, 3, 3, 2, 6)`.
 """
 function _whole_moments(fg::AbstractMatrix{Bool})
     h, w = size(fg)
     n = 0
-    sum_r = sum_c = sum_rr = sum_cc = sum_rc = 0.0
-    r0, r1, c0, c1 = h + 1, 0, w + 1, 0
+    sum_r = sum_c = sum_rr = sum_cc = sum_rc = 0.0      # Σr, Σc, Σr², Σc², Σr·c
+    r0, r1, c0, c1 = h + 1, 0, w + 1, 0                 # bounding box, grown pixel by pixel
     @inbounds for c in 1:w, r in 1:h
         fg[r, c] || continue
         n += 1
@@ -257,6 +299,8 @@ function _shape_solidity(fg)
     m = _whole_moments(fg)
     m === nothing && return 0.0
     n, _, _, _, r0, r1, c0, c1 = m
+    # Leftmost and rightmost pixel of each row are the only possible hull vertices
+    # (label 0 on a Bool matrix selects every `true` pixel).
     hull = convex_hull_points(extreme_points(fg, 0, r0, r1, c0, c1))
     return clamp(n / max(hull_pixel_count(hull), 1), 0.0, 1.0)
 end
@@ -299,7 +343,12 @@ function _shape_hole_fraction(fg)
     return hole_area / (area + hole_area)
 end
 
-"Euler number with 8-connected objects and 4-connected holes: objects − holes."
+"""
+Euler number with 8-connected objects and 4-connected holes: objects − holes.
+
+Example: the digit `8` gives `1 − 2 = −1`, `0` gives `0`, `1` gives `1`, and
+`ii` (two separate strokes) gives `2`.
+"""
 function _shape_euler(fg)
     objects = object_table(fg, identity).n
     holes, _ = background_holes!(nothing, fg)
@@ -314,7 +363,7 @@ end
 function _nn_distances(t::ObjectTable)
     d = zeros(t.n)
     t.n <= 1 && return d
-    xs = [unit_x(t, i) for i in 1:t.n]
+    xs = [unit_x(t, i) for i in 1:t.n]          # normalised centroid of each object
     ys = [unit_y(t, i) for i in 1:t.n]
     @inbounds for i in 1:t.n
         best = Inf
@@ -357,6 +406,7 @@ function _object_ids(t::ObjectTable, roi)
     roi === nothing && return collect(1:t.n)
     ids = Int[]
     for i in 1:t.n
+        # Centroid pixel of object i (rounded, kept inside the image).
         r = clamp(round(Int, t.sum_r[i] / t.area[i]), 1, t.h)
         c = clamp(round(Int, t.sum_c[i] / t.area[i]), 1, t.w)
         _roi_in(roi[r, c]) && push!(ids, i)
@@ -371,7 +421,12 @@ function _aggregate(descriptor::D, aggregate::A, t::ObjectTable, roi) where {D,A
     return Float64(aggregate(descriptor(t, ids)))
 end
 
-"Gini coefficient of the selected objects' areas: `Σ (2i − n − 1) aᵢ / (n Σ a)` over the sorted areas."
+"""
+Gini coefficient of the selected objects' areas: `Σ (2i − n − 1) aᵢ / (n Σ a)` over the sorted areas.
+
+Example: areas `[10, 10]` → `0` (equal sizes); `[1, 99]` → `0.49` (one object
+dominates; the maximum for 2 objects is `0.5`).
+"""
 function _gini(t::ObjectTable, roi)
     ids = _object_ids(t, roi)
     length(ids) <= 1 && return 0.0
@@ -382,9 +437,9 @@ end
 
 "Mean pixel value of `pixels` inside each object."
 function _intensity_means(t::ObjectTable, pixels::AbstractMatrix)
-    sums = zeros(t.n)
+    sums = zeros(t.n)                            # intensity sum per object
     @inbounds for i in eachindex(t.labels)
-        l = t.labels[i]
+        l = t.labels[i]                          # object of pixel i (0 = background)
         l == 0 && continue
         sums[l] += pixel_value(pixels[i])
     end
@@ -405,7 +460,7 @@ value is `compute(fg::Matrix{Bool}, roi_pixels_or_nothing)`:
 - `name(mask, roi)` (binary or intensity region), `name(img, roi_mask)`.
 """
 macro _mask_methods(name, compute)
-    name, compute = esc(name), esc(compute)
+    name, compute = esc(name), esc(compute)             # use the caller's names, not this module's
     return quote
         $name(mask::_Mask, args...) = $compute(_foreground(mask.img, IsSet()), nothing)
         $name(img::_Img, args...) = $compute(_foreground(img.img, AtLeast(0.5)), nothing)
@@ -424,6 +479,7 @@ function _register!(bundle, name::Symbol, description::String, doc::String)
     append_method!(bundle, getfield(@__MODULE__, name), name; description = description)
 end
 
+# Signature lines shared by the docstrings of `@_mask_methods` operators (NAME is replaced).
 const _MASK_SIGNATURES = """
     NAME(mask, args...)
     NAME(img, [threshold], args...)
@@ -434,7 +490,8 @@ const _MASK_SIGNATURES = """
 _mask_doc(name, what) = replace(_MASK_SIGNATURES, "NAME" => string(name)) * "\n" * what *
     " Intensity inputs are thresholded at `threshold` (default `0.5`); with `roi`, only the foreground inside it counts."
 
-# Hu moments of the foreground.
+# Hu moments: for k = 1…7, shape_hu<k> on the mask (optionally restricted to a region)
+# and shape_hu<k>_weighted on the intensity image.
 for k in 1:7
     name = Symbol(:shape_hu, k)
     compute = (fg, roi) -> _log_hu(_hu_mask(roi === nothing ? fg : _intersect!(fg, roi))[k])
@@ -459,6 +516,8 @@ for k in 1:7
     """)
 end
 
+# Whole-foreground descriptors: (operator name, kernel(fg) -> number, description).
+# With a region, the foreground is first restricted to it.
 for (name, kernel, what) in (
         (:shape_solidity, _shape_solidity, "Area of the foreground over the pixel area of its convex hull."),
         (:shape_circularity, _shape_circularity, "Moment circularity of the foreground (1 for a disk)."),
@@ -473,6 +532,9 @@ for (name, kernel, what) in (
     _register!(bundle_number_shapeFromImg, name, what, _mask_doc(name, what))
 end
 
+# Per-object aggregates: every (descriptor, aggregate) pair, e.g. objs_area_mean,
+# objs_area_std, …, objs_nn_distance_cv (6 × 6 operators). With a region, only the
+# objects whose centroid lies inside it are aggregated.
 for (descriptor, values_of, descriptor_doc) in _DESCRIPTORS, (aggregate, reducer, aggregate_doc) in _AGGREGATES
     name = Symbol(:objs_, descriptor, :_, aggregate)
     compute = (fg, roi) -> _aggregate(values_of, reducer, object_table(fg, identity), roi)
@@ -482,6 +544,7 @@ for (descriptor, values_of, descriptor_doc) in _DESCRIPTORS, (aggregate, reducer
         _mask_doc(name, "The $aggregate_doc, over all 8-connected objects, of their $descriptor_doc. No objects → `0.0`."))
 end
 
+# `let` gives the closure its own scope (it is not in a loop body).
 let compute = (fg, roi) -> _gini(object_table(fg, identity), roi)
     @eval @_mask_methods objs_area_gini $compute
 end
@@ -489,6 +552,8 @@ _register!(bundle_number_objectStatsFromImg, :objs_area_gini,
     "Gini coefficient of object areas (0 = equal sizes).",
     _mask_doc(:objs_area_gini, "Gini coefficient of the object areas: `0` when all objects have the same size, towards `1` when one dominates."))
 
+# objs_intensity_<aggregate>(img, mask): mean intensity of img inside each object of
+# the mask, aggregated (e.g. objs_intensity_max = the brightest object's mean).
 for (aggregate, reducer, aggregate_doc) in _AGGREGATES
     name = Symbol(:objs_intensity_, aggregate)
     @eval begin

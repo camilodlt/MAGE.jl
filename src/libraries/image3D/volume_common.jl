@@ -21,6 +21,11 @@ first voxel centre to `0` and the last to `1`.
 Objects are 26-connected; background regions (holes) are 6-connected, the
 dual connectivity, so a diagonal gap never lets a cavity leak out.
 
+- 26-connected: two voxels touch if they share a face, an edge or a corner
+  (every voxel of the surrounding 3³ cube except itself).
+- 6-connected: only shared faces (above, below, left, right, previous and
+  next slice).
+
 # Performance notes
 
 Julia arrays are column-major: `A[r, c, s]` and `A[r+1, c, s]` are adjacent
@@ -29,6 +34,18 @@ operations along `x` or `z` are written as whole-array shifts
 (`_combine_shift!`) so they also read memory contiguously. Temporary arrays
 come from per-task `scratch` buffers, keyed by a `Symbol`; a buffer is reused
 by the next call with the same key in the same task.
+
+# Example
+
+```julia
+fg = falses(8, 8, 8)
+fg[2:3, 2:3, 2:3] .= true            # a 2³ cube
+fg[6, 6, 6] = true                   # a lone voxel
+t = volume_table(fg, identity)       # `identity`: the array already holds Bools
+t.n                                  # 2 objects
+t.area                               # [8, 1]
+centroid(t, 1)                       # (2.5, 2.5, 2.5)
+```
 """
 module image3D_volume_common
 
@@ -45,11 +62,16 @@ const _FAR = 1.0e20
 # Values and foreground
 # ---------------------------------------------------------------------------
 
-"Voxel values as a `Float64` array in per-task scratch (`key` names the buffer)."
+"""
+Voxel values as a `Float64` array in per-task scratch (`key` names the buffer).
+
+The returned array is overwritten by the next call with the same `key` in the
+same task: copy it if it must survive (see `_two_volumes_factory`).
+"""
 function voxel_values(key::Symbol, voxels::AbstractArray{P,3}) where {P}
-    values = scratch(key, Float64, size(voxels)...)
+    values = scratch(key, Float64, size(voxels)...)     # reused buffer of the right size
     @inbounds @simd for i in eachindex(voxels, values)
-        values[i] = pixel_value(voxels[i])
+        values[i] = pixel_value(voxels[i])              # e.g. N0f8 byte 128 → 0.502
     end
     return values
 end
@@ -58,9 +80,13 @@ end
 Foreground of `voxels` as a `Bool` array in scratch. `is_foreground` is a
 predicate object such as `IsSet()` (binary voxels) or `AtLeast(t)`
 (intensity ≥ `t`).
+
+Example: `voxel_foreground(:k, vol.img, AtLeast(0.5))` marks the voxels at or
+above `0.5`.
 """
 function voxel_foreground(key::Symbol, voxels::AbstractArray{P,3}, is_foreground) where {P}
     fg = scratch(key, Bool, size(voxels)...)
+    # A fast version of the test for this pixel type (e.g. a 256-entry lookup table for 8-bit voxels).
     predicate = fast_foreground_test(voxels, is_foreground)
     @inbounds for i in eachindex(voxels, fg)
         fg[i] = predicate(voxels[i])
@@ -68,11 +94,15 @@ function voxel_foreground(key::Symbol, voxels::AbstractArray{P,3}, is_foreground
     return fg
 end
 
-"Pixel array of type `P` from `Float64` values (stored with rounding and clamping) or from a `Bool` mask."
+"""
+Pixel array of type `P` from `Float64` values (stored with rounding and clamping) or from a `Bool` mask.
+
+Example for `N0f8` storage: `0.5 → 128/255`, `1.3 → 1.0`, `-0.2 → 0.0`.
+"""
 function to_pixels(::Type{IntensityPixel{T}}, values::AbstractArray{Float64,3}) where {T}
     out = Array{IntensityPixel{T},3}(undef, size(values))
     @inbounds for i in eachindex(values)
-        out[i] = IntensityPixel{T}(to_storage(T, values[i]))
+        out[i] = IntensityPixel{T}(to_storage(T, values[i]))   # to_storage rounds and clamps to T's range
     end
     return out
 end
@@ -97,16 +127,19 @@ are numbered `1:n`; every per-object field is indexed by that number.
 | `s1` | `n × 3`: Σ y, Σ x, Σ z over the object's voxels (first moments) |
 | `s2` | `n × 6`: Σ y², Σ x², Σ z², Σ yx, Σ yz, Σ xz (second moments) |
 | `lo`, `hi` | `n × 3`: bounding box, first and last index along y, x, z |
+
+Example: object 2 spans rows `t.lo[2, 1]:t.hi[2, 1]`, has `t.area[2]` voxels
+and centroid `t.s1[2, :] ./ t.area[2]`.
 """
 struct VolumeTable
-    dims::NTuple{3,Int}
-    n::Int
-    labels::Array{Int32,3}
-    area::Vector{Int}
-    s1::Matrix{Float64}
-    s2::Matrix{Float64}
-    lo::Matrix{Int}
-    hi::Matrix{Int}
+    dims::NTuple{3,Int}          # (h, w, d) = (rows, columns, slices)
+    n::Int                       # number of objects
+    labels::Array{Int32,3}       # labels[r, c, s] = object number of the voxel, 0 = background
+    area::Vector{Int}            # area[i] = voxels in object i
+    s1::Matrix{Float64}          # s1[i, :] = (Σ y, Σ x, Σ z) over object i
+    s2::Matrix{Float64}          # s2[i, :] = (Σ y², Σ x², Σ z², Σ y·x, Σ y·z, Σ x·z) over object i
+    lo::Matrix{Int}              # lo[i, :] = first (y, x, z) index of object i's bounding box
+    hi::Matrix{Int}              # hi[i, :] = last (y, x, z) index of object i's bounding box
 end
 
 """
@@ -114,6 +147,8 @@ end
 
 Label the 26-connected components of a 3D array (foreground decided by
 `is_foreground`, as in `voxel_foreground`) and gather their statistics.
+
+For a `Bool` array, pass `identity` as `is_foreground`.
 """
 function volume_table(voxels::AbstractArray{P,3}, is_foreground) where {P}
     return _volume_table(voxels, fast_foreground_test(voxels, is_foreground))
@@ -132,21 +167,26 @@ Run-based labelling behind `volume_table`.
 3. A second pass numbers the union–find roots `1:n`, writes the labels and
    accumulates the statistics run by run (closed-form sums over a run, so the
    cost is per run, not per voxel).
+
+Example: column `(c, s)` holding foreground at rows `2, 3, 4, 8` has two runs,
+`2:4` and `8:8`. If column `(c − 1, s)` has a run `5:6`, it touches `2:4`
+diagonally (row 5 is next to row 4), so the two runs join the same object.
 """
 function _volume_table(voxels::AbstractArray{P,3}, fg::F) where {P,F}
     h, w, d = size(voxels)
-    run_col = empty!(scratch(:vol_run_col, Int32, 0))
-    run_slice = empty!(scratch(:vol_run_slice, Int32, 0))
-    run_r0 = empty!(scratch(:vol_run_r0, Int32, 0))
-    run_r1 = empty!(scratch(:vol_run_r1, Int32, 0))
-    parent = empty!(scratch(:vol_parent, Int32, 0))
-    first_run = scratch(:vol_first_run, Int32, w, d)
+    # Growable per-run vectors, emptied scratch (no allocation once warm).
+    run_col = empty!(scratch(:vol_run_col, Int32, 0))      # column c of run k
+    run_slice = empty!(scratch(:vol_run_slice, Int32, 0))  # slice s of run k
+    run_r0 = empty!(scratch(:vol_run_r0, Int32, 0))        # first row of run k
+    run_r1 = empty!(scratch(:vol_run_r1, Int32, 0))        # last row of run k
+    parent = empty!(scratch(:vol_parent, Int32, 0))        # union–find parent of run k
+    first_run = scratch(:vol_first_run, Int32, w, d)       # runs of column (c, s) are first_run[c, s]:last_run[c, s]
     last_run = scratch(:vol_last_run, Int32, w, d)
     @inbounds for s in 1:d, c in 1:w
-        first_run[c, s] = Int32(length(run_col) + 1)
+        first_run[c, s] = Int32(length(run_col) + 1)       # the next run created belongs to this column
         r = 1
         while r <= h
-            if !fg(voxels[r, c, s])
+            if !fg(voxels[r, c, s])                          # skip background
                 r += 1
                 continue
             end
@@ -154,6 +194,7 @@ function _volume_table(voxels::AbstractArray{P,3}, fg::F) where {P,F}
             while r <= h && fg(voxels[r, c, s])
                 r += 1
             end
+            # Record the run and make it its own union–find set.
             push!(run_col, c)
             push!(run_slice, s)
             push!(run_r0, r0)
@@ -161,6 +202,8 @@ function _volume_table(voxels::AbstractArray{P,3}, fg::F) where {P,F}
             id = Int32(length(run_col))
             push!(parent, id)
             # Already-visited neighbouring columns: left, and the three of the previous slice.
+            # (The other four neighbours — right and the rest of the next slice — are
+            # visited later and will link to this run from their side.)
             for (nc, ns) in ((c - 1, s), (c - 1, s - 1), (c, s - 1), (c + 1, s - 1))
                 (1 <= nc <= w && 1 <= ns <= d) || continue
                 for k in first_run[nc, ns]:last_run[nc, ns]
@@ -180,7 +223,7 @@ function _volume_table(voxels::AbstractArray{P,3}, fg::F) where {P,F}
     n = 0
     @inbounds for k in 1:runs
         root = _find_root(parent, Int32(k))
-        if remap[root] == 0
+        if remap[root] == 0                     # first run of a new object
             n += 1
             remap[root] = Int32(n)
         end
@@ -190,30 +233,32 @@ function _volume_table(voxels::AbstractArray{P,3}, fg::F) where {P,F}
     area = zeros(Int, n)
     s1 = zeros(n, 3)
     s2 = zeros(n, 6)
-    lo = fill(typemax(Int), n, 3)
+    lo = fill(typemax(Int), n, 3)               # start high so min() takes the first value
     hi = zeros(Int, n, 3)
     @inbounds for k in 1:runs
-        id = remap[k]
+        id = remap[k]                            # object of this run
         c = Int(run_col[k])
         s = Int(run_slice[k])
         r0 = Int(run_r0[k])
         r1 = Int(run_r1[k])
-        len = r1 - r0 + 1
+        len = r1 - r0 + 1                        # voxels in the run
         for r in r0:r1
             labels[r, c, s] = id
         end
+        # Sums over the run in closed form: c and s are constant along it, r runs r0:r1.
         row_sum = (r0 + r1) * len / 2                                              # Σ r over r0:r1
         row_square_sum = (r1 * (r1 + 1) * (2r1 + 1) - (r0 - 1) * r0 * (2r0 - 1)) / 6  # Σ r² over r0:r1
         area[id] += len
-        s1[id, 1] += row_sum
-        s1[id, 2] += c * len
-        s1[id, 3] += s * len
-        s2[id, 1] += row_square_sum
-        s2[id, 2] += c * c * len
-        s2[id, 3] += s * s * len
-        s2[id, 4] += c * row_sum
-        s2[id, 5] += s * row_sum
-        s2[id, 6] += c * s * len
+        s1[id, 1] += row_sum                     # Σ y
+        s1[id, 2] += c * len                     # Σ x
+        s1[id, 3] += s * len                     # Σ z
+        s2[id, 1] += row_square_sum              # Σ y²
+        s2[id, 2] += c * c * len                 # Σ x²
+        s2[id, 3] += s * s * len                 # Σ z²
+        s2[id, 4] += c * row_sum                 # Σ y·x
+        s2[id, 5] += s * row_sum                 # Σ y·z
+        s2[id, 6] += c * s * len                 # Σ x·z
+        # Grow the bounding box to include the run.
         lo[id, 1] = min(lo[id, 1], r0); hi[id, 1] = max(hi[id, 1], r1)
         lo[id, 2] = min(lo[id, 2], c); hi[id, 2] = max(hi[id, 2], c)
         lo[id, 3] = min(lo[id, 3], s); hi[id, 3] = max(hi[id, 3], s)
@@ -221,17 +266,19 @@ function _volume_table(voxels::AbstractArray{P,3}, fg::F) where {P,F}
     return VolumeTable((h, w, d), n, labels, area, s1, s2, lo, hi)
 end
 
-"Centroid of object `i` as `(y, x, z)` voxel positions."
+"Centroid of object `i` as `(y, x, z)` voxel positions (mean position of its voxels)."
 centroid(t::VolumeTable, i::Int) = (t.s1[i, 1] / t.area[i], t.s1[i, 2] / t.area[i], t.s1[i, 3] / t.area[i])
 
 """
 Covariance matrix of object `i` (axes y, x, z). Each variance gets `+1/12`,
 the variance of a unit-width voxel, so a one-voxel-thick object is not
 treated as infinitely thin.
+
+Uses `cov(a, b) = E[a·b] − E[a]·E[b]` from the stored sums.
 """
 function covariance3(t::VolumeTable, i::Int)
-    a = Float64(t.area[i])
-    my, mx, mz = centroid(t, i)
+    a = Float64(t.area[i])                       # number of voxels
+    my, mx, mz = centroid(t, i)                  # means along y, x, z
     vyy = max(t.s2[i, 1] / a - my^2, 0.0) + 1 / 12
     vxx = max(t.s2[i, 2] / a - mx^2, 0.0) + 1 / 12
     vzz = max(t.s2[i, 3] / a - mz^2, 0.0) + 1 / 12
@@ -256,9 +303,13 @@ Same run-based union–find as `_volume_table`, on background runs. With
 6-connectivity a run only merges with the left and previous-slice columns,
 and only when the row ranges really overlap (no diagonal slack). A component
 is a border component when any of its runs touches a face of the volume.
+
+Example: a hollow 5³ cube (shell 1 voxel thick) has one cavity of `3³ = 27`
+voxels: `volume_holes!(nothing, fg) == (1, 27)`.
 """
 function volume_holes!(holes, fg::AbstractArray{Bool,3})
     h, w, d = size(fg)
+    # Same run bookkeeping as `_volume_table` (see there), with separate scratch keys.
     run_col = empty!(scratch(:vh_run_col, Int32, 0))
     run_slice = empty!(scratch(:vh_run_slice, Int32, 0))
     run_r0 = empty!(scratch(:vh_run_r0, Int32, 0))
@@ -270,7 +321,7 @@ function volume_holes!(holes, fg::AbstractArray{Bool,3})
         first_run[c, s] = Int32(length(run_col) + 1)
         r = 1
         while r <= h
-            if fg[r, c, s]
+            if fg[r, c, s]                            # skip foreground: we collect background runs
                 r += 1
                 continue
             end
@@ -287,6 +338,7 @@ function volume_holes!(holes, fg::AbstractArray{Bool,3})
             for (nc, ns) in ((c - 1, s), (c, s - 1))           # face neighbours already visited
                 (nc >= 1 && ns >= 1) || continue
                 for k in first_run[nc, ns]:last_run[nc, ns]
+                    # Rows r0:(r − 1) and run_r0[k]:run_r1[k] share at least one row.
                     (run_r0[k] <= r - 1 && run_r1[k] >= r0) && _union!(parent, id, Int32(k))
                 end
             end
@@ -300,6 +352,8 @@ function volume_holes!(holes, fg::AbstractArray{Bool,3})
     @inbounds for k in 1:runs
         root = _find_root(parent, Int32(k))
         c, s = run_col[k], run_slice[k]
+        # A run is on the border if its column is on a side face, its slice is the first
+        # or last, or it starts at the top row / ends at the bottom row.
         (c == 1 || c == w || s == 1 || s == d || run_r0[k] == 1 || run_r1[k] == h) && (touches_border[root] = true)
         area[root] += run_r1[k] - run_r0[k] + 1
     end
@@ -314,7 +368,7 @@ function volume_holes!(holes, fg::AbstractArray{Bool,3})
     if holes !== nothing
         fill!(holes, false)
         @inbounds for k in 1:runs
-            touches_border[_find_root(parent, Int32(k))] && continue
+            touches_border[_find_root(parent, Int32(k))] && continue   # part of the outside
             for r in run_r0[k]:run_r1[k]
                 holes[r, run_col[k], run_slice[k]] = true
             end
@@ -325,12 +379,20 @@ end
 
 # ---------------------------------------------------------------------------
 # Distance transforms
+#
+# All distances are squared Euclidean distances in voxel units (take `sqrt`
+# for the distance). A "feature" voxel is one we measure the distance to.
 # ---------------------------------------------------------------------------
 
-"Squared distance along `y` to the nearest `true` in each column (`_FAR` when the column has none): a downward then an upward sweep."
+"""
+Squared distance along `y` to the nearest `true` in each column (`_FAR` when the column has none): a downward then an upward sweep.
+
+Example column (`1` = feature): `0 1 0 0 0 1` → `1 0 1 4 1 0`.
+"""
 function _column_distances!(D::Array{Float64,3}, feature::AbstractArray{Bool,3})
     h, w, d = size(feature)
     @inbounds for s in 1:d, c in 1:w
+        # Downward sweep: distance to the nearest feature above (or at) each row.
         last = 0                                      # row of the last feature seen, 0 = none yet
         for r in 1:h
             if feature[r, c, s]
@@ -340,6 +402,7 @@ function _column_distances!(D::Array{Float64,3}, feature::AbstractArray{Bool,3})
                 D[r, c, s] = last == 0 ? _FAR : Float64((r - last)^2)
             end
         end
+        # Upward sweep: keep the smaller of that and the distance to the nearest feature below.
         last = 0
         for r in h:-1:1
             if feature[r, c, s]
@@ -365,10 +428,16 @@ rooted at each `p`.
   boundary is a fraction `boundary_num[j] / boundary_den[j]`
   (`boundary_den > 0`), compared by cross-multiplication so the loop has no
   division.
+
+Used after `_column_distances!`: `f` is a line of squared distances along
+`y`, and the envelope along `x` (then `z`) combines them into the exact 3D
+distance. Example: `f = [0, ∞, ∞, ∞]` (one feature at position 1) gives
+`[0, 1, 4, 9]`.
 """
 function _envelope!(out::Vector{Float64}, f::Vector{Float64}, vertex::Vector{Int}, boundary_num::Vector{Float64}, boundary_den::Vector{Float64}, n::Int)
-    k = 1
+    k = 1                                     # number of parabolas currently on the envelope
     @inbounds begin
+        # Start with the parabola at position 1, lowest on (−∞, +∞).
         vertex[1] = 1
         boundary_num[1] = -Inf
         boundary_den[1] = 1.0
@@ -382,11 +451,12 @@ function _envelope!(out::Vector{Float64}, f::Vector{Float64}, vertex::Vector{Int
             den = Float64(2q - 2vk)
             # The new parabola hides the last one while it intersects before that one's boundary.
             while num * boundary_den[k] <= boundary_num[k] * den
-                k -= 1
+                k -= 1                        # drop the hidden parabola
                 vk = vertex[k]
                 num = fq - (f[vk] + vk * vk)
                 den = Float64(2q - 2vk)
             end
+            # Append parabola q; it is lowest from the intersection to +∞.
             k += 1
             vertex[k] = q
             boundary_num[k] = num
@@ -397,7 +467,7 @@ function _envelope!(out::Vector{Float64}, f::Vector{Float64}, vertex::Vector{Int
         # Read the envelope off from left to right.
         k = 1
         for q in 1:n
-            while boundary_num[k+1] < q * boundary_den[k+1]
+            while boundary_num[k+1] < q * boundary_den[k+1]    # q is past parabola k's range
                 k += 1
             end
             out[q] = (q - vertex[k])^2 + f[vertex[k]]
@@ -412,25 +482,29 @@ end
 Exact squared Euclidean distance from each voxel to the nearest `true` voxel
 of `feature`: a column pass along `y`, then lower envelopes along `x` and `z`.
 Volumes without any feature get values of at least `1e20`.
+
+Example: a single feature voxel at `(1, 1, 1)` gives `D[2, 2, 2] = 3`
+(distance `√3`).
 """
 function volume_distance_map!(D::Array{Float64,3}, feature::AbstractArray{Bool,3})
     h, w, d = size(feature)
     _column_distances!(D, feature)
     # Lines along x and z are made contiguous by moving that axis first, then moved back.
     Dx = scratch(:vdt_x, Float64, w, h, d)
-    permutedims!(Dx, D, (2, 1, 3))
+    permutedims!(Dx, D, (2, 1, 3))           # Dx[c, r, s] = D[r, c, s]: x is now dimension 1
     _envelope_columns!(Dx)
-    permutedims!(D, Dx, (2, 1, 3))
+    permutedims!(D, Dx, (2, 1, 3))           # back to (r, c, s)
     Dz = scratch(:vdt_z3, Float64, d, h, w)
-    permutedims!(Dz, D, (3, 1, 2))
+    permutedims!(Dz, D, (3, 1, 2))           # Dz[s, r, c] = D[r, c, s]: z is now dimension 1
     _envelope_columns!(Dz)
-    permutedims!(D, Dz, (2, 3, 1))
+    permutedims!(D, Dz, (2, 3, 1))           # back to (r, c, s)
     return D
 end
 
 "Apply `_envelope!` along dimension 1 to every column of a 3D array, in place."
 function _envelope_columns!(A::Array{Float64,3})
     n, a, b = size(A)
+    # Work vectors for one line, reused for every line.
     f = scratch(:vdt_f, Float64, n)
     out = scratch(:vdt_out, Float64, n)
     vertex = scratch(:vdt_v, Int, n)
@@ -465,12 +539,13 @@ directly), then `x`, then `z`.
 function volume_distance_map_upto!(D::Array{Float64,3}, feature::AbstractArray{Bool,3}, radius::Int)
     h, w, d = size(feature)
     A = scratch(:vdtu_a, Float64, h, w, d)
+    # Pass along y: A = squared distance to the nearest feature in the same column, up to radius rows away.
     @inbounds for s in 1:d, c in 1:w
         @simd for r in 1:h
-            A[r, c, s] = ifelse(feature[r, c, s], 0.0, _FAR)
+            A[r, c, s] = ifelse(feature[r, c, s], 0.0, _FAR)   # 0 on features, "infinity" elsewhere
         end
         for k in 1:min(radius, h - 1)
-            offset = Float64(k * k)
+            offset = Float64(k * k)                    # squared distance of a feature k rows away
             @simd for r in 1+k:h                       # a feature k rows above
                 A[r, c, s] = ifelse(feature[r-k, c, s] & (offset < A[r, c, s]), offset, A[r, c, s])
             end
@@ -479,17 +554,24 @@ function volume_distance_map_upto!(D::Array{Float64,3}, feature::AbstractArray{B
             end
         end
     end
+    # Passes along x then z combine the per-column distances (squared distances add per axis).
     B = scratch(:vdtu_b, Float64, h, w, d)
     _min_plus_axis!(B, A, radius, 2)
     _min_plus_axis!(D, B, radius, 3)
     return D
 end
 
-"`dst = min over |k| ≤ radius of k² + src shifted by k along axis` (`axis` 2 or 3)."
+"""
+`dst = min over |k| ≤ radius of k² + src shifted by k along axis` (`axis` 2 or 3).
+
+Example: a voxel whose neighbour 2 columns away has `src = 1` (a feature one
+row off) gets at most `2² + 1 = 5`, the squared distance to that feature.
+"""
 function _min_plus_axis!(dst::Array{Float64,3}, src::Array{Float64,3}, radius::Int, axis::Int)
-    copyto!(dst, src)
+    copyto!(dst, src)                         # k = 0 term
     for k in 1:radius
         offset = Float64(k * k)
+        # min(current, k² + value k steps away), branch-free.
         add_min = (current, shifted) -> (x = offset + shifted; ifelse(x < current, x, current))
         _combine_shift!(dst, src, axis, k, add_min)
         _combine_shift!(dst, src, axis, -k, add_min)
@@ -509,15 +591,19 @@ shifted position is inside the volume, for `axis` 2 or 3. A shift along these
 axes is a constant offset in linear memory (`k·h` along x, `k·h·w` along z),
 so each slice (axis 2) or the whole volume (axis 3) is one long contiguous,
 vectorised loop.
+
+Example: `h = 28`, `axis = 2`, `k = 1`: linear index `i` is voxel `(r, c, s)`
+and `i + 28` is voxel `(r, c + 1, s)`, its right neighbour.
 """
 function _combine_shift!(dst::Array{Float64,3}, src::Array{Float64,3}, axis::Int, k::Int, combine::F) where {F}
     h, w, d = size(src)
     if axis == 2
         lo, hi = max(1, 1 - k), min(w, w - k)          # columns whose neighbour c + k exists
-        lo > hi && return dst
-        offset = k * h
+        lo > hi && return dst                          # shift larger than the volume
+        offset = k * h                                 # one column = h consecutive values
         @inbounds for s in 1:d
-            base = (s - 1) * h * w
+            base = (s - 1) * h * w                     # linear index just before slice s
+            # Columns lo:hi of slice s, as one contiguous range of linear indices.
             @simd ivdep for i in base+(lo-1)*h+1:base+hi*h
                 dst[i] = combine(dst[i], src[i+offset])
             end
@@ -525,7 +611,8 @@ function _combine_shift!(dst::Array{Float64,3}, src::Array{Float64,3}, axis::Int
     else
         lo, hi = max(1, 1 - k), min(d, d - k)          # slices whose neighbour s + k exists
         lo > hi && return dst
-        offset = k * h * w
+        offset = k * h * w                             # one slice = h·w consecutive values
+        # Slices lo:hi as one contiguous range of linear indices.
         @inbounds @simd ivdep for i in (lo-1)*h*w+1:hi*h*w
             dst[i] = combine(dst[i], src[i+offset])
         end
@@ -544,6 +631,9 @@ end
 Separable box minimum (`take = fmin`) or maximum (`fmax`) over a
 `(2r+1)³` cube clipped at the border: one pass of shifted comparisons per
 axis.
+
+The minimum over a cube equals the minimum along y, then along x, then along
+z, so three 1D passes replace a `(2r+1)³` loop per voxel.
 """
 function box_extremum!(dst::Array{Float64,3}, src::Array{Float64,3}, radius::Int, take::T) where {T}
     after_y = scratch(:box_a, Float64, size(src)...)
@@ -554,11 +644,16 @@ function box_extremum!(dst::Array{Float64,3}, src::Array{Float64,3}, radius::Int
     return dst
 end
 
-"`dst = take` over `src` shifted by `-radius:radius` along `axis` (clipped at the border)."
+"""
+`dst = take` over `src` shifted by `-radius:radius` along `axis` (clipped at the border).
+
+Example (`take = fmin`, `radius = 1`) along a line: `5 2 7 1` → `2 2 1 1`.
+"""
 function _shift_extremum!(dst, src, radius::Int, take::T, axis::Int) where {T}
     h, w, d = size(src)
-    copyto!(dst, src)
+    copyto!(dst, src)                         # shift 0
     if axis == 1
+        # Along y, rows are contiguous: compare each column with itself shifted by ±k rows.
         @inbounds for s in 1:d, c in 1:w, k in 1:radius
             @simd ivdep for r in 1+k:h
                 dst[r, c, s] = take(dst[r, c, s], src[r-k, c, s])
@@ -580,7 +675,7 @@ end
 function cross_extremum!(dst::Array{Float64,3}, src::Array{Float64,3}, take::T) where {T}
     h, w, d = size(src)
     @inbounds for s in 1:d, c in 1:w
-        @simd ivdep for r in 1:h
+        @simd ivdep for r in 1:h                       # the voxel itself
             dst[r, c, s] = src[r, c, s]
         end
         @simd for r in 2:h                             # neighbour above
@@ -590,7 +685,7 @@ function cross_extremum!(dst::Array{Float64,3}, src::Array{Float64,3}, take::T) 
             dst[r, c, s] = take(dst[r, c, s], src[r+1, c, s])
         end
         for (cc, ss) in ((c - 1, s), (c + 1, s), (c, s - 1), (c, s + 1))   # left, right, previous, next slice
-            (1 <= cc <= w && 1 <= ss <= d) || continue
+            (1 <= cc <= w && 1 <= ss <= d) || continue                      # neighbour outside the volume
             @simd ivdep for r in 1:h
                 dst[r, c, s] = take(dst[r, c, s], src[r, cc, ss])
             end
@@ -599,11 +694,16 @@ function cross_extremum!(dst::Array{Float64,3}, src::Array{Float64,3}, take::T) 
     return dst
 end
 
-"`(weights, radius)`: normalised 1D Gaussian weights for `sigma`, over `-radius:radius` with `radius = ⌈3σ⌉` (at least 1)."
+"""
+`(weights, radius)`: normalised 1D Gaussian weights for `sigma`, over `-radius:radius` with `radius = ⌈3σ⌉` (at least 1).
+
+Example: `sigma = 1` → `radius = 3`, 7 weights summing to 1, the middle one
+≈ 0.40.
+"""
 function gaussian_kernel(sigma::Float64)
-    radius = max(1, ceil(Int, 3sigma))
+    radius = max(1, ceil(Int, 3sigma))       # 3σ covers 99.7% of the Gaussian
     kernel = [exp(-k^2 / (2sigma^2)) for k in -radius:radius]
-    return kernel ./ sum(kernel), radius
+    return kernel ./ sum(kernel), radius     # normalised so a constant volume stays constant
 end
 
 """
@@ -611,6 +711,8 @@ end
 
 Convolve with the same symmetric 1D kernel (`length 2 radius + 1`) along each
 axis; borders replicate the edge voxel.
+
+`kernel[k + radius + 1]` is the weight of the neighbour `k` steps away.
 """
 function separable_convolve!(dst::Array{Float64,3}, src::Array{Float64,3}, kernel::Vector{Float64}, radius::Int)
     after_y = scratch(:conv_a, Float64, size(src)...)
@@ -625,15 +727,19 @@ end
 1D convolution along `axis` with edge replication: for each tap `k`, add
 `weight · src[shifted by k]`. Positions whose shifted neighbour is outside
 the volume use the edge voxel instead.
+
+Example along a line with weights `(¼, ½, ¼)`: `4 0 0` →
+`(¼·4 + ½·4 + ¼·0, ¼·4 + ½·0 + ¼·0, ¼·0 + ½·0 + ¼·0) = (3, 1, 0)`
+(the first value repeats `4` for its missing left neighbour).
 """
 function _convolve_axis!(dst, src, kernel, radius::Int, axis::Int)
     h, w, d = size(src)
-    fill!(dst, 0.0)
+    fill!(dst, 0.0)                           # accumulate tap by tap
     if axis == 1
         @inbounds for s in 1:d, c in 1:w
             for (k, weight) in zip(-radius:radius, kernel)
                 # Interior rows need no clamping, so the loop vectorises.
-                lo = max(1, 1 - k)
+                lo = max(1, 1 - k)            # rows r whose neighbour r + k exists
                 hi = min(h, h - k)
                 @simd ivdep for r in lo:hi
                     dst[r, c, s] += weight * src[r+k, c, s]
@@ -648,12 +754,13 @@ function _convolve_axis!(dst, src, kernel, radius::Int, axis::Int)
         end
         return dst
     end
-    n = axis == 2 ? w : d
+    n = axis == 2 ? w : d                     # length of the axis
     for (k, weight) in zip(-radius:radius, kernel)
+        # Inside positions: whole contiguous ranges (see _combine_shift!).
         _combine_shift!(dst, src, axis, k, (acc, shifted) -> acc + weight * shifted)
         # Positions j whose neighbour j + k falls outside replicate the edge.
         for j in (k > 0 ? (max(1, n - k + 1):n) : (1:min(n, -k)))
-            edge = k > 0 ? n : 1
+            edge = k > 0 ? n : 1              # the last or first column/slice
             @inbounds if axis == 2
                 for s in 1:d
                     @simd ivdep for r in 1:h
@@ -682,35 +789,42 @@ end
 When the index range `lo:hi` is stretched to `n` output voxels, output voxel
 `i` (centre-aligned) reads between source indices `a` and `b = a + 1` (or `a`
 at the end), at `fraction` of the way from `a` to `b`.
+
+Example: stretching `lo:hi = 5:6` (2 voxels) to `n = 4`: output 2 sits at
+source position `4.5 + 1.5 · 0.5 = 5.25`, so `(a, b, fraction) = (5, 6, 0.25)`.
 """
 @inline function _source_position(i::Int, n::Int, lo::Int, hi::Int)
+    # Centre of output voxel i mapped into the source range, kept inside lo…hi.
     position = clamp(lo - 0.5 + (i - 0.5) * (hi - lo + 1) / n, Float64(lo), Float64(hi))
-    a = unsafe_trunc(Int, position)
+    a = unsafe_trunc(Int, position)           # position ≥ lo ≥ 1, so truncation is floor
     return a, min(a + 1, hi), position - a
 end
 
 """
 Trilinear resize of `src[lo[1]:hi[1], lo[2]:hi[2], lo[3]:hi[3]]` to
 `size(src)`, one axis at a time: z first (on the small crop), then x, then y.
+
+Each stage interpolates linearly between two neighbours along one axis;
+three stages give trilinear interpolation.
 """
 function resample_box(src::Array{Float64,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int})
     h, w, d = size(src)
-    crop_h = hi[1] - lo[1] + 1
-    crop_w = hi[2] - lo[2] + 1
+    crop_h = hi[1] - lo[1] + 1               # box size along y
+    crop_w = hi[2] - lo[2] + 1               # box size along x
     # Stage 1, along z: (crop_h, crop_w, d).
     along_z = scratch(:resample_1, Float64, crop_h, crop_w, d)
     @inbounds for s in 1:d
         a, b, f = _source_position(s, d, lo[3], hi[3])
         for c in 1:crop_w, r in 1:crop_h
             x = src[lo[1]+r-1, lo[2]+c-1, a]
-            along_z[r, c, s] = x + f * (src[lo[1]+r-1, lo[2]+c-1, b] - x)
+            along_z[r, c, s] = x + f * (src[lo[1]+r-1, lo[2]+c-1, b] - x)   # (1 − f)·src[a] + f·src[b]
         end
     end
     # Stage 2, along x: (crop_h, w, d). Source columns are shifted to crop coordinates.
     along_x = scratch(:resample_2, Float64, crop_h, w, d)
     @inbounds for s in 1:d, c in 1:w
         a, b, f = _source_position(c, w, lo[2], hi[2])
-        a -= lo[2] - 1
+        a -= lo[2] - 1                        # volume column → column of `along_z`
         b -= lo[2] - 1
         @simd for r in 1:crop_h
             x = along_z[r, a, s]
@@ -719,9 +833,9 @@ function resample_box(src::Array{Float64,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int
     end
     # Stage 3, along y: (h, w, d). Row sources are precomputed once, reused for every column.
     out = Array{Float64,3}(undef, h, w, d)
-    rows_a = scratch(:resample_ra, Int, h)
-    rows_b = scratch(:resample_rb, Int, h)
-    rows_f = scratch(:resample_rf, Float64, h)
+    rows_a = scratch(:resample_ra, Int, h)    # first source row of output row r (crop coordinates)
+    rows_b = scratch(:resample_rb, Int, h)    # second source row
+    rows_f = scratch(:resample_rf, Float64, h)   # weight of the second row
     @inbounds for r in 1:h
         a, b, f = _source_position(r, h, lo[1], hi[1])
         rows_a[r], rows_b[r], rows_f[r] = a - lo[1] + 1, b - lo[1] + 1, f
@@ -737,6 +851,7 @@ end
 function resample_box_nearest(src::AbstractArray{T,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int}) where {T}
     dims = size(src)
     # Source index of output i when l:u is stretched to n (centre-aligned, integer arithmetic).
+    # Example: l:u = 5:6 stretched to n = 4 → outputs 1, 2, 3, 4 read 5, 5, 6, 6.
     source_index(i, n, l, u) = l + ((2i - 1) * (u - l + 1)) ÷ (2n)
     out = similar(src)
     @inbounds for s in 1:dims[3]

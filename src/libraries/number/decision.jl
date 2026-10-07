@@ -8,11 +8,25 @@ Scalar decision and motion helpers: turn positions and offsets into choices.
 
 The exhaustive, always-current list of operators in each bundle is on the
 [Bundle Catalogue](@ref) page.
+
+These are plain functions on numbers (no factory): every input is converted
+to `Float64` and extra trailing inputs are ignored.
+
+# Example: a Pong paddle controller
+
+```julia
+D = UTCGP.number_decision
+ball_y, paddle_y = 0.30, 0.55
+D.number_toward(ball_y, paddle_y)          # -1.0: move the paddle up
+D.number_toward(0.54, paddle_y, 0.02)      #  0.0: within the dead zone, stay
+D.number_bounce(0.9, 0.3, 1.0)             #  0.8: 0.9 + 0.3 = 1.2 bounces back off 1
+```
 """
 module number_decision
 
 using ..UTCGP: FunctionBundle, append_method!
 
+# Returned by the bundles when no method matches the inputs.
 fallback(args...) = return 0.0
 
 """
@@ -51,14 +65,14 @@ bundle_number_motion = FunctionBundle(fallback)
 """
     number_abs(a, args...)
 
-`|a|`.
+`|a|`. Example: `number_abs(-0.3) == 0.3`.
 """
 number_abs(a::Number, args...) = abs(_float(a))
 
 """
     number_sign(a, args...)
 
-`-1.0`, `0.0` or `1.0`.
+`-1.0`, `0.0` or `1.0`. Example: `number_sign(-0.3) == -1.0`.
 """
 number_sign(a::Number, args...) = sign(_float(a))
 
@@ -73,9 +87,10 @@ number_clamp01(a::Number, args...) = clamp(_float(a), 0.0, 1.0)
     number_clamp(a, lo, hi, args...)
 
 `a` clamped to `[min(lo, hi), max(lo, hi)]`.
+Example: `number_clamp(0.9, 0.6, 0.2) == 0.6` (the bounds may come in any order).
 """
 function number_clamp(a::Number, lo::Number, hi::Number, args...)
-    lower, upper = minmax(_float(lo), _float(hi))
+    lower, upper = minmax(_float(lo), _float(hi))      # sort the bounds
     return clamp(_float(a), lower, upper)
 end
 
@@ -83,15 +98,18 @@ end
     number_step(a, [t], args...)
 
 `1.0` when `a >= t` (default `0`), else `0.0`.
+Example: `number_step(0.4, 0.5) == 0.0`, `number_step(0.4) == 1.0`.
 """
-number_step(a::Number, t::Number, args...) = _float(a) >= _float(t) ? 1.0 : 0.0
-number_step(a::Number, args...) = _float(a) >= 0.0 ? 1.0 : 0.0
+number_step(a::Number, t::Number, args...) = _float(a) >= _float(t) ? 1.0 : 0.0   # with a threshold
+number_step(a::Number, args...) = _float(a) >= 0.0 ? 1.0 : 0.0                     # threshold 0
 
 """
     number_deadzone(a, w, args...)
 
 `0.0` while `|a| < |w|`, otherwise `a`. Stops a controller from jittering
 around its target.
+
+Example: `number_deadzone(0.03, 0.05) == 0.0`, `number_deadzone(-0.2, 0.05) == -0.2`.
 """
 number_deadzone(a::Number, w::Number, args...) = abs(_float(a)) < abs(_float(w)) ? 0.0 : _float(a)
 
@@ -99,6 +117,7 @@ number_deadzone(a::Number, w::Number, args...) = abs(_float(a)) < abs(_float(w))
     number_band(a, lo, hi, args...)
 
 `1.0` when `a` lies between `lo` and `hi` (any order), else `0.0`.
+Example: `number_band(0.5, 0.7, 0.3) == 1.0`.
 """
 function number_band(a::Number, lo::Number, hi::Number, args...)
     lower, upper = minmax(_float(lo), _float(hi))
@@ -110,12 +129,15 @@ end
 
 Smooth `0 → 1` transition as `a` goes from `lo` to `hi` (cubic Hermite);
 `0.5` when `lo == hi`.
+
+Example with `lo = 0`, `hi = 1`: `a = 0 → 0`, `0.25 → 0.156`, `0.5 → 0.5`,
+`0.75 → 0.844`, `1 → 1`; flat at both ends, steepest in the middle.
 """
 function number_smoothstep(a::Number, lo::Number, hi::Number, args...)
     lower, upper = _float(lo), _float(hi)
-    lower == upper && return 0.5
-    t = clamp((_float(a) - lower) / (upper - lower), 0.0, 1.0)
-    return t * t * (3.0 - 2.0t)
+    lower == upper && return 0.5                         # no range: halfway
+    t = clamp((_float(a) - lower) / (upper - lower), 0.0, 1.0)   # where a lies between the bounds, 0 to 1
+    return t * t * (3.0 - 2.0t)                          # 3t² − 2t³
 end
 
 # ---------------------------------------------------------------------------
@@ -232,8 +254,8 @@ Direction of `(dx, dy)` as a fraction of a turn in `[0, 1)`: `0` points to
 `+x`, `0.25` to `+y` (down in image coordinates).
 """
 function number_angle(dx::Number, dy::Number, args...)
-    θ = atan(_float(dy), _float(dx))
-    return mod(θ / 2π, 1.0)
+    θ = atan(_float(dy), _float(dx))                     # angle in radians, in (−π, π]
+    return mod(θ / 2π, 1.0)                              # → fraction of a turn in [0, 1)
 end
 
 """
@@ -267,8 +289,8 @@ number_wrap01(a::Number, args...) = isfinite(_float(a)) ? mod(_float(a), 1.0) : 
 function number_reflect01(a::Number, args...)
     x = _float(a)
     isfinite(x) || return 0.0
-    m = mod(x, 2.0)
-    return m <= 1.0 ? m : 2.0 - m
+    m = mod(x, 2.0)                  # the motion repeats every 2 (out to 1 and back to 0)
+    return m <= 1.0 ? m : 2.0 - m    # second half of the period: coming back from 1
 end
 
 """
@@ -290,6 +312,9 @@ number_bounce(p::Number, v::Number, t::Number, args...) = number_reflect01(_floa
 
 # ---------------------------------------------------------------------------
 # Registration
+#
+# (function name, description shown in the Bundle Catalogue). Every function
+# above is registered under its own name in one of the two bundles.
 # ---------------------------------------------------------------------------
 
 for (name, description) in (

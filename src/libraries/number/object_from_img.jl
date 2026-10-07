@@ -9,6 +9,40 @@ foreground objects of a mask.
 
 The exhaustive, always-current list of operators in each bundle is on the
 [Bundle Catalogue](@ref) page.
+
+# How this file is organised
+
+Every operator follows the same three steps:
+
+1. label the objects of the input into an `ObjectTable` (`_mask_table` for a
+   binary mask, `_intensity_table` for an intensity map and a threshold);
+2. *select* one object: a selector `select(table) -> id` such as
+   `argmax of the area` (`SELECTOR_FUNCTIONS` in `object_common.jl`), `0` when
+   there is none;
+3. *measure* it: `measure(table, id) -> Float64`, its centroid `x` or `y`
+   (locators) or a shape descriptor (descriptors).
+
+The macros `@_single_input`, `@_parametric_input` and `@_point_input` write
+the input methods; the loops at the end combine every selector with every
+measure.
+
+# Example
+
+```julia
+using UTCGP, ImageCore
+m = falses(20, 40)
+m[3:4, 5:6] .= true          # a small square, top left
+m[10:17, 25:36] .= true      # a large rectangle, right
+mask = SImageND(BinaryPixel.(m))
+O = UTCGP.number_objectFromImg
+
+O.obj_x_largest(mask)              # (30.5 − 1) / 39 ≈ 0.76: centre column of the rectangle
+O.obj_y_smallest(mask)             # (3.5 − 1) / 19 ≈ 0.13: centre row of the square
+O.obj_area_largest(mask)           # 96 / 800 = 0.12
+O.obj_count(mask)                  # 2.0
+O.obj_x_nearest(mask, 0.1, 0.1)    # the square is nearest to the top-left corner: ≈ 0.12
+O.obj_dx_smallest_largest(mask)    # ≈ −0.64: the square is left of the rectangle
+```
 """
 module number_objectFromImg
 
@@ -37,6 +71,7 @@ using ..image2D_object_common:
     select_like,
     select_by_mean
 
+# Returned by the bundles when no method matches the inputs.
 fallback(args...) = return 0.0
 
 """
@@ -121,9 +156,12 @@ const _Source = SImageND{S,T,2,C} where {S,T<:Union{IntensityPixel,BinaryPixel},
 """
 Define the three single-image methods of an operator whose value is
 `compute(table)`: `(mask)`, `(img)` at threshold 0.5 and `(img, threshold)`.
+
+Example: `@_single_input obj_count (t -> Float64(t.n))` makes
+`obj_count(mask)`, `obj_count(img)` and `obj_count(img, 0.3)`.
 """
 macro _single_input(name, compute)
-    name, compute = esc(name), esc(compute)
+    name, compute = esc(name), esc(compute)             # use the caller's names, not this module's
     return quote
         $name(mask::_Mask, args...) = $compute(_mask_table(mask))
         $name(img::_Intensity, args...) = $compute(_intensity_table(img, 0.5))
@@ -135,6 +173,9 @@ end
 """
 Methods with one scalar parameter `v` (default `0.5`): `(mask)`,
 `(mask, v)`, `(img)`, `(img, v)` and `(img, v, threshold)`.
+
+`compute(table, v)` receives `v` clamped to `[0, 1]`. Note the order for
+intensity inputs: the parameter comes before the threshold.
 """
 macro _parametric_input(name, compute)
     name, compute = esc(name), esc(compute)
@@ -152,6 +193,8 @@ end
 """
 Methods taking a point: `(mask)` (image centre), `(mask, s)` with
 `x = y = s`, `(mask, x, y)`, and the same for intensity at threshold 0.5.
+
+`compute(table, x, y)` receives normalised coordinates in `[0, 1]`.
 """
 macro _point_input(name, compute)
     name, compute = esc(name), esc(compute)
@@ -186,9 +229,16 @@ $what Intensity inputs are thresholded at `threshold` (default `0.5`).
 
 # ---------------------------------------------------------------------------
 # Locators
+#
+# For each coordinate (x then y), `coordinate_of(table, id)` returns the
+# selected object's normalised centroid column (unit_x) or row (unit_y).
+# Inside `@eval`, `$coordinate_of` and `$select` splice the loop's functions
+# into the generated method.
 # ---------------------------------------------------------------------------
 
 for (coord, coordinate_of, coord_doc) in _COORDINATES
+    # Fixed selectors: one operator per (coordinate, selector), e.g.
+    # obj_x_largest(mask) = x of the centroid of the largest object.
     for (selector, select) in SELECTOR_FUNCTIONS
         name = Symbol(:obj_, coord, :_, selector)
         criterion = SELECTOR_DESCRIPTIONS[selector]
@@ -198,6 +248,8 @@ for (coord, coordinate_of, coord_doc) in _COORDINATES
             _single_doc(name, "Normalised $coord_doc of the centroid of the object with the $criterion. Empty → `0.5`."))
     end
 
+    # Selection by the mean of a second image over each object:
+    # (selector name, direction for select_by_mean (+1 largest, −1 smallest), wording).
     for (selector, direction, criterion) in ((:brightest, 1.0, "greatest"), (:darkest, -1.0, "least"))
         name = Symbol(:obj_, coord, :_, selector)
         @eval begin
@@ -219,6 +271,7 @@ for (coord, coordinate_of, coord_doc) in _COORDINATES
             """)
     end
 
+    # obj_<coord>_rank_area(mask, k): k = 0 smallest object, 1 largest, 0.5 the median-sized one.
     name = Symbol(:obj_, coord, :_rank_area)
     @eval @_parametric_input $name ((t, k) -> _result($coordinate_of, t, select_rank_area(t, k), 0.5))
     _register!(bundle_number_objectLocateFromImg, name,
@@ -231,6 +284,8 @@ for (coord, coordinate_of, coord_doc) in _COORDINATES
         (`0` smallest, `1` largest, default `0.5`). Empty → `0.5`.
         """)
 
+    # obj_<coord>_like_<property>(mask, v): the object whose property is closest to v,
+    # e.g. obj_x_like_area(mask, 0.002) finds the object covering about 0.2% of the image.
     for (property, measure, property_doc) in _PROPERTIES
         name = Symbol(:obj_, coord, :_like_, property)
         @eval @_parametric_input $name ((t, v) -> _result($coordinate_of, t, select_like($measure, t, v), 0.5))
@@ -245,6 +300,7 @@ for (coord, coordinate_of, coord_doc) in _COORDINATES
             """)
     end
 
+    # obj_<coord>_nearest(mask, x, y): the object whose centroid is closest to (x, y).
     name = Symbol(:obj_, coord, :_nearest)
     @eval @_point_input $name ((t, x, y) -> _result($coordinate_of, t, select_nearest(t, x, y), 0.5))
     _register!(bundle_number_objectLocateFromImg, name,
@@ -260,15 +316,17 @@ for (coord, coordinate_of, coord_doc) in _COORDINATES
         """)
 end
 
+# Offsets between two selected objects: obj_dx_<a>_<b> = x of object a − x of object b,
+# e.g. obj_dx_smallest_largest < 0 when the smallest object is left of the largest.
 for (delta, coordinate_of, coord_doc) in ((:dx, unit_x, "column (x)"), (:dy, unit_y, "row (y)"))
     for (a, b) in _PAIRS
         name = Symbol(:obj_, delta, :_, a, :_, b)
-        select_a = Dict(SELECTOR_FUNCTIONS)[a]
+        select_a = Dict(SELECTOR_FUNCTIONS)[a]          # selector function named a
         select_b = Dict(SELECTOR_FUNCTIONS)[b]
         compute = t -> begin
             id_a = select_a(t)
             id_b = select_b(t)
-            (id_a == 0 || id_b == 0) ? 0.0 : coordinate_of(t, id_a) - coordinate_of(t, id_b)
+            (id_a == 0 || id_b == 0) ? 0.0 : coordinate_of(t, id_a) - coordinate_of(t, id_b)   # 0 when either is missing
         end
         @eval @_single_input $name $compute
         _register!(bundle_number_objectLocateFromImg, name,
@@ -279,9 +337,13 @@ end
 
 # ---------------------------------------------------------------------------
 # Descriptors
+#
+# Same selectors as the locators, but the selected object is described by
+# `measure(table, id)` (area, width, …, orientation) instead of located.
 # ---------------------------------------------------------------------------
 
 for (descriptor, measure, descriptor_doc) in _DESCRIPTORS
+    # e.g. obj_area_largest(mask) = area fraction of the largest object.
     for (selector, select) in SELECTOR_FUNCTIONS
         name = Symbol(:obj_, descriptor, :_, selector)
         criterion = SELECTOR_DESCRIPTIONS[selector]
@@ -291,6 +353,7 @@ for (descriptor, measure, descriptor_doc) in _DESCRIPTORS
             _single_doc(name, "The $descriptor_doc of the object with the $criterion. Empty → `0.0`."))
     end
 
+    # e.g. obj_area_nearest(mask, x, y) = area fraction of the object closest to (x, y).
     name = Symbol(:obj_, descriptor, :_nearest)
     @eval @_point_input $name ((t, x, y) -> _result($measure, t, select_nearest(t, x, y), 0.0))
     _register!(bundle_number_objectDescribeFromImg, name,
@@ -303,6 +366,7 @@ for (descriptor, measure, descriptor_doc) in _DESCRIPTORS
         """)
 end
 
+# Number of objects (t.n), whatever their shape.
 @_single_input obj_count (t -> Float64(t.n))
 _register!(bundle_number_objectDescribeFromImg, :obj_count,
     "Number of 8-connected objects.",
@@ -314,7 +378,8 @@ over the diagonal of the unit square (`sqrt(2)`); `1` when there is no object.
 """
 function _distance_to_nearest(t::ObjectTable, x::Float64, y::Float64)
     id = select_nearest(t, x, y)
-    id == 0 && return 1.0
+    id == 0 && return 1.0                              # no object: as far as possible
+    # distance2_to is the squared distance in normalised coordinates; /2 = /diagonal².
     return clamp(sqrt(distance2_to(t, id, x, y) / 2), 0.0, 1.0)
 end
 @_point_input obj_dist_nearest _distance_to_nearest

@@ -17,6 +17,7 @@ using ..image2D_object_common:
     IsSet, AtLeast, clamp_unit, pixel_value, fast_foreground_test, scratch, squared_distance_map!,
     squared_distance_map_upto!
 
+# Returned by the bundle when no method matches the inputs.
 fallback(args...) = return 0.0
 
 """
@@ -77,16 +78,16 @@ other phase `> r`), then dilate (distance to the eroded set `≤ r`).
 """
 function _open_fraction(fg::AbstractMatrix{Bool}, radius::Int, invert::Bool)
     h, w = size(fg)
-    phase = scratch(:gran_phase, Bool, h, w)
-    other = scratch(:gran_other, Bool, h, w)
+    phase = scratch(:gran_phase, Bool, h, w)         # the set being opened (foreground, or background when invert)
+    other = scratch(:gran_other, Bool, h, w)         # its complement, later reused for the eroded set
     @inbounds for i in eachindex(fg)
         phase[i] = fg[i] != invert
         other[i] = !phase[i]
     end
     n = count(phase)
-    n == 0 && return 0.0
-    any(other) || return 1.0
-    r2 = Float64(radius^2)
+    n == 0 && return 0.0                             # nothing to open
+    any(other) || return 1.0                         # fills the image: nothing is removed
+    r2 = Float64(radius^2)                           # distances are squared: compare with radius²
     # Only comparisons with r² are needed, so distances exact up to r suffice.
     d = scratch(:gran_distance, Float64, h, w)
     squared_distance_map_upto!(d, other, radius)
@@ -96,7 +97,7 @@ function _open_fraction(fg::AbstractMatrix{Bool}, radius::Int, invert::Bool)
     end
     any(eroded) || return 0.0
     squared_distance_map_upto!(d, eroded, radius)
-    survived = 0
+    survived = 0                                     # dilation of the eroded set, within the original set
     @inbounds for i in eachindex(d)
         survived += phase[i] && d[i] <= r2
     end
@@ -116,7 +117,7 @@ function _thickness(fg::AbstractMatrix{Bool}, statistic::Symbol)
     @inbounds for i in eachindex(fg)
         background[i] = !fg[i]
     end
-    scale = 2.0 / min(h, w)
+    scale = 2.0 / min(h, w)                          # half the shorter side is the largest possible distance
     any(background) || return 1.0
     d = scratch(:gran_distance, Float64, h, w)
     squared_distance_map!(d, background)
@@ -159,6 +160,7 @@ function _filter_columns!(dst::Matrix{Float64}, src::Matrix{Float64}, k::Int, ta
                 backward[i] = take(backward[i+1], src[i, c])
             end
         end
+        # Example (k = 1, block = 3): window 3:5 = backward[3] (block 1:3 from 3) ∪ forward[5] (block 4:6 up to 5).
         # Full windows [i-k, i+k] either span two adjacent blocks or are one
         # whole block: combining the partial extrema is always exact.
         for i in k+1:n-k
@@ -192,6 +194,7 @@ the van Herk / Gil-Werman running extrema.
 function _square_filter!(dst::Matrix{Float64}, src::Matrix{Float64}, k::Int, take::T) where {T}
     h, w = size(src)
     tmp = scratch(:gran_tmp, Float64, h, w)
+    # Vertical pass into tmp, then horizontal pass into dst.
     if k >= 5
         _filter_columns!(tmp, src, k, take)
     else
@@ -247,6 +250,7 @@ function _grey_fraction(pixels::AbstractMatrix, k::Int, closing::Bool, roi)
     end
     first_pass = scratch(:gran_first, Float64, h, w)
     result = scratch(:gran_result, Float64, h, w)
+    # Opening = erosion (min) then dilation (max); closing = dilation then erosion.
     if closing
         _square_filter!(first_pass, values, k, _fmax)
         _square_filter!(result, first_pass, k, _fmin)
@@ -304,6 +308,8 @@ _mask_doc(name, what) = """
 $what Intensity inputs are thresholded at `threshold` (default `0.5`).
 """
 
+# For each radius: gran_open_r<k> (foreground), gran_open_bg_r<k> (background),
+# and the grey versions gran_grey_open_r<k> / gran_grey_close_r<k>.
 for radius in _RADII
     name = Symbol(:gran_open_r, radius)
     compute = fg -> _open_fraction(fg, radius, false)
