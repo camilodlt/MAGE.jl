@@ -123,6 +123,27 @@ save_img("rally_right_canonical.png", g_call(op(:transform_flip_h_if_right), rig
 | input | ![left rally](../assets/fns/transform/rally_left.png) | ![right rally](../assets/fns/transform/rally_right.png) |
 | `transform_flip_h_if_right(img, ball)` | ![left canonical](../assets/fns/transform/rally_left_canonical.png) | ![right canonical](../assets/fns/transform/rally_right_canonical.png) |
 
+`transform_flip_v_if_bottom(img, mask)` does the same vertically: the image
+is mirrored top-bottom when the mask's centroid is in the bottom half, so the
+ball always ends up in the top half.
+
+```@setup tr
+top_rally = g_intensity(frame_values(ball = (15, 60)))
+bottom_rally = g_call(op(:transform_flip_v), top_rally)
+save_img("rally_top.png", top_rally)
+save_img("rally_bottom.png", bottom_rally)
+save_img("rally_top_canonical.png", g_call(op(:transform_flip_v_if_bottom), top_rally, ball_mask(top_rally)))
+save_img("rally_bottom_canonical.png", g_call(op(:transform_flip_v_if_bottom), bottom_rally, ball_mask(bottom_rally)))
+```
+
+| | Ball in the top half | Ball in the bottom half |
+|:--|:--:|:--:|
+| input | ![top rally](../assets/fns/transform/rally_top.png) | ![bottom rally](../assets/fns/transform/rally_bottom.png) |
+| `transform_flip_v_if_bottom(img, ball)` | ![top canonical](../assets/fns/transform/rally_top_canonical.png) | ![bottom canonical](../assets/fns/transform/rally_bottom_canonical.png) |
+
+With `(img)` alone, the image is its own mask (intensity `≥ 0.5`): the
+decision then depends on where all the bright pixels are, not only the ball.
+
 ### Align the main axis
 
 `transform_align_axis(img, mask)` rotates about the image centre so the

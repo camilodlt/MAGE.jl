@@ -214,6 +214,71 @@ for (name, args...) in (
     oa_save_point("loc_$(name)$(suffix).png", scene, x, y)
 end
 
+# Profile figures: the image with, below it, the weight of every column and, on
+# its right, the weight of every row (grey bars). The red line marks the
+# returned x (vertical) and y (horizontal); on the bar strips it shows where the
+# statistic falls on each profile. `weight` is the per-pixel weight the locator
+# uses (see the table in the page).
+const OA_STRIP = 46
+const OA_BAR = RGB{Float64}(0.55, 0.57, 0.62)
+function oa_profile_figure(img, weight, x, y; x2 = nothing, y2 = nothing)
+    weights = [Float64(weight(p)) for p in img.img]
+    cols = vec(sum(weights; dims = 1))
+    rows = vec(sum(weights; dims = 2))
+    image = oa_upscale(oa_canvas(img))
+    H, W = size(image)
+    white = RGB{Float64}(1, 1, 1)
+    bottom = fill(white, OA_STRIP, W)
+    right = fill(white, H, OA_STRIP)
+    peak_c, peak_r = max(maximum(cols), 1e-12), max(maximum(rows), 1e-12)
+    for c in eachindex(cols)
+        bar = round(Int, cols[c] / peak_c * (OA_STRIP - 4))
+        bar > 0 && (bottom[1:bar, (c - 1) * OA_SCALE + 1:c * OA_SCALE] .= OA_BAR)   # bars hang from the image
+    end
+    for r in eachindex(rows)
+        bar = round(Int, rows[r] / peak_r * (OA_STRIP - 4))
+        bar > 0 && (right[(r - 1) * OA_SCALE + 1:r * OA_SCALE, 1:bar] .= OA_BAR)
+    end
+    canvas = [image right; bottom fill(white, OA_STRIP, OA_STRIP)]
+    h, w = size(img.img)
+    line_c(u) = clamp(oa_px(u, w), 1, W)
+    line_r(u) = clamp(oa_px(u, h), 1, H)
+    for (xx, yy, color) in ((x, y, OA_RED), (x2, y2, OA_BLUE))
+        xx === nothing || (canvas[:, line_c(xx)] .= color; canvas[:, min(line_c(xx) + 1, W)] .= color)
+        yy === nothing || (canvas[line_r(yy), :] .= color; canvas[min(line_r(yy) + 1, H), :] .= color)
+    end
+    return canvas
+end
+oa_mean = sum(Float64(p) for p in scene.img) / length(scene.img)
+oa_profiles = (
+    ("com", OA_L._Above(0.0), (OA_L.com_x(scene), OA_L.com_y(scene))),
+    ("com_05", OA_L._Above(0.5), (OA_L.com_x(scene, 0.5), OA_L.com_y(scene, 0.5))),
+    ("median", OA_L._Above(0.0), (OA_L.median_x(scene), OA_L.median_y(scene))),
+    ("median_05", OA_L._Above(0.5), (OA_L.median_x(scene, 0.5), OA_L.median_y(scene, 0.5))),
+    ("projpeak", OA_L._Above(0.0), (OA_L.projpeak_x(scene), OA_L.projpeak_y(scene))),
+    ("projpeak_05", OA_L._Above(0.5), (OA_L.projpeak_x(scene, 0.5), OA_L.projpeak_y(scene, 0.5))),
+    ("contrast", OA_L._AbsDeviation(oa_mean), (OA_L.contrast_x(scene), OA_L.contrast_y(scene))),
+    ("odd", OA_L._off_mode_weight(scene.img), (OA_L.odd_x(scene), OA_L.odd_y(scene))),
+    ("rare", OA_L._rare_weight(scene.img, 0.05), (OA_L.rare_x(scene), OA_L.rare_y(scene))),
+    ("rare_001", OA_L._rare_weight(scene.img, 0.01), (OA_L.rare_x(scene, 0.01), OA_L.rare_y(scene, 0.01))),
+)
+for (tag, weight, (x, y)) in oa_profiles
+    oa_save("prof_$(tag).png", oa_profile_figure(scene, weight, x, y))
+end
+for threshold in (0.3, 0.5, 0.8)
+    oa_save("prof_extremes_$(replace(string(threshold), "." => "")).png",
+        oa_profile_figure(scene, OA_L._Above(threshold),
+            OA_L.first_x(scene, threshold), OA_L.first_y(scene, threshold);
+            x2 = OA_L.last_x(scene, threshold), y2 = OA_L.last_y(scene, threshold)))
+end
+# Motion: the weight is |frame − next frame|.
+let difference = SImageND(IntensityPixel{N0f8}.(abs.(Float64.(scene.img) .- Float64.(scene_next.img))))
+    oa_save("prof_motion.png", oa_profile_figure(difference, OA_L._Above(0.0),
+        OA_L.motion_x(scene, scene_next), OA_L.motion_y(scene, scene_next)))
+end
+# A one-dimensional toy profile to explain the three statistics side by side.
+oa_toy = [0.0, 1, 1, 0, 0, 0, 0, 0, 3, 0, 0, 1]
+
 for threshold in (0.0, 0.5)
     canvas = oa_upscale(oa_canvas(scene))
     x, y = OA_L.com_x(scene, threshold), OA_L.com_y(scene, threshold)
@@ -253,7 +318,24 @@ for (stem, pct) in Iterators.product((:refine, :peak), (10, 25, 50))
     oa_save_query("loc_$(stem)_$(pct).png", scene, oa_query, found;
         window = oa_window(oa_query..., pct / 100))
 end
-# Chained refine: each step starts where the previous one landed.
+# The same refine calls on the binary mask, whose background weighs 0.
+for pct in (10, 25, 50)
+    fx = getfield(OA_L, Symbol(:refine_x_, pct, :p))
+    fy = getfield(OA_L, Symbol(:refine_y_, pct, :p))
+    found = (fx(mask, oa_query...), fy(mask, oa_query...))
+    oa_save_query("loc_refine_mask_$(pct).png", mask, oa_query, found;
+        window = oa_window(oa_query..., pct / 100))
+end
+# Chained refine on the mask: each step starts where the previous one landed.
+let point = (0.2, 0.2), canvas = oa_upscale(oa_canvas(mask))
+    oa_cross!(canvas, point...; color = OA_BLUE)
+    for step in 1:3
+        point = (OA_L.refine_x_25p(mask, point...), OA_L.refine_y_25p(mask, point...))
+        oa_cross!(canvas, point...; color = step == 3 ? OA_RED : OA_GREEN)
+    end
+    oa_save("loc_refine_chain_mask.png", canvas)
+end
+# Chained refine on the frame (for comparison).
 let point = (0.2, 0.2), canvas = oa_upscale(oa_canvas(scene))
     oa_cross!(canvas, point...; color = OA_BLUE)
     for step in 1:3
@@ -409,53 +491,140 @@ oa_save_native("lena_glimpse.png", oa_call(oa_zoom(oa_zi, :zoom_glimpse_25p, len
 |:--:|:--:|:--:|:--:|
 | ![frame](../assets/fns/object_attention/scene.png) | ![mask](../assets/fns/object_attention/mask.png) | ![segments](../assets/fns/object_attention/segment.png) | ![next frame](../assets/fns/object_attention/scene_next.png) |
 
-**Reading the pictures.** The red crosshair is the pair returned by `*_x`
-(vertical line) and `*_y` (horizontal line). A blue crosshair is the point given
-as input, and a green box is the window an operator looked at.
+**Reading the pictures.** Every locator returns two numbers, from its `*_x`
+and `*_y` versions: a column position and a row position, both in `[0, 1]`
+(`0` = left / top edge, `1` = right / bottom edge). The pictures draw them as
+a crosshair: the **vertical red line is the `x` value** and the **horizontal
+red line is the `y` value**. When an operator takes a point as input, that
+point is drawn in **blue**; a **green box** is a window the operator looked at.
 
 ## Mask-free locators
 
-`bundle_number_locateFromImg` reads the intensity image directly; no mask, no
-labelling. Thresholds count only pixels `>= threshold`.
+`bundle_number_locateFromImg` reads the intensity image directly: no mask, no
+object labelling. Almost all of them work the same way:
 
-| Operator | Call | Result |
+1. give every pixel a **weight** (for most of them, its brightness; pixels
+   below the optional `threshold` weigh nothing);
+2. add the weights **column by column** (for `x`) and **row by row** (for
+   `y`), giving two profiles;
+3. read one position off each profile: its centre of mass, its median, its
+   peak, its first or last non-empty line.
+
+The pictures below draw those profiles: **grey bars under the image are the
+column weights** (the profile `*_x` reads), **grey bars on the right are the
+row weights** (the profile `*_y` reads), and the red lines cross the bars at
+the position returned.
+
+A toy column profile shows how the three main statistics differ. With
+weights `[0, 1, 1, 0, 0, 0, 0, 0, 3, 0, 0, 1]` over 12 columns:
+
+```@example oa
+toy = oa_toy
+n = length(toy)
+com = sum(toy .* (1:n)) / sum(toy)                         # centre of mass: weighted mean position
+median = findfirst(cumsum(toy) .>= sum(toy) / 2)           # first column holding half the mass
+peak = argmax(toy)                                         # heaviest column
+to_unit(i) = round((i - 1) / (n - 1), digits = 3)
+(com_column = round(com, digits = 2), com_x = to_unit(com),
+ median_column = median, median_x = to_unit(median),
+ projpeak_column = peak, projpeak_x = to_unit(peak))
+```
+
+The centre of mass (`7.33`) falls in an empty column between the objects;
+the median lands on the heavy object (column 9) as soon as it holds half the
+mass; the peak is the single heaviest column.
+
+| Operator | What it answers | Pixel weight | Result (`x`, `y` values below) |
+|:--|:--|:--|:--:|
+| `com_x` / `com_y` `(img)` | Where is the *average* brightness? Every pixel pulls with its value, so the large bright background pulls towards the image centre. | value | ![com](../assets/fns/object_attention/prof_com.png) |
+| `com_x` / `com_y` `(img, 0.5)` | Where are the bright objects on average? Pixels under `0.5` (the background, the square, the bar) are ignored. | value if `≥ 0.5`, else 0 | ![com 0.5](../assets/fns/object_attention/prof_com_05.png) |
+| `median_x` / `median_y` `(img)` | The column (row) that splits the brightness in two halves. Less sensitive than `com` to a far-away bright speck. | value | ![median](../assets/fns/object_attention/prof_median.png) |
+| `median_x` / `median_y` `(img, 0.5)` | Same, counting only pixels `≥ 0.5`. | value if `≥ 0.5` | ![median 0.5](../assets/fns/object_attention/prof_median_05.png) |
+| `projpeak_x` / `projpeak_y` `(img)` | The single column (row) holding the most brightness: the "thickest" place. | value | ![projpeak](../assets/fns/object_attention/prof_projpeak.png) |
+| `projpeak_x` / `projpeak_y` `(img, 0.5)` | Same, counting only pixels `≥ 0.5`. `x` lands on the disk (the column with the most bright pixels) but `y` on the paddle: its 30 bright pixels in a single row outweigh any row of the disk. The two coordinates are computed independently, so they need not point at the same object. | value if `≥ 0.5` | ![projpeak 0.5](../assets/fns/object_attention/prof_projpeak_05.png) |
+| `first_x` / `first_y` (red) and `last_x` / `last_y` (blue) `(img, 0.3)` | Where does the foreground start and end? `first_x` is the leftmost column holding a pixel `≥ threshold`, `last_x` the rightmost; `first_y` / `last_y` the top and bottom rows. Together they give the bounding box of everything above the threshold. | 1 if `≥ threshold` | ![extremes 0.3](../assets/fns/object_attention/prof_extremes_03.png) |
+| `first_*` / `last_*` `(img)` | Default threshold `0.5`: the square (`0.45`) and the bar (`0.35`) no longer count. | 1 if `≥ 0.5` | ![extremes 0.5](../assets/fns/object_attention/prof_extremes_05.png) |
+| `first_*` / `last_*` `(img, 0.8)` | Only the disk and the ball are `≥ 0.8`. | 1 if `≥ 0.8` | ![extremes 0.8](../assets/fns/object_attention/prof_extremes_08.png) |
+| `contrast_x` / `contrast_y` `(img)` | Where does the image differ most from its average grey? Dark and bright objects both count. | `abs(value − image mean)` | ![contrast](../assets/fns/object_attention/prof_contrast.png) |
+| `odd_x` / `odd_y` `(img)` | Where are the pixels that are *not* background? The background is the most common value; it weighs 0, everything else weighs its difference from it. Good for sprites on a uniform backdrop, whatever their colour. | `abs(value − background)`, 0 on the background | ![odd](../assets/fns/object_attention/prof_odd.png) |
+| `rare_x` / `rare_y` `(img)` | Where are the pixels whose value is *rare* in the image (at most 5% of the pixels share it)? Large areas of one value are ignored, small sprites count, whatever their brightness. | 1 if the value is rare, else 0 | ![rare](../assets/fns/object_attention/prof_rare.png) |
+| `rare_x` / `rare_y` `(img, 0.01)` | Rarer still (≤ 1% = 96 px): only the ball, the paddle and the bar remain. | 1 if rare | ![rare 0.01](../assets/fns/object_attention/prof_rare_001.png) |
+| `motion_x` / `motion_y` `(frame, next)` | Where did something change between two frames? Shown on `abs(frame − next)`: only the ball's old and new places are non-zero, so the result is between them. | `abs(a − b)` | ![motion](../assets/fns/object_attention/prof_motion.png) |
+
+Two locators do not use profiles:
+
+| Operator | What it answers | Result |
 |:--|:--|:--:|
-| `com_x` / `com_y` | `(img)` — every pixel weighted by its value; the background pulls it to the centre | ![com_x / com_y](../assets/fns/object_attention/loc_com.png) |
-| `com_x` / `com_y` | `(img, 0.5)` — only the bright objects count | ![com_x / com_y](../assets/fns/object_attention/loc_com_05.png) |
-| `median_x` / `median_y` | `(img)` — weighted median, robust to one heavy object | ![median_x / median_y](../assets/fns/object_attention/loc_median.png) |
-| `median_x` / `median_y` | `(img, 0.5)` | ![median_x / median_y](../assets/fns/object_attention/loc_median_05.png) |
-| `spread_x` / `spread_y` | `(img)` — green box is `com ± spread` | ![spread_x / spread_y](../assets/fns/object_attention/loc_spread_00.png) |
-| `spread_x` / `spread_y` | `(img, 0.5)` | ![spread_x / spread_y](../assets/fns/object_attention/loc_spread_05.png) |
-| `argmax_x` / `argmax_y` | `(img)` — brightest pixel (the ball) | ![argmax_x / argmax_y](../assets/fns/object_attention/loc_argmax.png) |
-| `argmin_x` / `argmin_y` | `(img)` — darkest pixel (first background pixel) | ![argmin_x / argmin_y](../assets/fns/object_attention/loc_argmin.png) |
-| `projpeak_x` / `projpeak_y` | `(img)` — column and row with the most mass | ![projpeak_x / projpeak_y](../assets/fns/object_attention/loc_projpeak.png) |
-| `projpeak_x` / `projpeak_y` | `(img, 0.5)` | ![projpeak_x / projpeak_y](../assets/fns/object_attention/loc_projpeak_05.png) |
-| `first_*` (red) / `last_*` (blue) | `(img, 0.3)` — extreme foreground lines | ![first_* (red) / last_* (blue)](../assets/fns/object_attention/loc_extremes_03.png) |
-| `first_*` / `last_*` | `(img)` — default threshold `0.5` | ![first_* / last_*](../assets/fns/object_attention/loc_extremes_05.png) |
-| `first_*` / `last_*` | `(img, 0.8)` — only disk and ball | ![first_* / last_*](../assets/fns/object_attention/loc_extremes_08.png) |
-| `contrast_x` / `contrast_y` | `(img)` — weight `abs(v - mean)` | ![contrast_x / contrast_y](../assets/fns/object_attention/loc_contrast.png) |
-| `odd_x` / `odd_y` | `(img)` — weight `abs(v - background)`, background pixels excluded | ![odd_x / odd_y](../assets/fns/object_attention/loc_odd.png) |
-| `rare_x` / `rare_y` | `(img)` — values covering at most 5% of the image: every object | ![rare_x / rare_y](../assets/fns/object_attention/loc_rare.png) |
-| `rare_x` / `rare_y` | `(img, 0.01)` — at most 1% (96 px): the ball, the paddle and the bar | ![rare_x / rare_y](../assets/fns/object_attention/loc_rare_001.png) |
-| `motion_x` / `motion_y` | `(frame, next_frame)` — where the ball moved (shown on the next frame) | ![motion_x / motion_y](../assets/fns/object_attention/loc_motion.png) |
+| `argmax_x` / `argmax_y` `(img)` | Where is the single brightest pixel? (the ball, `1.0`) | ![argmax](../assets/fns/object_attention/loc_argmax.png) |
+| `argmin_x` / `argmin_y` `(img)` | Where is the single darkest pixel? (here the background is uniform, so the first background pixel in column order: the top-left corner) | ![argmin](../assets/fns/object_attention/loc_argmin.png) |
+| `spread_x` / `spread_y` `(img)` | How spread out is the brightness? The weighted standard deviation of the column (row) profile, as a fraction of the image size. The green box is `com ± spread`. | ![spread](../assets/fns/object_attention/loc_spread_00.png) |
+| `spread_x` / `spread_y` `(img, 0.5)` | Same, bright pixels only: the box tightens around the bright objects. | ![spread 0.5](../assets/fns/object_attention/loc_spread_05.png) |
+
+The values behind every picture, on the example frame:
+
+```@example oa
+calls = [
+    ("com", ()), ("com", (0.5,)), ("median", ()), ("median", (0.5,)), ("projpeak", ()), ("projpeak", (0.5,)),
+    ("first", (0.3,)), ("last", (0.3,)), ("first", ()), ("last", ()), ("first", (0.8,)), ("last", (0.8,)),
+    ("contrast", ()), ("odd", ()), ("rare", ()), ("rare", (0.01,)), ("argmax", ()), ("argmin", ()),
+    ("spread", ()), ("spread", (0.5,)),
+]
+for (stem, args) in calls
+    x = getfield(OA_L, Symbol(stem, :_x))(scene, args...)
+    y = getfield(OA_L, Symbol(stem, :_y))(scene, args...)
+    call = isempty(args) ? "(img)" : "(img, $(args[1]))"
+    println(rpad("$(stem)_x / $(stem)_y $call", 34), "x = ", rpad(round(x, digits = 3), 8), "y = ", round(y, digits = 3))
+end
+println(rpad("motion_x / motion_y (frame, next)", 34), "x = ", rpad(round(OA_L.motion_x(scene, scene_next), digits = 3), 8),
+        "y = ", round(OA_L.motion_y(scene, scene_next), digits = 3))
+```
 
 ### Around a point: `refine` and `peak`
 
-`refine_*_<p>` returns the centre of mass inside a window of `p` of the image
-around the input point; `peak_*_<p>` returns the brightest pixel there. An
-empty window returns the input unchanged. This is how an evolved constant gets
-*snapped* onto an object: the input does not have to be accurate, only close.
-All calls below start from the blue point `(x, y) = (0.38, 0.45)`.
+These take a point `(x, y)` (blue) and look only inside a window around it
+(green box, `p` = 10%, 25% or 50% of the image's width and height):
 
-| Window | `refine_x_<p>` / `refine_y_<p>` | `peak_x_<p>` / `peak_y_<p>` |
-|:--|:--:|:--:|
-| `10p` | ![refine 10%](../assets/fns/object_attention/loc_refine_10.png) | ![peak 10%](../assets/fns/object_attention/loc_peak_10.png) |
-| `25p` | ![refine 25%](../assets/fns/object_attention/loc_refine_25.png) | ![peak 25%](../assets/fns/object_attention/loc_peak_25.png) |
-| `50p` | ![refine 50%](../assets/fns/object_attention/loc_refine_50.png) | ![peak 50%](../assets/fns/object_attention/loc_peak_50.png) |
+- `refine_x_<p>` / `refine_y_<p>` return the **centre of mass of the
+  brightness inside the window** (red). Use it to *snap* a rough coordinate
+  onto the object next to it: the input only has to be close.
+- `peak_x_<p>` / `peak_y_<p>` return the **brightest pixel inside the
+  window** (red).
 
-| `refine_x_25p(img, 0.2)` — one scalar, `x = y = 0.2` | Three chained refines from `(0.2, 0.2)`: blue start, green steps, red end |
-|:--:|:--:|
-| ![refine diagonal](../assets/fns/object_attention/loc_refine_diagonal.png) | ![refine chain](../assets/fns/object_attention/loc_refine_chain.png) |
+If the window holds no brightness at all, the input point is returned
+unchanged.
+
+**Important:** `refine` weighs *every* pixel by its value, background
+included. On the frame, the background is `0.15` everywhere, so a large
+window is mostly background and its centre of mass stays near the window's
+centre: `refine` only snaps well on a dark background or on a mask. The
+second column runs the same calls on the binary mask (background `0`), where
+`refine` jumps onto the object in the window.
+
+All calls below start from the blue point `(x, y) = (0.38, 0.45)`, on the
+background between the square, the disk and the ball:
+
+| Window | `refine_*_<p>` on the frame | `refine_*_<p>` on the mask | `peak_*_<p>` on the frame |
+|:--|:--:|:--:|:--:|
+| `10p` (8 × 12 px): nothing but background inside. On the frame `refine` returns the window's centre (all pixels weigh the same), on the mask the input unchanged (no mass), and `peak` the window's first pixel (all equal, first one wins). | ![refine 10%](../assets/fns/object_attention/loc_refine_10.png) | ![refine mask 10%](../assets/fns/object_attention/loc_refine_mask_10.png) | ![peak 10%](../assets/fns/object_attention/loc_peak_10.png) |
+| `25p` (20 × 30 px): the ball enters the window. On the frame the 4-pixel ball is outweighed by 600 background pixels and `refine` barely moves; on the mask it snaps onto the ball; `peak` jumps onto it. | ![refine 25%](../assets/fns/object_attention/loc_refine_25.png) | ![refine mask 25%](../assets/fns/object_attention/loc_refine_mask_25.png) | ![peak 25%](../assets/fns/object_attention/loc_peak_25.png) |
+| `50p` (40 × 60 px): part of the disk enters too. `refine` is pulled towards the disk (much more mass than the ball); `peak` stays on the ball, the brightest pixel. | ![refine 50%](../assets/fns/object_attention/loc_refine_50.png) | ![refine mask 50%](../assets/fns/object_attention/loc_refine_mask_50.png) | ![peak 50%](../assets/fns/object_attention/loc_peak_50.png) |
+
+```@example oa
+for (stem, input, label) in ((:refine, scene, "frame"), (:refine, mask, "mask"), (:peak, scene, "frame")), p in (10, 25, 50)
+    x = getfield(OA_L, Symbol(stem, :_x_, p, :p))(input, oa_query...)
+    y = getfield(OA_L, Symbol(stem, :_y_, p, :p))(input, oa_query...)
+    println(rpad("$(stem)_x_$(p)p / $(stem)_y_$(p)p ($label, 0.38, 0.45)", 48), "x = ", rpad(round(x, digits = 3), 8), "y = ", round(y, digits = 3))
+end
+```
+
+Chaining `refine` (feeding its output back as the next input) is a small
+attention loop: three chained `refine_*_25p` from `(0.2, 0.2)`, blue start,
+green steps, red end. On the mask it walks onto the square and settles; on
+the frame the background holds it in place.
+
+| Chain on the mask | Chain on the frame | `refine_x_25p(img, 0.2)`: one scalar means `x = y = 0.2` |
+|:--:|:--:|:--:|
+| ![refine chain mask](../assets/fns/object_attention/loc_refine_chain_mask.png) | ![refine chain](../assets/fns/object_attention/loc_refine_chain.png) | ![refine diagonal](../assets/fns/object_attention/loc_refine_diagonal.png) |
 
 ## Object locators
 
@@ -464,6 +633,11 @@ selects one and returns its centroid. Inputs are a binary mask, or an
 intensity image thresholded at `0.5` (or at an explicit last-argument
 threshold). Ties go to the object met first in a column-major scan. An empty
 mask returns `0.5`.
+
+In the pictures of this section, the red crosshair is the **centroid of the
+selected object**: the vertical line is the value returned by `obj_x_<sel>`,
+the horizontal line the value of `obj_y_<sel>`. All six objects of the mask
+are candidates; the selector decides which one is reported.
 
 ### Fixed selectors
 
@@ -555,9 +729,9 @@ the ball relative to the paddle. Red is `<a>`, blue is `<b>`.
 | ![smallest vs largest](../assets/fns/object_attention/obj_delta_smallest_largest.png) | ![smallest vs elongated](../assets/fns/object_attention/obj_delta_smallest_most_elongated.png) | ![second vs largest](../assets/fns/object_attention/obj_delta_second_largest_largest.png) |
 
 ```@example oa
-for name in (:obj_dx_smallest_largest, :obj_dy_smallest_largest,
-             :obj_dx_smallest_most_elongated, :obj_dy_smallest_most_elongated)
-    println(rpad(name, 32), round(getfield(OA_O, name)(mask), digits = 3))
+for (a, b) in ((:smallest, :largest), (:smallest, :most_elongated), (:second_largest, :largest)), d in (:dx, :dy)
+    name = Symbol(:obj_, d, :_, a, :_, b)
+    println(rpad(name, 34), round(getfield(OA_O, name)(mask), digits = 3))
 end
 ```
 
@@ -588,6 +762,18 @@ for sel in oa_selectors
 end
 ```
 
+`obj_<descriptor>_nearest(mask, x, y)` describes the object closest to a
+point. From the top-left corner `(0.1, 0.1)` the nearest object is the
+square; from `(0.9, 0.6)` the thin vertical bar:
+
+```@example oa
+println(rpad("", 44), join(rpad.(string.(descriptors), 12)))
+for point in ((0.1, 0.1), (0.9, 0.6))
+    values = [getfield(OA_O, Symbol(:obj_, d, :_nearest))(mask, point...) for d in descriptors]
+    println(rpad("obj_<descriptor>_nearest(mask, $(point[1]), $(point[2]))", 44), join(rpad.(string.(round.(values, digits = 3)), 12)))
+end
+```
+
 `obj_count` and `obj_dist_nearest` (distance from a point to the nearest
 centroid, divided by the image diagonal):
 
@@ -615,6 +801,22 @@ sources also accept `(img)`, `(img, threshold)` and
 `(img, threshold, margin)`, using the image itself as the mask; binary sources
 accept `(mask)` and `(mask, margin)`. `margin` grows the box by that fraction
 of its own size on each side (default `0.1`).
+
+### What each zoom does
+
+| Family | What it does to the image |
+|:--|:--|
+| `zoom_crop_bbox[_<sel>]` | Finds the bounding box of the mask's foreground (or of one object chosen by `<sel>`), grows it by `margin`, cuts it out and stretches it back to the full image size. The object fills the frame, but a thin object gets stretched. |
+| `zoom_crop_aspect[_<sel>]` | Same, but first widens the box to the image's width/height ratio, so the object is magnified without being distorted. |
+| `zoom_crop_isolate[_<sel>]` | Same as `zoom_crop_bbox`, and every pixel that is not part of the object(s) is set to zero: the object alone, on black. |
+| `zoom_recenter[_<sel>]` | No crop, no magnification: shifts the whole image so the object's centroid lands on the image centre (the uncovered border becomes zero). Position is removed, size is kept. |
+| `zoom_glimpse_<p>(img, x, y)` | Cuts a window of `p` (10%, 25%, 50%) of each side around a point given as numbers, e.g. by a locator, and stretches it back. |
+| `zoom_center(img, z)` | Keeps the central fraction `z` of each side: a digital zoom into the middle. |
+| `zoom_rows(img, a, b)`, `zoom_cols(img, a, b)` | Keeps a horizontal (vertical) band between two positions and stretches it. |
+| `zoom_recenter_point(img, x, y)` | Shifts the image so a given point lands on the centre. |
+
+`<sel>` is any selector of the object locators (`largest`, `most_circular`,
+…). Without `<sel>`, the whole foreground of the mask is used.
 
 ### Every mask-driven operator
 

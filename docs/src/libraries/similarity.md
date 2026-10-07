@@ -83,8 +83,34 @@ How to read them:
 | `sim_shift_x`, `sim_shift_y` | `[-0.5, 0.5]` | estimated translation of `b` relative to `a` (fraction of the size); `0.05` = the 6 px shift. Only meaningful when `b` really is a moved copy of `a`: for the inverted frame or another rally the value is arbitrary, so pair it with `sim_correlation` |
 
 `sim_mse`, `sim_mae` and `sim_correlation` take an optional binary mask as
-third argument and compare only the pixels inside it, e.g. only the ball's
-region.
+third argument and compare only the pixels inside it. Below, the mask covers
+the right half of the court. The ball is in the left half in both the
+reference (column 58) and the "ball moved" frame (column 30), so on the whole
+frame they differ, but inside the mask they are identical.
+
+```@example sim
+right_half = g_binary([c > 61 for r in 1:80, c in 1:120])
+moved_ball = variants[2][2]
+(
+    mse_whole = round(S.sim_mse(reference, moved_ball), digits = 5),
+    mse_right_half = round(S.sim_mse(reference, moved_ball, right_half), digits = 5),
+    correlation_whole = round(S.sim_correlation(reference, moved_ball), digits = 3),
+    correlation_right_half = round(S.sim_correlation(reference, moved_ball, right_half), digits = 3),
+)
+```
+
+The foreground scores (`sim_iou`, `sim_dice`, `sim_coverage`, `sim_hamming`,
+`sim_chamfer`) threshold both images at `0.5` by default, or at a third
+argument. The threshold decides what counts as "the objects": at `0.3` the
+net (`0.35`) joins the paddles and the ball, at `0.9` only the ball remains.
+
+```@example sim
+for t in (0.3, 0.5, 0.9)
+    println(rpad("threshold $t", 16),
+        "sim_iou(reference, ball moved) = ", rpad(round(S.sim_iou(reference, moved_ball, t), digits = 3), 8),
+        "sim_chamfer = ", round(S.sim_chamfer(reference, moved_ball, t), digits = 3))
+end
+```
 
 ## Template matching
 
@@ -143,9 +169,24 @@ end
 |:--:|:--:|
 | ![template reference](../assets/fns/similarity/template_ref.png) | ![template match](../assets/fns/similarity/template_match.png) |
 
+Every template operator on this pair (`match_x_<p>`, `match_y_<p>`: where the
+centre of the template was found in the moved image; `match_score_<p>`: how
+well it matched). The face moved 14 columns left and 20 rows up, so the match
+centre is up-left of the image centre (`0.5`, `0.5`):
+
 ```@example sim
-[(p, round(getfield(S, Symbol(:match_score_, p, :p))(moved, lena), digits = 3)) for p in (10, 20, 30)]
+for p in (10, 20, 30)
+    x = getfield(S, Symbol(:match_x_, p, :p))(moved, lena)
+    y = getfield(S, Symbol(:match_y_, p, :p))(moved, lena)
+    score = getfield(S, Symbol(:match_score_, p, :p))(moved, lena)
+    println(rpad("match_x_$(p)p / match_y_$(p)p / match_score_$(p)p", 44), "x = ", rpad(round(x, digits = 3), 8),
+            "y = ", rpad(round(y, digits = 3), 8), "score = ", round(score, digits = 3))
+end
 ```
+
+`(img, ref, s)` takes the template around `(s, s)` in `ref` instead of its
+centre, e.g. `match_x_20p(moved, lena, 0.3)` looks for the region around
+`(0.3, 0.3)` of the reference.
 
 Tracking a sprite between two Pong frames: `zoom_recenter_smallest(previous,
 previous)` puts the ball at the centre (green box = the 10% template), and

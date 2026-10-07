@@ -1060,8 +1060,10 @@ UTCGP.number_transcendental
 
 ```@docs
 bundle_number_arithmetic
+bundle_number_arithmetic_sr
 bundle_number_reduce
 bundle_number_transcendental
+bundle_number_transcendental_sr
 bundle_number_reduceFromImg
 bundle_number_coordinatesFromImg
 bundle_number_relativeCoordinatesFromImg

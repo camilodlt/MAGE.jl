@@ -160,31 +160,41 @@ lines of inline JavaScript.
 """
 function g_volume_viewer(volumes; scale::Int = 4, title::AbstractString = "", assets = nothing, page = "")
     G_VIEWER_COUNT[] += 1
-    id = "volview$(G_VIEWER_COUNT[])"
+    id = "vv$(G_VIEWER_COUNT[])"
     # With `assets` (from `g_assets(page)`), sprites are saved as files and
     # linked; the relative path depends on Documenter's pretty URLs (CI).
     prefix = get(ENV, "CI", "false") == "true" ? "../../assets/fns/$page/" : "../assets/fns/$page/"
     arrays = [(label, v isa SizedImage ? v.img : v) for (label, v) in volumes]
     dims = size(arrays[1][2])
     io = IOBuffer()
-    print(io, """<div class="volume-viewer" id="$id" style="overflow-x:auto;margin:0.5em 0 1.5em 0;">""")
-    isempty(title) || print(io, """<div style="font-weight:600;margin-bottom:0.3em;">$title</div>""")
-    print(io, """<table style="border-collapse:collapse;border:none;"><tr><th style="border:none;"></th>""")
+    # One small shared function moves every sprite of a row: each sprite is a
+    # vertical strip of slices, shown through a window one slice high. It is
+    # (re)defined by every viewer, so each viewer also works on its own.
+    print(io, """<script>function vvSlide(id,a,v){var r=document.getElementById(id);""",
+        """r.querySelectorAll('.vv-'+a).forEach(function(e){e.style.backgroundPositionY=-(v-1)*e.offsetHeight+'px';});""",
+        """document.getElementById(id+a).textContent=v;}</script>""")
+    # Shared styles of this viewer's cells and sprite windows, written once.
+    # Slice size on screen per axis: a slice across axis k keeps the other two dimensions.
+    slice_size(axis) = scale .* (axis == 1 ? (dims[2], dims[3]) : axis == 2 ? (dims[1], dims[3]) : (dims[1], dims[2]))
+    print(io, """<style>#$id td,#$id th{border:none;padding:2px;font-size:.85em}""",
+        """#$id div div{background-repeat:no-repeat;image-rendering:pixelated}""")
+    for (axis, name) in ((3, "z"), (1, "y"), (2, "x"))
+        h, w = slice_size(axis)
+        print(io, """#$id .vv-$name{width:$(w)px;height:$(h)px}""")
+    end
+    print(io, "</style>")
+    print(io, """<div id="$id" style="overflow-x:auto;margin:.5em 0 1.5em 0">""")
+    isempty(title) || print(io, """<div style="font-weight:600">$title</div>""")
+    print(io, """<table style="border-collapse:collapse"><tr><th></th>""")
     for (label, _) in arrays
-        print(io, """<th style="border:none;font-weight:500;font-size:0.85em;padding:2px 6px;">$label</th>""")
+        print(io, """<th style="font-weight:500">$label</th>""")
     end
     print(io, "</tr>")
     for (axis, name) in ((3, "z"), (1, "y"), (2, "x"))
         n = dims[axis]
         start = cld(n, 2)
-        print(io, """<tr><td style="border:none;vertical-align:middle;padding-right:8px;white-space:nowrap;font-size:0.85em;">
-            <b>$name</b> <span id="$(id)_$(name)_label">$start</span>/$n<br>
-            <input type="range" min="1" max="$n" value="$start" id="$(id)_$(name)" style="width:110px;"
-              oninput="(function(v){var root=document.getElementById('$id');
-                root.querySelectorAll('.vv-$(name)').forEach(function(el){
-                  el.style.backgroundPosition='0px -'+((v-1)*parseInt(el.dataset.h))+'px';});
-                document.getElementById('$(id)_$(name)_label').textContent=v;})(this.value)">
-            </td>""")
+        print(io, """<tr><td style="white-space:nowrap"><b>$name</b> <span id="$id$name">$start</span>/$n<br>""",
+            """<input type="range" min="1" max="$n" value="$start" style="width:110px" oninput="vvSlide('$id','$name',this.value)"></td>""")
         for (column, (_, arr)) in enumerate(arrays)
             sprite, (h, w) = g_sprite(arr, axis, scale)
             uri = if assets === nothing
@@ -194,9 +204,8 @@ function g_volume_viewer(volumes; scale::Int = 4, title::AbstractString = "", as
                 g_save(assets, file, sprite)
                 prefix * file
             end
-            print(io, """<td style="border:none;padding:2px;"><div class="vv-$(name)" data-h="$h"
-                style="width:$(w)px;height:$(h)px;background-image:url($uri);background-repeat:no-repeat;
-                background-position:0px -$((start - 1) * h)px;image-rendering:pixelated;"></div></td>""")
+            print(io, """<td><div><div class="vv-$name" style="background-image:url($uri);""",
+                """background-position:0 -$((start - 1) * h)px"></div></div></td>""")
         end
         print(io, "</tr>")
     end
