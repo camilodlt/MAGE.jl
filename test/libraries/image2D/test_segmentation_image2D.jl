@@ -53,7 +53,7 @@ SEGMENT = SegmentPixel{Int}
             fn(img_intensity_bad1)
             true
         end
-        @test_throws ErrorException begin # diff size is rejected by ManualDispatcher
+        @test_throws MethodError begin # a different size has no method
             fn(img_intensity_bad2)
         end
     end
@@ -103,8 +103,8 @@ end
         labels = Int.(reinterpret(res.img))
         @test all(iszero, labels[.!coins_mask])           # background stays 0
         @test all(>(0), labels[coins_mask])               # every object pixel is labelled
-        @test_throws ErrorException fn(img_intensity_bad1, p)
-        @test_throws ErrorException fn(img_binary_bad1, p)
+        @test_throws MethodError fn(img_intensity_bad1, p)
+        @test_throws MethodError fn(img_binary_bad1, p)
     end
 
     count_labels(res) = length(setdiff(unique(Int.(reinterpret(res.img))), 0))

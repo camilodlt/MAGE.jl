@@ -14,7 +14,6 @@ The exhaustive, always-current list of operators in each bundle is on the
 module image2D_basic
 
 using ImageCore: clamp01nan!, Normed, float64
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,

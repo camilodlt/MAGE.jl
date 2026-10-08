@@ -38,9 +38,10 @@ cannot both live in a bundle: the widest one would always shadow the narrower.
 Give them different names instead.
 
 Whether a function is applicable to a node is decided with `hasmethod`, and the
-decoder uses `which` to determine how many inputs the node consumes — see
-[`ManualDispatcher`](@ref) for the escape hatch used by anonymous, factory-built
-methods.
+decoder uses `which` to determine how many inputs the node consumes. A factory
+that needs several signatures defines them as methods of one generated named
+function (`@eval function \$NAME(...)` once per signature): Julia then picks the
+most specific method, and `hasmethod`/`which` work directly.
 
 # Leading functions for a new output type
 
@@ -107,13 +108,6 @@ function _verify_last_arg_is_vararg!(m::Method)
     end
     return @assert sig.types[end] == Vararg{Any} "$m"
 end
-function _verify_last_arg_is_vararg!(m::ManualDispatcher)
-    fns = m.functions
-    for fn in fns
-        _verify_last_arg_is_vararg!(fn)
-    end
-    return
-end
 function _verify_last_arg_is_vararg!(m::AbstractFunction)
     methods_ = methods(m)
     _verify_last_arg_is_vararg!.(methods_)
@@ -136,15 +130,6 @@ function append_method!(
     )
     fn_wrapped =
         FunctionWrapper(fn, name, bundle.caster, bundle.fallback; description = description)
-    return push!(bundle.functions, fn_wrapped)
-end
-function append_method!(
-        bundle::FunctionBundle,
-        dp::AbstractManualDispatcher;
-        description::AbstractString = "",
-    )
-    fn_wrapped =
-        FunctionWrapper(dp, dp.name, bundle.caster, bundle.fallback; description = description)
     return push!(bundle.functions, fn_wrapped)
 end
 

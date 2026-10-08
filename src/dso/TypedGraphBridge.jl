@@ -55,9 +55,8 @@ output_count(b::BridgeContext)=length(b.architecture.outputs_types)
 
 """Resolve the supplied decoder's nargs-2 contract without executing a primitive."""
 function dispatch_descriptor(f,types::Tuple)
-    # hasmethod also understands MAGE's ManualDispatcher. Its fallback is not
-    # a legal primitive signature. Ordinary Julia functions may throw from
-    # which() for incompatible or ambiguous type tuples.
+    # Julia functions may throw from which() for incompatible or ambiguous
+    # type tuples.
     signature=Tuple{types...}
     # MAGE's image factories generate methods with @eval while building a task.
     # Catalog construction occurs in the same call frame, so ordinary method

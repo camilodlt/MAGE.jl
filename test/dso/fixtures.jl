@@ -9,10 +9,11 @@ mulfloat(x::Float64,y::Float64,args...)=x*y
 triple(x::Float64,y::Float64,z::Float64,args...)=x+y+z
 idimage(x::Vector{Float64},args...)=x
 oneimage(args...)=ones(4)
-erode_one(x::Vector{Float64},args...)=reverse(x)
-erode_two(x::Vector{Float64},y::Float64,args...)=x.*y
-blur_one(x::Vector{Float64},args...)=fill(mean(x),length(x))
-blur_two(x::Vector{Float64},y::Float64,args...)=x.+y
+# Two-method primitives: the most specific method wins, like a factory's methods.
+erode(x::Vector{Float64},args...)=reverse(x)
+erode(x::Vector{Float64},y::Float64,args...)=x.*y
+blur(x::Vector{Float64},args...)=fill(mean(x),length(x))
+blur(x::Vector{Float64},y::Float64,args...)=x.+y
 meanimage(x::Vector{Float64},args...)=mean(x)
 scale(x::Vector{Float64},y::Float64,args...)=x.*y
 function bundle(entries,caster,fallback)
@@ -28,8 +29,8 @@ function floats()
 end
 function imagebridge(;width=8,outputs=2)
     images=bundle([:identity_image=>idimage,:one_image=>oneimage,
-        :erode=>UTCGP.ManualDispatcher((erode_two,erode_one),:erode),
-        :blur=>UTCGP.ManualDispatcher((blur_two,blur_one),:blur),:scale=>scale],
+        :erode=>erode,
+        :blur=>blur,:scale=>scale],
         identity,()->zeros(4))
     ml=UTCGP.MetaLibrary([UTCGP.Library([images]),UTCGP.Library([floats()])])
     ma=UTCGP.modelArchitecture(Type[Vector{Float64},Float64],[1,2],

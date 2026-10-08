@@ -23,15 +23,8 @@ function _get_parent_module_symbol(f::Function)
     return Symbol(parentmodule(f))
 end
 
-function _get_parent_module_symbol(f::AbstractManualDispatcher)
-    return Symbol(parentmodule(f[1]))
-end
-
 function _get_name_from_likefn(f::Function)
     return Symbol(f)
-end
-function _get_name_from_likefn(dp::AbstractManualDispatcher)
-    return dp.name
 end
 
 function _default_wrapper_description(name::Symbol)::String
@@ -176,7 +169,10 @@ the caster/fallback behavior active while skipping the final return-type check.
 struct NoTypeAssertion end
 
 # from https://discourse.julialang.org/t/performance-of-hasmethod-vs-try-catch-on-methoderror/99827/23
-const SafeFunctions = Dict{Type, IsGood}()
+# Keyed by the value `(typeof(f), typeof(x))`, whose own type is always
+# Tuple{DataType, DataType}: a key that is itself a type (`Tuple{F, T}`) made
+# `get`/`setindex!` compile again for every new function/argument pair (~150 ms each).
+const SafeFunctions = Dict{Tuple{DataType, DataType}, IsGood}()
 const SafeFunctionsLock = Base.ReentrantLock()
 
 # Base.@nospecializeinfer function safe_call( not available in 1.9.3
@@ -185,7 +181,8 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
 
     F = typeof(f)
     T = typeof(x)
-    status = get(SafeFunctions, Tuple{F, T}, Undefined)
+    key = (F, T)
+    status = get(SafeFunctions, key, Undefined)
     if status == Good
         try
             tmp = _invoke_fn(f.fn, x...)
@@ -211,18 +208,15 @@ function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))
             (f.fallback(), false)
         end
     end
-    return lock(SafeFunctionsLock) do
-        tid = Threads.threadid()
-        fn_name = Symbol(f)
-        @debug "Holding safe call lock for $(fn_name) by $(tid). $(now())"
-        if output[2]
-            SafeFunctions[Tuple{F, T}] = Good
-        else
-            SafeFunctions[Tuple{F, T}] = Bad
-        end
-        @debug "Unlocking safe call lock for $(fn_name) by $(tid). $(now())"
-        return output
+    # Plain lock/unlock rather than a `do` closure: the closure captured typed
+    # values and was compiled again for every new pair.
+    lock(SafeFunctionsLock)
+    try
+        SafeFunctions[key] = output[2] ? Good : Bad
+    finally
+        unlock(SafeFunctionsLock)
     end
+    return output
 end
 
 """

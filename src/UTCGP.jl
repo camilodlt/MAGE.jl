@@ -128,9 +128,8 @@ module UTCGP
     # Cache Config for function wrappers
     include("libraries/cache.jl")
 
-    # DISPATCHER FOR ANONYMOUS METHODS
-    include("libraries/manual_dispatcher.jl")
-    export ManualDispatcher
+    # Callable types and the applicability cache states
+    include("libraries/function_types.jl")
 
     # FN RELATED
     include("libraries/function.jl")

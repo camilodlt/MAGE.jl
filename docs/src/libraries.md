@@ -41,15 +41,14 @@ CacheConfig
 NoCacheConfig
 ```
 
-### Dispatching anonymous methods
+### Factories with several signatures
 
-Bundles decide applicability with `hasmethod` and arity with `which`. Anonymous
-functions produced by a factory do not carry usable method tables, so they are
-wrapped in a [`ManualDispatcher`](@ref), which answers both questions itself.
-
-```@docs
-ManualDispatcher
-```
+Bundles decide applicability with `hasmethod` and arity with `which`. A factory
+whose operator takes several signatures (e.g. `erosion_2D(img)` and
+`erosion_2D(img, k)`) generates one named function per output type and adds
+one method per signature with `@eval`. Julia then picks the most specific
+method, and `hasmethod` and `which` answer directly. The function is built on
+the first call for a type and reused afterwards.
 
 ## Bundles
 

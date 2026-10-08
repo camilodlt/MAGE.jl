@@ -12,7 +12,6 @@ module image2D_barithmetic
 
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
