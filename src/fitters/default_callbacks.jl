@@ -5,10 +5,15 @@ using StatsBase: sample, ProbabilityWeights
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 """
+    default_population_callback(population, generation, run_config, model_architecture,
+                                node_config, meta_library, args...)
 
-A population of size 1 is expanded to a population of size lambda_. 
+Population callback for the `1 + λ` strategy driven by [`fit`](@ref).
 
-Where each offspring is a `deepcopy` of the only UTGenome in the population.
+A population of size 1 is expanded to a population of size `lambda_`, where each
+offspring is a `deepcopy` of the only [`UTGenome`](@ref) in the population.
+
+The GA counterpart is [`ga_population_callback`](@ref).
 """
 function default_population_callback(
     population::Population,
@@ -31,6 +36,15 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
+"""
+    default_mutation_callback(population, args...)
+
+Mutation callback applying [`standard_mutate!`](@ref) to every individual.
+
+Each allele is drawn independently with probability
+`run_config.mutation_rate`; compare with the numbered variants, which mutate a
+fixed *number* of alleles instead.
+"""
 function default_mutation_callback(population::Population, args...)
     run_config = args[2]
     model_architecture = args[3]
@@ -59,6 +73,15 @@ end
 # Default Mutation Callback (Numbered)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
+"""
+    default_numbered_mutation_callback(population, args...)
+
+Mutation callback applying [`numbered_mutation!`](@ref) to every individual.
+
+Instead of a per-allele probability, this mutates a *number* of alleles derived
+from `run_config.mutation_rate`, which keeps the amount of change per individual
+stable across genome sizes.
+"""
 function default_numbered_mutation_callback(population::Population, args...)
     run_config = args[2]
     model_architecture = args[3]
@@ -87,6 +110,15 @@ end
 # Default Mutation Callback (Numbered)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
+"""
+    default_numbered_new_material_mutation_callback(population, args...)
+
+Mutation callback applying [`new_material_mutation!`](@ref) to every individual.
+
+Like [`default_numbered_mutation_callback`](@ref), but it keeps mutating until
+the individual's *active* graph has actually changed, so no offspring is wasted
+on a silent mutation of dormant material. This is the usual default.
+"""
 function default_numbered_new_material_mutation_callback(population::Population, args...)
     run_config = args[2]
     model_architecture = args[3]
@@ -114,6 +146,13 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Mutation Callback
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+"""
+    default_free_mutation_callback(population, args...)
+
+Like [`default_mutation_callback`](@ref) but calling [`free_mutate!`](@ref):
+mutation is not constrained to keep every node type-correct, so it must be
+paired with the free decoder ([`default_free_decoding_callback`](@ref)).
+"""
 function default_free_mutation_callback(population::Population, args...)
     run_config = args[2]
     model_architecture = args[3]
@@ -142,6 +181,11 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Mutation Callback
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+"""
+    default_free_numbered_mutation_callback(population, args...)
+
+Numbered variant of [`default_free_mutation_callback`](@ref).
+"""
 function default_free_numbered_mutation_callback(population::Population, args...)
     run_config = args[2]
     model_architecture = args[3]
@@ -169,6 +213,15 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 # Default Mutation Callback
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+"""
+    correct_all_nodes_callback(population, args...)
+
+Mutation-phase callback that runs [`correct_all_nodes!`](@ref) on every
+individual, repairing any connexion whose type no longer matches its function.
+
+Only needed when something upstream may leave the genome inconsistent — after a
+free mutation, or after a library was swapped under an existing genome.
+"""
 function correct_all_nodes_callback(population::Population, args...)
     model_architecture = args[3]
     meta_library = args[5]
@@ -189,6 +242,19 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
+"""
+    default_ouptut_mutation_callback(population, generation, run_config,
+                                     model_architecture, node_config, meta_library, args...)
+
+Mutate each output node with probability `run_config.output_mutation_rate`,
+changing which node the output reads from.
+
+An output node whose connexion element was frozen (see
+[`set_node_freeze_state`](@ref)) is unaffected.
+
+!!! note
+    The name is misspelled in the public API and kept as is for compatibility.
+"""
 function default_ouptut_mutation_callback(
     population::Population,
     generation::Int,
@@ -212,7 +278,16 @@ end
 # Default Decoding Callbacks
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-# Normal Decoding Callback
+"""
+    default_decoding_callback(population, generation, run_config, model_architecture,
+                              node_config, meta_library, shared_inputs)
+
+Decode every individual into its [`Program`](@ref)s, following the output nodes
+back through the graph, and return them as a `PopulationPrograms`.
+
+Only nodes the outputs actually depend on are decoded — the rest of the genome
+is dormant material that mutation may reactivate later.
+"""
 function default_decoding_callback(
     population::Population,
     generation::Int,
@@ -239,7 +314,14 @@ end
 # Default FREE decoding
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-# Normal Decoding Callback
+"""
+    default_free_decoding_callback(population, generation, run_config, model_architecture,
+                                   node_config, meta_library, shared_inputs)
+
+Decoding callback for genomes evolved with the *free* mutations
+([`free_mutate!`](@ref)): connexions are resolved without assuming every node is
+already type-correct.
+"""
 function default_free_decoding_callback(
     population::Population,
     generation::Int,
@@ -342,6 +424,16 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
+"""
+    default_elite_selection_callback(ind_performances, population, generation, run_config,
+                                     model_architecture, node_config, meta_library,
+                                     programs, args...)
+
+Return the index of the individual with the lowest fitness.
+
+`NaN` fitnesses are treated as `Inf`, i.e. as the worst possible solutions, so a
+program that failed to produce a number is never selected.
+"""
 function default_elite_selection_callback(
     ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
     population::Population,
@@ -369,6 +461,22 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
+"""
+    default_eliteDistribution_selection_callback(ind_performances, population, generation,
+                                                 run_config, model_architecture, node_config,
+                                                 meta_library, programs, args...)
+
+Elite selection that accepts a slightly worse individual now and then, in the
+spirit of simulated annealing.
+
+If any offspring beats the parent (the last entry of `ind_performances`), the
+best one is taken as usual. Otherwise the next parent is *sampled* with weights
+`exp(-(fitness - parent_fitness) / T)`, so a near-miss has a real chance of
+being kept and the search can leave a plateau.
+
+`T` is read from the `MAGE_TEMPERATURE` environment variable and defaults to
+`0.3`; lower is greedier.
+"""
 function default_eliteDistribution_selection_callback(
     ind_performances::Union{Vector{<:Number},Vector{Vector{<:Number}}},
     population::Population,
@@ -409,6 +517,16 @@ end
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
+"""
+    default_early_stop_callback(generation_loss_tracker, ind_loss_tracker, ind_performances,
+                                population, generation, run_config, model_architecture,
+                                node_config, meta_library, shared_inputs, programs,
+                                best_loss, best_program, elite_idx)
+
+Stop the run as soon as the best loss of the generation reaches `0.0`.
+
+For a budget-based stop instead, use [`eval_budget_early_stop`](@ref).
+"""
 function default_early_stop_callback(
     generation_loss_tracker::GenerationLossTracker,
     ind_loss_tracker::IndividualLossTracker,

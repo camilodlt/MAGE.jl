@@ -226,7 +226,7 @@ function _run_op(operation::Operation, program_inputs::SharedInput, return_type:
         @timeit_debug to "Calc res" res = evaluate_fn_wrapper(fn, inputs_values)
         @assert res isa return_type "$(fname) $(typeof.(inputs_values))"
         if !(res isa return_type)
-            if isdefined(Main, :Infiltrator)
+            if isinteractive() && isdefined(Main, :infiltrate)
                 Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
             end
         end

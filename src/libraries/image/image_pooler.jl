@@ -1,37 +1,15 @@
-""" Sliding-window image poolers
+"""
+Sliding-window pooling: reduce a window at every position, keeping the image's
+size.
 
-Exports :
+# Bundles
 
-- **bundle\\_image2DIntensity\\_pooler\\_factory** :
-    - `meanpool`
-    - `maxpool`
-    - `minpool`
-    - `stdpool`
-    - `medianpool`
-    - `uniquecountpool`
-    - `argmaxcountpool`
-    - `argmincountpool`
-    - `iqrpool`
-- **bundle\\_image2DBinary\\_pooler\\_factory** :
-    - `meanpool`
-    - `maxpool`
-    - `minpool`
-    - `stdpool`
-    - `medianpool`
-    - `uniquecountpool`
-    - `argmaxcountpool`
-    - `argmincountpool`
-    - `iqrpool`
-- **bundle\\_image2DSegment\\_pooler\\_factory** :
-    - `meanpool`
-    - `maxpool`
-    - `minpool`
-    - `stdpool`
-    - `medianpool`
-    - `uniquecountpool`
-    - `argmaxcountpool`
-    - `argmincountpool`
-    - `iqrpool`
+- [`bundle_image2DIntensity_pooler_factory`](@ref)
+- [`bundle_image2DBinary_pooler_factory`](@ref)
+- [`bundle_image2DSegment_pooler_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image_pooler
 
@@ -42,14 +20,74 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_pooler_factory
+
+Sliding-window pooling of intensity images: `meanpool`, `maxpool`, `minpool`,
+`stdpool`, `medianpool`, `uniquecountpool`, `argmaxcountpool`,
+`argmincountpool`, `iqrpool`.
+
+How it works, with `op(img, k, stride)` (defaults `k = 2`, `stride = 1`):
+
+1. a `k × k` window is placed at every `stride`-th position where it fits
+   entirely inside the image (no padding), and reduced to one number;
+2. this smaller grid of results is stretched back to the image's size with
+   nearest-neighbour sampling.
+
+So the output keeps the input's size, but it is a slightly rescaled version
+of the window results: with `k = 5` on 28 pixels there are 24 window
+positions per row, stretched over 28 pixels. With a larger `stride` the
+output looks blocky. `k` is clamped to `1` … the shorter side, `stride` to
+`1` … the longer side; `NaN`/`Inf` use the defaults.
+
+The three count-based poolers (`uniquecountpool`, `argmaxcountpool`,
+`argmincountpool`) are min–max rescaled to `[0, 1]` over the image.
+
+Compare `bundle_image2DIntensity_pool_factory`, which uses non-overlapping
+blocks.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_pooler_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_pooler_factory
+
+Sliding-window pooling of masks. See
+[`bundle_image2DIntensity_pooler_factory`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_pooler_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DSegment_pooler_factory
+
+Sliding-window pooling of label maps. See
+[`bundle_image2DIntensity_pooler_factory`](@ref). `meanpool` returns the most
+frequent label of each window (a mean of label numbers would invent labels);
+the other reducers work on the label numbers and are rounded to integers.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_pooler_factory = FunctionBundle(fallback)
 
+# Pooled values back to the pixel kind: masks by majority (≥ 0.5), labels rounded.
 _pooler_cast(::Type{<:BinaryPixel}, pooled) = pooled .>= 0.5
 _pooler_cast(::Type{<:IntensityPixel}, pooled) = pooled
 _pooler_cast(::Type{<:SegmentPixel}, pooled) = round.(pooled)
 
+"""
+Nearest-neighbour resize of `src` to `out_h × out_w` (centre-aligned).
+Example: 3 values stretched to 6 → each value repeated twice.
+"""
 function _resize_nearest_same_size(src::AbstractMatrix, out_h::Int, out_w::Int)
     src_h, src_w = size(src)
     out = Matrix{eltype(src)}(undef, out_h, out_w)
@@ -65,6 +103,10 @@ function _resize_nearest_same_size(src::AbstractMatrix, out_h::Int, out_w::Int)
     return out
 end
 
+"""
+Reduce every full `k × k` window at the `stride`-th positions, then stretch the
+grid of results back to the image size (see the bundle docstring).
+"""
 function _sliding_reduce_resize_same_size(
     img::AbstractMatrix,
     k::Integer,
@@ -116,9 +158,8 @@ function _make_pooler_factory(
         stride::Number,
         args::Vararg{Any}
     ) where {CONCT <: $I}
-        k_int = round(Int, k)
-        stride_int = round(Int, stride)
-        pooled = _sliding_reduce_resize_same_size(reinterpret(img.img), k_int, stride_int, $reducer)
+        k_int, stride_int = _window_and_stride(k, stride, img.img)
+        pooled = _sliding_reduce_resize_same_size(reinterpret(img.img), k_int, stride_int, $(_label_safe(reducer, PT)))
         pooled = $postprocess(pooled)
         casted = _pooler_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)))
@@ -135,9 +176,43 @@ function _make_pooler_factory(
     return f
 end
 
+"""
+Window size and stride from the evolved parameters: rounded and clamped
+(`k` to `1` … the shorter side, `stride` to `1` … the longer side); `NaN` and
+`±Inf` give the defaults `2` and `1`.
+"""
+function _window_and_stride(k::Number, stride::Number, img::AbstractMatrix)
+    kf, sf = Float64(k), Float64(stride)
+    k_int = isfinite(kf) ? round(Int, clamp(kf, 1.0, Float64(minimum(size(img))))) : 2
+    s_int = isfinite(sf) ? round(Int, clamp(sf, 1.0, Float64(maximum(size(img))))) : 1
+    return k_int, s_int
+end
+
+"Most frequent value of a window (ties: the smallest)."
+function _mode(window)
+    counts = Dict{eltype(window),Int}()
+    for v in window
+        counts[v] = get(counts, v, 0) + 1
+    end
+    best_count = maximum(values(counts))
+    return minimum(k for (k, c) in counts if c == best_count)
+end
+
+"For label maps, the mean of label numbers is replaced by the most frequent label."
+_label_safe(reducer, ::Type{<:SegmentPixel}) = reducer === mean ? _mode : reducer
+_label_safe(reducer, ::Type) = reducer
+
+# Count reducers (rescaled to [0, 1] afterwards).
+"Number of distinct values in the window."
 _unique_count(window) = length(unique(window))
+"How many pixels of the window share its maximum value."
 _argmax_count(window) = count(==(maximum(window)), window)
+"How many pixels of the window share its minimum value."
 _argmin_count(window) = count(==(minimum(window)), window)
+"Standard deviation of the window; `0` for a 1-pixel window (`k = 1`), where `std` would be `NaN`."
+_window_std(window) = length(window) > 1 ? std(window) : 0.0
+
+"Interquartile range of the window's values (75th minus 25th percentile)."
 function _iqr(window)
     vals = Float64.(vec(collect(window)))
     q1 = quantile(vals, 0.25)
@@ -187,7 +262,7 @@ The image is reduced over full `k × k` windows using the provided `stride`,
 without padding, then nearest-neighbor resized back to the original image size.
 """
 stdpool_image2D_factory(i::Type{I}) where {I<:SizedImage2D} =
-    _make_pooler_factory(i, std, :stdpool)
+    _make_pooler_factory(i, _window_std, :stdpool)
 
 """
     medianpool_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
@@ -246,7 +321,7 @@ iqrpool_image2D_factory(i::Type{I}) where {I<:SizedImage2D} =
 
 function _pooler_description(name::Symbol)::String
     if name === :meanpool
-        return "Applies sliding-window mean pooling and resizes back to the original image size."
+        return "Applies sliding-window mean pooling (labels: most frequent) and resizes back to the original image size."
     elseif name === :maxpool
         return "Applies sliding-window max pooling and resizes back to the original image size."
     elseif name === :minpool

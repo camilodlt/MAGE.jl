@@ -1,14 +1,12 @@
-""" Segmentation functions
+"""
+Segmentation: intensity image in, label map out.
 
-Exports :
+# Bundles
 
-- **bundle\\image2D\\_segmentation** :
-    - `felzenswalb`
-    - `unseeded_grow`
-    - `Watershed`
-    - `mean_shift` TODO
-    - `kmeans` TODO
+- [`bundle_image2DSegment_segmentation_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image2D_segmentation
 
@@ -17,7 +15,6 @@ using ImageMorphology
 using LRUCache
 using TimerOutputs
 using ..UTCGP: image2D_basic
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -33,6 +30,18 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DSegment_segmentation_factory
+
+Segmentation: image in, label map out. `fastscanning_image2D` groups
+neighbouring pixels of similar intensity; `watershed_image2D` splits the
+objects of a mask, cutting touching objects apart.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_segmentation_factory = FunctionBundle(fallback)
 
 # ######################## #
@@ -61,9 +70,11 @@ TODO
 function felzenswalb_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT)
+    FUNCTION_NAME = Symbol(:felzenswalb_2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     StorageType = TT.types[1] # UInt8, UInt16 ...
 
-    m1 = @eval ((img::CONCT, k::Int, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, k::Int, args::Vararg{Any}) where {CONCT<:$I}
         S = CONCT.parameters[1] # Tuple{X,Y}
         k = clamp(k, 1, k)
         segments = felzenszwalb(img, k)
@@ -72,7 +83,7 @@ function felzenswalb_image2D_factory(i::Type{I}) where {I<:SizedImage}
         return SImageND(reinterpreted, S)
     end
 
-    ManualDispatcher((m1,), :felzenswalb_2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # ################### #
@@ -97,27 +108,20 @@ end
 """
     unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
 
-Exposes Two methods
-
-    m1 = @eval ((img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT<:\$I})
-
-The threshold limits the assignment to an already growing region
-Higher thresholds results in less instances. 
-        
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:\$I})
-    
-The theshold is fixed at 0.3
-
-Returns a ManualDispatcher with name `:unseededgrow_2D`
+`unseededgrow_2D(img, th::Float64)` and `unseededgrow_2D(img)` (threshold
+`0.3`): unseeded region growing; the threshold limits how different a pixel may
+be from the region it joins, so higher thresholds give fewer regions.
 """
 function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT) # N0f8, N0f16
+    FUNCTION_NAME = Symbol(:unseededgrow_2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     StorageType = TT.types[1] # UInt8, UInt16 ...
     DefaultTH = 0.3
     # m1 (img, th::Float)
 
-    m1 = @eval ((img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT<:$I}
         S = CONCT.parameters[1] # Tuple{X,Y}
         th = isnan(th) ? $DefaultTH : th
         th = clamp(th, eps(Float64), th)
@@ -128,7 +132,7 @@ function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
         return SImageND(reinterpreted, S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         S = CONCT.parameters[1] # Tuple{X,Y}
         gimg = Gray.(img)
         segments = unseeded_region_growing(gimg, $DefaultTH)
@@ -136,33 +140,9 @@ function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
         reinterpreted = reinterpret.($TT, convert.($StorageType, seg)) # convert Int64 to the correct Normed{StorageType}
         return SImageND(reinterpreted, S)
     end
-    ManualDispatcher((m1, m2), :unseededgrow_2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
-
-# # ######################## #
-# # MeanShift Segmentation   #
-# # ######################## #
-
-# """
-#     meanshift_image2D_factory(i::Type{I}) where {I<:SizedImage}
-
-
-# """
-# function meanshift_image2D_factory(i::Type{I}) where {I<:SizedImage}
-#     TT = Base.unwrap_unionall(I).parameters[2]
-#     _validate_factory_type(TT)
-#     StorageType = TT.types[1] # UInt8, UInt16 ...
-
-#     m1 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
-#         S = CONCT.parameters[1] # Tuple{X,Y}
-#         segments = meanshift(img, 16, 8 / 255) # as per documentation
-#         seg = labels_map(segments)
-#         reinterpreted = reinterpret.($TT, convert.($StorageType, seg)) # convert Int64 to the correct Normed{StorageType}
-#         return SImageND(reinterpreted, S)
-#     end
-#     ManualDispatcher((m1,), :meanshift_2D)
-# end
 
 # ############################ #
 # Fast scanning Segmentation   #
@@ -178,7 +158,10 @@ function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Seg
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval ((img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
+    FUNCTION_NAME = Symbol(:fastscanning_image2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+
+    @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         th = isnan(th) ? 0.1 : th
         th = clamp(th, eps(Float64), 1.)
         segments = fast_scanning(reinterpret(img.img), th)
@@ -186,112 +169,78 @@ function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Seg
         reinterpreted = convert.($T, seg)
         return SImageND($PT.(reinterpreted), $S)
     end
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-        $m1(img, 0.1)
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+        $FUNCTION_NAME(img, 0.1)
     end
-    ManualDispatcher((m1, m2), :fastscanning_image2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 """
+Watershed split of the objects (`true` pixels) of a mask into labels.
 
-TODO TEST
+The depth of an object pixel is its distance to the background. Each object
+gets seeds where its depth is at least `h` times its own maximum depth, and the
+objects are flooded from the seeds, so touching objects (e.g. two round cells
+in contact) are cut along their narrowest part. Example: two disks of radius 9
+whose centres are 14 pixels apart touch through a neck of depth ≈ 5.6, i.e.
+`0.62` of their depth, so `h = 0.7` gives two labels and `h = 0.5` one.
+Background pixels and pixels outside `restrict` are `0`.
+"""
+function _watershed_split(fg::AbstractMatrix{Bool}, restrict::AbstractMatrix{Bool}, h::Float64)
+    objects = fg .& restrict
+    any(objects) || return zeros(Int, size(fg))
+    depth = distance_transform(feature_transform(.!objects))   # 0 on background
+    components = label_components(objects)
+    peak = zeros(Float64, maximum(components))
+    @inbounds for i in eachindex(components)
+        c = components[i]
+        c > 0 && (peak[c] = max(peak[c], depth[i]))
+    end
+    seeds = falses(size(fg))
+    @inbounds for i in eachindex(components)
+        c = components[i]
+        seeds[i] = c > 0 && depth[i] >= h * peak[c]
+    end
+    labels = labels_map(watershed(-depth, label_components(seeds); mask = objects))
+    return labels .* objects
+end
+
+"Seed level `h` of `watershed_image2D`: clamped to `[0, 1]`; NaN/Inf → 0.7."
+_watershed_level(th::Number) = (t = Float64(th); isfinite(t) ? clamp(t, 0.0, 1.0) : 0.7)
+
+"""
+    watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}}
+
+`watershed_image2D(mask, [restrict], [h])`: splits the objects (`true`
+pixels) of `mask` into one label each, cutting touching objects at their
+narrowest part. `h ∈ [0, 1]` (default `0.7`) is the seed level as a fraction of
+each object's maximal depth: `0` gives one label per connected object, higher
+values split more. `restrict`, a second mask, limits the result to its `true`
+pixels. Background is `0`.
 """
 function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
-    S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
-    S_ = (S1,S2)
 
-    # WATERSHED WITH TH AND MASK
-    m1 = @eval (
-        (
-            img::CONCT,
-            mask::CONCT,
-            th::Number,
-            args::Vararg{Any},
-        ) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
-        th = clamp(th, -1000, 0) 
-        dist = 1 .- distance_transform(feature_transform(reinterpret(img.img))) # black as farther away from background
-        markers = label_components(dist .< th) # blackest points are now white
-        segments = watershed(dist, markers; mask = reinterpret(mask.img)) # mask is bool matrix
-        reinterpreted = convert.($IT, labels_map(segments))
-        return SImageND($PT.(reinterpreted), $S)
+    FUNCTION_NAME = Symbol(:watershed_image2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+
+    @eval function $FUNCTION_NAME(img::CONCT, restrict::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+        labels = _watershed_split(reinterpret(img.img), reinterpret(restrict.img), _watershed_level(th))
+        return SImageND($PT.(convert.($IT, labels)), $S)
     end
 
-    # WATERSHED WITHOUT FINAL MASK
-    m2 = @eval (
-        (
-            img::CONCT,
-            th::Number,
-            args::Vararg{Any}
-        ) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
-        mask = SImageND(BinaryPixel{Bool}.(trues($S_)), $S) # ACCEPT ALL PIXELS
-        $m1(img, mask, th)
+    @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+        fg = reinterpret(img.img)
+        labels = _watershed_split(fg, trues(size(fg)), _watershed_level(th))
+        return SImageND($PT.(convert.($IT, labels)), $S)
     end
 
-    # WATERSHED WITHOUT TH NOR MASK
-    m3 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
-        $m2(img, -15) # default value
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+        $FUNCTION_NAME(img, 0.7)
     end
 
-    # @timeit_debug to "Cr LRU watershed" lru = LRU{WS_ARGS,I}(maxsize = 100_000)
-    # m1 = @eval (
-    #     (
-    #         img::CONCT,
-    #         th_background_foreground::Float64,
-    #         th_distance::Float64,
-    #         args::Vararg{Any},
-    #     ) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}) -> begin
-    # ) -> begin
-    #     global to
-    #     @timeit_debug to "Watershed. info" begin
-    #         @debug cache_info($lru)
-    #         # Base.summarysize($lru) / 1e+9
-    #         # @debug "Watershed LRU size in GB : $s"
-    #     end
-
-    #     # Example with cellpose img
-    #     t = @elapsed @timeit_debug to "Watershed. LRU get!" res =
-    #         get!($lru, (th_background_foreground, th_distance, img, args)) do
-    #             @timeit_debug to "Watershed. All" begin # println("WATERSHED")
-    #                 array_size = (S.parameters[1], S.parameters[2])
-    #                 background_as_feature = BitArray(undef, array_size)
-    #                 foreground_as_feature = BitArray(undef, array_size)
-    #                 dt = zeros(Float64, array_size)
-    #                 markers = zeros(Int, array_size)
-
-    #                 @timeit_debug to "Watershed. Clamp th_background_foreground" th_background_foreground_ =
-    #                     clamp(th_background_foreground, 0.0, 1.0)
-
-    #                 # Find the markers
-    #                 ## Normally background is darker than cells.
-    #                 @timeit_debug to "Watershed. Bg to white" background_as_feature .=
-    #                     Gray.(img) .< th_background_foreground_ # Background becomes white instances
-    #                 @timeit_debug to "Watershed. Fg to white" foreground_as_feature .=
-    #                     1 .- background_as_feature # cells are white, bg black
-
-    #                 @timeit_debug to "Watershed. DT" dt .= distance_transform(
-    #                     feature_transform(background_as_feature),
-    #                 ) # white is farther (higher cost) to bg (true instances) => cells are mountains
-    #                 inv_dt = dt # reuse the same float array
-    #                 @timeit_debug to "Watershed. Inv DT" inv_dt .= 1 .- dt # now black is farther to bg => cells are valleys
-    #                 @timeit_debug to "Watershed. Markers" markers .=
-    #                     label_components(inv_dt .< th_distance) # get the white markers (hopefully the center of the inv_dt valleys)
-
-    #                 # Watershed 
-    #                 @timeit_debug to "Watershed. Watershed" segments =
-    #                     watershed(inv_dt, markers) # flods the valleys from the markers
-    #                 flooded = markers
-    #                 @timeit_debug to "Watershed. Mask the watershed" flooded .=
-    #                     labels_map(segments) .* foreground_as_feature # masks to get only the segmented cells
-    #                 @timeit_debug to "Watershed. Reinterpret" reinterpreted =
-    #                     reinterpret.($TT, convert.($StorageType, flooded)) # convert Int64 to the correct Normed{StorageType}
-    #                 return SImageND(reinterpreted, S)
-    #             end
-    #         end
-    #     return res
-    # end
-    ManualDispatcher((m1,m2, m3), :watershed_image2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Factory Methods
@@ -320,7 +269,7 @@ append_method!(
     watershed_image2D_factory,
     :watershed_image2D,
     ;
-    description = "Segments the image using watershed transform over intensity topology.",
+    description = "(mask, [restrict], [h]): one label per object of the mask, touching objects cut at their narrowest part; h in [0, 1] (default 0.7), higher splits more, 0 keeps connected objects whole.",
 )
 
 end

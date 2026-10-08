@@ -155,17 +155,49 @@ function recursive_decode_node!(
     )
     fn_name = fn.name
     arg_types = tuple([op.type for op in inputs]...)
+    arg_tuple_type = Tuple{([op.type for op in inputs]...)}
 
     # check will function will be called
     local m = nothing
     try
-        m = which(fn.fn, arg_types)
-    catch
-        @info "No method for fn $fn_name with types : $arg_types"
-        # anonymous struct
-        m = (nargs = 2,) # so that the graph is cut there
-        # n_inputs will be 0
-        #throw(MethodError(fn, arg_types))
+        m = which(fn.fn, arg_tuple_type)
+    catch err
+        declared_input_types = if hasfield(typeof(fn.fn), :input_types)
+            try
+                getfield(fn.fn, :input_types)
+            catch
+                nothing
+            end
+        else
+            nothing
+        end
+        declared_argument_names = if hasfield(typeof(fn.fn), :argument_names)
+            try
+                getfield(fn.fn, :argument_names)
+            catch
+                nothing
+            end
+        else
+            nothing
+        end
+        hasmethod_on_arg_types = try
+            Base.hasmethod(fn.fn, arg_tuple_type)
+        catch method_err
+            "ERROR: " * sprint(showerror, method_err)
+        end
+        available_methods = try
+            sprint(show, methods(fn.fn))
+        catch methods_err
+            "ERROR: " * sprint(showerror, methods_err)
+        end
+        @warn "Decode fallback: no matching method for node function" fn_name =
+            fn_name node_id = getfield(calling_node, :id) node_y_position =
+            getfield(calling_node, :y_position) arg_types = arg_types real_input_types =
+            [op.type for op in inputs] declared_argument_names =
+            declared_argument_names declared_input_types = declared_input_types hasmethod_on_arg_types =
+            hasmethod_on_arg_types error = sprint(showerror, err) available_methods =
+            available_methods
+        throw(err)
     end
 
     n_used_inputs = m.nargs - 2 # - the fn - the varargs

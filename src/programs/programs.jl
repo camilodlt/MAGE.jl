@@ -183,6 +183,25 @@ end
 
 abstract type AbstractProgram end
 abstract type AbstractDecodedProgram <: AbstractProgram end
+"""
+    Program(ops::Vector{<:AbstractOperation}, ins::SharedInput)
+    Program(ins::SharedInput)
+
+One decoded output: the ordered list of [`Operation`](@ref)s to run, plus the
+inputs they read from.
+
+A `Program` is what a chromosome *becomes* once its output node has been
+followed back through the graph — only the active nodes appear, in evaluation
+order. Supports `length`, `size`, indexing and iteration over its operations.
+
+The `SharedInput` is stored as a `similar` copy pointing at the original input
+nodes, so several programs can be evaluated against the same inputs without
+interfering; [`replace_shared_inputs!`](@ref) swaps in a new sample.
+
+Produced by [`default_decoding_callback`](@ref); one per output node, grouped
+into an `IndividualPrograms`. See [`compile_program`](@ref) for the faster,
+call-based [`SequentialProgram`](@ref) view of the same thing.
+"""
 mutable struct Program <: AbstractDecodedProgram
     program::Vector{<:AbstractOperation}
     program_inputs::SharedInput

@@ -53,7 +53,7 @@ SEGMENT = SegmentPixel{Int}
             fn(img_intensity_bad1)
             true
         end
-        @test_throws ErrorException begin # diff size is rejected by ManualDispatcher
+        @test_throws MethodError begin # a different size has no method
             fn(img_intensity_bad2)
         end
     end
@@ -87,47 +87,46 @@ end
 @testset "Image2D Segmentation: watershed(img, mask, p)" begin
     Bundle = bundle_image2DSegment_segmentation_factory
     coins = load(joinpath(@__DIR__, "../../../assets/water_coins.jpg"))
-    coins_binary = Gray.(coins) .> 0.5 #coins black
-    img = SImageND(BinaryPixel{Bool}.(coins_binary))
-    s = size(coins_binary)
+    coins_mask = Gray.(coins) .< 0.5 # coins are the objects (true)
+    img = SImageND(BinaryPixel{Bool}.(coins_mask))
+    s = size(coins_mask)
 
     img_intensity_bad1 = generate_filter_test_image(INTENSITY, s) # bad type
     img_binary_bad1 = generate_filter_test_image(BINARY, (50, 50)) # bad size
-    img_binary = generate_filter_test_image(BINARY, s)
-    img_segment = generate_filter_test_image(SEGMENT,s)
-    fac = Bundle[:watershed_image2D]
-    fn = fac.fn(typeof(img_segment))
+    img_segment = generate_filter_test_image(SEGMENT, s)
+    fn = Bundle[:watershed_image2D].fn(typeof(img_segment))
 
-    @testset for p in [-30, -15, 0, 0.0, 0.5, 0.9, 2.]
+    @testset for p in [-30, -15, 0, 0.0, 0.5, 0.9, 2.0, NaN]
         res = fn(img, p)
         @test eltype(res) == SEGMENT
         @test size(res) == size(img)
-        @test typeof(res) <: SImageND
-        @test res != img
-
-        @test_throws ErrorException begin
-            fn(img_intensity_bad1,p)
-            true
-        end
-        @test_throws ErrorException begin
-            fn(img_binary_bad1,p)
-        end
+        labels = Int.(reinterpret(res.img))
+        @test all(iszero, labels[.!coins_mask])           # background stays 0
+        @test all(>(0), labels[coins_mask])               # every object pixel is labelled
+        @test_throws MethodError fn(img_intensity_bad1, p)
+        @test_throws MethodError fn(img_binary_bad1, p)
     end
 
-    mask_all = SImageND(BinaryPixel{Bool}.(trues(s)))    
-    mask_none = SImageND(BinaryPixel{Bool}.(falses(s)))    
+    count_labels(res) = length(setdiff(unique(Int.(reinterpret(res.img))), 0))
+    # The coins touch each other: one connected blob, split into the 24 coins.
+    @test count_labels(fn(img, 0.0)) == 1
+    @test count_labels(fn(img, 0.7)) == 24
+    @test fn(img) == fn(img, 0.7)
 
-    res = fn(img, mask_none, -15)
-    @test length(unique(res)) > 1 # returns the markers
+    mask_all = SImageND(BinaryPixel{Bool}.(trues(s)))
+    mask_none = SImageND(BinaryPixel{Bool}.(falses(s)))
+    @test fn(img, mask_all, 0.7) == fn(img, 0.7)          # restrict to everything = no restriction
+    @test count_labels(fn(img, mask_none, 0.7)) == 0
+    left = SImageND(BinaryPixel{Bool}.([c <= s[2] ÷ 2 for r in 1:s[1], c in 1:s[2]]))
+    cropped = Int.(reinterpret(fn(img, left, 0.7).img))
+    @test all(iszero, cropped[:, s[2]÷2+1:end])
 
-    res = fn(img, mask_all, -15)
-    @test res == fn(img, -15) # default mask is all 
-
-    @test fn(img) == fn(img, -15) == fn(img, mask_all, -15)
-
-    mask = Gray.(coins) .< 0.5 #coins white
-    mask = SImageND(BinaryPixel{Bool}.(mask ))
-    res_cropped = fn(img, mask, -15)
-    @test res_cropped != res
-    @test length(unique(res_cropped)) == 25
+    # Two touching disks are cut at their neck (depth ratio ≈ 0.62).
+    disks = [((r - 20)^2 + (c - 14)^2 <= 81) || ((r - 20)^2 + (c - 28)^2 <= 81) for r in 1:40, c in 1:44]
+    D = SImageND(BinaryPixel{Bool}.(disks))
+    fd = Bundle[:watershed_image2D].fn(typeof(SImageND(SegmentPixel{Int}.(zeros(Int, 40, 44)))))
+    out = Int.(reinterpret(fd(D, 0.7).img))
+    @test out[20, 12] != out[20, 30] && out[20, 12] > 0 && out[20, 30] > 0
+    @test count_labels(fd(D, 0.5)) == 1
 end
+

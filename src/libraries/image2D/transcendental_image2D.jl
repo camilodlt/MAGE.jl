@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 
-""" Image transcendental ops 
-
-Exports :
-
-- **bundle\\_image2D\\_arithmetic** :
-    - exp\\_image2D\\_factory 
-    - log\\_image2D\\_factory 
-    - powerof\\_image2D\\_factory 
 """
+Pixel-wise transcendental transforms of an intensity image.
 
+# Bundles
+
+- [`bundle_image2DIntensity_transcendental_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_transcendental
 
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -32,6 +31,17 @@ using ..UTCGP:
 cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DIntensity_transcendental_factory
+
+Pixel-wise transcendental transforms of an intensity image: `exp_image2D`,
+`log_image2D`, `loginv_image2D`, `powerof_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_transcendental_factory = FunctionBundle(fallback)
 
 # ################### #
@@ -140,19 +150,19 @@ append_method!(
     bundle_image2DIntensity_transcendental_factory,
     exp_image2D_factory,
     :exp_image2D;
-    description = "Applies exponential transform to each pixel.",
+    description = "Applies exp to each pixel, then rescales to [0, 1].",
 )
 append_method!(
     bundle_image2DIntensity_transcendental_factory,
     loginv_image2D_factory,
     :loginv_image2D;
-    description = "Applies logarithm to inverse-intensity transformed pixels.",
+    description = "Computes -log(v) per pixel, clamped to [0, 1]: dark pixels (v <= 1/e) become 1, v = 1 becomes 0.",
 )
 append_method!(
     bundle_image2DIntensity_transcendental_factory,
     log_image2D_factory,
     :log_image2D;
-    description = "Applies logarithm transform to each pixel with safe clipping.",
+    description = "Applies log to each pixel's raw stored value (zeros treated as the smallest), then rescales to [0, 1].",
 )
 append_method!(
     bundle_image2DIntensity_transcendental_factory,

@@ -13,7 +13,6 @@ Exports :
 
 module experimental_image2D_mask
 
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -31,7 +30,6 @@ fallback(args...) = return nothing
 experimental_bundle_image2D_mask_factory = FunctionBundle(fallback)
 experimental_bundle_image2D_maskregion_factory = FunctionBundle(fallback)
 experimental_bundle_image2D_maskregion_relative_factory = FunctionBundle(fallback)
-println(experimental_bundle_image2D_maskregion_relative_factory)
 
 # ################### #
 # MASK                #
@@ -44,9 +42,9 @@ println(experimental_bundle_image2D_maskregion_relative_factory)
 function maskgt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    m1 = @eval (
-        (img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
-    ) -> begin
+    FUNCTION_NAME = Symbol(:maskgt_image2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
         m = float(mask.img) .> t_f # boolean mask
@@ -54,21 +52,21 @@ function maskgt_image2D_factory(i::Type{I}) where {I<:SizedImage}
         return SImageND($TT.(img_r))
     end
 
-    m2 = @eval ((img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         t_f = 0.5
         m = float(mask.img) .> t_f # boolean mask
         img_r = img.img .* m
         return SImageND($TT.(img_r))
     end
-    ManualDispatcher((m1, m2), :maskgt_image2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 function maskeqt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    m1 = @eval (
-        (img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
-    ) -> begin
+    FUNCTION_NAME = Symbol(:maskeqt_image2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
         m = float(mask.img) .== t_f # boolean mask
@@ -76,21 +74,21 @@ function maskeqt_image2D_factory(i::Type{I}) where {I<:SizedImage}
         return SImageND($TT.(img_r))
     end
 
-    m2 = @eval ((img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         t_f = 0.5
         m = float(mask.img) .== t_f # boolean mask
         img_r = img.img .* m
         return SImageND($TT.(img_r))
     end
-    ManualDispatcher((m1, m2), :maskeqt_image2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 function masklt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    m1 = @eval (
-        (img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
-    ) -> begin
+    FUNCTION_NAME = Symbol(:masklt_image2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
         m = float(mask.img) .< t_f # boolean mask
@@ -98,13 +96,13 @@ function masklt_image2D_factory(i::Type{I}) where {I<:SizedImage}
         return SImageND($TT.(img_r))
     end
 
-    m2 = @eval ((img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         t_f = 0.5
         m = float(mask.img) .< t_f # boolean mask
         img_r = img.img .* m
         return SImageND($TT.(img_r))
     end
-    ManualDispatcher((m1, m2), :masklt_image2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 #####################

@@ -1,29 +1,15 @@
 # -*- coding: utf-8 -*-
 
-""" `Is` conditions: Return 1 or 0 for every element
+"""
+Comparisons returning `1` or `0` for every element -- the masks the subsetting
+operators consume.
 
-Exports :
+# Bundles
 
-- **bundle\\_listinteger\\_iscond** :
-    - `is_sup_0`
-    - `is_eq_0`
-    - `is_less_0`
-    - `is_eq_to`
-    - `compare_tuple_a_gr_b`
-    - `compare_tuple_a_eq_b`
-    - `compare_tuple_a_less_b`
-    - `is_more_than_right`
-    - `is_more_eq_than_right`
-    - `is_eq_to_prev`
-    - `even_indices_mask`
-    - `odd_indices_mask`
-    - `mask`
-    - `inverse_mask`
-    - `greater_than_broadcast`
-    - `less_than_broadcast`
-    - `eq_broadcast`
-    - `compare_two_vectors`
+- [`bundle_listinteger_iscond`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listinteger_iscond
 
@@ -36,6 +22,19 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = return Int[]
 
+"""
+    bundle_listinteger_iscond
+
+Comparisons producing integer masks (`1`/`0`), the raw material for
+mask-based subsetting.
+
+Against zero: `is_sup_0`, `is_eq_0`, `is_less_0`. Against a value: `is_eq_to`,
+`greater_than_broadcast`, `less_than_broadcast`, `eq_broadcast`. Between
+neighbours or lists: `is_more_than_right`, `is_more_eq_than_right`,
+`is_eq_to_prev`, `compare_two_vectors`. Over pairs: `compare_tuple_a_gr_b`,
+`compare_tuple_a_eq_b`, `compare_tuple_a_less_b`. Positional and mask algebra:
+`even_indices_mask`, `odd_indices_mask`, `mask`, `inverse_mask`.
+"""
 bundle_listinteger_iscond = FunctionBundle(fallback)
 
 # FUNCTIONS ---

@@ -1,11 +1,25 @@
 """
-Specifies chromosomes/nodes properties
+    nodeConfig(n_nodes::Int, connection_temperature::Int, arity::Int, offset_by::Int)
 
+Shape of every chromosome in the genome.
 
-    n_nodes::Int(
-        connection_temperature::Int
-        arity::Int
-        offset_by::Int)
+# Arguments
+- `n_nodes`: number of evolvable nodes per chromosome. This is the search
+  budget for graph size: more nodes means more dormant material a mutation can
+  reactivate, at the cost of a larger genome.
+- `connection_temperature`: bias applied when sampling a connexion; `1` samples
+  uniformly among the reachable nodes. Must be `>= 1`.
+- `arity`: number of `(CONNEXION, TYPE)` pairs per node, i.e. the largest number
+  of arguments a node can feed its function. A function needing fewer simply
+  ignores the extra ones.
+- `offset_by`: number of inputs sitting in front of each chromosome. Must equal
+  the number of input types in the [`modelArchitecture`](@ref).
+
+```julia
+node_config = nodeConfig(40, 1, 2, n_inputs)  # 40 nodes, binary, n_inputs inputs
+```
+
+Every chromosome of a genome shares one `nodeConfig`.
 """
 struct nodeConfig
     n_nodes::Int
@@ -26,23 +40,55 @@ struct nodeConfig
 end
 
 """
-Specifies the model types for :
-- inputs
-- program
-- outputs
+    modelArchitecture(inputs_types, inputs_types_idx, chromosomes_types,
+                      outputs_types, outputs_types_idx)
 
-Outputs types should be a subset of program (chromosome) types.
+The types a model is built from: what goes in, what the program may compute,
+and what comes out.
 
-In principle, input types could be different than program/outputs types although that 
-case is rare
+# Arguments
+- `chromosomes_types`: one entry per chromosome, in order. This is the list of
+  types the evolved program is allowed to produce; chromosome `i` only ever
+  holds values of `chromosomes_types[i]`.
+- `inputs_types`: type of each input node, in order.
+- `inputs_types_idx`: for each input, the index into `chromosomes_types` it is
+  seen as. This is what lets a typed connexion reach an input.
+- `outputs_types`: type of each program output.
+- `outputs_types_idx`: for each output, the index of the chromosome it reads
+  from.
 
+Output types should be a subset of the chromosome types. Input types could in
+principle differ from the chromosome types, although that case is rare.
 
-    modelArchitecture(
-        inputs_types::Vector
-        inputs_types_idx::Vector{Int}
-        chromosomes_types::Vector{<:DataType}
-        outputs_types::Vector
-        outputs_types_idx::Vector{Int})
+# Examples
+
+Symbolic regression — one type, `n` float inputs, one float output:
+
+```julia
+modelArchitecture(
+    [Float64 for _ in 1:n], [1 for _ in 1:n],   # inputs, all seen as chromosome 1
+    [Float64],                                  # one chromosome
+    [Float64], [1],                             # one output, read from chromosome 1
+)
+```
+
+A multimodal model — an image input, three chromosomes, a float output:
+
+```julia
+modelArchitecture(
+    [ImageType], [1],                           # the input is an image (chromosome 1)
+    [ImageType, Float64, Int],                  # image / float / integer chromosomes
+    [Float64], [2],                             # the output is the float chromosome
+)
+```
+
+The second case is what makes MAGE multimodal: a node in the float chromosome
+can read from the image chromosome, so a blur can feed a mean which can feed
+back into an image operator as a parameter.
+
+The number of chromosomes must match the number of libraries in the
+[`MetaLibrary`](@ref), and the number of inputs must match
+`nodeConfig.offset_by`.
 """
 struct modelArchitecture
     inputs_types::Vector{<:T} where {T <: Type}
@@ -57,20 +103,57 @@ end
 # ################# RUN CONF ################### #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+"""
+    AbstractRunConf
+
+Supertype of the run configurations, one per search strategy:
+[`runConf`](@ref) (`1 + λ`), [`RunConfGA`](@ref) (genetic algorithm),
+[`RunConfCrossOverGA`](@ref) (GA with crossover), `RunConfNSGA2`,
+`RunConfME` (MAP-Elites) and `RunConfSTN`.
+
+The fitter a configuration belongs to is fixed by its type: [`fit`](@ref) takes
+a `runConf`, [`fit_ga`](@ref) a `RunConfGA`, and so on. Optional features are
+discovered through traits — see [`runconf_trait`](@ref) and
+[`runconf_trait_evolutationary_strategy`](@ref).
+"""
 abstract type AbstractRunConf end
 abstract type AbstractRunConfTrait end
 struct MissingRunConfTrait <: UTCGP.AbstractRunConfTrait end
 
 # Default trait: if no specialization is provided for a type T, we return a MissingRunConfTrait.
+"""
+    runconf_trait(::Type{T})
+
+Trait hook letting a run configuration advertise an optional capability.
+
+The fallback returns `MissingRunConfTrait()`, meaning "this configuration does
+not opt in". Specialising it is how, for instance,
+[`RunConfCrossOverGA`](@ref) declares its crossover arguments — see
+[`runconf_trait_crossover`](@ref).
+"""
 runconf_trait(::Type{T}) where {T} = MissingRunConfTrait()
 
 """
-    runConf(lambda_::Int
-        generations::Int
-        mutation_rate::Float64
-        output_mutation_rate::Float64)
+    runConf(lambda_::Int, generations::Int, mutation_rate::Float64,
+            output_mutation_rate::Float64)
 
-Specifies the experiment properties.
+Run configuration for the `1 + λ` strategy driven by [`fit`](@ref).
+
+- `lambda_`: number of offspring generated from the single parent each
+  generation.
+- `generations`: number of generations to run.
+- `mutation_rate`: how much of an individual to mutate. Read as a per-allele
+  probability by [`standard_mutate!`](@ref), and as a *number* of alleles
+  (`ceil(mutation_rate)` and friends) by the numbered mutations — which is why
+  values above `1.0`, such as `1.1`, are common here.
+- `output_mutation_rate`: probability that each output node is redirected.
+
+```julia
+run_conf = runConf(10, 100, 1.1, 0.1)   # 1 + 10, 100 generations
+```
+
+For a real population with tournament selection, use [`RunConfGA`](@ref) with
+[`fit_ga`](@ref).
 """
 struct runConf <: AbstractRunConf
     lambda_::Int
@@ -102,8 +185,24 @@ end
         output_mutation_rate::Float64,
         generations::Int
         )
-    
-Specifies the experiment properties for GA.
+
+Run configuration for the generational genetic algorithm driven by
+[`fit_ga`](@ref).
+
+The population holds `n_elite + n_new` individuals. Each generation keeps the
+`n_elite` best and refills the remaining `n_new` slots by tournaments of
+`tournament_size` among them; only the non-elite slots are then mutated.
+
+- `mutation_rate`: passed to the mutation callback, as in [`runConf`](@ref).
+- `output_mutation_rate`: probability of redirecting each output node.
+- `generations`: number of generations to run.
+
+```julia
+run_conf = RunConfGA(5, 15, 3, 1.1, 0.1, 200)   # 20 individuals, 5 elites
+```
+
+Constructing one logs the resulting population layout, and asserts that
+`n_elite >= 1`, `n_new >= 1`, `tournament_size >= 1` and `generations >= 1`.
 """
 struct RunConfGA <: AbstractRunConf
     n_elite::Int
@@ -193,7 +292,14 @@ end
 abstract type AbstractGAArgs end
 
 """
-RunConfs have to adapt to this GA api
+    GAWithTournamentArgs(n_elite, n_new, tournament_size)
+
+The tournament-GA parameters a run configuration exposes through
+[`runconf_trait_evolutationary_strategy`](@ref).
+
+Run configurations have to adapt to this GA api: a configuration that returns
+one of these can be driven by the generic GA machinery whatever else it
+carries.
 """
 struct GAWithTournamentArgs <: AbstractGAArgs
     n_elite::Int64
@@ -202,6 +308,16 @@ struct GAWithTournamentArgs <: AbstractGAArgs
 end
 struct MissingGAArgs <: AbstractGAArgs end
 
+"""
+    runconf_trait_evolutationary_strategy(conf::AbstractRunConf)
+
+Return the evolutionary-strategy parameters of `conf`, as a
+[`GAWithTournamentArgs`](@ref), or `MissingGAArgs` when the configuration does
+not describe a tournament GA.
+
+This is what lets generic code ask "how many elites, how many new, what
+tournament size?" without knowing the concrete configuration type.
+"""
 runconf_trait_evolutationary_strategy(conf::AbstractRunConf) = MissingGAArgs
 runconf_trait_evolutationary_strategy(conf::UTCGP.RunConfCrossOverGA) =
     GAWithTournamentArgs(conf.n_elite, conf.n_new, conf.tournament_size)
@@ -273,6 +389,23 @@ struct RunConfME <: AbstractRunConf
     end
 end
 
+"""
+    RunConfSTN(
+        sample_size::Int,
+        behavior_col::String,
+        serialization_col::String,
+        mutation_rate::Float64,
+        output_mutation_rate::Float64,
+        generations::Int
+        )
+
+Specifies the experiment properties for a search-network traced run.
+
+`behavior_col` and `serialization_col` name the database columns the
+[search network](@ref "Search Networks") writer uses for an individual's
+behaviour and its serialised genome; `sample_size` is how many samples the
+behaviour is measured on.
+"""
 struct RunConfSTN <: AbstractRunConf
     sample_size::Int
     behavior_col::String

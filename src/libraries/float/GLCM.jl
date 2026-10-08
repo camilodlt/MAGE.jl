@@ -1,20 +1,14 @@
-""" Gray level co occurence matrix
+"""
+Grey-level co-occurrence matrix (GLCM) texture features.
 
-https://juliaimages.org/ImageFeatures.jl/stable/tutorials/glcm/#GLCM-Properties
+See the [ImageFeatures.jl GLCM tutorial](https://juliaimages.org/ImageFeatures.jl/stable/tutorials/glcm/#GLCM-Properties).
 
-Exports :
+# Bundles
 
-- **experimental_bundle\\_float\\_glcm** :
-    - `glcm_mean`
-    - `glcm_variance`
-    - `glcm_correlation`
-    - `glcm_contrast`
-    - `glcm_idm`
-    - `glcm_asm`
-    - `glcm_entropy`
-    - `glcm_maxprob`
-    - `glcm_energy`
-    - `glcm_dissimilarity`
+- [`experimental_bundle_float_glcm_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module experimental_GLCM
 
@@ -39,6 +33,23 @@ using DispatchDoctor
 # ################### #
 InputType = SImage2D{S1, S2, <:Union{IntensityPixel{T1}, SegmentPixel{T2}}} where {S1, S2, T1, T2} # 2D img
 fallback(args...) = return -1.0
+"""
+    experimental_bundle_float_glcm_factory
+
+Experimental grey-level co-occurrence matrix (GLCM) texture features.
+
+Ten Haralick-style statistics — GLCM mean and variance, correlation, contrast,
+inverse difference moment, angular second moment, entropy, maximum probability,
+energy and dissimilarity — each aggregated over the co-occurrence directions
+five ways (`mean`, `sum`, `std`, `minimum`, `maximum`).
+
+Experimental: the API may change.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 experimental_bundle_float_glcm_factory = FunctionBundle(fallback)
 
 # Utils

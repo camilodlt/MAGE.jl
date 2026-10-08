@@ -1,10 +1,12 @@
-""" Basic Int functions
+"""
+Basic `Float64` operators.
 
-Exports :
+# Bundles
 
-- **bundle\\_float\\_basic** :
-    - `identity_float`
+- [`bundle_float_basic`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module float_basic
 
@@ -17,6 +19,12 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0
 
+"""
+    bundle_float_basic
+
+Float basics: `identity_float`, the constant `ret_1`, and the activations `tanh`
+and `relu`.
+"""
 bundle_float_basic = FunctionBundle(fallback)
 
 # FUNCTIONS ---

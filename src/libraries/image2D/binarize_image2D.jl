@@ -1,32 +1,20 @@
 # -*- coding: utf-8 -*-
 
-""" Binarization functions
-
-Exports :
-
-- **bundle\\image2D\\_basic** :
-    - `binarize\\_adaptive2D`
-    - `binarize\\_niblack2D`
-    - `binarize\\_polysegment2D`
-    - `binarize\\_sauvola2D`
-    - `binarize\\_otsu2D`
-    - `binarize\\_minimumintermodes2D`
-    - `binarize\\_intermodes2D`
-    - `binarize\\_minimumerror2D`
-    - `binarize\\_moments2D`
-    - `binarize\\_unimodalrosin2D`
-    - `binarize\\_entropy2D`
-    - `binarize\\_balanced2D`
-    - `binarize\\_yen2D`
-    - `binarize\\_manual2D`
 """
+Thresholding: intensity image in, mask out.
 
+# Bundles
+
+- [`bundle_image2DBinary_binarize_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_binarize
 
 using ImageBinarization
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -44,7 +32,39 @@ using Statistics: mean
 using Logging
 
 cast = image2D_morph.cast
+
+"`x` clamped to `[lo, hi]` as a Float64; `NaN` and `±Inf` give `default`."
+_finite_clamp(x::Real, lo::Float64, hi::Float64, default::Float64) =
+    (v = Float64(x); isfinite(v) ? clamp(v, lo, hi) : default)
 fallback(args...) = return nothing
+
+"""
+Empty mask for a constant image (no threshold can separate anything), as the
+histogram methods return. Used where the method itself would throw on a
+single-valued histogram (`Moments`, `Polysegment`).
+"""
+_empty_if_constant(img) = (v = reinterpret(img); all(==(first(v)), v)) ? falses(size(v)) : nothing
+
+"""
+    bundle_image2DBinary_binarize_factory
+
+Thresholding: intensity image in, mask out.
+
+Global methods `binarize_otsu2D`, `binarize_entropy2D`, `binarize_yen2D`,
+`binarize_moments2D`, `binarize_minimumerror2D`, `binarize_intermodes2D`,
+`binarize_minimumintermodes2D`, `binarize_unimodalrosin2D`,
+`binarize_balanced2D`, `binarize_polysegment2D` and the explicit
+`binarize_manual2D`; local methods `binarize_adaptive2D`, `binarize_niblack2D`
+and `binarize_sauvola2D`.
+
+This is the bundle that lets an intensity chromosome produce material for the
+binary one.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_binarize_factory = FunctionBundle(fallback)
 
 # ################### #
@@ -75,11 +95,14 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
+    FUNCTION_NAME = Symbol(:binarize_adaptive2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
-        p = round(Int, p_n)
+    @eval function $FUNCTION_NAME(img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
+        p = round(Int, _finite_clamp(p_n, 0.0, 100.0, 15.0))     # NaN/Inf → 15 (%)
         max_w::Int = $SMALLER_AXIS
         p = clamp(p, 0, 100) # percentage diff of pixel t for calling it background
         w = clamp(w, 5, max_w)
@@ -89,8 +112,8 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
+    @eval function $FUNCTION_NAME(img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         f = AdaptiveThreshold(window_size = w)
@@ -99,7 +122,7 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m3 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         img_ = reinterpret(img.img)
         f = AdaptiveThreshold(img_) # adaptive window size and percentage
         res = binarize(img_, f)
@@ -107,7 +130,7 @@ function binarizeAdaptive_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2, m3), :binarize_adaptive2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Niblack
@@ -116,11 +139,14 @@ function binarizeNiblack_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
+    FUNCTION_NAME = Symbol(:binarize_niblack2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
-        p = convert(Float64, p_n)
+    @eval function $FUNCTION_NAME(img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
+        p = _finite_clamp(p_n, -1.0, 1.0, 0.2)                   # bias; NaN/Inf → 0.2
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         p = clamp(p, -1, +1) 
@@ -130,8 +156,8 @@ function binarizeNiblack_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
+    @eval function $FUNCTION_NAME(img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         f = Niblack(;window_size = w)
@@ -140,14 +166,14 @@ function binarizeNiblack_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m3 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = Niblack()
         res = binarize(reinterpret(img.img), f)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2, m3), :binarize_niblack2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Polysegment
@@ -158,6 +184,8 @@ function binarizePolysegment_image2D_factory(i::Type{I}) where {I<:SizedImage{SI
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+        empty = _empty_if_constant(img.img)
+        empty === nothing || return SImageND($PT.(cast($IT, empty)), $S)
         f = Polysegment()
         res = binarize(float(img.img), f)
         clamp01nan!(res)
@@ -171,11 +199,13 @@ function binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_sauvola2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
-        p = convert(Float64, p_n)
+    @eval function $FUNCTION_NAME(img::CONCT, w_n::Number, p_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
+        p = _finite_clamp(p_n, -1.0, 1.0, 0.2)                   # bias; NaN/Inf → 0.2
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         p = clamp(p, -1, +1) 
@@ -185,8 +215,8 @@ function binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        w = round(Int, w_n)
+    @eval function $FUNCTION_NAME(img::CONCT, w_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        w = round(Int, _finite_clamp(w_n, 0.0, 1.0e6, 15.0))      # NaN/Inf → 15; clamped to [5, side] below
         max_w::Int = $SMALLER_AXIS
         w = clamp(w, 5, max_w)
         f = Sauvola(;window_size = w)
@@ -195,14 +225,14 @@ function binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m3 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = Sauvola()
         res = binarize(reinterpret(img.img), f)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2, m3), :binarize_sauvola2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 
@@ -212,10 +242,12 @@ function binarizeOtsu_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:B
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_otsu2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Otsu()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -223,14 +255,14 @@ function binarizeOtsu_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:B
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = Otsu()
         res = binarize(reinterpret(img.img), f; nbins = 256)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_otsu2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # MinimumIntermodes
@@ -238,10 +270,12 @@ function binarizeMinimumintermodes_image2D_factory(i::Type{I}) where {I<:SizedIm
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_minimumintermodes2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = MinimumIntermodes()
         res = with_logger(NullLogger()) do 
@@ -251,7 +285,7 @@ function binarizeMinimumintermodes_image2D_factory(i::Type{I}) where {I<:SizedIm
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = MinimumIntermodes()
         res = with_logger(NullLogger()) do 
             binarize(reinterpret(img.img), f; nbins = 256)
@@ -260,7 +294,7 @@ function binarizeMinimumintermodes_image2D_factory(i::Type{I}) where {I<:SizedIm
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_minimumintermodes2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Intermodes
@@ -268,10 +302,12 @@ function binarizeIntermodes_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZ
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_intermodes2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Intermodes()
         res = with_logger(NullLogger()) do 
@@ -281,7 +317,7 @@ function binarizeIntermodes_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZ
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = Intermodes()
         res = with_logger(NullLogger()) do 
             binarize(reinterpret(img.img), f; nbins = 256)
@@ -290,7 +326,7 @@ function binarizeIntermodes_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZ
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_intermodes2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # MinimumError
@@ -298,10 +334,12 @@ function binarizeMinimumError_image2D_factory(i::Type{I}) where {I<:SizedImage{S
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_minimumerror2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = MinimumError()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -309,14 +347,14 @@ function binarizeMinimumError_image2D_factory(i::Type{I}) where {I<:SizedImage{S
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = MinimumError()
         res = binarize(reinterpret(img.img), f; nbins = 256)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_minimumerror2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Moments
@@ -324,25 +362,31 @@ function binarizeMoments_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_moments2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
+        empty = _empty_if_constant(img.img)
+        empty === nothing || return SImageND($PT.(cast($IT, empty)), $S)
         f = Moments()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        empty = _empty_if_constant(img.img)
+        empty === nothing || return SImageND($PT.(cast($IT, empty)), $S)
         f = Moments()
         res = binarize(reinterpret(img.img), f; nbins = 256)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_moments2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
  
 # UnimodalRosin
@@ -350,10 +394,12 @@ function binarizeUnimodalRosin_image2D_factory(i::Type{I}) where {I<:SizedImage{
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_unimodalrosin2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = UnimodalRosin()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -361,14 +407,14 @@ function binarizeUnimodalRosin_image2D_factory(i::Type{I}) where {I<:SizedImage{
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = UnimodalRosin()
         res = binarize(reinterpret(img.img), f; nbins = 256)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_unimodalrosin2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Entropy
@@ -376,10 +422,12 @@ function binarizeEntropy_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_entropy2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Entropy()
         res = with_logger(NullLogger()) do 
@@ -389,7 +437,7 @@ function binarizeEntropy_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = Entropy()
         res = with_logger(NullLogger()) do 
             binarize(reinterpret(img.img), f; nbins = 256)
@@ -398,7 +446,7 @@ function binarizeEntropy_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_entropy2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Balanced
@@ -406,10 +454,12 @@ function binarizeBalanced_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_balanced2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Balanced()
         res = with_logger(NullLogger()) do 
@@ -419,7 +469,7 @@ function binarizeBalanced_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = Balanced()
         res = with_logger(NullLogger()) do 
             binarize(reinterpret(img.img), f; nbins = 256)
@@ -428,7 +478,7 @@ function binarizeBalanced_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_balanced2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Yen
@@ -436,10 +486,12 @@ function binarizeYen_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Bi
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_yen2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
-        n_bins = round(Int, n_bins)
+    @eval function $FUNCTION_NAME(img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
+        n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
         f = Yen()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
@@ -447,14 +499,14 @@ function binarizeYen_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Bi
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         f = Yen()
         res = binarize(reinterpret(img.img), f; nbins = 256)
         clamp01nan!(res)
         return SImageND($PT.(cast($IT, res)), $S)
     end
 
-    ManualDispatcher((m1, m2), :binarize_yen2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 # Manual Binarizer 
@@ -474,15 +526,17 @@ function binarizeManual_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
+    FUNCTION_NAME = Symbol(:binarize_manual2D, :_, Symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
-    m1 = @eval ((img::CONCT, t::AbstractFloat, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, t::AbstractFloat, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         t = clamp(t, 0.0, 1.0)
         new_img = float(img) .>= t
         return SImageND($PT.(cast($IT, new_img)), $S)
     end
 
-    m2 = @eval ((img::CONCT, t_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, t_n::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         t = round(Int, t_n)
         t_f = t / 255
         t_f = clamp(t_f, 0.0, 1.0) # new th
@@ -490,17 +544,17 @@ function binarizeManual_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <
         return SImageND($PT.(cast($IT, new_img)), $S)
     end
 
-    m3 = @eval ((img1::CONCT, img2::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img1::CONCT, img2::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         new_img = float(img1) .>= mean(float(img2))
         return SImageND($PT.(cast($IT, new_img)), $S)
     end
 
-    m4 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}
         new_img = float(img) .>= 0.5
         return SImageND($PT.(cast($IT, new_img)), $S)
     end
 
-    ManualDispatcher((m1, m2, m3, m4), :binarize_manual2D)
+    return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
 

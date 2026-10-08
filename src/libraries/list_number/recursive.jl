@@ -2,15 +2,15 @@
 
 # # -*- coding: utf-8 -*-
 
-""" Recursive functions 
+"""
+Recursively built numeric lists.
 
-Exports :
+# Bundles
 
-- **bundle\\_listnumber\\_recursive** :
-    - `recsum`
-    - `recmult`
-    - `range_`
+- [`bundle_listnumber_recursive`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listnumber_recursive
 
@@ -23,6 +23,12 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = return Number[]
 
+"""
+    bundle_listnumber_recursive
+
+Recursive constructions: `recsum` and `recmult` (running sum and product) and
+`range_`.
+"""
 bundle_listnumber_recursive = FunctionBundle(fallback)
 
 # FUNCTIONS ---

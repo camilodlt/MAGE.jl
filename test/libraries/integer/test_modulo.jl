@@ -17,10 +17,10 @@
         using UTCGP.integer_modulo: modulo
         modulo(4, 3) == 1
     end
-    @test_throws DivideError begin
-        # modulo incorrect 
+    @test begin
+        # modulo by zero returns 0, like safe_div, with the type of a % b
         using UTCGP.integer_modulo: modulo
-        modulo(4, 0) == 1
+        modulo(4, 0) === 0 && modulo(4.5, 0.0) === 0.0 && modulo(4, 0.0) === 0.0
     end
 
 

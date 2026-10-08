@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
-""" Basic IMAGE 2D functions
+"""
+Identity, constant images, inversion and casts between image types.
 
-Exports :
+# Bundles
 
-- **bundle\\image2D\\_basic** :
-    - `identity_image2D`
-    - `ones_2D`
-    - `zeros_2D`
+- [`bundle_image2DIntensity_basic_factory`](@ref)
+- [`bundle_image2DBinary_basic_factory`](@ref)
+- [`bundle_image2DSegment_basic_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image2D_basic
 
 using ImageCore: clamp01nan!, Normed, float64
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -29,8 +30,44 @@ using ..UTCGP:
     IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_basic_factory
+
+Basic operators on intensity images: `identity_image2D`, the constant images
+`ones_2D` and `zeros_2D`, `experimental_invert_2D`, the rescalings
+`experimental_normalize_2D` and `experimental_standardize_2D`, and the cast
+`experimental_tointensity_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_basic_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DSegment_basic_factory
+
+Basic operators on segment images (label maps): `identity_image2D`, `ones_2D`,
+`zeros_2D`, and the cast `experimental_tosegment_image2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_basic_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_basic_factory
+
+Basic operators on binary images (masks): `identity_image2D`, `ones_2D`,
+`zeros_2D`, `experimental_invert_2D`, and the casts
+`experimental_tobinary_image2D` and `experimental_tobinary_th_image2D_factory`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_basic_factory = FunctionBundle(fallback)
 
 # ################### #
@@ -125,10 +162,19 @@ function _standardise_img(img::AbstractArray)
     img_f .= (img_f .- μ) ./ σ
     return img_f
 end
+"""
+Min–max rescale to `[0, 1]`. A constant image gives all `0`. So does a range
+of floating-point noise (≤ 1e-9 relative), e.g. a derivative filter on a flat
+area (around 1e-17), which would otherwise be stretched into a full-range
+random pattern.
+"""
 function _normalize_img(img::AbstractArray)
     img_f = float.(img)
     _sanitize_img!(img_f)
     min_, max_ = minimum(img_f), maximum(img_f)
+    if max_ - min_ <= 1e-9 * max(1.0, abs(min_), abs(max_))
+        return fill!(img_f, zero(eltype(img_f)))
+    end
     img_f .= (img_f .- min_) ./ (max_ - min_)
     return img_f
 end
@@ -197,7 +243,8 @@ end
 function _to_intensity(img::SizedImage{S, SegmentPixel{T}}, TOTYPE) where {S, T}
     r = float.(img)
     max_ = maximum(r)
-    r .= r ./ max_
+    max_ > 0 || return IntensityPixel.(TOTYPE.(zero(r)))   # all labels 0 (or negative): a black image
+    r .= r ./ max_                                         # label / largest label, in [0, 1]
     r_typed = TOTYPE.(r)
     return IntensityPixel.(r_typed)
 end
@@ -296,13 +343,13 @@ append_method!(
     bundle_image2DBinary_basic_factory,
     experimental_tobinary_image2D_factory,
     :experimental_tobinary_image2D;
-    description = "Converts an intensity image to binary using default thresholding.",
+    description = "Mask of the non-zero pixels of an intensity image (any value > 0), or of every segment except the smallest label.",
 )
 append_method!(
     bundle_image2DBinary_basic_factory,
     experimental_tobinary_th_image2D_factory,
     :experimental_tobinary_th_image2D_factory;
-    description = "Converts an intensity image to binary using a provided threshold.",
+    description = "(img, th): mask of the pixels above th (th a Float64 in [0, 1]); for segments, every label except the smallest.",
 )
 
 # Factory Segment

@@ -1,6 +1,20 @@
 ##################################
 # FILL GENOME WITH EVOLVABLE NODES
 ##################################
+"""
+    make_evolvable_single_genome(n_nodes, arity, offset_by, min_fn, max_fn,
+                                 max_types, y_pos)
+
+Build one chromosome: `n_nodes` [`CGPNode`](@ref)s laid out in a row.
+
+`offset_by` is the number of inputs sitting in front of the chromosome, so node
+`i` lives at position `offset_by + i` and may connect to anything at a strictly
+lower position. `min_fn:max_fn` is the index range of the chromosome's
+[`Library`](@ref) and `max_types` the number of chromosomes in the genome.
+
+Returns a [`SingleGenome`](@ref) whose elements are still `nothing`; call
+[`initialize_genome!`](@ref) to fill them.
+"""
 function make_evolvable_single_genome(
     n_nodes::Int,
     arity::Int,
@@ -40,6 +54,29 @@ function make_evolvable_single_genome(
 end
 
 
+"""
+    make_evolvable_utgenome(model_architecture, meta_library, node_config)
+        -> (SharedInput, UTGenome)
+
+Build a fresh, uninitialised genome for a model.
+
+One chromosome is created per type in `model_architecture.chromosomes_types`,
+each sized by `node_config` and bounded by the matching [`Library`](@ref) of
+`meta_library`; one [`OutputNode`](@ref) is created per entry of
+`outputs_types`, pinned to the chromosome named by `outputs_types_idx`.
+
+The returned [`SharedInput`](@ref) is shared by every chromosome — this is what
+lets one input feed several typed sub-graphs.
+
+The number of inputs must equal `node_config.offset_by`, and the number of
+libraries must equal the number of chromosome types.
+
+```julia
+shared_inputs, ut_genome = make_evolvable_utgenome(model_arch, ml, node_config)
+initialize_genome!(ut_genome)
+correct_all_nodes!(ut_genome, model_arch, ml, shared_inputs)
+```
+"""
 function make_evolvable_utgenome(
     model_architecture::modelArchitecture,
     meta_library::MetaLibrary,

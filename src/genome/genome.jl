@@ -7,6 +7,21 @@ abstract type AbstractGenomeInputs end
 # SHARED INPUTS
 ################
 
+"""
+    SharedInput(inputs::Vector{InputNode})
+
+The inputs of a program, shared by every chromosome of a [`UTGenome`](@ref).
+
+Holding the inputs in one object is what lets several typed chromosomes read the
+same values: an image input, for instance, can be consumed both by the image
+chromosome and (after a reduction) by the float one.
+
+Supports `length`, `size`, indexing and iteration over the underlying
+[`InputNode`](@ref)s.
+
+Between two evaluations the same object is reused and only its values are
+swapped, with [`replace_shared_inputs!`](@ref).
+"""
 struct SharedInput <: AbstractGenomeInputs
     inputs::Vector{InputNode}
 end
@@ -132,6 +147,26 @@ Base.setindex!(nodes::UTCGP.SingleGenome, v::UTCGP.AbstractGenomeNode, i::Int) =
 ################
 # UTGENOME
 ################
+"""
+    UTGenome(genomes::Vector{<:AbstractGenome}, output_nodes::Vector{AbstractOutputNode})
+
+A multi-chromosome, type-aware genome: MAGE's individual.
+
+`genomes` holds one [`SingleGenome`](@ref) per type declared in
+`modelArchitecture.chromosomes_types` — chromosome `i` only ever produces values
+of type `i`. `output_nodes` holds one [`OutputNode`](@ref) per program output,
+each pinned to the chromosome carrying its type.
+
+Because a node's `TYPE` element names the chromosome each of its arguments reads
+from, a connexion can cross chromosomes while remaining type-correct. That is
+what allows a single program to mix modalities.
+
+Supports `length` (number of chromosomes), indexing and iteration, so
+`ut_genome[1][2]` is the second node of the first chromosome and
+`ut_genome[1][2][1]` its function element.
+
+Build one with [`make_evolvable_utgenome`](@ref).
+"""
 struct UTGenome <: AbstractMetaGenome
     genomes::Vector{<:AbstractGenome}
     output_nodes::Vector{AbstractOutputNode}

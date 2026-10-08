@@ -1,12 +1,14 @@
 # # -*- coding: utf-8 -*-
 
-""" String to list of Ints
+"""
+Integer lists derived from strings.
 
-Exports :
+# Bundles
 
-- **bundle\\_listinteger\\_string** :
-    - `match_with_overlap`
-    - `parse_from_list_string`
+- [`bundle_listinteger_string`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listinteger_string
 using Debugger
@@ -20,6 +22,12 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = return Int[]
 
+"""
+    bundle_listinteger_string
+
+Integer lists derived from strings: `match_with_overlap`,
+`parse_from_list_string` and `length_broadcast`.
+"""
 bundle_listinteger_string = FunctionBundle(fallback)
 
 # FUNCTIONS ---

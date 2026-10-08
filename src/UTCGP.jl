@@ -23,6 +23,12 @@ module UTCGP
     using Logging
     using LinearAlgebra
     using StatsBase
+    using Random
+    using Graphs
+    using MetaGraphsNext
+    using JLD2
+    using GraphvizDotLang
+    import Downloads
 
     using TimerOutputs
     const debuglogger = ConsoleLogger(stderr, right_justify = 10)
@@ -100,7 +106,6 @@ module UTCGP
     export set_node_freeze_state
     export set_node_unfreeze_state
     export set_node_element_type
-    export set_node_value
 
     include("element_nodes/random_from_node_element.jl")
     export random_element_value
@@ -123,9 +128,8 @@ module UTCGP
     # Cache Config for function wrappers
     include("libraries/cache.jl")
 
-    # DISPATCHER FOR ANONYMOUS METHODS
-    include("libraries/manual_dispatcher.jl")
-    export ManualDispatcher
+    # Callable types and the applicability cache states
+    include("libraries/function_types.jl")
 
     # FN RELATED
     include("libraries/function.jl")
@@ -179,10 +183,15 @@ module UTCGP
     include("programs/free_decode.jl")
     include("programs/evaluate.jl")
     include("programs/compile/compile_program.jl")
+    include("programs/compile/population_sequential_program.jl")
 
     export InputPromise, OperationInput, Operation, Program
     export SequentialProgram, SequentialCallStep, SequentialConstantStep, SequentialOutput
     export SequentialProgramInputRef, SequentialTmpRef, NoTypeAssertion
+    export PopulationSequentialProgram, PopulationSequentialWorkspace
+    export evaluate_population_sequential_program
+    export evaluate_population_sequential_program_with_time
+    export evaluate_population_sequential_program_on_samples
     export compile_program, sequential_source
     export replace_shared_inputs!
     # MUTATIONS
@@ -369,8 +378,8 @@ module UTCGP
     # -- Number
 
     include("libraries/number/arithmetic.jl")
-    import .number_arithmetic: bundle_number_arithmetic
-    export bundle_number_arithmetic
+    import .number_arithmetic: bundle_number_arithmetic, bundle_number_arithmetic_sr
+    export bundle_number_arithmetic, bundle_number_arithmetic_sr
 
     include("libraries/number/reduce.jl")
     import .number_reduce: bundle_number_reduce
@@ -384,6 +393,35 @@ module UTCGP
     import .number_reduceFromImg: bundle_number_relativeCoordinatesFromImg
     export bundle_number_relativeCoordinatesFromImg
 
+    include("libraries/image2D/object_common.jl")
+    include("libraries/number/locate_from_img.jl")
+    import .number_locateFromImg: bundle_number_locateFromImg
+    export bundle_number_locateFromImg
+    include("libraries/number/object_from_img.jl")
+    import .number_objectFromImg:
+        bundle_number_objectLocateFromImg,
+        bundle_number_objectDescribeFromImg
+    export bundle_number_objectLocateFromImg,
+        bundle_number_objectDescribeFromImg
+    include("libraries/number/decision.jl")
+    import .number_decision: bundle_number_decision, bundle_number_motion
+    export bundle_number_decision, bundle_number_motion
+    include("libraries/number/intensity_stats_from_img.jl")
+    import .number_intensityStatsFromImg: bundle_number_intensityStatsFromImg
+    export bundle_number_intensityStatsFromImg
+    include("libraries/number/shape_from_img.jl")
+    import .number_shapeFromImg: bundle_number_shapeFromImg, bundle_number_objectStatsFromImg
+    export bundle_number_shapeFromImg, bundle_number_objectStatsFromImg
+    include("libraries/number/granulometry_from_img.jl")
+    import .number_granulometryFromImg: bundle_number_granulometryFromImg
+    export bundle_number_granulometryFromImg
+    include("libraries/number/similarity_from_img.jl")
+    import .number_similarityFromImg:
+        bundle_number_similarityFromImg,
+        bundle_number_templateFromImg
+    export bundle_number_similarityFromImg,
+        bundle_number_templateFromImg
+
     include("libraries/number/img_region_common.jl")
     include("libraries/number/region_from_img.jl")
     import .number_regionFromImg: bundle_number_regionFromImg
@@ -393,8 +431,8 @@ module UTCGP
     export bundle_number_haarFromImg
 
     include("libraries/number/transcendental.jl")
-    import .number_transcendental: bundle_number_transcendental
-    export bundle_number_transcendental
+    import .number_transcendental: bundle_number_transcendental, bundle_number_transcendental_sr
+    export bundle_number_transcendental, bundle_number_transcendental_sr
 
     # --- FLOAT
 
@@ -433,6 +471,24 @@ module UTCGP
     export SImageND, SizedImage, SizedImage2D, SizedImage3D
     export SImage2D, SImage3D
     export BinaryPixel, SegmentPixel, IntensityPixel
+
+    # RGB IMAGE -> 2D INTENSITY COLOR STATISTICS
+    include("libraries/image3D/color_statistics_rgb.jl")
+    import .image3D_color_statistics_rgb:
+        bundle_image2DIntensity_color_statistics_rgb_factory
+    export bundle_image2DIntensity_color_statistics_rgb_factory
+
+    include("libraries/image3D/mask_rgb.jl")
+    import .image3D_rgb: bundle_image3DIntensity_rgb_factory
+    export bundle_image3DIntensity_rgb_factory
+
+    include("libraries/image3D/spatial_rgb.jl")
+    import .image3D_spatial_rgb: bundle_image3DIntensity_spatial_rgb_factory
+    export bundle_image3DIntensity_spatial_rgb_factory
+
+    include("libraries/image3D/composition_rgb.jl")
+    import .image3D_rgb_composition: bundle_image3DIntensity_rgb_composition_factory
+    export bundle_image3DIntensity_rgb_composition_factory
 
     include("libraries/image2D/basic_image2D.jl")
     import .image2D_basic:
@@ -493,6 +549,81 @@ module UTCGP
     import .image2D_orientation: bundle_image2DIntensity_orientation_factory
     export bundle_image2DIntensity_orientation_factory
 
+    include("libraries/image2D/saliency_fixation_image2D.jl")
+    import .image2D_saliency_fixation: bundle_image2DIntensity_saliency_fixation_factory
+    export bundle_image2DIntensity_saliency_fixation_factory
+
+    include("libraries/image2D/foreground_extraction_discrete_image2D.jl")
+    import .image2D_foreground_extraction_discrete:
+        bundle_image2DBinary_foreground_extraction_factory
+    export bundle_image2DBinary_foreground_extraction_factory
+
+    include("libraries/image2D/foreground_extraction_continuous_image2D.jl")
+    import .image2D_foreground_extraction_continuous:
+        bundle_image2DIntensity_foreground_extraction_factory
+    export bundle_image2DIntensity_foreground_extraction_factory
+
+    include("libraries/image2D/blob_extraction_image2D.jl")
+    import .image2D_blob_extraction:
+        bundle_image2DBinary_blob_extraction_factory,
+        bundle_image2DIntensity_blob_extraction_factory
+    export bundle_image2DBinary_blob_extraction_factory,
+        bundle_image2DIntensity_blob_extraction_factory
+
+    include("libraries/image2D/zoom_image2D.jl")
+    import .image2D_zoom:
+        bundle_image2DIntensity_zoom_factory,
+        bundle_image2DBinary_zoom_factory,
+        bundle_image2DSegment_zoom_factory
+    export bundle_image2DIntensity_zoom_factory,
+        bundle_image2DBinary_zoom_factory,
+        bundle_image2DSegment_zoom_factory
+
+    include("libraries/image2D/mask_shape_image2D.jl")
+    import .image2D_mask_shape:
+        bundle_image2DBinary_maskshape_factory,
+        bundle_image2DIntensity_maskshape_factory
+    export bundle_image2DBinary_maskshape_factory,
+        bundle_image2DIntensity_maskshape_factory
+
+    include("libraries/image2D/transform_image2D.jl")
+    import .image2D_transform:
+        bundle_image2DIntensity_transform_factory,
+        bundle_image2DBinary_transform_factory,
+        bundle_image2DSegment_transform_factory
+    export bundle_image2DIntensity_transform_factory,
+        bundle_image2DBinary_transform_factory,
+        bundle_image2DSegment_transform_factory
+
+    # VOLUMES (3D grayscale)
+    include("libraries/image3D/volume_common.jl")
+    include("libraries/image3D/volume_image3D.jl")
+    include("libraries/image3D/volume_basic_image3D.jl")
+    import .image3D_volume_basic:
+        bundle_image3DIntensity_volume_basic_factory,
+        bundle_image3DBinary_volume_basic_factory
+    export bundle_image3DIntensity_volume_basic_factory,
+        bundle_image3DBinary_volume_basic_factory
+    import .image3D_volume:
+        bundle_image3DIntensity_volume_factory,
+        bundle_image3DBinary_volume_factory
+    export bundle_image3DIntensity_volume_factory,
+        bundle_image3DBinary_volume_factory
+    include("libraries/image3D/volume_to_image2D.jl")
+    import .image3D_to_image2D:
+        bundle_image2DIntensity_fromVolume_factory,
+        bundle_image2DBinary_fromVolume_factory
+    export bundle_image2DIntensity_fromVolume_factory,
+        bundle_image2DBinary_fromVolume_factory
+    include("libraries/number/volume_from_img.jl")
+    import .number_volumeFromImg:
+        bundle_number_volumeShapeFromImg,
+        bundle_number_volumeGranulometryFromImg,
+        bundle_number_volumeProfileFromImg
+    export bundle_number_volumeShapeFromImg,
+        bundle_number_volumeGranulometryFromImg,
+        bundle_number_volumeProfileFromImg
+
     # 2D IMAGES Segmentation
     include("libraries/image2D/segmentation_image2D.jl")
     import .image2D_segmentation: bundle_image2DSegment_segmentation_factory
@@ -503,7 +634,7 @@ module UTCGP
     export bundle_float_orientation
 
     # 2D IMAGES MASK
-    # include("libraries/image2D/mask_image2D.jl")
+    include("libraries/image2D/mask_image2D.jl")
     # import .experimental_image2D_mask: experimental_bundle_image2D_mask_factory
     # export experimental_bundle_image2D_mask_factory
     # import .experimental_image2D_mask: experimental_bundle_image2D_maskregion_factory
@@ -555,11 +686,51 @@ module UTCGP
     export fit_mt
     export fit_ga, fit_ga_mt
 
+    # GRAPHMAGE
+    include("graphmage/graphmage.jl")
+    export GraphMAGENode, GraphMAGEConfig, GraphMAGEArchive, GraphMAGERunContext
+    export run_graphmage, expand_node!, select_node, backpropagate!
+    export ucb_score, annealed_c, forced_exploration_score
+    export used_function_names, used_function_names_genotype, merge_used_function_names, subset_metalibrary, remap_genome_to_library!
+    export build_behavior_probes, compute_behaviors_for_population, compute_behaviors_independently
+    export evaluate_archive_outputs_on_samples, set_val_fitness!
+    export save_graphmage_archive, load_graphmage_archive
+    export merge_graphmage_archives
+    export plot_graphmage_archive
+    export new_graphmage_graph, add_node!, get_node, all_node_labels, add_edge_checked!
+    export best_train_node_label
+
     # PRE MADE BUNDLES
     include("libraries/pre_made_libraries.jl")
     export get_extension_nb
     export get_extension_intensityimg
     export get_extension_binaryimg
+    export get_extension_saliency_intensityimg
+    export get_extension_foreground_intensityimg
+    export get_extension_foreground_binaryimg
+    export get_extension_blob_intensityimg
+    export get_extension_blob_binaryimg
+    export get_extension_locate_nb
+    export get_extension_zoom_intensityimg
+    export get_extension_zoom_binaryimg
+    export get_extension_zoom_segmentimg
+    export get_extension_decision_nb
+    export get_extension_similarity_nb
+    export get_extension_descriptors_nb
+    export get_extension_volume_intensityimg
+    export get_extension_volume_binaryimg
+    export get_extension_volume_to_intensityimg
+    export get_extension_volume_to_binaryimg
+    export get_extension_volume_nb
+    export get_extension_maskshape_binaryimg
+    export get_extension_maskshape_intensityimg
+    export get_extension_transform_intensityimg
+    export get_extension_transform_binaryimg
+    export get_extension_transform_segmentimg
+    export get_extension_color_statistics_rgb_intensityimg
+    export get_extension_rgbimg
+    export get_extension_spatial_rgbimg
+    export get_extension_rgb_compositionimg
     export get_extension_segmentimg
 
     # FILE TRACKING
@@ -599,7 +770,21 @@ module UTCGP
     # MODULAR
     include("libraries/modular_function.jl")
     include("libraries/modular_library.jl")
+    include("libraries/llm_generated_functions.jl")
     include("libraries/subgraph_selection.jl")
+    export GeneratedFunctionSpec, GeneratedFunctionValidationReport
+    export GeneratedFunctionArtifact, GeneratedFunctionAttempt
+    export GeneratedFunctionSynthesisResult, SourceBackedFunction
+    export AbstractGeneratedFunctionClient
+    export LlamaCppGeneratedFunctionClient,
+        GeminiGeneratedFunctionClient,
+        OpenAICompatibleGeneratedFunctionClient
+    export make_llm_generated_function_client
+    export generated_function_bindings, render_generated_function_source
+    export compile_generated_function, validate_generated_function
+    export generated_function_library_index, install_generated_function!
+    export render_generated_function_context, synthesize_validated_function
+    export generate_function_spec, repair_function_spec
 
     # AUTOMATICALLY DEFINED FUNCTIONS
     include("adf/types.jl")
@@ -630,5 +815,6 @@ module UTCGP
 
     # EXT PYCMA
     include("ext.jl")
+    include("dso/TypedGraphBridge.jl")
     export make_cma_nodes!, get_cma_nodes, mutate_cma!
 end

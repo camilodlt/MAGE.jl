@@ -1,76 +1,13 @@
-""" Filtering functions
+"""
+Convolution filters: gradients, smoothing and second-order operators.
 
-Exports :
+# Bundles
 
-- **bundle\\image2DIntensity\\_filtering** :
-    - sobelx\\_image2D\\_factory
-    - sobely\\_image2D\\_factory
-    - sobelm\\_image2D\\_factory
-    - ando3x\\_image2D\\_factory
-    - ando3y\\_image2D\\_factory
-    - ando3m\\_image2D\\_factory
-    - ando4x\\_image2D\\_factory
-    - ando4y\\_image2D\\_factory
-    - ando4m\\_image2D\\_factory
-    - ando5x\\_image2D\\_factory
-    - ando5y\\_image2D\\_factory
-    - ando5m\\_image2D\\_factory
-    - bickleyx\\_image2D\\_factory
-    - bickleyy\\_image2D\\_factory
-    - bickleym\\_image2D\\_factory
-    - prewittx\\_image2D\\_factory
-    - prewitty\\_image2D\\_factory
-    - prewittm\\_image2D\\_factory
-    - scharrx\\_image2D\\_factory
-    - scharry\\_image2D\\_factory
-    - scharrm\\_image2D\\_factory
-    - gaussian5\\_image2D\\_factory
-    - gaussian9\\_image2D\\_factory
-    - gaussian13\\_image2D\\_factory
-    - gaussian17\\_image2D\\_factory
-    - gaussian25\\_image2D\\_factory
-    - laplacian3\\_image2D\\_factory
-    - dog\\_image2D\\_factory
-    - moffat5\\_image2D\\_factory
-    - moffat13\\_image2D\\_factory
-    - moffat25\\_image2D\\_factory
-    - find_local_maxima\\_image2D\\_factory
-    - find_local_minima\\_image2D\\_factory
+- [`bundle_image2DIntensity_filtering_factory`](@ref)
+- [`bundle_image2DBinary_filtering_factory`](@ref)
 
-- **bundle\\image2DBinary\\_filtering** :
-    - sobelx\\_image2D\\_factory
-    - sobely\\_image2D\\_factory
-    - sobelm\\_image2D\\_factory
-    - ando3x\\_image2D\\_factory
-    - ando3y\\_image2D\\_factory
-    - ando3m\\_image2D\\_factory
-    - ando4x\\_image2D\\_factory
-    - ando4y\\_image2D\\_factory
-    - ando4m\\_image2D\\_factory
-    - ando5x\\_image2D\\_factory
-    - ando5y\\_image2D\\_factory
-    - ando5m\\_image2D\\_factory
-    - bickleyx\\_image2D\\_factory
-    - bickleyy\\_image2D\\_factory
-    - bickleym\\_image2D\\_factory
-    - prewittx\\_image2D\\_factory
-    - prewitty\\_image2D\\_factory
-    - prewittm\\_image2D\\_factory
-    - scharrx\\_image2D\\_factory
-    - scharry\\_image2D\\_factory
-    - scharrm\\_image2D\\_factory
-    - gaussian5\\_image2D\\_factory
-    - gaussian9\\_image2D\\_factory
-    - gaussian13\\_image2D\\_factory
-    - gaussian17\\_image2D\\_factory
-    - gaussian25\\_image2D\\_factory
-    - laplacian3\\_image2D\\_factory
-    - dog\\_image2D\\_factory
-    - moffat5\\_image2D\\_factory
-    - moffat13\\_image2D\\_factory
-    - moffat25\\_image2D\\_factory
-    - find_local_maxima\\_image2D\\_factory
-    - find_local_minima\\_image2D\\_factory
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image2D_filtering
 
@@ -96,7 +33,43 @@ using ..UTCGP:
 cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DIntensity_filtering_factory
+
+Convolution filters on intensity images.
+
+Gradients, in x, y and magnitude (`m`) variants: `sobel`, `ando3`, `ando4`,
+`ando5`, `bickley`, `prewitt`, `scharr`. Smoothing: `gaussian5` through
+`gaussian25`, `moffat5`, `moffat13`, `moffat25`, and the difference of
+gaussians `dog_image2D`. Second order: `laplacian3_image2D`.
+
+Every result is rescaled min to max into `[0, 1]` (a flat result is all `0`).
+The derivatives `*x` / `*y` are signed: an edge getting brighter to the right
+(`x`) or downwards (`y`) comes out dark, the opposite edge bright, and flat
+areas in between. The gradients, Gaussians and Laplacian take an optional
+second input, the border mode: `< 0` wraps around, `0` (default) repeats the
+edge pixels, `> 0` mirrors.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_filtering_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_filtering_factory
+
+The filters of [`bundle_image2DIntensity_filtering_factory`](@ref) applied to
+masks, plus `findlocalminima_image2D` and `findlocalmaxima_image2D`, which
+return a mask of the extrema. The input may be a mask or an intensity image;
+the rescaled `[0, 1]` response is rounded to a mask (set where it is above
+`0.5`).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_filtering_factory = FunctionBundle(fallback)
 
 # SEPARATE FILTERS THAT RETURN X and Y AND FILTERS THAT ONLY RET 1 K
@@ -127,6 +100,10 @@ kmoffat = ImageFiltering.Kernel.moffat(1.0, 0.1, 11) # two params
 # also findlocalminima
 
 # Convolution Border Decision ---
+"`x` clamped to `[lo, hi]` as a Float64; `NaN` and `±Inf` give `default`."
+_finite_clamp(x::Real, lo::Float64, hi::Float64, default::Float64) =
+    (v = Float64(x); isfinite(v) ? clamp(v, lo, hi) : default)
+
 function _border_type(border_index::Real)
     how = "replicate" # if b  == 0 # abcdef | ffff (replicates last)
     if border_index < 0
@@ -277,7 +254,7 @@ function XYM_filter_image2D_factory(axis::Type{<:_GradientAxis}, which_kernel::T
         end
 
         @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
-            return $FUNCTION_NAME(img, 0.0, args)
+            return $FUNCTION_NAME(img, 0.0, args...)
         end
 
         f
@@ -331,7 +308,7 @@ function one_filter_image2D_factory(which_kernel::Type{<:KernelMethod}, name::St
         end
 
         @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
-            return $FUNCTION_NAME(img, 0.0, args)
+            return $FUNCTION_NAME(img, 0.0, args...)
         end
 
         f
@@ -351,10 +328,12 @@ function dog_factory(i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixe
     FUNCTION_NAME = Symbol(:dog_image2D, :_, Symbol(I))
     f = @eval function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
-        p1, p2 = convert(Float64, clamp(p1_, 0.1, 10)), convert(Float64, clamp(p1_, 0.1, 10))
+        # σ along y (p1) and along x (p2), in pixels, clamped to [0.1, 10]; NaN → 0.5.
+        p1, p2 = _finite_clamp(p1_, 0.1, 10.0, 0.5), _finite_clamp(p2_, 0.1, 10.0, 0.5)
         img_as_float = Matrix{Float64}(undef, s)
         img_as_float .= float64.(img)
         out_float = Matrix{Float64}(undef, s)
+        # G(σ) − G(√2·σ) per axis: a band-pass that highlights blobs about σ pixels wide.
         kernel = ImageFiltering.Kernel.DoG((p1, p2))
         conv!(
             img_as_float,
@@ -382,10 +361,12 @@ function moffat_factories(ksize::Int)
         IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
         S1, S2 = S.parameters[1], S.parameters[2]
         _validate_factory_type(IT)
-        FUNCTION_NAME = Symbol(:moffat_image2D, :_, Symbol(I))
+        # The kernel size is in the name: moffat5, moffat13 and moffat25 must not share a function.
+        FUNCTION_NAME = Symbol(:moffat, ksize, :_image2D, :_, Symbol(I))
         f = @eval function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
             s = ($S1, $S2)
-            p1, p2 = convert(Float64, clamp(p1_, 0.1, 100)), convert(Float64, clamp(p1_, 0.1, 100))
+            # α (core width, p1) and β (fall-off, p2), clamped to [0.1, 100]; NaN → 0.5.
+            p1, p2 = _finite_clamp(p1_, 0.1, 100.0, 0.5), _finite_clamp(p2_, 0.1, 100.0, 0.5)
             img_as_float = Matrix{Float64}(undef, s)
             img_as_float .= float64.(img)
             out_float = Matrix{Float64}(undef, s)
@@ -421,7 +402,8 @@ function findlocalminima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
     FUNCTION_NAME = Symbol(:findlocalminima_image2D, :_, Symbol(I))
     f = @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
-        w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
+        # Window rows (w1) and columns (w2), clamped to [2, 25]; NaN → 3.
+        w1, w2 = round(Int, _finite_clamp(w1_, 2.0, 25.0, 3.0)), round(Int, _finite_clamp(w2_, 2.0, 25.0, 3.0))
         minimums = findlocalminima(reinterpret(img.img); window = (w1, w2))
         canvas = zeros($IT, s)
         canvas[minimums] .= 1.0
@@ -446,7 +428,8 @@ function findlocalmaxima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
     FUNCTION_NAME = Symbol(:findlocalmaxima_image2D, :_, Symbol(I))
     f = @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
-        w1, w2 = round(Int, clamp(w1_, 2, 25)), round(Int, clamp(w1_, 2, 25))
+        # Window rows (w1) and columns (w2), clamped to [2, 25]; NaN → 3.
+        w1, w2 = round(Int, _finite_clamp(w1_, 2.0, 25.0, 3.0)), round(Int, _finite_clamp(w2_, 2.0, 25.0, 3.0))
         maximums = findlocalmaxima(reinterpret(img.img); window = (w1, w2))
         canvas = zeros($IT, s)
         canvas[maximums] .= 1.0
@@ -508,37 +491,37 @@ moffat25_image2D_factory = moffat_factories(25)
 
 # BUNDLE INTENSITY ---
 for (factory, name, description) in (
-    (sobelx_image2D_factory, :sobelx_image2D, "Applies Sobel X derivative filter."),
-    (sobely_image2D_factory, :sobely_image2D, "Applies Sobel Y derivative filter."),
-    (sobelm_image2D_factory, :sobelm_image2D, "Computes Sobel gradient magnitude response."),
-    (ando3x_image2D_factory, :ando3x_image2D, "Applies Ando order-3 X derivative filter."),
-    (ando3y_image2D_factory, :ando3y_image2D, "Applies Ando order-3 Y derivative filter."),
-    (ando3m_image2D_factory, :ando3m_image2D, "Computes Ando order-3 gradient magnitude response."),
-    (ando4x_image2D_factory, :ando4x_image2D, "Applies Ando order-4 X derivative filter."),
-    (ando4y_image2D_factory, :ando4y_image2D, "Applies Ando order-4 Y derivative filter."),
-    (ando4m_image2D_factory, :ando4m_image2D, "Computes Ando order-4 gradient magnitude response."),
-    (ando5x_image2D_factory, :ando5x_image2D, "Applies Ando order-5 X derivative filter."),
-    (ando5y_image2D_factory, :ando5y_image2D, "Applies Ando order-5 Y derivative filter."),
-    (ando5m_image2D_factory, :ando5m_image2D, "Computes Ando order-5 gradient magnitude response."),
-    (bickleyx_image2D_factory, :bickleyx_image2D, "Applies Bickley X derivative filter."),
-    (bickleyy_image2D_factory, :bickleyy_image2D, "Applies Bickley Y derivative filter."),
-    (bickleym_image2D_factory, :bickleym_image2D, "Computes Bickley gradient magnitude response."),
-    (prewittx_image2D_factory, :prewittx_image2D, "Applies Prewitt X derivative filter."),
-    (prewitty_image2D_factory, :prewitty_image2D, "Applies Prewitt Y derivative filter."),
-    (prewittm_image2D_factory, :prewittm_image2D, "Computes Prewitt gradient magnitude response."),
-    (scharrx_image2D_factory, :scharrx_image2D, "Applies Scharr X derivative filter."),
-    (scharry_image2D_factory, :scharry_image2D, "Applies Scharr Y derivative filter."),
-    (scharrm_image2D_factory, :scharrm_image2D, "Computes Scharr gradient magnitude response."),
-    (gaussian5_image2D_factory, :gaussian5_image2D, "Applies Gaussian smoothing with sigma 5."),
-    (gaussian9_image2D_factory, :gaussian9_image2D, "Applies Gaussian smoothing with sigma 9."),
-    (gaussian13_image2D_factory, :gaussian13_image2D, "Applies Gaussian smoothing with sigma 13."),
-    (gaussian17_image2D_factory, :gaussian17_image2D, "Applies Gaussian smoothing with sigma 17."),
-    (gaussian25_image2D_factory, :gaussian25_image2D, "Applies Gaussian smoothing with sigma 25."),
-    (laplacian3_image2D_factory, :laplacian3_image2D, "Applies Laplacian filter for second-order edge response."),
-    (dog_factory, :dog_image2D, "Applies Difference-of-Gaussians filtering."),
-    (moffat5_image2D_factory, :moffat5_image2D, "Applies Moffat smoothing filter with beta 5."),
-    (moffat13_image2D_factory, :moffat13_image2D, "Applies Moffat smoothing filter with beta 13."),
-    (moffat25_image2D_factory, :moffat25_image2D, "Applies Moffat smoothing filter with beta 25."),
+    (sobelx_image2D_factory, :sobelx_image2D, "Sobel derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (sobely_image2D_factory, :sobely_image2D, "Sobel derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (sobelm_image2D_factory, :sobelm_image2D, "Sobel gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando3x_image2D_factory, :ando3x_image2D, "Ando 3x3 derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando3y_image2D_factory, :ando3y_image2D, "Ando 3x3 derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando3m_image2D_factory, :ando3m_image2D, "Ando 3x3 gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando4x_image2D_factory, :ando4x_image2D, "Ando 4x4 derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando4y_image2D_factory, :ando4y_image2D, "Ando 4x4 derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando4m_image2D_factory, :ando4m_image2D, "Ando 4x4 gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando5x_image2D_factory, :ando5x_image2D, "Ando 5x5 derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando5y_image2D_factory, :ando5y_image2D, "Ando 5x5 derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando5m_image2D_factory, :ando5m_image2D, "Ando 5x5 gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (bickleyx_image2D_factory, :bickleyx_image2D, "Bickley derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (bickleyy_image2D_factory, :bickleyy_image2D, "Bickley derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (bickleym_image2D_factory, :bickleym_image2D, "Bickley gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (prewittx_image2D_factory, :prewittx_image2D, "Prewitt derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (prewitty_image2D_factory, :prewitty_image2D, "Prewitt derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (prewittm_image2D_factory, :prewittm_image2D, "Prewitt gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (scharrx_image2D_factory, :scharrx_image2D, "Scharr derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (scharry_image2D_factory, :scharry_image2D, "Scharr derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (scharrm_image2D_factory, :scharrm_image2D, "Scharr gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian5_image2D_factory, :gaussian5_image2D, "Gaussian blur, sigma 1 pixels (5x5 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian9_image2D_factory, :gaussian9_image2D, "Gaussian blur, sigma 2 pixels (9x9 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian13_image2D_factory, :gaussian13_image2D, "Gaussian blur, sigma 3 pixels (13x13 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian17_image2D_factory, :gaussian17_image2D, "Gaussian blur, sigma 4 pixels (17x17 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian25_image2D_factory, :gaussian25_image2D, "Gaussian blur, sigma 6 pixels (25x25 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (laplacian3_image2D_factory, :laplacian3_image2D, "3x3 Laplacian (second derivative): strong on thin lines, spots and both sides of edges; signed, rescaled min to max. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (dog_factory, :dog_image2D, "Difference of Gaussians (img, sigma_y, sigma_x): band-pass highlighting blobs of about sigma pixels; rescaled to [0, 1]."),
+    (moffat5_image2D_factory, :moffat5_image2D, "Moffat blur on a 5x5 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat13_image2D_factory, :moffat13_image2D, "Moffat blur on a 13x13 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat25_image2D_factory, :moffat25_image2D, "Moffat blur on a 25x25 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
 )
     append_method!(
         bundle_image2DIntensity_filtering_factory,
@@ -550,37 +533,37 @@ end
 
 # BUNDLE BINARY ---
 for (factory, name, description) in (
-    (sobelx_image2D_factory, :sobelx_image2D, "Applies Sobel X derivative filter."),
-    (sobely_image2D_factory, :sobely_image2D, "Applies Sobel Y derivative filter."),
-    (sobelm_image2D_factory, :sobelm_image2D, "Computes Sobel gradient magnitude response."),
-    (ando3x_image2D_factory, :ando3x_image2D, "Applies Ando order-3 X derivative filter."),
-    (ando3y_image2D_factory, :ando3y_image2D, "Applies Ando order-3 Y derivative filter."),
-    (ando3m_image2D_factory, :ando3m_image2D, "Computes Ando order-3 gradient magnitude response."),
-    (ando4x_image2D_factory, :ando4x_image2D, "Applies Ando order-4 X derivative filter."),
-    (ando4y_image2D_factory, :ando4y_image2D, "Applies Ando order-4 Y derivative filter."),
-    (ando4m_image2D_factory, :ando4m_image2D, "Computes Ando order-4 gradient magnitude response."),
-    (ando5x_image2D_factory, :ando5x_image2D, "Applies Ando order-5 X derivative filter."),
-    (ando5y_image2D_factory, :ando5y_image2D, "Applies Ando order-5 Y derivative filter."),
-    (ando5m_image2D_factory, :ando5m_image2D, "Computes Ando order-5 gradient magnitude response."),
-    (bickleyx_image2D_factory, :bickleyx_image2D, "Applies Bickley X derivative filter."),
-    (bickleyy_image2D_factory, :bickleyy_image2D, "Applies Bickley Y derivative filter."),
-    (bickleym_image2D_factory, :bickleym_image2D, "Computes Bickley gradient magnitude response."),
-    (prewittx_image2D_factory, :prewittx_image2D, "Applies Prewitt X derivative filter."),
-    (prewitty_image2D_factory, :prewitty_image2D, "Applies Prewitt Y derivative filter."),
-    (prewittm_image2D_factory, :prewittm_image2D, "Computes Prewitt gradient magnitude response."),
-    (scharrx_image2D_factory, :scharrx_image2D, "Applies Scharr X derivative filter."),
-    (scharry_image2D_factory, :scharry_image2D, "Applies Scharr Y derivative filter."),
-    (scharrm_image2D_factory, :scharrm_image2D, "Computes Scharr gradient magnitude response."),
-    (gaussian5_image2D_factory, :gaussian5_image2D, "Applies Gaussian smoothing with sigma 5."),
-    (gaussian9_image2D_factory, :gaussian9_image2D, "Applies Gaussian smoothing with sigma 9."),
-    (gaussian13_image2D_factory, :gaussian13_image2D, "Applies Gaussian smoothing with sigma 13."),
-    (gaussian17_image2D_factory, :gaussian17_image2D, "Applies Gaussian smoothing with sigma 17."),
-    (gaussian25_image2D_factory, :gaussian25_image2D, "Applies Gaussian smoothing with sigma 25."),
-    (laplacian3_image2D_factory, :laplacian3_image2D, "Applies Laplacian filter for second-order edge response."),
-    (dog_factory, :dog_image2D, "Applies Difference-of-Gaussians filtering."),
-    (moffat5_image2D_factory, :moffat5_image2D, "Applies Moffat smoothing filter with beta 5."),
-    (moffat13_image2D_factory, :moffat13_image2D, "Applies Moffat smoothing filter with beta 13."),
-    (moffat25_image2D_factory, :moffat25_image2D, "Applies Moffat smoothing filter with beta 25."),
+    (sobelx_image2D_factory, :sobelx_image2D, "Sobel derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (sobely_image2D_factory, :sobely_image2D, "Sobel derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (sobelm_image2D_factory, :sobelm_image2D, "Sobel gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando3x_image2D_factory, :ando3x_image2D, "Ando 3x3 derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando3y_image2D_factory, :ando3y_image2D, "Ando 3x3 derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando3m_image2D_factory, :ando3m_image2D, "Ando 3x3 gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando4x_image2D_factory, :ando4x_image2D, "Ando 4x4 derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando4y_image2D_factory, :ando4y_image2D, "Ando 4x4 derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando4m_image2D_factory, :ando4m_image2D, "Ando 4x4 gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando5x_image2D_factory, :ando5x_image2D, "Ando 5x5 derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando5y_image2D_factory, :ando5y_image2D, "Ando 5x5 derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (ando5m_image2D_factory, :ando5m_image2D, "Ando 5x5 gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (bickleyx_image2D_factory, :bickleyx_image2D, "Bickley derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (bickleyy_image2D_factory, :bickleyy_image2D, "Bickley derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (bickleym_image2D_factory, :bickleym_image2D, "Bickley gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (prewittx_image2D_factory, :prewittx_image2D, "Prewitt derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (prewitty_image2D_factory, :prewitty_image2D, "Prewitt derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (prewittm_image2D_factory, :prewittm_image2D, "Prewitt gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (scharrx_image2D_factory, :scharrx_image2D, "Scharr derivative along x (across columns): marks vertical edges; signed, rescaled min to max: edges getting brighter to the right are dark, darker to the right bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (scharry_image2D_factory, :scharry_image2D, "Scharr derivative along y (across rows): marks horizontal edges; signed, rescaled min to max: edges getting brighter downwards are dark, darker downwards bright, flat areas in between. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (scharrm_image2D_factory, :scharrm_image2D, "Scharr gradient magnitude sqrt(gx^2 + gy^2): edge strength in any direction, rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian5_image2D_factory, :gaussian5_image2D, "Gaussian blur, sigma 1 pixels (5x5 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian9_image2D_factory, :gaussian9_image2D, "Gaussian blur, sigma 2 pixels (9x9 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian13_image2D_factory, :gaussian13_image2D, "Gaussian blur, sigma 3 pixels (13x13 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian17_image2D_factory, :gaussian17_image2D, "Gaussian blur, sigma 4 pixels (17x17 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (gaussian25_image2D_factory, :gaussian25_image2D, "Gaussian blur, sigma 6 pixels (25x25 kernel), then rescaled to [0, 1]. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (laplacian3_image2D_factory, :laplacian3_image2D, "3x3 Laplacian (second derivative): strong on thin lines, spots and both sides of edges; signed, rescaled min to max. Optional 2nd input: border mode (< 0 wrap around, 0 repeat edge pixels, > 0 mirror)."),
+    (dog_factory, :dog_image2D, "Difference of Gaussians (img, sigma_y, sigma_x): band-pass highlighting blobs of about sigma pixels; rescaled to [0, 1]."),
+    (moffat5_image2D_factory, :moffat5_image2D, "Moffat blur on a 5x5 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat13_image2D_factory, :moffat13_image2D, "Moffat blur on a 13x13 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
+    (moffat25_image2D_factory, :moffat25_image2D, "Moffat blur on a 25x25 kernel: (img, alpha, beta), alpha the core width, beta the fall-off; rescaled to [0, 1]."),
     (findlocalminima_factory, :findlocalminima_image2D, "Marks local minima locations in the filtered image."),
     (findlocalmaxima_factory, :findlocalmaxima_image2D, "Marks local maxima locations in the filtered image."),
 )

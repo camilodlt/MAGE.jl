@@ -3,6 +3,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
   # list integer
   using UTCGP.listinteger_iscond:is_sup_0
   using UTCGP.listinteger_iscond:is_eq_0
@@ -18,14 +19,7 @@ end
 Pages = ["list_integer.md"]
 ```
 
-# LIST Integer Operations
-
-## Basic operations 
-
-### Module 
-
-### Functions 
-
+# List Integer Operations
 
 ## Comparison against 0
 
@@ -102,4 +96,26 @@ julia> compare_tuple_a_less_b([(0.1,0.2), (0.1,0.1), (0.1,0.0)])
  1
  0
  0
+```
+
+## Divisors
+
+### Module
+```@docs
+UTCGP.listinteger_primes
+```
+
+## From strings
+
+### Module
+```@docs
+UTCGP.listinteger_string
+```
+
+## Bundles
+
+```@docs
+bundle_listinteger_iscond
+bundle_listinteger_primes
+bundle_listinteger_string
 ```

@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
-""" Arithmetic ops between 2D images
-
-Exports :
-
-- **bundle\\_image2D\\_arithmetic** :
-    - subtract\\_image2D\\_factory 
-    - add\\_image2D\\_factory 
-    - mult\\_image2D\\_factory
-    - max\\_image2D\\_factory
-    - min\\_image2D\\_factory
 """
+Pixel-wise arithmetic between two images of the same type.
 
+# Bundles
+
+- [`bundle_image2DIntensity_arithmetic_factory`](@ref)
+- [`bundle_image2DBinary_arithmetic_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_arithmetic
 
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -33,7 +31,30 @@ using ..UTCGP:
 cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DBinary_arithmetic_factory
+
+Pixel-wise arithmetic between two masks: `add_img2D`, `subtract_img2D`,
+`mult_img2D`, `max_img2D`, `min_img2D` — the boolean or/and-nots of mask
+algebra.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_arithmetic_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DIntensity_arithmetic_factory
+
+Pixel-wise arithmetic between two intensity images: `add_img2D`,
+`subtract_img2D`, `mult_img2D`, `max_img2D`, `min_img2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_arithmetic_factory = FunctionBundle(fallback)
 
 # ################### #
@@ -49,7 +70,8 @@ with InputType = SizedImage2D{S1,S2,T,IT} where {S1,S2,T<:Normed,IT}
 
     m1 = @eval ((img1::CONCT, img2::CONCT, args::Vararg{Any}) where {CONCT<:\$I})
 
-Which subtracts `img1` from `img2` (as floats) and then clamps the result between [0,1].
+Which computes `img1 − img2` (as floats), pixel by pixel, and clamps the result to [0,1]:
+pixels where `img2` is brighter become 0.
 
 **Returns**:
 

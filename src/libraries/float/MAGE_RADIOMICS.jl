@@ -2,7 +2,6 @@
 
 # using PythonCall
 # using ThreadPools
-# using ..UTCGP: ManualDispatcher
 # using ..UTCGP: FunctionBundle, append_method!
 # import UTCGP:
 #     CONSTRAINED,
@@ -51,7 +50,7 @@
 #     end
 
 
-#     ManualDispatcher((m1, m2), :erosion_2D)
+#     (the two methods above, defined on one named function)
 # end
 
 

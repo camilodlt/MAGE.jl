@@ -11,172 +11,464 @@ Pages = ["image.md"]
 
 # Image Lib
 
-## Orientation Image Maps
+Operators over [`SImageND`](@ref) images. Three pixel types make three
+different chromosomes — intensities, masks and label maps — so an operator only
+offers itself where it makes sense: morphology to masks, thresholding as the
+way to *produce* a mask, segmentation as the way to produce a label map. See
+[Image Types](@ref) for the type machinery.
 
-These orientation maps are exposed through:
+This page gives worked, rendered examples for the orientation maps and the
+pooling families. The remaining bundles are listed at the
+[bottom of this page](@ref "All image bundles"), and the exhaustive operator
+listing is in the [Bundle Catalogue](@ref).
 
-- `bundle_image2DIntensity_orientation_factory`
+## Fixation Saliency
 
-They currently operate on intensity images and use raw Sobel derivatives
-internally.
+`bundle_image2DIntensity_saliency_fixation_factory` contains classical
+bottom-up fixation predictors. They return a same-size intensity image in
+`[0, 1]`: brighter pixels are more likely fixation targets. The bundle is
+available through `get_extension_saliency_intensityimg` rather than the basic image
+collection because its multiscale operators are comparatively expensive.
+
+### `itti_koch_saliency`
+
+This is the grayscale part of the Itti-Koch-Niebur model: intensity and four
+orientation channels are compared across six center-surround scale pairs,
+normalized for conspicuity, and combined into one map. Color-opponency channels
+can be added when MAGE gains an RGB image type. The operator produces the static
+map; it does not simulate winner-take-all attention or inhibition of return.
+
+The specialized callable supports one, two, or three MAGE inputs; trailing
+framework `args...` do not count toward this limit:
+
+```julia
+saliency = fn(img)
+saliency = fn(img, orientation_weight)
+saliency = fn(img, orientation_weight, smoothing_sigma)
+```
+
+| Parameter | Accepted mapping | Effect | Default |
+|:--|:--|:--|:--|
+| `orientation_weight` | finite values clamped to `[0, 1]` | `0` uses intensity contrast only; `1` uses oriented contrast only | `0.5` |
+| `smoothing_sigma` | finite values clamped to `[0, 5]` pixels | Gaussian smoothing applied to the final map; below `0.1` (including `0`) there is no smoothing | `0.0` |
+
+Non-finite values use the listed defaults. The result has the same size and
+`IntensityPixel` storage type as `img`. Additional trailing arguments are
+accepted and ignored for compatibility with the MAGE node-calling convention.
+The first example uses both defaults.
+
+!!! note "Resolution on small images"
+    The map is computed at level 4 of the pyramid, which is `1/16` of the
+    input size along each side (each level keeps every second pixel), and is
+    then resized back to the input size. On a 64×64 image the map has
+    4×4 cells; on a 28×28 image only 2×2. It marks which *part* of a small
+    image stands out, not which pixel. For pixel-level detail use
+    `spectral_residual_saliency`.
 
 ```@example
 using UTCGP
 using ImageCore: N0f8
 
-function orientation_vertical_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[:, fld(n, 2)+1:end] .= 1.0
-    return img
-end
+values = zeros(Float64, 64, 64)
+values[25:40, 25:40] .= 1.0
+img = SImageND(IntensityPixel{N0f8}.(values))
+fn = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(img))
+saliency = fn(img)
 
-function orientation_horizontal_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[fld(n, 2)+1:end, :] .= 1.0
-    return img
-end
-
-function orientation_diag45_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    for i in 1:n, j in 1:n
-        img[i, j] = j >= i ? 1.0 : 0.0
-    end
-    return img
-end
-
-orientation_intensity_image(arr::AbstractMatrix{<:Real}) =
-    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
-
-img = orientation_intensity_image(orientation_vertical_step_array())
-grad_mag = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
-grad_ori = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
-
-(typeof(grad_mag), typeof(grad_ori))
+(size(saliency), eltype(saliency), extrema(reinterpret(saliency.img)))
 ```
 
-```@setup orientation_image_assets
+```@setup fixation_saliency_assets
 using UTCGP
 using FileIO
 using Images
-using ImageCore: N0f8
-
-function orientation_vertical_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[:, fld(n, 2)+1:end] .= 1.0
-    return img
-end
-
-function orientation_horizontal_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    img[fld(n, 2)+1:end, :] .= 1.0
-    return img
-end
-
-function orientation_diag45_step_array(n::Int = 30)
-    img = zeros(Float64, n, n)
-    for i in 1:n, j in 1:n
-        img[i, j] = j >= i ? 1.0 : 0.0
-    end
-    return img
-end
-
-orientation_intensity_image(arr::AbstractMatrix{<:Real}) =
-    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
+using ImageCore: N0f8, N0f16
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
 input_path = joinpath(repo_root, "assets", "000_img.png")
-docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "orientation")
-docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "orientation")
-mkpath(docs_assets_src)
-mkpath(docs_assets_build)
+assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "saliency_fixation")
+assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "saliency_fixation")
+mkpath(assets_src)
+mkpath(assets_build)
 
-function _save_orientation_gray(name, img)
-    vals = Float64.(img)
-    minv = minimum(vals)
-    maxv = maximum(vals)
-    scaled = maxv == minv ? zeros(size(vals)) : (vals .- minv) ./ (maxv - minv)
-    g = Gray.(scaled)
-    save(joinpath(docs_assets_src, name), g)
-    save(joinpath(docs_assets_build, name), g)
+gray = Float64.(Gray.(load(input_path)))
+gray = gray[1:2:end, 1:2:end]
+input_img = SImageND(IntensityPixel{N0f8}.(gray))
+saliency_fn = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(input_img))
+saliency_img = saliency_fn(input_img)
+
+function save_fixation_example(name, values)
+    image = Gray.(clamp.(Float64.(values), 0.0, 1.0))
+    save(joinpath(assets_src, name), image)
+    save(joinpath(assets_build, name), image)
     return nothing
 end
 
-function _save_image_orientation_triplet(prefix, original, output)
-    _save_orientation_gray(prefix * "_original.png", reinterpret(original.img))
-    _save_orientation_gray(prefix * "_output.png", reinterpret(output.img))
-    return nothing
+save_fixation_example("itti_koch_input.png", reinterpret(input_img.img))
+save_fixation_example("itti_koch_output.png", reinterpret(saliency_img.img))
+coffee = Float64.(Gray.(load(joinpath(repo_root, "assets", "coffee.png"))))
+coffee = coffee[1:2:end, 1:2:end]
+coffee_img = SImageND(IntensityPixel{N0f8}.(coffee))
+coffee_fn = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(coffee_img))
+coffee_saliency = coffee_fn(coffee_img)
+save_fixation_example("itti_koch_coffee_input.png", reinterpret(coffee_img.img))
+save_fixation_example("itti_koch_coffee_output.png", reinterpret(coffee_saliency.img))
+
+parameter_examples = (
+    ("itti_koch_coffee_orientation_0.png", 0.0, 0.0),
+    ("itti_koch_coffee_orientation_05.png", 0.5, 0.0),
+    ("itti_koch_coffee_orientation_1.png", 1.0, 0.0),
+    ("itti_koch_coffee_smoothing_0.png", 0.5, 0.0),
+    ("itti_koch_coffee_smoothing_15.png", 0.5, 1.5),
+    ("itti_koch_coffee_smoothing_4.png", 0.5, 4.0),
+)
+for (name, orientation_weight, smoothing_sigma) in parameter_examples
+    output = coffee_fn(coffee_img, orientation_weight, smoothing_sigma)
+    save_fixation_example(name, reinterpret(output.img))
 end
 
-vertical = orientation_intensity_image(orientation_vertical_step_array())
-horizontal = orientation_intensity_image(orientation_horizontal_step_array())
-diag45 = orientation_intensity_image(orientation_diag45_step_array())
-asset_gray = Float64.(Gray.(load(input_path)))
-asset_gray_small = asset_gray[1:2:end, 1:2:end]
-asset_img = orientation_intensity_image(asset_gray_small)
+lena = Float64.(Gray.(load(joinpath(repo_root, "assets", "lena_gray_16bit.png"))))
+lena_img = SImageND(IntensityPixel{N0f16}.(lena))
+lena_fn = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(lena_img))
+lena_saliency = lena_fn(lena_img)
+save_fixation_example("itti_koch_lena_input.png", reinterpret(lena_img.img))
+save_fixation_example("itti_koch_lena_output.png", reinterpret(lena_saliency.img))
 
-grad_mag = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(asset_img))
-grad_ori = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(asset_img))
-orient_sel = UTCGP.bundle_image2DIntensity_orientation_factory[:orientation_select].fn(typeof(asset_img))
+lena_parameter_examples = (
+    ("itti_koch_lena_orientation_0.png", 0.0, 0.0),
+    ("itti_koch_lena_orientation_05.png", 0.5, 0.0),
+    ("itti_koch_lena_orientation_1.png", 1.0, 0.0),
+    ("itti_koch_lena_smoothing_0.png", 0.5, 0.0),
+    ("itti_koch_lena_smoothing_15.png", 0.5, 1.5),
+    ("itti_koch_lena_smoothing_4.png", 0.5, 4.0),
+)
+for (name, orientation_weight, smoothing_sigma) in lena_parameter_examples
+    output = lena_fn(lena_img, orientation_weight, smoothing_sigma)
+    save_fixation_example(name, reinterpret(output.img))
+end
 
-mag_out = grad_mag(asset_img)
-ori_out = grad_ori(asset_img)
-sel_out = orient_sel(asset_img, 0.25, 0.1)
+spectral_cell_fn = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(input_img))
+spectral_coffee_fn = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(coffee_img))
+spectral_lena_fn = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(lena_img))
+spectral_cell = spectral_cell_fn(input_img)
+spectral_coffee = spectral_coffee_fn(coffee_img)
+spectral_lena = spectral_lena_fn(lena_img)
+save_fixation_example("spectral_residual_cell_output.png", reinterpret(spectral_cell.img))
+save_fixation_example("spectral_residual_coffee_output.png", reinterpret(spectral_coffee.img))
+save_fixation_example("spectral_residual_lena_output.png", reinterpret(spectral_lena.img))
 
-_save_image_orientation_triplet("grad_magnitude", asset_img, mag_out)
-_save_image_orientation_triplet("grad_orientation", asset_img, ori_out)
-_save_image_orientation_triplet("orientation_select", asset_img, sel_out)
-```
+spectral_parameter_examples = (
+    ("spectral_residual_coffee_radius_1.png", 1.0, 2.0),
+    ("spectral_residual_coffee_radius_3.png", 3.0, 2.0),
+    ("spectral_residual_coffee_radius_7.png", 7.0, 2.0),
+    ("spectral_residual_coffee_smoothing_0.png", 1.0, 0.0),
+    ("spectral_residual_coffee_smoothing_2.png", 1.0, 2.0),
+    ("spectral_residual_coffee_smoothing_5.png", 1.0, 5.0),
+)
+for (name, spectral_average_radius, smoothing_sigma) in spectral_parameter_examples
+    output = spectral_coffee_fn(coffee_img, spectral_average_radius, smoothing_sigma)
+    save_fixation_example(name, reinterpret(output.img))
+end
 
-### `grad_magnitude`
-
-Gradient magnitude computed from Sobel x/y derivatives.
-
-```@example orientation_image_assets
-img = asset_img
-fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_magnitude].fn(typeof(img))
-fn(img)
-```
-
-```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-<img src="../assets/fns/orientation/grad_magnitude_original.png" alt="grad_magnitude original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-<img src="../assets/fns/orientation/grad_magnitude_output.png" alt="grad_magnitude output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-</div>
-```
-
-### `grad_orientation`
-
-Gradient orientation map encoded in `[0, 1]` over `[0, π]`.
-
-```@example orientation_image_assets
-img = asset_img
-fn = UTCGP.bundle_image2DIntensity_orientation_factory[:grad_orientation].fn(typeof(img))
-fn(img)
-```
-
-```@raw html
-<div style="display:flex; gap:1rem; align-items:flex-start;">
-<img src="../assets/fns/orientation/grad_orientation_original.png" alt="grad_orientation original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-<img src="../assets/fns/orientation/grad_orientation_output.png" alt="grad_orientation output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-</div>
-```
-
-### `orientation_select`
-
-Keep only gradient responses whose orientation is near a target angle.
-
-```@example orientation_image_assets
-img = asset_img
-fn = UTCGP.bundle_image2DIntensity_orientation_factory[:orientation_select].fn(typeof(img))
-fn(img, 0.25, 0.1)
 ```
 
 ```@raw html
 <div style="display:flex; gap:1rem; align-items:flex-start;">
-<img src="../assets/fns/orientation/orientation_select_original.png" alt="orientation_select original" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
-<img src="../assets/fns/orientation/orientation_select_output.png" alt="orientation_select output" style="width:25%; image-rendering:pixelated; image-rendering:crisp-edges;" />
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_input.png" alt="Itti-Koch input" style="width:100%;" /><figcaption>Input intensity image</figcaption></figure>
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_output.png" alt="Itti-Koch saliency output" style="width:100%;" /><figcaption>Output fixation-saliency map</figcaption></figure>
 </div>
 ```
+
+The coffee photograph provides a scene with several stronger competing
+fixation targets. The source image is the `coffee.png` test image distributed
+by [JuliaImages/TestImages.jl](https://github.com/JuliaImages/TestImages.jl).
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_input.png" alt="Coffee photograph input" style="width:100%;" /><figcaption>Coffee input (grayscale)</figcaption></figure>
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_output.png" alt="Itti-Koch coffee saliency output" style="width:100%;" /><figcaption>Output fixation-saliency map</figcaption></figure>
+</div>
+```
+All parameter comparisons below use the same coffee input shown above.
+
+#### Effect of `orientation_weight`
+
+At `0`, only intensity contrast contributes. At `1`, only oriented contrast
+contributes; `0.5` gives both equal weight.
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_orientation_0.png" alt="Coffee saliency with orientation weight zero" style="width:100%;" /><figcaption><code>orientation_weight = 0.0</code></figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_orientation_05.png" alt="Coffee saliency with equal intensity and orientation weights" style="width:100%;" /><figcaption><code>orientation_weight = 0.5</code> (default)</figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_orientation_1.png" alt="Coffee saliency with orientation weight one" style="width:100%;" /><figcaption><code>orientation_weight = 1.0</code></figcaption></figure>
+</div>
+```
+
+#### Effect of `smoothing_sigma`
+
+Increasing the Gaussian standard deviation merges nearby responses and spreads
+sharp peaks. A value of `0` skips final smoothing.
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_smoothing_0.png" alt="Coffee saliency without final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 0.0</code> (default)</figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_smoothing_15.png" alt="Coffee saliency with moderate final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 1.5</code></figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_smoothing_4.png" alt="Coffee saliency with strong final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 4.0</code></figcaption></figure>
+</div>
+```
+
+
+#### Second scene: Lena (16-bit grayscale)
+
+The source is `lena_gray_16bit.png` from
+[JuliaImages/TestImages.jl](https://github.com/JuliaImages/TestImages.jl). This
+example keeps `N0f16` storage through the MAGE input and output wrappers.
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_input.png" alt="Lena 16-bit grayscale input" style="width:100%;" /><figcaption>Lena input (<code>N0f16</code>)</figcaption></figure>
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_output.png" alt="Itti-Koch Lena saliency output" style="width:100%;" /><figcaption>Default fixation-saliency map</figcaption></figure>
+</div>
+```
+
+##### Effect of `orientation_weight`
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_orientation_0.png" alt="Lena saliency with orientation weight zero" style="width:100%;" /><figcaption><code>orientation_weight = 0.0</code></figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_orientation_05.png" alt="Lena saliency with equal intensity and orientation weights" style="width:100%;" /><figcaption><code>orientation_weight = 0.5</code> (default)</figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_orientation_1.png" alt="Lena saliency with orientation weight one" style="width:100%;" /><figcaption><code>orientation_weight = 1.0</code></figcaption></figure>
+</div>
+```
+
+##### Effect of `smoothing_sigma`
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_smoothing_0.png" alt="Lena saliency without final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 0.0</code> (default)</figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_smoothing_15.png" alt="Lena saliency with moderate final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 1.5</code></figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_smoothing_4.png" alt="Lena saliency with strong final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 4.0</code></figcaption></figure>
+</div>
+```
+
+```@docs
+UTCGP.image2D_saliency_fixation.itti_koch_saliency_image2D_factory
+```
+
+The implementation follows the multiscale map construction in
+[Itti, Koch, and Niebur (1998)](https://doi.org/10.1109/34.730558), with the
+documented grayscale and static-map restrictions above.
+
+## Fixation Saliency with Spectral Residual Saliency
+
+`spectral_residual_saliency` implements the frequency-domain method of Hou and
+Zhang. It removes the locally predictable part of the Fourier log-amplitude
+spectrum, retains the original phase, reconstructs and squares the residual,
+then smooths and normalizes the map. It is a bottom-up novelty detector rather
+than a semantic object detector: a distinctive background can therefore still
+outscore a familiar foreground object.
+
+The specialized callable has these effective signatures:
+
+```julia
+saliency = fn(img)
+saliency = fn(img, spectral_average_radius)
+saliency = fn(img, spectral_average_radius, smoothing_sigma)
+```
+
+| Parameter | Accepted mapping | Effect | Default |
+|:--|:--|:--|:--|
+| `spectral_average_radius` | rounded and clamped to `1:15` | Uses a `(2r + 1) × (2r + 1)` circular mean of the log-amplitude spectrum | `1` (`3 × 3`) |
+| `smoothing_sigma` | finite values clamped to `[0, 5]` pixels | Spreads sharp residual peaks in the final spatial map; below `0.1` (including `0`) there is no smoothing | `2.0` |
+
+Non-finite values use the defaults. The output preserves the exact input size
+and specialized `IntensityPixel` storage type.
+
+```@example
+using UTCGP
+using ImageCore: N0f8
+
+values = zeros(Float64, 64, 64)
+values[25:40, 25:40] .= 1.0
+img = SImageND(IntensityPixel{N0f8}.(values))
+fn = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(img))
+saliency = fn(img)
+
+(size(saliency), eltype(saliency), extrema(reinterpret(saliency.img)))
+```
+
+### Cell image
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_input.png" alt="Cell intensity input" style="width:100%;" /><figcaption>Cell input</figcaption></figure>
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_cell_output.png" alt="Spectral residual cell saliency" style="width:100%;" /><figcaption>Spectral-residual saliency</figcaption></figure>
+</div>
+```
+
+### Coffee cup
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_input.png" alt="Coffee intensity input" style="width:100%;" /><figcaption>Coffee input (grayscale)</figcaption></figure>
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_output.png" alt="Spectral residual coffee saliency" style="width:100%;" /><figcaption>Default spectral-residual saliency</figcaption></figure>
+</div>
+```
+
+#### Effect of `spectral_average_radius`
+
+A larger radius removes broader trends in the log spectrum and changes the
+spatial scale at which spectral novelty is emphasized.
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_radius_1.png" alt="Coffee spectral residual radius one" style="width:100%;" /><figcaption><code>spectral_average_radius = 1</code> (default)</figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_radius_3.png" alt="Coffee spectral residual radius three" style="width:100%;" /><figcaption><code>spectral_average_radius = 3</code></figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_radius_7.png" alt="Coffee spectral residual radius seven" style="width:100%;" /><figcaption><code>spectral_average_radius = 7</code></figcaption></figure>
+</div>
+```
+
+#### Effect of `smoothing_sigma`
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_smoothing_0.png" alt="Coffee spectral residual without smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 0.0</code></figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_smoothing_2.png" alt="Coffee spectral residual smoothing two" style="width:100%;" /><figcaption><code>smoothing_sigma = 2.0</code> (default)</figcaption></figure>
+<figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_smoothing_5.png" alt="Coffee spectral residual smoothing five" style="width:100%;" /><figcaption><code>smoothing_sigma = 5.0</code></figcaption></figure>
+</div>
+```
+
+### Lena (16-bit grayscale)
+
+```@raw html
+<div style="display:flex; gap:1rem; align-items:flex-start;">
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_input.png" alt="Lena 16-bit intensity input" style="width:100%;" /><figcaption>Lena input (<code>N0f16</code>)</figcaption></figure>
+<figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_lena_output.png" alt="Spectral residual Lena saliency" style="width:100%;" /><figcaption>Default spectral-residual saliency</figcaption></figure>
+</div>
+```
+
+```@docs
+UTCGP.image2D_saliency_fixation.spectral_residual_saliency_image2D_factory
+```
+
+Reference: [Hou and Zhang (2007)](https://doi.org/10.1109/CVPR.2007.383267).
+
+## Orientation Image Maps
+
+`bundle_image2DIntensity_orientation_factory` turns an intensity image into
+maps of its edges, from Sobel derivatives:
+
+| Operator | Output |
+|:--|:--|
+| `grad_magnitude(img)` | Edge strength at each pixel, rescaled so the strongest edge of the image is `1`. |
+| `grad_orientation(img)` | The **gradient** orientation (the direction *across* the edge, where the intensity changes fastest) divided by 180°, in `[0, 1)`. Flat pixels also read `0`. |
+| `orientation_select(img, θ, bandwidth)` | The edge strength, kept only where the gradient orientation is within `bandwidth · 90°` of `θ · 180°` (`θ` wraps around `1`), then rescaled to `[0, 1]`. Defaults `θ = 0`, `bandwidth = 0.2` (±18°). |
+
+**Angle conventions.** Image rows grow downwards, so angles are measured from
+"pointing right" **clockwise on screen**: `0` = right, `0.25` (45°) = down
+and to the right, `0.5` (90°) = down, `0.75` (135°) = down and to the left.
+An orientation has no head or tail, so `0` and `1` are the same.
+
+These maps use the **gradient** direction, which is perpendicular to the
+edge: a vertical edge (dark left, bright right) has gradient orientation `0`,
+and `orientation_select(img, 0)` keeps vertical edges. The scalar summaries
+of the number library (`orientation_energy_*`, `dominant_orientation`) use
+the **edge** direction instead, so `orientation_energy_90` measures those same
+vertical edges.
+
+```@setup orientation_maps
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+assets = g_assets("orientation")
+# A bright disk on black: its border has edges at every orientation. The
+# border is a 2-pixel ramp, so the angles are not quantised by a pixel staircase.
+disk = g_intensity([0.1 + 0.8 * clamp((23 - hypot(r - 32.5, c - 32.5)) / 2, 0, 1) for r in 1:64, c in 1:64])
+I = typeof(disk)
+op(name) = bundle_image2DIntensity_orientation_factory[name].fn(I)
+save3(name, img) = g_save(assets, name, g_up(g_canvas(img), 3))
+save3("disk.png", disk)
+save3("disk_magnitude.png", g_call(op(:grad_magnitude), disk))
+save3("disk_orientation.png", g_call(op(:grad_orientation), disk))
+for θ in (0.0, 0.25, 0.5, 0.75)
+    save3("disk_select_$(g_tag(θ)).png", g_call(op(:orientation_select), disk, θ, 0.1))
+end
+for bw in (0.05, 0.2, 0.5, 1.0)
+    save3("disk_select_bw_$(g_tag(bw)).png", g_call(op(:orientation_select), disk, 0.0, bw))
+end
+# Straight edges at four orientations, for the reference table.
+steps = [
+    ("vertical edge", [c > 32 ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+    ("horizontal edge", [r > 32 ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+    ("\\ edge", [c >= r ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+    ("/ edge", [c + r >= 65 ? 0.9 : 0.1 for r in 1:64, c in 1:64]),
+]
+for (k, (_, values)) in enumerate(steps)
+    save3("step_$(k).png", g_intensity(values))
+end
+cell_values = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end]
+cell = g_intensity(cell_values)
+cop(name) = bundle_image2DIntensity_orientation_factory[name].fn(typeof(cell))
+g_save(assets, "cell.png", g_canvas(cell))
+g_save(assets, "cell_magnitude.png", g_canvas(g_call(cop(:grad_magnitude), cell)))
+g_save(assets, "cell_orientation.png", g_canvas(g_call(cop(:grad_orientation), cell)))
+g_save(assets, "cell_select_0.png", g_canvas(g_call(cop(:orientation_select), cell, 0.0, 0.2)))
+g_save(assets, "cell_select_05.png", g_canvas(g_call(cop(:orientation_select), cell, 0.5, 0.2)))
+```
+
+On a bright disk, every edge orientation appears once around the border, so
+the disk shows the conventions at a glance (the original is shown at 3×):
+
+| Input | `grad_magnitude` | `grad_orientation` |
+|:--:|:--:|:--:|
+| ![disk](../assets/fns/orientation/disk.png) | ![magnitude](../assets/fns/orientation/disk_magnitude.png) | ![orientation](../assets/fns/orientation/disk_orientation.png) |
+
+In `grad_orientation`, the left and right sides of the disk (vertical edges,
+gradient pointing left/right) are near `0` (black) or `1` (white, the same
+angle after wrapping around); the top and bottom (horizontal edges, gradient
+pointing up/down) are mid-grey (`0.5`). The black inside and outside the disk
+are flat pixels, which also read `0`: use `grad_magnitude` to tell them
+apart.
+
+**Effect of `θ`** on `orientation_select(disk, θ, 0.1)` (±9°): each value
+keeps the part of the border whose gradient points that way.
+
+| `θ = 0`: gradient → right/left, **vertical** edges | `θ = 0.25`: ↘/↖, the `/` parts of the border | `θ = 0.5`: ↓/↑, **horizontal** edges | `θ = 0.75`: ↙/↗, the `\` parts of the border |
+|:--:|:--:|:--:|:--:|
+| ![θ 0](../assets/fns/orientation/disk_select_00.png) | ![θ 0.25](../assets/fns/orientation/disk_select_025.png) | ![θ 0.5](../assets/fns/orientation/disk_select_05.png) | ![θ 0.75](../assets/fns/orientation/disk_select_075.png) |
+
+**Effect of `bandwidth`** on `orientation_select(disk, 0, bandwidth)`: the
+band is `±bandwidth · 90°`, so `1` keeps every edge.
+
+| `0.05` (±4.5°) | `0.2` (±18°, default) | `0.5` (±45°) | `1.0` (±90°: everything) |
+|:--:|:--:|:--:|:--:|
+| ![bw 0.05](../assets/fns/orientation/disk_select_bw_005.png) | ![bw 0.2](../assets/fns/orientation/disk_select_bw_02.png) | ![bw 0.5](../assets/fns/orientation/disk_select_bw_05.png) | ![bw 1](../assets/fns/orientation/disk_select_bw_10.png) |
+
+The values `grad_orientation` gives on straight edges, and which `θ` of
+`orientation_select` keeps them:
+
+```@example orientation_maps
+println(rpad("edge", 18), rpad("grad_orientation on the edge", 32), "kept by orientation_select(img, θ) with θ =")
+for (name, values) in steps
+    img = g_intensity(values)
+    inside = (8:57, 8:57)                       # away from the image border
+    pixels(out) = Float64.(reinterpret(out.img))[inside...]
+    orientation = pixels(g_call(op(:grad_orientation), img))
+    on_edge = pixels(g_call(op(:grad_magnitude), img)) .> 0.5
+    mean_orientation = round(sum(orientation .* on_edge) / count(on_edge), digits = 2)
+    kept = [θ for θ in (0.0, 0.25, 0.5, 0.75) if any(>(0), pixels(g_call(op(:orientation_select), img, θ, 0.1)))]
+    println(rpad(name, 18), rpad(mean_orientation, 32), kept)
+end
+```
+
+| vertical edge | horizontal edge | `\` edge | `/` edge |
+|:--:|:--:|:--:|:--:|
+| ![](../assets/fns/orientation/step_1.png) | ![](../assets/fns/orientation/step_2.png) | ![](../assets/fns/orientation/step_3.png) | ![](../assets/fns/orientation/step_4.png) |
+
+On a microscopy image:
+
+| Input | `grad_magnitude` | `grad_orientation` | `orientation_select(img, 0, 0.2)`: vertical edges | `orientation_select(img, 0.5, 0.2)`: horizontal edges |
+|:--:|:--:|:--:|:--:|:--:|
+| ![cell](../assets/fns/orientation/cell.png) | ![](../assets/fns/orientation/cell_magnitude.png) | ![](../assets/fns/orientation/cell_orientation.png) | ![](../assets/fns/orientation/cell_select_0.png) | ![](../assets/fns/orientation/cell_select_05.png) |
 
 ## Block Pooling Functions
 
@@ -197,8 +489,20 @@ The pooling functions are exposed through the typed image pooling bundles:
 
 These functions use non-overlapping block windows scanned from left to right and
 top to bottom. Each block is reduced to a single value, and that value is
-written back over the covered block. There is no padding; the last block on the
-right or bottom may be partial if the image size is not divisible by `k`.
+written back over the covered block, so **the output has the same size as the
+input** and looks like a mosaic of `k × k` tiles. There is no padding; the last
+block on the right or bottom may be partial if the image size is not divisible
+by `k`.
+
+- `k` is rounded and clamped to `1` … the longer image side; `NaN`/`±Inf`
+  use `2`. `k = 1` returns the image unchanged.
+- **Segment images** (label maps): averaging label numbers would invent labels
+  that are not in the image (the mean of labels `1` and `3` is `2`), so the
+  `avg` poolers return the **most frequent label** of each block instead (ties
+  go to the smallest label). `max`/`min` keep the largest/smallest label.
+- **Binary images**: `avg` is a majority vote (the mean rounded to `0`/`1`),
+  `max` is a dilation-like "any pixel set", `min` an erosion-like "all pixels
+  set".
 
 To obtain a callable function, first select the function from the bundle, then
 specialize it on the concrete image type.
@@ -848,6 +1152,21 @@ These functions use full sliding `k × k` windows with no padding. Only windows
 that fully fit in the image are reduced, using the provided `stride`, and the
 reduced image is then resized back to the original size with nearest-neighbor
 sampling.
+
+- `k` is rounded and clamped to `1` … the shorter image side, and `stride` to
+  `1` … the longer side (`NaN`/`±Inf` use `k = 2`, `stride = 1`).
+- The number of windows along a side is `fld(n - k, stride) + 1`. With
+  `n = 28`, `k = 5`, `stride = 1` that is 24 windows, stretched back over 28
+  pixels: output pixel `1` shows the window centred on pixel `3`, output
+  pixel `28` the window centred on pixel `26`, and a few rows and columns are
+  repeated in between. The result is a slightly zoomed-in version of the
+  input; with a larger `stride` it also looks blocky.
+- The count poolers (`uniquecountpool`, `argmaxcountpool`, `argmincountpool`)
+  count pixels, so they are rescaled to `[0, 1]` over the whole image before
+  being stored.
+- **Segment images**: `meanpool` returns the most frequent label of each
+  window (ties go to the smallest label) rather than an invented average
+  label.
 
 The sliding-window poolers are exposed through:
 
@@ -1734,4 +2053,97 @@ nothing # hide
      <img src="${base}/assets/fns/image_pooler/iqrpool_segment_k5_s2_after.png" alt="After iqrpool segment k=5 stride=2" style="width:50%;" />`;
 })();
 </script>
+```
+
+## Core image operators: gallery
+
+Pictures of every operator of the basic, arithmetic, transcendental, filtering,
+morphology, thresholding and segmentation bundles are on their own page:
+[Core Image Operators](@ref).
+
+## All image bundles
+
+### Basics, casts and arithmetic
+
+```@docs
+UTCGP.image2D_basic
+bundle_image2DIntensity_basic_factory
+bundle_image2DBinary_basic_factory
+bundle_image2DSegment_basic_factory
+```
+
+```@docs
+UTCGP.image2D_arithmetic
+bundle_image2DIntensity_arithmetic_factory
+bundle_image2DBinary_arithmetic_factory
+```
+
+```@docs
+UTCGP.image2D_barithmetic
+bundle_image2DIntensity_barithmetic_factory
+```
+
+```@docs
+UTCGP.image2D_transcendental
+bundle_image2DIntensity_transcendental_factory
+```
+
+### Filtering
+
+```@docs
+UTCGP.image2D_filtering
+bundle_image2DIntensity_filtering_factory
+bundle_image2DBinary_filtering_factory
+```
+
+### Morphology
+
+```@docs
+UTCGP.image2D_morph
+bundle_image2DIntensity_morph_factory
+bundle_image2DBinary_morph_factory
+```
+
+### Orientation
+
+```@docs
+UTCGP.image2D_orientation
+bundle_image2DIntensity_orientation_factory
+```
+
+### Fixation saliency
+
+```@docs
+UTCGP.image2D_saliency_fixation
+bundle_image2DIntensity_saliency_fixation_factory
+```
+
+### Thresholding
+
+```@docs
+UTCGP.image2D_binarize
+bundle_image2DBinary_binarize_factory
+```
+
+### Segmentation
+
+```@docs
+UTCGP.image2D_segmentation
+bundle_image2DSegment_segmentation_factory
+```
+
+### Pooling
+
+```@docs
+UTCGP.image_pool
+bundle_image2DIntensity_pool_factory
+bundle_image2DBinary_pool_factory
+bundle_image2DSegment_pool_factory
+```
+
+```@docs
+UTCGP.image_pooler
+bundle_image2DIntensity_pooler_factory
+bundle_image2DBinary_pooler_factory
+bundle_image2DSegment_pooler_factory
 ```

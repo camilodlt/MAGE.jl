@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Set Operations.
+Set operations over lists.
 
-Exports :
+# Bundles
 
-- **bundle\\_listgeneric\\_set** :
-    - `intersect_`
-    - `left_join`
+- [`bundle_listgeneric_set`](@ref)
+- [`bundle_listgeneric_set_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listgeneric_set
 
@@ -20,7 +21,24 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 # ##### #
 fallback() = []
 
+"""
+    bundle_listgeneric_set
+
+Set operations over lists: `intersect_`, `left_join`, and
+`intersect_with_duplicates`, which keeps repeated elements instead of collapsing
+them.
+"""
 bundle_listgeneric_set = FunctionBundle(fallback)
+"""
+    bundle_listgeneric_set_factory
+
+Factory form of [`bundle_listgeneric_set`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listgeneric_set_factory = FunctionBundle(fallback)
 
 # FUNCTIONS ---

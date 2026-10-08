@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Where operations
+Positional writes into a list.
 
-Exports :
+# Bundles
 
-- **bundle\\_listgeneric\\_where** :
-    - `replace_vec_at`
+- [`bundle_listgeneric_where`](@ref)
+- [`bundle_listgeneric_where_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listgeneric_where
 using ..UTCGP: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
@@ -17,7 +19,22 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 # ############################### #
 fallback() = []
 
+"""
+    bundle_listgeneric_where
+
+`replace_vec_at`: write a value into a list at a given position.
+"""
 bundle_listgeneric_where = FunctionBundle(fallback)
+"""
+    bundle_listgeneric_where_factory
+
+Factory form of [`bundle_listgeneric_where`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listgeneric_where_factory = FunctionBundle(fallback)
 
 

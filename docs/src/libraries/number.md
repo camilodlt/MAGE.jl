@@ -2,6 +2,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
 
   # NUMBER ARITHMETIC
   using UTCGP.number_arithmetic:number_sum
@@ -25,7 +26,7 @@ end
 Pages = ["number.md"]
 ```
 
-# Integer Operations
+# Number Operations
 
 ## Orientation Summary From Image
 
@@ -33,9 +34,33 @@ These scalar summaries are exposed through:
 
 - `bundle_float_orientation`
 
-They operate on intensity images and use raw Sobel derivatives internally.
-Each example below shows the original image, Sobel x, Sobel y, and the scalar
-result.
+They summarise the **edges** of an intensity image in one number each. Every
+pixel gets, from Sobel derivatives `gx` (along columns) and `gy` (along rows):
+
+- an **edge strength** `sqrt(gx² + gy²)`, which weights the pixel (flat pixels
+  count for nothing);
+- an **edge orientation**: the direction *along* the edge, perpendicular to the
+  gradient. Rows grow downwards, so angles run **clockwise on screen**: `0°`
+  is a horizontal edge, `45°` a `\` diagonal (going down to the right), `90°`
+  a vertical edge, `135°` a `/` diagonal.
+
+| Operator | Value |
+|:--|:--|
+| `orientation_energy_0` / `_45` / `_90` / `_135` | Each pixel's strength goes to the nearest of the four orientations; each operator returns the share of the total in its bin. The four sum to `1` (`0` on a flat image). |
+| `dominant_orientation` | The bin with the largest share, divided by 180°: `0` horizontal, `0.25` `\`, `0.5` vertical, `0.75` `/`. A tie goes to the first of these (the grid below gives `0`). |
+| `orientation_coherence` | The length of the vector `Σ strength · (cos 2θ, sin 2θ)` divided by `Σ strength`: `1` when every edge has the same orientation, near `0` when the orientations cancel out (e.g. as many horizontal as vertical edges). Doubling the angle makes `θ` and `θ + 180°` count as the same orientation. |
+| `orientation_spread` | `1 − orientation_coherence`. |
+
+The image maps `grad_orientation` and `orientation_select` of the image
+library use the **gradient** direction instead (90° away): there, a vertical
+edge has orientation `0`.
+
+
+Each example below shows the original image, the Sobel derivatives `gx` and
+`gy` (rescaled to black … white for display), the **gradient** orientation
+`atan(gy, gx)` over 180° (black also on flat pixels), and the **edge**
+orientation drawn as a small line in each pixel, brighter where the edge is
+stronger; this is the orientation the scalars use.
 
 ### Orientation Function Index
 
@@ -170,9 +195,32 @@ _save_orientation_summary_set("orientation_energy_135", orientation_energy_135_i
 _save_orientation_summary_set("orientation_spread", orientation_spread_img)
 ```
 
+All seven values on all seven example images below (rows: images, columns:
+operators):
+
+```@example orientation_summary_assets
+images = [
+    "vertical bars" => orientation_coherence_img,
+    "/ step (135°)" => dominant_orientation_img,
+    "horizontal step" => orientation_energy_0_img,
+    "\\ step (45°)" => orientation_energy_45_img,
+    "vertical step" => orientation_energy_90_img,
+    "/ line (135°)" => orientation_energy_135_img,
+    "grid" => orientation_spread_img,
+]
+ops = [:orientation_energy_0, :orientation_energy_45, :orientation_energy_90, :orientation_energy_135,
+       :dominant_orientation, :orientation_coherence, :orientation_spread]
+short = ["E0", "E45", "E90", "E135", "dominant", "coherence", "spread"]
+println(rpad("", 17), join(lpad.(short, 10)))
+for (name, img) in images
+    values = [UTCGP.bundle_float_orientation[op].fn(img) for op in ops]
+    println(rpad(name, 17), join(lpad.(string.(round.(values, digits = 2)), 10)))
+end
+```
+
 ### `orientation_coherence`
 
-Measure how aligned the image orientations are.
+Measure how aligned the edges are. The vertical bars have only vertical edges, so the coherence is `1`.
 
 ```@example orientation_summary_assets
 img = orientation_coherence_img
@@ -192,7 +240,7 @@ fn(img)
 
 ### `dominant_orientation`
 
-Dominant structure orientation over the whole image.
+The edge orientation bin with the most edge strength. This step has a single `/` edge (135°), so the result is `0.75`.
 
 ```@example orientation_summary_assets
 img = dominant_orientation_img
@@ -212,7 +260,7 @@ fn(img)
 
 ### `orientation_energy_0`
 
-Directional energy near horizontal structure.
+Share of the edge strength on horizontal edges. The horizontal step gives `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_0_img
@@ -232,7 +280,7 @@ fn(img)
 
 ### `orientation_energy_45`
 
-Directional energy near 45-degree structure.
+Share of the edge strength on `\` diagonal edges (down to the right, 45° clockwise). The `\` step gives (nearly) `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_45_img
@@ -252,7 +300,7 @@ fn(img)
 
 ### `orientation_energy_90`
 
-Directional energy near vertical structure.
+Share of the edge strength on vertical edges. The vertical step gives `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_90_img
@@ -272,7 +320,7 @@ fn(img)
 
 ### `orientation_energy_135`
 
-Directional energy near 135-degree structure.
+Share of the edge strength on `/` diagonal edges (135° clockwise). The `/` line gives (nearly) `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_135_img
@@ -292,7 +340,7 @@ fn(img)
 
 ### `orientation_spread`
 
-Dispersion of the image orientations.
+`1 − orientation_coherence`. The grid has as much horizontal as vertical edge strength; doubled, these angles point opposite ways and cancel, so the spread is close to `1`.
 
 ```@example orientation_summary_assets
 img = orientation_spread_img
@@ -312,23 +360,57 @@ fn(img)
 
 ## Image To Float Region Statistics
 
-These functions reduce a fixed local patch around a normalized image location to
-one `Float64`. They are exposed through:
+These functions reduce a square window of an image to one `Float64`. They are
+exposed through:
 
 - `bundle_number_regionFromImg`
 
-Coordinates are normalized in `[0, 1]`. For the first version:
+Every operator is called as `fn(img, cx, cy)`. `(cx, cy)` is the window's
+centre in normalised coordinates: `cx` picks the column and `cy` the row, `0`
+being the first pixel and `1` the last (`0.5, 0.5` is the image centre).
+Values outside `[0, 1]` are clamped, `NaN`/`±Inf` mean `0.5`.
 
-- `region_mean`, `region_std`, `region_min`, `region_max`, `region_sum`,
-  `region_median`, `region_range`, `region_energy`, and `region_entropy`
-  operate on a fixed `3 × 3` patch centered at `(cx, cy)`.
-- `region_contrast` compares that `3 × 3` center patch to its surrounding `5 × 5`
-  ring.
-- the same family is also available at fixed relative scales:
-  `*_5p`, `*_10p`, and `*_20p`, where the patch side is derived from `5%`, `10%`,
-  or `20%` of `min(height, width)`, clamped to an odd valid size.
-- windows are clipped at image borders, so corner evaluations use smaller valid
-  patches rather than padding.
+- **Statistics**: `mean`, `std`, `min`, `max`, `sum`, `median`, `range`
+  (`max − min`), `energy` (mean of the squared values) and `entropy` (the
+  window's values are rescaled to its own min … max, put into 8 bins, and the
+  Shannon entropy of the bin counts is returned in bits: `0` for a uniform
+  window, up to `3`).
+- **`contrast`**: the mean of the window minus the mean of the **ring**
+  around it, i.e. a larger window centred at the same point with the inner
+  window removed. Positive when the centre is brighter than its surroundings.
+- **Window sizes**: without suffix the window is `3 × 3` (and the contrast
+  ring comes from a `5 × 5` window). With `_5p`, `_10p` and `_20p` the side is
+  5%, 10% or 20% of the image's shorter side, rounded, made odd, and at
+  least `3` pixels; the contrast ring then comes from a window of half-width
+  `2 · half + 1` (at most half the image).
+- **Borders**: windows are clipped at the image border (no padding), so near
+  a border fewer pixels are used. The ring of `contrast` is taken from the
+  clipped windows too.
+- Binary images count as `0`/`1`; segment images use their label numbers.
+
+Window sides for a few image sizes (the `_5p` and `_10p` windows of small
+images are often just the `3 × 3` minimum):
+
+```@example
+using UTCGP
+using ImageCore: N0f8
+R = UTCGP.number_regionFromImg
+side(half) = 2half + 1
+println(rpad("image", 10), rpad("_5p", 18), rpad("_10p", 18), "_20p        (window / contrast outer window)")
+for n in (28, 30, 64, 128, 256)
+    img = SImageND(IntensityPixel{N0f8}.(zeros(n, n)))
+    cells = map((0.05, 0.10, 0.20)) do pct
+        half = R._region_half_size_from_percent(img, pct)
+        string(side(half), " / ", side(R._region_contrast_outer_half_size(img, half)))
+    end
+    println(rpad("$(n)×$(n)", 10), join(rpad.(cells, 18)))
+end
+```
+
+In the pictures below, the **red** square is the window the statistic reads
+(after clipping), and for the `contrast` operators the **green** square is
+the outer window whose ring (green minus red) is compared to it. The boxes
+come from the same bounds functions the operators use.
 
 ### Region Function Index
 
@@ -474,7 +556,10 @@ function _region_examples_md(specs)
             inner = UTCGP.number_regionFromImg._region_bounds(from, cx, cy, half_size)
             boxes = [(inner[1], inner[2], inner[3], inner[4], RGB(1, 0, 0))]
             if occursin("contrast", String(fn_name))
-                outer = UTCGP.number_regionFromImg._region_contrast_bounds(from, cx, cy, half_size)
+                outer_half = fn_name === :region_contrast ?
+                    UTCGP.number_regionFromImg._REGION_CONTRAST_OUTER_HALF_SIZE :
+                    UTCGP.number_regionFromImg._region_contrast_outer_half_size(from, half_size)
+                outer = UTCGP.number_regionFromImg._region_bounds(from, cx, cy, outer_half)
                 push!(boxes, (outer[1], outer[2], outer[3], outer[4], RGB(0, 1, 0)))
             end
             return boxes
@@ -520,9 +605,9 @@ region_fn_specs = [
     (:region_sum, "Sum over a fixed 3x3 local patch."),
     (:region_median, "Median over a fixed 3x3 local patch."),
     (:region_range, "Range over a fixed 3x3 local patch."),
-    (:region_contrast, "Mean(center 3x3) minus mean(surrounding 5x5 ring)."),
+    (:region_contrast, "Mean of the 3x3 window minus the mean of the ring around it (the 5x5 window without the 3x3 one)."),
     (:region_energy, "Mean squared value over a fixed 3x3 local patch."),
-    (:region_entropy, "Cheap 8-bin entropy over a fixed 3x3 local patch."),
+    (:region_entropy, "Entropy (bits) of an 8-bin histogram of a fixed 3x3 local patch."),
     (:region_mean_5p, "Mean over a local patch sized from 5% of min(image side)."),
     (:region_mean_10p, "Mean over a local patch sized from 10% of min(image side)."),
     (:region_mean_20p, "Mean over a local patch sized from 20% of min(image side)."),
@@ -544,15 +629,15 @@ region_fn_specs = [
     (:region_range_5p, "Range over a local patch sized from 5% of min(image side)."),
     (:region_range_10p, "Range over a local patch sized from 10% of min(image side)."),
     (:region_range_20p, "Range over a local patch sized from 20% of min(image side)."),
-    (:region_contrast_5p, "Center-versus-ring contrast with a 5% local center scale."),
-    (:region_contrast_10p, "Center-versus-ring contrast with a 10% local center scale."),
-    (:region_contrast_20p, "Center-versus-ring contrast with a 20% local center scale."),
+    (:region_contrast_5p, "Mean of the window sized from 5% of min(image side) minus the mean of the ring around it."),
+    (:region_contrast_10p, "Mean of the window sized from 10% of min(image side) minus the mean of the ring around it."),
+    (:region_contrast_20p, "Mean of the window sized from 20% of min(image side) minus the mean of the ring around it."),
     (:region_energy_5p, "Mean squared value over a local patch sized from 5% of min(image side)."),
     (:region_energy_10p, "Mean squared value over a local patch sized from 10% of min(image side)."),
     (:region_energy_20p, "Mean squared value over a local patch sized from 20% of min(image side)."),
-    (:region_entropy_5p, "Cheap 8-bin entropy over a local patch sized from 5% of min(image side)."),
-    (:region_entropy_10p, "Cheap 8-bin entropy over a local patch sized from 10% of min(image side)."),
-    (:region_entropy_20p, "Cheap 8-bin entropy over a local patch sized from 20% of min(image side)."),
+    (:region_entropy_5p, "Entropy (bits) of an 8-bin histogram of a local patch sized from 5% of min(image side)."),
+    (:region_entropy_10p, "Entropy (bits) of an 8-bin histogram of a local patch sized from 10% of min(image side)."),
+    (:region_entropy_20p, "Entropy (bits) of an 8-bin histogram of a local patch sized from 20% of min(image side)."),
 ]
 
 _region_examples_md(region_fn_specs)
@@ -564,9 +649,55 @@ These scalar Haar-like features are exposed through:
 
 - `bundle_number_haarFromImg`
 
-`position` is a normalized column-major flattened position in `[0, 1]`. `size`
-is converted to a positive integer half-extent in pixels. The region is clipped
-to the image; no padding is used.
+A Haar feature compares the mean brightness of neighbouring rectangles inside
+a square window. Every operator is called as `fn(img, position, size)`:
+
+- **`position`** (`0` … `1`) picks the window's centre pixel with a single
+  number: the pixels are numbered column by column (down the first column,
+  then down the second, …, Julia's column-major order), and `position` is the
+  fraction of the way through that list. `0` is the top-left pixel, `1` the
+  bottom-right one. Values outside `[0, 1]` are clamped; `NaN`/`±Inf` mean
+  `0.5`.
+- **`size`** is the half-width of the window: `round(abs(size))`, at least `1`.
+  The window is `(2·size + 1) × (2·size + 1)` pixels and is clipped at the
+  image border (no padding), so near a border it is smaller.
+- **The value** is `mean(pixels marked +) − mean(pixels marked −)`.
+  Positive when the `+` rectangles are brighter. Pixels marked `·` are not used
+  (e.g. the middle column of an odd-width `haar_lr`).
+
+In the pictures, the `+` rectangles are tinted **red** and the `−` ones
+**blue** (dark red / dark blue over dark pixels, pink / light blue over bright
+ones), drawn from the same weight mask the operator uses
+(`_haar_weight_matrix`); grey pixels are outside the window or unused.
+
+Where `position` lands on a `7 × 7` image (49 pixels, numbered `1` … `49`):
+
+```@example
+using UTCGP
+using ImageCore: N0f8
+img = SImageND(IntensityPixel{N0f8}.(zeros(7, 7)))
+for position in (0.0, 0.0625, 0.2, 0.5, 0.75, 1.0)
+    row, col = UTCGP.number_imgRegionCommon._position_row_col(img, position)
+    println("position = ", rpad(position, 7), "→ pixel ", rpad(round(Int, position * 48 + 1), 3), "→ (row ", row, ", column ", col, ")")
+end
+```
+
+The masks of a full (unclipped) window, for `size = 1` (`3 × 3`) and
+`size = 2` (`5 × 5`), as the operators build them:
+
+```@example
+using UTCGP
+sym(w) = w > 0 ? "+" : w < 0 ? "−" : "·"
+kinds = (:haar_lr, :haar_tb, :haar_diag_main, :haar_diag_anti, :haar_center_surround, :haar_three_h, :haar_three_v)
+for n in (3, 5)
+    masks = [UTCGP.number_haarFromImg._haar_weight_matrix(k, n, n) for k in kinds]
+    println(join(rpad.(string.(kinds), 22)))
+    for r in 1:n
+        println(join([rpad(join(sym.(m[r, :]), " "), 22) for m in masks]))
+    end
+    println()
+end
+```
 
 ### Haar Function Index
 
@@ -716,41 +847,41 @@ haar_center_surround_binary = haar_binary_image(Bool[
 ])
 
 haar_three_h_intensity = haar_intensity_image([
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
 ])
 haar_three_h_binary = haar_binary_image(Bool[
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
-    1 1 0 0 1 1 0;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
+    1 1 1 0 1 1 1;
 ])
 
 haar_three_v_intensity = haar_intensity_image([
     1 1 1 1 1 1 1;
     1 1 1 1 1 1 1;
-    0 0 0 0 0 0 0;
+    1 1 1 1 1 1 1;
     0 0 0 0 0 0 0;
     1 1 1 1 1 1 1;
     1 1 1 1 1 1 1;
-    0 0 0 0 0 0 0;
+    1 1 1 1 1 1 1;
 ])
 haar_three_v_binary = haar_binary_image(Bool[
     1 1 1 1 1 1 1;
     1 1 1 1 1 1 1;
-    0 0 0 0 0 0 0;
+    1 1 1 1 1 1 1;
     0 0 0 0 0 0 0;
     1 1 1 1 1 1 1;
     1 1 1 1 1 1 1;
-    0 0 0 0 0 0 0;
+    1 1 1 1 1 1 1;
 ])
 
 haar_specs = [
@@ -769,25 +900,23 @@ end
 _save_haar_set("haar_lr_intensity_s1", haar_lr_intensity, haar_lr_binary, :haar_lr, 0.5, 1)
 _save_haar_set("haar_lr_intensity_s2", haar_lr_intensity, haar_lr_binary, :haar_lr, 0.5, 2)
 _save_haar_set("haar_lr_intensity_s3", haar_lr_intensity, haar_lr_binary, :haar_lr, 0.5, 3)
-_save_haar_set("haar_lr_binary_p02_s2", haar_lr_intensity, haar_lr_binary, :haar_lr, 0.2, 2)
-_save_haar_set("haar_lr_binary_row4_col1_s2", haar_lr_intensity, haar_lr_binary, :haar_lr, 0.0625, 2)
+_save_haar_set("haar_lr_binary_p05_s2", haar_lr_intensity, haar_lr_binary, :haar_lr, 0.5, 2)
+_save_haar_set("haar_lr_binary_p075_s2", haar_lr_intensity, haar_lr_binary, :haar_lr, 0.75, 2)
 ```
 
 ### `haar_lr`
 
-Left-versus-right rectangular contrast.
+Left half (`+`) minus right half (`−`): positive when the left is brighter.
 
-Current size convention in this implementation:
-
-- `size = 1` means a clipped `3×3` local region
-- `size = 2` means a clipped `5×5` local region
-- `size = 3` means a clipped `7×7` local region
-
-The intensity examples below keep the same center position and vary only the
-size. The binary example keeps `size = 2` and moves the flattened position to
-`0.2` so the effect of the position parameter is visible too. The last binary
-example uses `position = 0.0625`, which maps to `(row=4, col=1)` in a `7x7`
-image under Julia's column-major flattening.
+The intensity image gets brighter to the right, so the values are negative,
+and grow in magnitude with `size` (`1`: `3 × 3`, `2`: `5 × 5`, `3`: `7 × 7`)
+because the window then reaches darker and brighter columns. The binary
+examples keep `size = 2` and move the window. At `position = 0.5` (the centre
+pixel) the window covers columns 2–6: the left two columns are white and the
+right two black, so the value is `1`. At `position = 0.75` (pixel 37, row 2,
+column 6) the window is clipped by the top and right borders to rows 1–4 and
+columns 4–7: the `+` half (columns 4–5) is half white, the `−` half
+(columns 6–7) black, so the value is `0.5`.
 
 ```@example haar_from_img_assets
 fn = UTCGP.bundle_number_haarFromImg[:haar_lr].fn
@@ -795,8 +924,8 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_lr].fn
     intensity_size_1 = fn(haar_lr_intensity, 0.5, 1),
     intensity_size_2 = fn(haar_lr_intensity, 0.5, 2),
     intensity_size_3 = fn(haar_lr_intensity, 0.5, 3),
-    binary_pos_02_size_2 = fn(haar_lr_binary, 0.2, 2),
-    binary_row4_col1_size_2 = fn(haar_lr_binary, 0.0625, 2),
+    binary_pos_05_size_2 = fn(haar_lr_binary, 0.5, 2),
+    binary_pos_075_size_2 = fn(haar_lr_binary, 0.75, 2),
 )
 ```
 
@@ -810,18 +939,18 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_lr].fn
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap; margin-top:1rem;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity size=3 orig</div><img src="../assets/fns/haar_from_img/haar_lr_intensity_s3_intensity_orig.png" alt="haar_lr intensity size 3 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity size=3 overlay</div><img src="../assets/fns/haar_from_img/haar_lr_intensity_s3_intensity_overlay.png" alt="haar_lr intensity size 3 overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
-<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.2 size=2 orig</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p02_s2_binary_orig.png" alt="haar_lr binary position 0.2 size 2 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
-<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.2 size=2 overlay</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p02_s2_binary_overlay.png" alt="haar_lr binary position 0.2 size 2 overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
+<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.5 size=2 orig</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p05_s2_binary_orig.png" alt="haar_lr binary position 0.5 size 2 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
+<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.5 size=2 overlay</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p05_s2_binary_overlay.png" alt="haar_lr binary position 0.5 size 2 overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap; margin-top:1rem;">
-<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary row=4 col=1 orig</div><img src="../assets/fns/haar_from_img/haar_lr_binary_row4_col1_s2_binary_orig.png" alt="haar_lr binary row 4 col 1 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
-<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary row=4 col=1 overlay</div><img src="../assets/fns/haar_from_img/haar_lr_binary_row4_col1_s2_binary_overlay.png" alt="haar_lr binary row 4 col 1 overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
+<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.75 size=2 orig</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p075_s2_binary_orig.png" alt="haar_lr binary position 0.75 size 2 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
+<div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.75 size=2 overlay</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p075_s2_binary_overlay.png" alt="haar_lr binary position 0.75 size 2 overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
 ```
 
 ### `haar_tb`
 
-Top-versus-bottom rectangular contrast.
+Top half (`+`) minus bottom half (`−`): positive when the top is brighter.
 
 ```@example haar_from_img_assets
 fn = UTCGP.bundle_number_haarFromImg[:haar_tb].fn
@@ -839,7 +968,7 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_tb].fn
 
 ### `haar_diag_main`
 
-Checkerboard contrast between the main-diagonal quadrants and the opposite quadrants.
+Top-left and bottom-right quadrants (`+`) minus top-right and bottom-left quadrants (`−`): positive when the bright parts lie along the main diagonal (top-left to bottom-right).
 
 ```@example haar_from_img_assets
 fn = UTCGP.bundle_number_haarFromImg[:haar_diag_main].fn
@@ -857,7 +986,7 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_diag_main].fn
 
 ### `haar_diag_anti`
 
-Checkerboard contrast between the anti-diagonal quadrants and the opposite quadrants.
+Top-right and bottom-left quadrants (`+`) minus top-left and bottom-right quadrants (`−`): positive when the bright parts lie along the anti-diagonal (top-right to bottom-left).
 
 ```@example haar_from_img_assets
 fn = UTCGP.bundle_number_haarFromImg[:haar_diag_anti].fn
@@ -875,7 +1004,7 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_diag_anti].fn
 
 ### `haar_center_surround`
 
-Center-versus-surround rectangular contrast.
+Central rectangle (the middle third, `+`) minus the rest of the window (`−`): positive for a bright spot on a darker background.
 
 ```@example haar_from_img_assets
 fn = UTCGP.bundle_number_haarFromImg[:haar_center_surround].fn
@@ -893,7 +1022,7 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_center_surround].fn
 
 ### `haar_three_h`
 
-Three-rectangle horizontal contrast.
+Left and right bands (`+`) minus the middle band (`−`), three equal vertical bands centred in the window: positive for a dark vertical line between brighter areas.
 
 ```@example haar_from_img_assets
 fn = UTCGP.bundle_number_haarFromImg[:haar_three_h].fn
@@ -911,7 +1040,7 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_three_h].fn
 
 ### `haar_three_v`
 
-Three-rectangle vertical contrast.
+Top and bottom bands (`+`) minus the middle band (`−`), three equal horizontal bands centred in the window: positive for a dark horizontal line between brighter areas.
 
 ```@example haar_from_img_assets
 fn = UTCGP.bundle_number_haarFromImg[:haar_three_v].fn
@@ -927,14 +1056,7 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_three_v].fn
 </div>
 ```
 
-## Basic operations 
-
-### Module 
-
-### Functions 
-
-
-## Reduce functions
+## Arithmetic
 
 ### Module
 ```@docs
@@ -1038,4 +1160,41 @@ UTCGP.number_reduce.reduce_length
 ```jldoctest
 julia> reduce_length(collect(1:10))
 10
+```
+
+## Image to Number
+
+The bridges from an image chromosome to a scalar one. Worked examples for the
+region and Haar families are above; `reduce_*` operators summarise the whole
+image at once.
+
+### Modules
+
+```@docs
+UTCGP.number_reduceFromImg
+UTCGP.number_regionFromImg
+UTCGP.number_haarFromImg
+UTCGP.number_imgRegionCommon
+```
+
+## Transcendental
+
+### Module
+```@docs
+UTCGP.number_transcendental
+```
+
+## Bundles
+
+```@docs
+bundle_number_arithmetic
+bundle_number_arithmetic_sr
+bundle_number_reduce
+bundle_number_transcendental
+bundle_number_transcendental_sr
+bundle_number_reduceFromImg
+bundle_number_coordinatesFromImg
+bundle_number_relativeCoordinatesFromImg
+bundle_number_regionFromImg
+bundle_number_haarFromImg
 ```

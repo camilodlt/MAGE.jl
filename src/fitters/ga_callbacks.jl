@@ -8,6 +8,15 @@ using Statistics
 abstract type Abstract_GA_POP_ARGS end
 
 """
+    GA_POP_ARGS(population, generation, run_config, model_architecture, node_config,
+                meta_library, ind_performances, elite_idx; extras = Dict())
+
+Everything [`ga_population_callback`](@ref) needs, in one object.
+
+The GA callbacks take a single args struct instead of a long positional
+argument list, so that a custom callback can be written against a stable
+signature. `ind_performances` must have exactly one entry per individual, and
+`elite_idx` lists the indices selected as elites in the previous generation.
 """
 struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
     population::Population
@@ -69,7 +78,13 @@ end
 
 
 """
+    ga_population_callback(pop_args::GA_POP_ARGS) -> Option{Population}
 
+Build the next generation: keep the `n_elite` elites, then fill `n_new` slots by
+tournament selection of size `tournament_size` among them.
+
+The returned population has `n_elite + n_new` individuals, elites first. Wrapped
+in an `Option`; unwrap with `@unwrap_or`.
 """
 function ga_population_callback(pop_args::GA_POP_ARGS)::Option{Population}
     Config = pop_args.run_config
@@ -161,6 +176,16 @@ end
 
 abstract type Abstract_GA_MUTATION_ARGS end
 
+"""
+    GA_MUTATION_ARGS(population, generation, run_config, model_architecture, node_config,
+                     meta_library, shared_inputs; extras = Dict())
+
+Arguments handed to the GA mutation callbacks
+([`ga_numbered_new_material_mutation_callback`](@ref),
+[`ga_output_mutation_callback`](@ref)).
+
+The elites sit at the front of `population` and are never mutated.
+"""
 struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
     population::Population
     generation::Int
@@ -194,6 +219,12 @@ struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
     end
 end
 
+"""
+    ga_numbered_new_material_mutation_callback(args::Abstract_GA_MUTATION_ARGS) -> Option{Population}
+
+Apply [`new_material_mutation!`](@ref) to every non-elite individual, leaving the
+first `n_elite` untouched.
+"""
 function ga_numbered_new_material_mutation_callback(
         args::Abstract_GA_MUTATION_ARGS,
     )::Option{Population}
@@ -313,6 +344,12 @@ end
 # Default Output Mutation Callback
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
+"""
+    ga_output_mutation_callback(args::Abstract_GA_MUTATION_ARGS) -> Option{Population}
+
+Mutate the output nodes of the non-elite individuals, each with probability
+`run_config.output_mutation_rate`.
+"""
 function ga_output_mutation_callback(args::Abstract_GA_MUTATION_ARGS)::Option{Population}
     Config = args.run_config
     fs = fieldnames(typeof(Config))
@@ -391,6 +428,12 @@ end
 
 abstract type Abstract_GA_SELECTION_ARGS end
 
+"""
+    GA_SELECTION_ARGS(ind_performances, population, generation, run_config,
+                      model_architecture, node_config, meta_library, programs)
+
+Arguments handed to [`ga_elite_selection_callback`](@ref).
+"""
 struct GA_SELECTION_ARGS <: Abstract_GA_SELECTION_ARGS
     ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}}
     population::Population
@@ -402,6 +445,18 @@ struct GA_SELECTION_ARGS <: Abstract_GA_SELECTION_ARGS
     programs::PopulationPrograms
 end
 
+"""
+    ga_elite_selection_callback(args::Abstract_GA_SELECTION_ARGS) -> Option{Vector{Int}}
+
+Return the indices of the `n_elite` best individuals, best first.
+
+`NaN` fitnesses are treated as `Inf`. Ties are broken in favour of the younger
+individual, so a child that merely matches its parent still replaces it and the
+search keeps drifting instead of stalling.
+
+Multi-objective (Pareto) selection is not implemented here; see the NSGA-II
+fitter for that.
+"""
 function ga_elite_selection_callback(args::Abstract_GA_SELECTION_ARGS)::Option{Vector{Int}}
     :ind_performances in fieldnames(typeof(args)) ? F = args.ind_performances : return none
     :run_config in fieldnames(typeof(args)) ? R = args.run_config : return none

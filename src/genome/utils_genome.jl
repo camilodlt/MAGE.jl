@@ -3,12 +3,33 @@
 # UTILS SINGLE GENOME 
 ######################
 
+"""
+    reset_genome!(genome::AbstractGenome)
+    reset_genome!(meta_genome::AbstractMetaGenome)
+
+Clear the cached node values of a chromosome, or of a whole
+[`UTGenome`](@ref) and its output nodes.
+
+The genome's *material* (the evolved integers) is untouched; only the values
+computed by the last decoding are dropped.
+"""
 function reset_genome!(genome::AbstractGenome)
     for node in genome.chromosome
         reset_node_value!(node)
     end
 end
 
+"""
+    initialize_genome!(genome::AbstractGenome)
+    initialize_genome!(meta_genome::AbstractMetaGenome)
+
+Give every element of a chromosome — or of a whole [`UTGenome`](@ref),
+output nodes included — its first random value.
+
+This is the step right after [`make_evolvable_utgenome`](@ref). Note that
+initialising does not by itself make every node type-correct: follow it with
+[`correct_all_nodes!`](@ref).
+"""
 function initialize_genome!(genome::AbstractGenome)
     for node in genome.chromosome
         initialize_node!(node)

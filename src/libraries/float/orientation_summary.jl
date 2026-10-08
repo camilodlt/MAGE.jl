@@ -1,15 +1,12 @@
-""" Orientation summary functions from image to Float64
+"""
+Scalar summaries of an image's gradient orientations.
 
-Exports :
+# Bundles
 
-- **bundle\\_float\\_orientation** :
-    - `orientation_coherence`
-    - `dominant_orientation`
-    - `orientation_energy_0`
-    - `orientation_energy_45`
-    - `orientation_energy_90`
-    - `orientation_energy_135`
-    - `orientation_spread`
+- [`bundle_float_orientation`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module float_orientation
 
@@ -18,6 +15,23 @@ using ..UTCGP: SImageND, IntensityPixel
 using ..UTCGP: image2D_orientation_common
 
 fallback(args...) = return -1.0
+"""
+    bundle_float_orientation
+
+Scalar summaries of the **edge** orientations of an intensity image (the
+direction along each edge), computed from Sobel derivatives and weighted by
+edge strength. Angles run clockwise on screen because rows grow downwards.
+
+- `orientation_energy_0`, `_45`, `_90`, `_135`: share of the edge strength in
+  each of four bins: horizontal edges, `\\` diagonals (down to the right),
+  vertical edges, `/` diagonals. The four sum to `1` (`0` for a flat image).
+- `dominant_orientation`: the strongest bin as `0`, `0.25`, `0.5` or `0.75`.
+- `orientation_coherence`: `1` when all edges share one orientation, near `0`
+  when they point every way; `orientation_spread = 1 − coherence`.
+
+Example: vertical stripes give `orientation_energy_90 = 1`,
+`dominant_orientation = 0.5`, `orientation_coherence = 1`.
+"""
 bundle_float_orientation = FunctionBundle(fallback)
 
 function orientation_coherence(from::SImageND{S,T,2,C}, args...) where {S,T<:IntensityPixel,C}
@@ -51,37 +65,37 @@ end
 append_method!(
     bundle_float_orientation,
     orientation_coherence;
-    description = "Computes orientation coherence of the image gradient field.",
+    description = "How aligned the edges are: 1 when all edges share one orientation, near 0 when they point every way.",
 )
 append_method!(
     bundle_float_orientation,
     dominant_orientation;
-    description = "Returns the strongest coarse orientation bin center among {0, π/4, π/2, 3π/4}, normalized by π.",
+    description = "Edge orientation bin with the most edge strength, over π: 0 horizontal, 0.25 \\ diagonal, 0.5 vertical, 0.75 / diagonal.",
 )
 append_method!(
     bundle_float_orientation,
     orientation_energy_0;
-    description = "Returns orientation energy proportion near 0 degrees.",
+    description = "Share of the edge strength on horizontal edges (edge orientation nearest 0°).",
 )
 append_method!(
     bundle_float_orientation,
     orientation_energy_45;
-    description = "Returns orientation energy proportion near 45 degrees.",
+    description = "Share of the edge strength on \\ diagonal edges (down to the right, nearest 45° clockwise).",
 )
 append_method!(
     bundle_float_orientation,
     orientation_energy_90;
-    description = "Returns orientation energy proportion near 90 degrees.",
+    description = "Share of the edge strength on vertical edges (edge orientation nearest 90°).",
 )
 append_method!(
     bundle_float_orientation,
     orientation_energy_135;
-    description = "Returns orientation energy proportion near 135 degrees.",
+    description = "Share of the edge strength on / diagonal edges (nearest 135° clockwise).",
 )
 append_method!(
     bundle_float_orientation,
     orientation_spread;
-    description = "Measures how widely orientation energy is distributed across directions.",
+    description = "1 − orientation_coherence: near 0 when all edges are parallel, near 1 when they point every way.",
 )
 
 end

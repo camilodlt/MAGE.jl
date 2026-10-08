@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Make vectors from elements of the same type
+Build lists out of loose elements of the same type.
 
-Exports : **bundle\\_listgeneric\\_makelist**: 
-- `make_list_from_one_element`
-- `make_list_from_two_elements`
-- `make_list_from_three_elements`
+# Bundles
 
+- [`bundle_listgeneric_makelist`](@ref)
+- [`bundle_listgeneric_makelist_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listgeneric_makelist
 
@@ -17,7 +19,26 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # FALLBACK
 fallback() = []
+"""
+    bundle_listgeneric_makelist
+
+Build a list out of loose elements: `make_list_from_one_element`,
+`make_list_from_two_elements`, `make_list_from_three_elements`.
+
+This is the bridge in the other direction from `bundle_element_pick`: a
+scalar chromosome feeding a list one.
+"""
 bundle_listgeneric_makelist = FunctionBundle(fallback)
+"""
+    bundle_listgeneric_makelist_factory
+
+Factory form of [`bundle_listgeneric_makelist`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listgeneric_makelist_factory = FunctionBundle(fallback)
 
 Ts = Union{Number,String}

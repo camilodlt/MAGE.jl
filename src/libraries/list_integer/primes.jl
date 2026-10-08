@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
-""" Divisors of a number
+"""
+Divisors of a number.
 
-Exports :
+# Bundles
 
-- **bundle\\_listinteger\\_primes** :
-    - `int_divisors`
+- [`bundle_listinteger_primes`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listinteger_primes
 
@@ -19,6 +22,11 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = return Int[]
 
+"""
+    bundle_listinteger_primes
+
+`int_divisors`: the divisors of an integer, as a list.
+"""
 bundle_listinteger_primes = FunctionBundle(fallback)
 
 # FUNCTIONS ---

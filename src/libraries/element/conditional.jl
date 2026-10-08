@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
-""" Conditional functions
+"""
+Type-agnostic branching over elements.
 
-Exports :
+# Bundles
 
-- **bundle\\_element\\_conditional** :
-    - `if_else_multiplexer`
+- [`bundle_element_conditional`](@ref)
+- [`bundle_element_conditional_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module element_conditional
 
@@ -18,7 +21,27 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return nothing
 
+"""
+    bundle_element_conditional
+
+`if_else_multiplexer`: pick between two values of the same type according to a
+numeric condition.
+
+Together with the comparison bundles this is what gives an evolved program
+branching, without ever leaving the type it is declared in.
+"""
 bundle_element_conditional = FunctionBundle(fallback)
+"""
+    bundle_element_conditional_factory
+
+Factory form of [`bundle_element_conditional`](@ref), specialisable to any
+element type.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_element_conditional_factory = FunctionBundle(fallback)
 
 # FUNCTIONS ---
@@ -46,6 +69,17 @@ function if_else_multiplexer_factory(element_type::Type{T}) where {T}
     end
     m1
 end
+"""
+    if_else_multiplexer(cond::Number, a, b, args...)
+
+Return `a` when `cond > 0`, `b` otherwise.
+
+Both branches must have the same type, which is what keeps the node
+type-correct whichever way the condition goes. Built by
+`if_else_multiplexer_factory(Any)`; the factory bundle
+[`bundle_element_conditional_factory`](@ref)
+holds the un-specialised form.
+"""
 if_else_multiplexer = if_else_multiplexer_factory(Any)
 
 append_method!(

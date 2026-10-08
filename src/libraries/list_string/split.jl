@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
-""" Split Operations
+"""
+Split a string into a list of strings.
 
-Exports :
+# Bundles
 
-- **bundle\\_liststring\\_split** :
-    - `split_string_to_vector`
+- [`bundle_liststring_split`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module liststring_split
 
@@ -19,6 +21,11 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 # ########### #
 fallback(args...) = return String[]
 
+"""
+    bundle_liststring_split
+
+`split_string_to_vector`: split a string into a list of strings.
+"""
 bundle_liststring_split = FunctionBundle(fallback)
 
 # FUNCTIONS ---

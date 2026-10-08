@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
-""" Combinatios of 2 elements
+"""
+Pairs built by combining elements of one or two lists.
 
-Exports :
+# Bundles
 
-- **bundle\\_listtuple\\_combinatorics** :
-    - `vector_of_products`
-    - `vector_of_combinations`
+- [`bundle_listtuple_combinatorics`](@ref)
+- [`bundle_listtuple_combinatorics_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listtuple_combinatorics
 import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
@@ -20,7 +22,23 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 # ############# #
 
 fallback() = [(nothing, nothing)]
+"""
+    bundle_listtuple_combinatorics
+
+Pair generation: `vector_of_products` (the cartesian product of two lists) and
+`vector_of_combinations` (all unordered pairs of one list).
+"""
 bundle_listtuple_combinatorics = FunctionBundle(fallback)
+"""
+    bundle_listtuple_combinatorics_factory
+
+Factory form of [`bundle_listtuple_combinatorics`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listtuple_combinatorics_factory = FunctionBundle(fallback)
 
 ###############

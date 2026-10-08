@@ -21,6 +21,17 @@ PSB2 Paper :
 # LEVENSTHEIN    #
 ##################
 
+"""
+    EndpointBatchLevensthein(preds, y::String)
+    EndpointBatchLevensthein(preds, y::Vector{String})
+
+PSB2 string error: Levenshtein edit distance between each program's output and
+the expected string.
+
+With several expected strings the distances are summed, and a program producing
+the wrong number of outputs takes a flat 1000 penalty first. A non-finite
+distance counts as 1000.
+"""
 struct EndpointBatchLevensthein <: BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointBatchLevensthein(preds::Vector{Vector{String}}, y::String)
@@ -54,6 +65,18 @@ end
 # ABS DIFFERENCE #
 ##################
 
+"""
+    EndpointBatchAbsDifference(preds, y::Number)
+    EndpointBatchAbsDifference(preds, y::Vector{<:Number})
+
+PSB2 numeric error: absolute difference between output and expected value,
+compared after rounding to 12 digits.
+
+With several expected values the per-output differences are summed, `NaN`
+outputs are dropped, and an individual whose outputs are *all* `NaN` takes a
+flat 10 000 penalty. Boolean and `BitVector` outputs are accepted and cast to
+integers first, which covers PSB2's boolean error convention.
+"""
 struct EndpointBatchAbsDifference <: BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointBatchAbsDifference(preds::Vector{<:Vector{<:Number}}, y::Number)
@@ -110,6 +133,12 @@ end
 ######################
 # VECTOR DIFFERENCES #
 ######################
+"""
+    EndpointBatchVecDiff(preds, y::Vector{<:Vector{<:Number}})
+
+PSB2 vector-of-integers error: for each expected vector, 1000 per unit of length
+mismatch plus the element-wise absolute differences, summed over outputs.
+"""
 struct EndpointBatchVecDiff <: BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointBatchVecDiff(
