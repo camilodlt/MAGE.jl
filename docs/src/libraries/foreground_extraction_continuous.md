@@ -400,6 +400,61 @@ quantiles make the known-foreground portion smaller and more selective.
 </div>
 ~~~
 
+!!! note "Why the automatic seeds are often wrong"
+    Without a mask, the seeds come from spectral-residual saliency, which
+    responds to edges and unusual details, not to whole objects: on a bright
+    disk it is about twice as high on the rim as inside. The blurred top of
+    that map becomes the hard foreground seeds, so they straddle object edges
+    (on a test disk, 46% of them lie outside it) and can never be corrected.
+    That is why the automatic examples above are poor. Supply a rough mask (below) or a saliency
+    map that is high *inside* the objects (e.g. a blurred copy of an image of
+    bright objects).
+
+```@setup fg_mask
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+page = "foreground_mask_continuous"
+x = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end][1:96, 1:128]
+cell = g_intensity(x)
+I = typeof(cell)
+B = typeof(g_binary(falses(size(x)...)))
+otsu = g_call(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B), cell)
+fat = g_call(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B), otsu, 7.0)   # a deliberately rough mask
+D = UTCGP.image2D_foreground_extraction_discrete
+"Seeds of a mask as a picture: white foreground seeds, black background seeds, grey undecided."
+function seeds_picture(mask, band)
+    fg, bg = D._mask_band_seeds(BitMatrix(Bool.(reinterpret(mask.img))), band)
+    return g_intensity(ifelse.(fg, 1.0, ifelse.(bg, 0.0, 0.5)))
+end
+```
+
+## Refining a rough mask (recommended)
+
+`random_walker_foreground` and `closed_form_matting` also accept a rough binary
+mask and a band, with the same meaning as for the graph cuts: deep inside the
+mask is foreground, far outside is background, and the strip of width `2·band`
+along its edge is solved for:
+
+```julia
+probabilities = random_walker_foreground(image, rough_mask, [band])   # band = 4
+alpha = closed_form_matting(image, rough_mask, [band])
+```
+
+In this mode the Random Walker's contrast adapts to the image (`10` over the
+mean squared neighbour difference), so dim images such as the cells still get
+sharp boundaries; the matting uses the mask as its trimap.
+
+```@example fg_mask
+rw = bundle_image2DIntensity_foreground_extraction_factory[:random_walker_foreground].fn(I)
+cf = bundle_image2DIntensity_foreground_extraction_factory[:closed_form_matting].fn(I)
+g_gallery(page, [
+    ("cell.png", "`cell`", cell),
+    ("fat.png", "`rough` = Otsu dilated by 7", fat),
+    ("rw_band4.png", "`random_walker_foreground(cell, rough)`", g_call(rw, cell, fat)),
+    ("cf_band4.png", "`closed_form_matting(cell, rough)`", g_call(cf, cell, fat)),
+]; cols = 4, scale = 2)
+```
+
 ~~~@docs
 UTCGP.image2D_foreground_extraction_continuous
 UTCGP.image2D_foreground_extraction_continuous.bundle_image2DIntensity_foreground_extraction_factory

@@ -82,7 +82,7 @@ Returns `a`/`b`
 """
 function number_div(a::Number, b::Number, args...)
     if b == 0
-        throw(DivideError)
+        throw(DivideError())
     end
     return a / b
 end

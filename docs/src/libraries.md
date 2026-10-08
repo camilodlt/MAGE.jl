@@ -172,7 +172,6 @@ casters and fallbacks already set for the target type.
 | `UTCGP.get_image2Dbinary_factory_bundles` | binary images (masks) |
 | `UTCGP.get_image2Dsegment_factory_bundles` | segment images (label maps) |
 | `UTCGP.get_float_bundles_atari` | `Float64`, Atari-oriented |
-| `UTCGP.get_image2D_factory_bundles_atari` | images, Atari-oriented |
 | `UTCGP.get_extension_saliency_intensityimg` | new intensity saliency factories |
 | `UTCGP.get_extension_foreground_intensityimg` | new continuous foreground factories |
 | `UTCGP.get_extension_foreground_binaryimg` | new discrete foreground factories |

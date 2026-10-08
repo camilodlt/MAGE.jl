@@ -52,6 +52,7 @@ makedocs(;
             "Float Lib" => "libraries/float.md",
             "Integer Lib" => "libraries/integer.md",
             "Image Lib" => "libraries/image.md",
+            "Core Image Operators" => "libraries/image_core.md",
             "RGB Images and Color Statistics" => "libraries/color_statistics_rgb.md",
             "Spatial RGB Features" => "libraries/spatial_rgb.md",
             "RGB Composition" => "libraries/composition_rgb.md",

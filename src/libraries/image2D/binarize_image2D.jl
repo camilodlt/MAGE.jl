@@ -38,6 +38,14 @@ cast = image2D_morph.cast
 _finite_clamp(x::Real, lo::Float64, hi::Float64, default::Float64) =
     (v = Float64(x); isfinite(v) ? clamp(v, lo, hi) : default)
 fallback(args...) = return nothing
+
+"""
+Empty mask for a constant image (no threshold can separate anything), as the
+histogram methods return. Used where the method itself would throw on a
+single-valued histogram (`Moments`, `Polysegment`).
+"""
+_empty_if_constant(img) = (v = reinterpret(img); all(==(first(v)), v)) ? falses(size(v)) : nothing
+
 """
     bundle_image2DBinary_binarize_factory
 
@@ -171,6 +179,8 @@ function binarizePolysegment_image2D_factory(i::Type{I}) where {I<:SizedImage{SI
     SMALLER_AXIS = floor(Int, min(S1, S2))
 
     m1 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+        empty = _empty_if_constant(img.img)
+        empty === nothing || return SImageND($PT.(cast($IT, empty)), $S)
         f = Polysegment()
         res = binarize(float(img.img), f)
         clamp01nan!(res)
@@ -342,6 +352,8 @@ function binarizeMoments_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     m1 = @eval ((img::CONCT, n_bins::Number, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
         n_bins = round(Int, _finite_clamp(n_bins, 30.0, 500.0, 256.0))   # NaN/Inf → 256 bins
         n_bins = clamp(n_bins, 30, 500)
+        empty = _empty_if_constant(img.img)
+        empty === nothing || return SImageND($PT.(cast($IT, empty)), $S)
         f = Moments()
         res = binarize(reinterpret(img.img), f; nbins = n_bins)
         clamp01nan!(res)
@@ -349,6 +361,8 @@ function binarizeMoments_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, 
     end
 
     m2 = @eval ((img::CONCT, args::Vararg{Any}) where {T, CONCT<:SizedImage{$(SIZE), IntensityPixel{T}}}) -> begin
+        empty = _empty_if_constant(img.img)
+        empty === nothing || return SImageND($PT.(cast($IT, empty)), $S)
         f = Moments()
         res = binarize(reinterpret(img.img), f; nbins = 256)
         clamp01nan!(res)

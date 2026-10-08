@@ -62,6 +62,27 @@ An image is turned into a graph, node-level graph measures are computed, and
 each is reduced to scalars. Eleven measures times nine reductions, plus four
 whole-graph properties.
 
+How the graph is built from a **mask**: each object (connected component) is
+a node placed at its centroid, and the nodes are joined by a Delaunay
+triangulation, so each object is linked to its natural neighbours. A mask
+needs at least three objects that are not on one line; otherwise there is no
+triangulation and the operator returns its fallback `0.0`. The names are
+`<reduction><measure>`, e.g. `meandegreecentrality` is the mean degree
+centrality over all objects, and `xcoorargmaxdegreecentrality` the x coordinate (column, in pixels) of the
+best-connected object.
+
+```@example imagegraph
+using UTCGP
+m = falses(40, 40)
+for (r, c) in ((5, 5), (5, 30), (20, 15), (33, 8), (30, 32), (15, 36))
+    m[r:r+3, c:c+3] .= true                       # six 4×4 objects
+end
+mask = SImageND(BinaryPixel.(m))
+for name in (:diameter, :clustering_coefficient, :meandegreecentrality, :maximumbetweennesscentrality)
+    println(rpad(name, 30), bundle_float_imagegraph[name].fn(mask))
+end
+```
+
 ### Module
 
 ```@docs

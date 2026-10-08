@@ -31,7 +31,6 @@ fallback(args...) = return nothing
 experimental_bundle_image2D_mask_factory = FunctionBundle(fallback)
 experimental_bundle_image2D_maskregion_factory = FunctionBundle(fallback)
 experimental_bundle_image2D_maskregion_relative_factory = FunctionBundle(fallback)
-println(experimental_bundle_image2D_maskregion_relative_factory)
 
 # ################### #
 # MASK                #

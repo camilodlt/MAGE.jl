@@ -34,8 +34,9 @@ fallback(args...) = return nothing
 """
     bundle_image2DSegment_segmentation_factory
 
-Segmentation: intensity image in, label map out. `fastscanning_image2D` and
-`watershed_image2D`.
+Segmentation: image in, label map out. `fastscanning_image2D` groups
+neighbouring pixels of similar intensity; `watershed_image2D` splits the
+objects of a mask, cutting touching objects apart.
 
 This is a *factory* bundle: each entry is a function of a type that returns the
 method specialised for it, so the same operator can be instantiated for several
@@ -202,45 +203,71 @@ function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Seg
 end
 
 """
+Watershed split of the objects (`true` pixels) of a mask into labels.
 
-TODO TEST
+The depth of an object pixel is its distance to the background. Each object
+gets seeds where its depth is at least `h` times its own maximum depth, and the
+objects are flooded from the seeds, so touching objects (e.g. two round cells
+in contact) are cut along their narrowest part. Example: two disks of radius 9
+whose centres are 14 pixels apart touch through a neck of depth ≈ 5.6, i.e.
+`0.62` of their depth, so `h = 0.7` gives two labels and `h = 0.5` one.
+Background pixels and pixels outside `restrict` are `0`.
+"""
+function _watershed_split(fg::AbstractMatrix{Bool}, restrict::AbstractMatrix{Bool}, h::Float64)
+    objects = fg .& restrict
+    any(objects) || return zeros(Int, size(fg))
+    depth = distance_transform(feature_transform(.!objects))   # 0 on background
+    components = label_components(objects)
+    peak = zeros(Float64, maximum(components))
+    @inbounds for i in eachindex(components)
+        c = components[i]
+        c > 0 && (peak[c] = max(peak[c], depth[i]))
+    end
+    seeds = falses(size(fg))
+    @inbounds for i in eachindex(components)
+        c = components[i]
+        seeds[i] = c > 0 && depth[i] >= h * peak[c]
+    end
+    labels = labels_map(watershed(-depth, label_components(seeds); mask = objects))
+    return labels .* objects
+end
+
+"Seed level `h` of `watershed_image2D`: clamped to `[0, 1]`; NaN/Inf → 0.7."
+_watershed_level(th::Number) = (t = Float64(th); isfinite(t) ? clamp(t, 0.0, 1.0) : 0.7)
+
+"""
+    watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}}
+
+`watershed_image2D(mask, [restrict], [h])`: splits the objects (`true`
+pixels) of `mask` into one label each, cutting touching objects at their
+narrowest part. `h ∈ [0, 1]` (default `0.7`) is the seed level as a fraction of
+each object's maximal depth: `0` gives one label per connected object, higher
+values split more. `restrict`, a second mask, limits the result to its `true`
+pixels. Background is `0`.
 """
 function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
-    S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
-    S_ = (S1,S2)
 
-    # WATERSHED WITH TH AND MASK
     m1 = @eval (
         (
             img::CONCT,
-            mask::CONCT,
+            restrict::CONCT,
             th::Number,
             args::Vararg{Any},
         ) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
-        th = clamp(th, -1000, 0) 
-        dist = 1 .- distance_transform(feature_transform(reinterpret(img.img))) # black as farther away from background
-        markers = label_components(dist .< th) # blackest points are now white
-        segments = watershed(dist, markers; mask = reinterpret(mask.img)) # mask is bool matrix
-        reinterpreted = convert.($IT, labels_map(segments))
-        return SImageND($PT.(reinterpreted), $S)
+        labels = _watershed_split(reinterpret(img.img), reinterpret(restrict.img), _watershed_level(th))
+        return SImageND($PT.(convert.($IT, labels)), $S)
     end
 
-    # WATERSHED WITHOUT FINAL MASK
-    m2 = @eval (
-        (
-            img::CONCT,
-            th::Number,
-            args::Vararg{Any}
-        ) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
-        mask = SImageND(BinaryPixel{Bool}.(trues($S_)), $S) # ACCEPT ALL PIXELS
-        $m1(img, mask, th)
+    m2 = @eval ((img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
+        fg = reinterpret(img.img)
+        labels = _watershed_split(fg, trues(size(fg)), _watershed_level(th))
+        return SImageND($PT.(convert.($IT, labels)), $S)
     end
 
-    # WATERSHED WITHOUT TH NOR MASK
     m3 = @eval ((img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}) -> begin
-        $m2(img, -15) # default value
+        $m2(img, 0.7)
     end
 
     # @timeit_debug to "Cr LRU watershed" lru = LRU{WS_ARGS,I}(maxsize = 100_000)
@@ -329,7 +356,7 @@ append_method!(
     watershed_image2D_factory,
     :watershed_image2D,
     ;
-    description = "Segments the image using watershed transform over intensity topology.",
+    description = "(mask, [restrict], [h]): one label per object of the mask, touching objects cut at their narrowest part; h in [0, 1] (default 0.7), higher splits more, 0 keeps connected objects whole.",
 )
 
 end

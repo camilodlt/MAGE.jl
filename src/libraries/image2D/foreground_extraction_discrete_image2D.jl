@@ -11,6 +11,7 @@ module image2D_foreground_extraction_discrete
 
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
 using ImageFiltering: Kernel, imfilter
+using ImageMorphology: distance_transform, feature_transform, label_components
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     BinaryPixel,
@@ -32,9 +33,12 @@ Seeded, deterministic foreground segmentation operators whose output is a
 same-size binary image. Factories are specialized with the concrete binary
 output type before insertion into a MAGE library.
 
-The operators are Boykov-Jolly graph cuts and iterative GrabCut. Both can
-derive seeds from spectral-residual saliency internally or consume a same-size
-saliency map from another MAGE image chromosome.
+The operators are Boykov-Jolly graph cuts and iterative GrabCut. Both take
+their hard seeds from one of: spectral-residual saliency computed internally,
+a same-size saliency map from another MAGE image chromosome, or a rough binary
+mask with an uncertainty band (`(img, mask, band)`), which they refine to the
+image's edges. The mask mode is the most reliable: saliency marks edges and
+details rather than whole objects.
 """
 bundle_image2DBinary_foreground_extraction_factory = FunctionBundle(fallback)
 
@@ -153,6 +157,41 @@ function _automatic_graphcut_seeds(
     background = _border_connected_background(normalized, low_saliency_cutoff)
     background[foreground] .= false
     return foreground, background, normalized
+end
+
+"""Band half-width (pixels) of the mask-seeded methods: rounded, clamped to `[0, 20]`; NaN/Inf → 4 (the default)."""
+_seed_band(band::Real) = (b = Float64(band); isfinite(b) ? round(Int, clamp(b, 0.0, 20.0)) : 4)
+
+"""
+    _mask_band_seeds(mask, band) -> (foreground_seeds, background_seeds)
+
+Hard seeds from a rough foreground mask: pixels deeper than `band` inside the
+mask are foreground, pixels farther than `band` outside it are background, and
+the `2·band`-wide strip along the mask's edge is left for the solver to decide.
+An object thinner than the band keeps its deepest pixels as seeds, so no object
+is lost. Example: a 20-pixel square with `band = 2` gives a 16-pixel square of
+foreground seeds and background seeds from 3 pixels outside the square.
+"""
+function _mask_band_seeds(mask::AbstractMatrix{Bool}, band::Int)
+    inside = distance_transform(feature_transform(.!mask))    # distance to the nearest outside pixel
+    outside = distance_transform(feature_transform(mask))     # distance to the nearest mask pixel
+    components = label_components(mask)
+    deepest = zeros(Float64, maximum(components; init = 0))
+    @inbounds for index in eachindex(components)
+        c = components[index]
+        c > 0 && (deepest[c] = max(deepest[c], inside[index]))
+    end
+    foreground = falses(size(mask))
+    background = falses(size(mask))
+    @inbounds for index in eachindex(mask)
+        c = components[index]
+        if c > 0
+            foreground[index] = inside[index] >= min(band + 1, deepest[c])
+        else
+            background[index] = outside[index] > band
+        end
+    end
+    return foreground, background
 end
 
 @inline function _histogram_bin(value::Float64, bin_count::Int)
@@ -664,11 +703,28 @@ function _boykov_jolly_cut(
     foreground_seed, background_seed, attention =
         _automatic_graphcut_seeds(saliency, foreground_quantile)
     any(foreground_seed) || return falses(size(values))
+    return _boykov_jolly_seeded_cut(values, foreground_seed, background_seed, smoothness, attention)
+end
+
+"""
+Boykov-Jolly cut from given hard seeds. Appearance costs come from the
+intensity histograms of the seeds; `attention` (a `[0, 1]` map, or `nothing`)
+adds a soft prior pulling high-attention pixels to the foreground.
+"""
+function _boykov_jolly_seeded_cut(
+        values::AbstractMatrix{<:Real},
+        foreground_seed::BitMatrix,
+        background_seed::BitMatrix,
+        smoothness::Float64,
+        attention,
+    )
     foreground_cost, background_cost =
         _appearance_costs(values, foreground_seed, background_seed)
-    saliency_prior_weight = 5.0
-    foreground_cost .+= saliency_prior_weight .* (1.0 .- attention)
-    background_cost .+= saliency_prior_weight .* attention
+    if attention !== nothing
+        saliency_prior_weight = 5.0
+        foreground_cost .+= saliency_prior_weight .* (1.0 .- attention)
+        background_cost .+= saliency_prior_weight .* attention
+    end
 
     h, w = size(values)
     pixel_count = h * w
@@ -804,7 +860,24 @@ function _grabcut_cut(
         _automatic_graphcut_seeds(saliency, foreground_quantile)
     any(foreground_seed) || return falses(size(values))
 
-    foreground_labels = BitMatrix(attention .>= 0.35)
+    initial_labels = BitMatrix(attention .>= 0.35)
+    return _grabcut_seeded(values, foreground_seed, background_seed, initial_labels, iterations, smoothness)
+end
+
+"""
+GrabCut from given hard seeds and an initial foreground guess: alternates
+fitting the foreground/background Gaussian mixtures to the current labels and
+an exact contrast-sensitive minimum cut, for `iterations` rounds.
+"""
+function _grabcut_seeded(
+        values::AbstractMatrix{<:Real},
+        foreground_seed::BitMatrix,
+        background_seed::BitMatrix,
+        initial_labels::BitMatrix,
+        iterations::Int,
+        smoothness::Float64,
+    )
+    foreground_labels = copy(initial_labels)
     foreground_labels[foreground_seed] .= true
     foreground_labels[background_seed] .= false
     any(foreground_labels) || return foreground_seed
@@ -828,6 +901,19 @@ function _grabcut_cut(
 end
 
 """
+Mask-seeded foreground: seeds from `mask` and `band` (see `_mask_band_seeds`),
+then `cut(foreground_seeds, background_seeds)`. An empty mask gives an empty
+result and a mask with no background seeds (it covers almost everything) is
+returned unchanged.
+"""
+function _mask_seeded(cut, mask::AbstractMatrix{Bool}, band::Int)
+    any(mask) || return falses(size(mask))
+    foreground_seed, background_seed = _mask_band_seeds(mask, band)
+    any(background_seed) || return BitMatrix(mask)
+    return cut(foreground_seed, background_seed)
+end
+
+"""
     boykov_jolly_foreground_image2D_factory(::Type{I})
 
 Specialize automatic-seed Boykov-Jolly graph-cut foreground extraction for a
@@ -841,6 +927,8 @@ boykov_jolly_foreground(image, smoothness::Real)
 boykov_jolly_foreground(image, smoothness::Real, foreground_quantile::Real)
 boykov_jolly_foreground(image, saliency)
 boykov_jolly_foreground(image, saliency, smoothness::Real)
+boykov_jolly_foreground(image, mask)
+boykov_jolly_foreground(image, mask, band::Real)
 ```
 
 `image` is a same-size intensity image. With no supplied saliency map, the
@@ -858,6 +946,14 @@ the high-saliency seed fraction, is clamped to `[0.5, 0.99]`, and defaults to
 32-bin foreground/background histograms with Laplace smoothing. The exact
 min-cut is computed by an internal FIFO push-relabel max-flow implementation
 with global and gap relabeling.
+
+`boykov_jolly_foreground(image, mask, [band])` refines a rough binary `mask` (e.g. a
+threshold or a dilated detection): pixels deeper than `band` inside the mask
+are fixed as foreground, pixels farther than `band` outside it as background,
+and the strip of width `2·band` along the mask's edge is decided by the
+cut, using the seeds' intensity histograms and smoothness `5`. `band` is rounded and clamped to `[0, 20]` pixels, default `4`; it
+should cover the mask's error. An object thinner than the band keeps its
+middle as a seed. An empty mask gives an empty result.
 
 Every overload has at most three MAGE inputs, accepts and ignores trailing
 framework `args...`, and returns exactly the dimensions and `BinaryPixel`
@@ -940,6 +1036,26 @@ function boykov_jolly_foreground_image2D_factory(
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(image, 5.0, 0.9, args...)
     end
+    # Seeds from a rough mask (e.g. a threshold) and an uncertainty band.
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            band::Real,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        values = reinterpret(image.img)
+        result = _mask_seeded(Bool.(reinterpret(mask.img)), _seed_band(band)) do foreground_seed, background_seed
+            _boykov_jolly_seeded_cut(values, foreground_seed, background_seed, 5.0, nothing)
+        end
+        return SImageND($PT.($IT.(result)), $S)
+    end
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        return $function_name(image, mask, 4.0, args...)
+    end
     return fn
 end
 
@@ -957,6 +1073,8 @@ grabcut_foreground(image, iterations::Real)
 grabcut_foreground(image, iterations::Real, smoothness::Real)
 grabcut_foreground(image, saliency)
 grabcut_foreground(image, saliency, iterations::Real)
+grabcut_foreground(image, mask)
+grabcut_foreground(image, mask, band::Real)
 ```
 
 `image` is a same-size intensity image. The operator either computes
@@ -971,6 +1089,14 @@ minimum cut.
 `smoothness` is clamped to `[0, 20]`, defaulting to `5`. Non-finite values
 use the defaults. Supplied-saliency calls use the default smoothness to respect
 the MAGE three-input ceiling. Flat saliency returns an empty mask.
+
+`grabcut_foreground(image, mask, [band])` refines a rough binary `mask` (e.g. a
+threshold or a dilated detection): pixels deeper than `band` inside the mask
+are fixed as foreground, pixels farther than `band` outside it as background,
+and the strip of width `2·band` along the mask's edge is decided by the
+GrabCut iterations (2, smoothness `5`), starting from the mask itself. `band` is rounded and clamped to `[0, 20]` pixels, default `4`; it
+should cover the mask's error. An object thinner than the band keeps its
+middle as a seed. An empty mask gives an empty result.
 
 Every overload accepts and ignores trailing framework `args...` and returns
 exactly the dimensions and `BinaryPixel` storage type fixed by specialization
@@ -1055,6 +1181,27 @@ function grabcut_foreground_image2D_factory(
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(image, 2.0, 5.0, args...)
     end
+    # Seeds from a rough mask and an uncertainty band; the mask is also the initial guess.
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            band::Real,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        values = reinterpret(image.img)
+        guess = BitMatrix(Bool.(reinterpret(mask.img)))
+        result = _mask_seeded(guess, _seed_band(band)) do foreground_seed, background_seed
+            _grabcut_seeded(values, foreground_seed, background_seed, guess, 2, 5.0)
+        end
+        return SImageND($PT.($IT.(result)), $S)
+    end
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        return $function_name(image, mask, 4.0, args...)
+    end
     return fn
 end
 
@@ -1062,14 +1209,14 @@ append_method!(
     bundle_image2DBinary_foreground_extraction_factory,
     boykov_jolly_foreground_image2D_factory,
     :boykov_jolly_foreground;
-    description = "Extracts a binary foreground mask with automatic-seed Boykov-Jolly graph cuts.",
+    description = "Boykov-Jolly graph-cut foreground: (img, [smoothness], [quantile]) with saliency-derived seeds, (img, saliency) or (img, mask, [band]) refining a rough mask.",
 )
 
 append_method!(
     bundle_image2DBinary_foreground_extraction_factory,
     grabcut_foreground_image2D_factory,
     :grabcut_foreground;
-    description = "Extracts a binary foreground mask with deterministic saliency-initialized GrabCut.",
+    description = "GrabCut foreground: (img, [iterations], [smoothness]) with saliency-derived seeds, (img, saliency) or (img, mask, [band]) refining a rough mask.",
 )
 
 end

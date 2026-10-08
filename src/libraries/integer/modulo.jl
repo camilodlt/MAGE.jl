@@ -34,17 +34,18 @@ bundle_integer_modulo = FunctionBundle(fallback)
 
     modulo(a::Number, b::Number, args...)
 
-Returns a % b. 
-
-Throws error if b == 0.
+Returns `a % b`, or `0` when `b == 0` (like `safe_div`): an integer modulo by
+zero would throw and a float one would give `NaN`, which then spreads through
+every node that uses it.
 """
 function modulo(a::Number, b::Number, args...)
+    b == 0 && return zero(a % one(b))   # 0 of the type a % b would have
     return a % b
 end
 
 append_method!(
     bundle_integer_modulo,
     modulo;
-    description = "Computes the modulo remainder a % b for two numeric inputs.",
+    description = "Remainder a % b; 0 when b == 0 (like safe_div).",
 )
 end

@@ -908,27 +908,3 @@ function get_float_bundles_atari()
     return float_bundles
 end
 
-function get_image2D_factory_bundles_atari()
-    bundle_images = [
-        bundle_image2D_basic_factory,
-        bundle_image2D_morph_factory,
-        bundle_image2D_binarize_factory,
-        bundle_image2D_segmentation_factory,
-        bundle_image2D_arithmetic_factory,
-        bundle_image2D_barithmetic_factory,
-        bundle_image2D_transcendental_factory,
-        bundle_image2D_filtering_factory,
-        bundle_element_conditional_factory,
-        # experimental_bundle_float_glcm_factory, texture stuff
-        experimental_bundle_image2D_mask_factory,
-        experimental_bundle_image2D_maskregion_factory,
-        experimental_bundle_image2D_maskregion_relative_factory,
-    ]
-
-    # Update Casters && Fallbacks
-    # for b in bundle_images
-    # update_caster!(b, ())
-    # update_fallback!(b, () -> SImageND)
-    # end
-    return deepcopy(bundle_images)
-end

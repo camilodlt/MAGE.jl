@@ -50,7 +50,7 @@ saliency = fn(img, orientation_weight, smoothing_sigma)
 | Parameter | Accepted mapping | Effect | Default |
 |:--|:--|:--|:--|
 | `orientation_weight` | finite values clamped to `[0, 1]` | `0` uses intensity contrast only; `1` uses oriented contrast only | `0.5` |
-| `smoothing_sigma` | finite values clamped to `[0, 5]` pixels | Gaussian smoothing applied to the final map; `0` disables it | `0.0` |
+| `smoothing_sigma` | finite values clamped to `[0, 5]` pixels | Gaussian smoothing applied to the final map; below `0.1` (including `0`) there is no smoothing | `0.0` |
 
 Non-finite values use the listed defaults. The result has the same size and
 `IntensityPixel` storage type as `img`. Additional trailing arguments are
@@ -279,7 +279,7 @@ saliency = fn(img, spectral_average_radius, smoothing_sigma)
 | Parameter | Accepted mapping | Effect | Default |
 |:--|:--|:--|:--|
 | `spectral_average_radius` | rounded and clamped to `1:15` | Uses a `(2r + 1) × (2r + 1)` circular mean of the log-amplitude spectrum | `1` (`3 × 3`) |
-| `smoothing_sigma` | finite values clamped to `[0, 5]` pixels | Spreads sharp residual peaks in the final spatial map; `0` disables smoothing | `2.0` |
+| `smoothing_sigma` | finite values clamped to `[0, 5]` pixels | Spreads sharp residual peaks in the final spatial map; below `0.1` (including `0`) there is no smoothing | `2.0` |
 
 Non-finite values use the defaults. The output preserves the exact input size
 and specialized `IntensityPixel` storage type.
@@ -2054,6 +2054,12 @@ nothing # hide
 })();
 </script>
 ```
+
+## Core image operators: gallery
+
+Pictures of every operator of the basic, arithmetic, transcendental, filtering,
+morphology, thresholding and segmentation bundles are on their own page:
+[Core Image Operators](@ref).
 
 ## All image bundles
 

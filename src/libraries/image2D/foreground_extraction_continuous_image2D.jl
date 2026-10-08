@@ -12,9 +12,10 @@ module image2D_foreground_extraction_continuous
 using LinearAlgebra: Symmetric, cholesky
 using SparseArrays: sparse
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
-using ..image2D_foreground_extraction_discrete: _automatic_graphcut_seeds
+using ..image2D_foreground_extraction_discrete: _automatic_graphcut_seeds, _mask_band_seeds, _seed_band
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
+    BinaryPixel,
     IntensityPixel,
     SImageND,
     SizedImage,
@@ -34,9 +35,11 @@ same-size intensity image of soft foreground membership values in [0, 1].
 Factories are specialized with the concrete intensity output type before
 insertion into a MAGE library.
 
-The bundle currently contains Random Walker segmentation. It can derive seeds
-from spectral-residual saliency internally or consume a same-size saliency map
-from another MAGE image chromosome.
+The bundle contains Random Walker segmentation and closed-form matting. Their
+seeds come from spectral-residual saliency computed internally, a same-size
+saliency map (Random Walker) or trimap (matting) from another MAGE image
+chromosome, or a rough binary mask with an uncertainty band
+(`(img, mask, band)`), which they refine to the image's edges.
 """
 bundle_image2DIntensity_foreground_extraction_factory = FunctionBundle(fallback)
 
@@ -168,6 +171,33 @@ function _solve_random_walker(
     return probabilities
 end
 
+"""
+Contrast for the mask-seeded Random Walker: `10` divided by the mean squared
+difference between 4-neighbours, so the conductance `exp(-contrast · d²)`
+adapts to the image's dynamic range. A neighbour difference of typical size
+conducts `e^-10`, an identical neighbour fully, so walkers stay inside regions
+of similar intensity. A fixed contrast would give almost uniform weights on a
+dim image (steps of `0.05` with `90`: `e^-0.2`). A flat image uses `90`.
+"""
+function _random_walker_adaptive_contrast(values::AbstractMatrix{<:Real})
+    h, w = size(values)
+    total = 0.0
+    pairs = 0
+    @inbounds for row in 1:h, col in 1:w
+        v = Float64(values[row, col])
+        if row < h
+            total += (v - Float64(values[row + 1, col]))^2
+            pairs += 1
+        end
+        if col < w
+            total += (v - Float64(values[row, col + 1]))^2
+            pairs += 1
+        end
+    end
+    mean_squared = pairs == 0 ? 0.0 : total / pairs
+    return mean_squared <= 1.0e-12 ? _RANDOM_WALKER_DEFAULT_CONTRAST : 10.0 / mean_squared
+end
+
 function _random_walker_probabilities(
         values::AbstractMatrix,
         saliency::AbstractMatrix{<:Real},
@@ -196,6 +226,8 @@ The returned callable supports these effective signatures:
     random_walker_foreground(image, contrast::Real, foreground_quantile::Real)
     random_walker_foreground(image, saliency)
     random_walker_foreground(image, saliency, contrast::Real)
+    random_walker_foreground(image, mask)
+    random_walker_foreground(image, mask, band::Real)
 
 image is a same-size intensity image. The operator either computes
 spectral-residual saliency internally or consumes a same-size intensity
@@ -209,6 +241,14 @@ defaults to 90. foreground_quantile is clamped to [0.5, 0.99] and defaults to
 0.95. Non-finite values use the defaults. Supplied-saliency calls use the
 default quantile to respect the MAGE three-input ceiling. Flat saliency returns
 an all-zero probability map.
+
+`random_walker_foreground(image, mask, [band])` refines a rough binary `mask` (e.g. a
+threshold or a dilated detection): pixels deeper than `band` inside the mask
+are fixed as foreground, pixels farther than `band` outside it as background,
+and the strip of width `2·band` along the mask's edge is decided by the
+walk, with a contrast adapted to the image (`_random_walker_adaptive_contrast`). `band` is rounded and clamped to `[0, 20]` pixels, default `4`; it
+should cover the mask's error. An object thinner than the band keeps its
+middle as a seed. An empty mask gives an empty result.
 
 Every overload accepts and ignores trailing framework args... and returns
 exactly the dimensions, IntensityPixel category, and storage type fixed by
@@ -309,6 +349,30 @@ function random_walker_foreground_image2D_factory(
             args...,
         )
     end
+    # Seeds from a rough mask and an uncertainty band.
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            band::Real,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        guess = BitMatrix(Bool.(reinterpret(mask.img)))
+        probabilities = if !any(guess)
+            zeros(Float64, size(guess))
+        else
+            foreground, background = _mask_band_seeds(guess, _seed_band(band))
+            values = reinterpret(image.img)
+            _solve_random_walker(values, foreground, background, _random_walker_adaptive_contrast(values))
+        end
+        return SImageND($PT.($IT.(probabilities)), $S)
+    end
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        return $function_name(image, mask, 4.0, args...)
+    end
     return fn
 end
 
@@ -316,7 +380,7 @@ append_method!(
     bundle_image2DIntensity_foreground_extraction_factory,
     random_walker_foreground_image2D_factory,
     :random_walker_foreground;
-    description = "Returns soft foreground probabilities from a saliency-seeded Random Walker solve.",
+    description = "Soft foreground probabilities from a Random Walker: (img, [contrast], [quantile]) with saliency-derived seeds, (img, saliency) or (img, mask, [band]) refining a rough mask.",
 )
 
 
@@ -549,6 +613,8 @@ The returned callable supports these effective signatures:
     closed_form_matting(image, edge_sensitivity::Real, foreground_quantile::Real)
     closed_form_matting(image, trimap)
     closed_form_matting(image, trimap, edge_sensitivity::Real)
+    closed_form_matting(image, mask)
+    closed_form_matting(image, mask, band::Real)
 
 An explicit trimap uses values at most 0.1 as hard background, values at least
 0.9 as hard foreground, and intermediate values as unknown. Without a trimap,
@@ -561,6 +627,14 @@ Laplacian epsilon as 10^(-edge_sensitivity). foreground_quantile is clamped to
 For bounded runtime, problems larger than 9216 pixels solve the same objective
 on a deterministic reduced grid, lift the alpha matte bilinearly, and restore
 the original hard constraints exactly.
+
+`closed_form_matting(image, mask, [band])` refines a rough binary `mask` (e.g. a
+threshold or a dilated detection): pixels deeper than `band` inside the mask
+are fixed as foreground, pixels farther than `band` outside it as background,
+and the strip of width `2·band` along the mask's edge is decided by the
+matting (the mask becomes the trimap). `band` is rounded and clamped to `[0, 20]` pixels, default `4`; it
+should cover the mask's error. An object thinner than the band keeps its
+middle as a seed. An empty mask gives an empty result.
 
 Every overload accepts and ignores trailing framework args... and returns
 exactly the dimensions, IntensityPixel category, and storage type fixed by
@@ -659,6 +733,33 @@ function closed_form_matting_image2D_factory(
             args...,
         )
     end
+    # A rough mask and an uncertainty band define the trimap: deep inside 1,
+    # far outside 0, the band along the mask's edge unknown.
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            band::Real,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        guess = BitMatrix(Bool.(reinterpret(mask.img)))
+        alpha = if !any(guess)
+            zeros(Float64, size(guess))
+        else
+            foreground, background = _mask_band_seeds(guess, _seed_band(band))
+            trimap = fill(0.5, size(guess))
+            trimap[background] .= 0.0
+            trimap[foreground] .= 1.0
+            _closed_form_alpha(reinterpret(image.img), trimap, $_CLOSED_FORM_DEFAULT_EDGE_SENSITIVITY)
+        end
+        return SImageND($PT.($IT.(alpha)), $S)
+    end
+    @eval function $function_name(
+            image::SOURCE,
+            mask::MASK,
+            args::Vararg{Any},
+        ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
+        return $function_name(image, mask, 4.0, args...)
+    end
     return fn
 end
 
@@ -666,7 +767,7 @@ append_method!(
     bundle_image2DIntensity_foreground_extraction_factory,
     closed_form_matting_image2D_factory,
     :closed_form_matting;
-    description = "Returns a soft alpha matte from explicit or automatically derived trimap constraints.",
+    description = "Soft alpha matte: (img, [sensitivity], [quantile]) with saliency-derived constraints, (img, trimap) or (img, mask, [band]) refining a rough mask.",
 )
 
 end

@@ -312,6 +312,72 @@ makes cuts through similar neighboring intensities more expensive.
 </div>
 ```
 
+!!! note "Why the automatic seeds are often wrong"
+    Without a mask, the seeds come from spectral-residual saliency, which
+    responds to edges and unusual details, not to whole objects: on a bright
+    disk it is about twice as high on the rim as inside. The blurred top of
+    that map becomes the hard foreground seeds, so they straddle object edges
+    (on a test disk, 46% of them lie outside it) and can never be corrected.
+    That is why the cell, coffee and Lena results above are poor. Supply a rough mask (below) or a saliency
+    map that is high *inside* the objects (e.g. a blurred copy of an image of
+    bright objects).
+
+```@setup fg_mask
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+page = "foreground_mask"
+x = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end][1:96, 1:128]
+cell = g_intensity(x)
+I = typeof(cell)
+B = typeof(g_binary(falses(size(x)...)))
+otsu = g_call(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B), cell)
+fat = g_call(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B), otsu, 7.0)   # a deliberately rough mask
+D = UTCGP.image2D_foreground_extraction_discrete
+"Seeds of a mask as a picture: white foreground seeds, black background seeds, grey undecided."
+function seeds_picture(mask, band)
+    fg, bg = D._mask_band_seeds(BitMatrix(Bool.(reinterpret(mask.img))), band)
+    return g_intensity(ifelse.(fg, 1.0, ifelse.(bg, 0.0, 0.5)))
+end
+```
+
+## Refining a rough mask (recommended)
+
+Both operators also accept a rough binary mask, e.g. a threshold, a dilated
+detection or a blob from another MAGE chromosome:
+
+```julia
+mask = fn(image, rough_mask)          # band = 4
+mask = fn(image, rough_mask, band)
+```
+
+Pixels deeper than `band` inside the mask become foreground seeds, pixels
+farther than `band` outside it background seeds, and the cut decides the strip
+of width `2·band` along the mask's edge from the image's intensities and edges.
+`band` (rounded, `0 … 20` px, default `4`) should cover the mask's error. An
+object thinner than the band keeps its middle as a seed.
+
+Here the Otsu mask of the cells is dilated by 7 pixels to make it deliberately
+rough; both operators pull it back to the cells:
+
+```@example fg_mask
+bj = bundle_image2DBinary_foreground_extraction_factory[:boykov_jolly_foreground].fn(B)
+gc = bundle_image2DBinary_foreground_extraction_factory[:grabcut_foreground].fn(B)
+g_gallery(page, [
+    ("cell.png", "`cell`", cell),
+    ("otsu.png", "Otsu mask", otsu),
+    ("fat.png", "`rough` = Otsu dilated by 7", fat),
+    ("seeds_band4.png", "seeds of `rough`, band 4 (grey: decided by the cut)", seeds_picture(fat, 4)),
+    ("bj_band4.png", "`boykov_jolly_foreground(cell, rough)`", g_call(bj, cell, fat)),
+    ("gc_band4.png", "`grabcut_foreground(cell, rough)`", g_call(gc, cell, fat)),
+    ("gc_band1.png", "`grabcut_foreground(cell, rough, 1)`: band too narrow", g_call(gc, cell, fat, 1.0)),
+    ("gc_band8.png", "`grabcut_foreground(cell, rough, 8)`", g_call(gc, cell, fat, 8.0)),
+]; cols = 4, scale = 2)
+```
+
+With band `1` the undecided strip is too narrow to reach the cells' real
+edges, so the result stays close to the rough mask; with `4` or more the cut
+can move the boundary to the cells.
+
 The output is a mask, not a masked intensity image. MAGE can combine it with
 the source using image arithmetic, for example `image * mask`.
 

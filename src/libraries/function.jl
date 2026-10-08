@@ -178,7 +178,6 @@ struct NoTypeAssertion end
 # from https://discourse.julialang.org/t/performance-of-hasmethod-vs-try-catch-on-methoderror/99827/23
 const SafeFunctions = Dict{Type, IsGood}()
 const SafeFunctionsLock = Base.ReentrantLock()
-println("RECORD OF FNS : $SafeFunctions")
 
 # Base.@nospecializeinfer function safe_call( not available in 1.9.3
 function safe_call(@nospecialize(f::FunctionWrapper), @nospecialize(x::Tuple))

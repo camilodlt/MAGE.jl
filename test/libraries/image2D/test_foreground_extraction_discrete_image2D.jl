@@ -123,7 +123,10 @@ _foreground_bits(image) = Bool.(reinterpret(image.img))
             )
             brute_force_cut = min(brute_force_cut, cut)
         end
-        @test flow ≈ brute_force_cut atol = 1.0e-8
+        # Capacities are stored as integers scaled by _FLOW_CAPACITY_SCALE (2^20), so each one
+        # is rounded by at most 0.5 / 2^20; compare in the original units with that tolerance.
+        scale = graphcut_module._FLOW_CAPACITY_SCALE
+        @test flow / scale ≈ brute_force_cut atol = vertex_count^2 / scale
     end
 
     rng = MersenneTwister(45)

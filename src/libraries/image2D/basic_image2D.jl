@@ -163,10 +163,19 @@ function _standardise_img(img::AbstractArray)
     img_f .= (img_f .- μ) ./ σ
     return img_f
 end
+"""
+Min–max rescale to `[0, 1]`. A constant image gives all `0`. So does a range
+of floating-point noise (≤ 1e-9 relative), e.g. a derivative filter on a flat
+area (around 1e-17), which would otherwise be stretched into a full-range
+random pattern.
+"""
 function _normalize_img(img::AbstractArray)
     img_f = float.(img)
     _sanitize_img!(img_f)
     min_, max_ = minimum(img_f), maximum(img_f)
+    if max_ - min_ <= 1e-9 * max(1.0, abs(min_), abs(max_))
+        return fill!(img_f, zero(eltype(img_f)))
+    end
     img_f .= (img_f .- min_) ./ (max_ - min_)
     return img_f
 end
@@ -335,13 +344,13 @@ append_method!(
     bundle_image2DBinary_basic_factory,
     experimental_tobinary_image2D_factory,
     :experimental_tobinary_image2D;
-    description = "Converts an intensity image to binary using default thresholding.",
+    description = "Mask of the non-zero pixels of an intensity image (any value > 0), or of every segment except the smallest label.",
 )
 append_method!(
     bundle_image2DBinary_basic_factory,
     experimental_tobinary_th_image2D_factory,
     :experimental_tobinary_th_image2D_factory;
-    description = "Converts an intensity image to binary using a provided threshold.",
+    description = "(img, th): mask of the pixels above th (th a Float64 in [0, 1]); for segments, every label except the smallest.",
 )
 
 # Factory Segment

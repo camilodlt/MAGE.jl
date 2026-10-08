@@ -119,6 +119,13 @@ function _resize_bilinear(values::AbstractMatrix{<:Real}, output_size::Tuple{Int
     return output
 end
 
+"""
+Smallest smoothing σ (pixels) that is applied. A Gaussian of σ < 0.1 already
+leaves the map unchanged, and a vanishing σ (e.g. `1e-300`) gives a `NaN`
+kernel, so smaller values mean no smoothing.
+"""
+const _MIN_SMOOTHING_SIGMA = 0.1
+
 function _dyadic_gaussian_pyramid(channel::AbstractMatrix{<:Real})
     pyramid = Vector{Matrix{Float64}}(undef, 9)
     pyramid[1] = Float64.(channel)
@@ -216,7 +223,7 @@ function _itti_koch_niebur_grayscale(
         (1.0 - orientation_weight) .* intensity .+ orientation_weight .* orientation,
     )
     full_resolution = _resize_bilinear(saliency, size(channels.intensity))
-    if smoothing_sigma > 0.0
+    if smoothing_sigma >= _MIN_SMOOTHING_SIGMA
         full_resolution = imfilter(
             full_resolution,
             Kernel.gaussian(smoothing_sigma),
@@ -243,8 +250,8 @@ itti_koch_saliency(image::I, orientation_weight::Real, smoothing_sigma::Real) ->
 `image` is the intensity image to process. `orientation_weight` controls the
 blend between intensity contrast (`0`) and oriented contrast (`1`) and is
 clamped to `[0, 1]`; its default is `0.5`. `smoothing_sigma` is the final
-Gaussian smoothing standard deviation in pixels and is clamped to `[0, 5]`;
-its default is `0`. Non-finite parameter values use their respective defaults.
+Gaussian smoothing standard deviation in pixels and is clamped to `[0, 5]`
+(below `0.1` there is no smoothing); its default is `0`. Non-finite parameter values use their respective defaults.
 Any trailing `args` are accepted and ignored so the callable follows the MAGE
 node-function convention. The returned image has the same dimensions and
 `IntensityPixel` storage type as `image`.
@@ -356,7 +363,7 @@ function _spectral_residual_grayscale(
     spectral_residual = log_amplitude .- average_log_amplitude
     reconstructed = ifft(exp.(spectral_residual .+ im .* angle.(spectrum)))
     saliency = abs2.(reconstructed)
-    if smoothing_sigma > 0.0
+    if smoothing_sigma >= _MIN_SMOOTHING_SIGMA
         saliency = imfilter(saliency, Kernel.gaussian(smoothing_sigma), "replicate")
     end
     return _normalize01(saliency)
@@ -380,7 +387,7 @@ spectral_residual_saliency(image::I, spectral_average_radius::Real, smoothing_si
 radius `r` averages the log-amplitude spectrum in a `(2r + 1) × (2r + 1)`
 window. Its default is `1`, the classical `3 × 3` neighborhood.
 `smoothing_sigma` is the final Gaussian standard deviation in pixels, clamped
-to `[0, 5]`, and defaults to `2`. Non-finite values use their respective
+to `[0, 5]` (below `0.1` there is no smoothing), and defaults to `2`. Non-finite values use their respective
 defaults. Any trailing `args` are accepted and ignored for the MAGE
 node-function convention.
 
@@ -413,7 +420,7 @@ function spectral_residual_saliency_image2D_factory(
         radius_value = Float64(spectral_average_radius_input)
         sigma_value = Float64(smoothing_sigma_input)
         spectral_average_radius = isfinite(radius_value) ?
-                                  clamp(round(Int, radius_value), 1, 15) : 1
+                                  round(Int, clamp(radius_value, 1.0, 15.0)) : 1
         smoothing_sigma = isfinite(sigma_value) ? clamp(sigma_value, 0.0, 5.0) : 2.0
         saliency = _spectral_residual_grayscale(
             image,

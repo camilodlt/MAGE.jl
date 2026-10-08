@@ -212,3 +212,37 @@ function g_volume_viewer(volumes; scale::Int = 4, title::AbstractString = "", as
     print(io, "</table></div>")
     return HTML(String(take!(io)))
 end
+
+# ---------------------------------------------------------------------------
+# Galleries: one picture per operator
+# ---------------------------------------------------------------------------
+
+using Markdown
+
+"""
+    g_gallery(page, entries; cols = 4, scale = 2) -> Markdown
+
+A table of pictures, `cols` per row. `entries` is a vector of
+`(file, caption, image)`; each image is saved as `file` in the page's asset
+folder (upscaled `scale` times) and shown above its caption. Use it from an
+`@eval` block so the table becomes part of the page.
+"""
+function g_gallery(page, entries; cols::Int = 4, scale::Int = 2)
+    assets = g_assets(page)
+    pics, captions = String[], String[]
+    for (file, caption, img) in entries
+        g_save(assets, file, g_up(g_canvas(img), scale))
+        push!(pics, "![$file](../assets/fns/$page/$file)")
+        push!(captions, caption)
+    end
+    pad(v) = vcat(v, fill(" ", cols - length(v)))
+    io = IOBuffer()
+    # Captions above pictures; the first caption row is the table header.
+    for start in 1:cols:length(pics)
+        stop = min(start + cols - 1, length(pics))
+        println(io, "| ", join(pad(captions[start:stop]), " | "), " |")
+        start == 1 && println(io, "|", repeat(":--:|", cols))
+        println(io, "| ", join(pad(pics[start:stop]), " | "), " |")
+    end
+    return Markdown.parse(String(take!(io)))
+end

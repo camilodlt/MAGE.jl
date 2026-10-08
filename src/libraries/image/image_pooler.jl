@@ -209,6 +209,9 @@ _unique_count(window) = length(unique(window))
 _argmax_count(window) = count(==(maximum(window)), window)
 "How many pixels of the window share its minimum value."
 _argmin_count(window) = count(==(minimum(window)), window)
+"Standard deviation of the window; `0` for a 1-pixel window (`k = 1`), where `std` would be `NaN`."
+_window_std(window) = length(window) > 1 ? std(window) : 0.0
+
 "Interquartile range of the window's values (75th minus 25th percentile)."
 function _iqr(window)
     vals = Float64.(vec(collect(window)))
@@ -259,7 +262,7 @@ The image is reduced over full `k × k` windows using the provided `stride`,
 without padding, then nearest-neighbor resized back to the original image size.
 """
 stdpool_image2D_factory(i::Type{I}) where {I<:SizedImage2D} =
-    _make_pooler_factory(i, std, :stdpool)
+    _make_pooler_factory(i, _window_std, :stdpool)
 
 """
     medianpool_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
