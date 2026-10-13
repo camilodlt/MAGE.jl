@@ -3,8 +3,10 @@
 
 using UTCGP
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8, N0f16
+include(joinpath(@__DIR__, "gallery_paths.jl"))
 
 const G_RED = RGB{Float64}(0.92, 0.12, 0.12)
 const G_BLUE = RGB{Float64}(0.12, 0.45, 1.0)
@@ -35,8 +37,9 @@ g_segment(values) = SImageND(SegmentPixel.(Int.(values)))
 g_gray(values) = RGB{Float64}.(Gray.(clamp.(values, 0.0, 1.0)))
 g_canvas(img::SizedImage{S,<:IntensityPixel}) where {S} = g_gray(Float64.(reinterpret(img.img)))
 g_canvas(img::SizedImage{S,<:BinaryPixel}) where {S} = g_gray(Float64.(reinterpret(img.img)))
-g_canvas(img::SizedImage{S,<:SegmentPixel}) where {S} =
-    [G_PALETTE[mod1(Int(p.pixel) + 1, length(G_PALETTE))] for p in img.img]
+g_label_canvas(pixels::AbstractArray{<:SegmentPixel}) =
+    [G_PALETTE[mod1(Int(p.pixel) + 1, length(G_PALETTE))] for p in pixels]
+g_canvas(img::SizedImage{S,<:SegmentPixel}) where {S} = g_label_canvas(img.img)
 g_up(canvas, scale) = repeat(canvas, inner = (scale, scale))
 
 g_blend(a, b, t) = RGB{Float64}(a.r + t * (b.r - a.r), a.g + t * (b.g - a.g), a.b + t * (b.b - a.b))
@@ -118,7 +121,9 @@ function g_plot(curves; xlim = (-1.5, 1.5), ylim = (-1.5, 1.5), size = (150, 220
     return canvas
 end
 
-g_call(fn, args...) = Base.invokelatest(fn, args...)
+if !isdefined(@__MODULE__, :G_TIMINGS)
+    include(joinpath(@__DIR__, "gallery_timing.jl"))
+end
 g_tag(v) = replace(string(v), "." => "", "-" => "m")
 
 # ---------------------------------------------------------------------------
@@ -139,6 +144,7 @@ function g_png_uri(canvas)
 end
 
 "Display canvas of one volume slice (grey for intensity and binary, palette for segments)."
+g_slice_canvas(slice::AbstractMatrix{<:SegmentPixel}) = g_label_canvas(slice)
 g_slice_canvas(slice::AbstractMatrix) = g_gray(Float64.(slice))     # pixels convert with Float64
 
 "All slices along `axis`, upscaled and stacked vertically into one sprite strip."
@@ -156,9 +162,12 @@ An interactive viewer for one or more same-size volumes: one row per axis
 volumes of that row together. `volumes` is a vector of `label => volume`
 (`SImageND` or 3D array). Sprites are embedded as data URIs, or with
 `assets = g_assets(page)` and `page` saved as asset files, and driven by a few
-lines of inline JavaScript.
+lines of inline JavaScript. `asset_tag` distinguishes pages sharing an asset
+folder; its default uses this helper's sandbox namespace, so independent viewer
+counters cannot overwrite each other's sprites.
 """
-function g_volume_viewer(volumes; scale::Int = 4, title::AbstractString = "", assets = nothing, page = "")
+function g_volume_viewer(volumes; scale::Int = 4, title::AbstractString = "", assets = nothing, page = "",
+                         asset_tag = g_viewer_tag())
     G_VIEWER_COUNT[] += 1
     id = "vv$(G_VIEWER_COUNT[])"
     # With `assets` (from `g_assets(page)`), sprites are saved as files and
@@ -200,7 +209,7 @@ function g_volume_viewer(volumes; scale::Int = 4, title::AbstractString = "", as
             uri = if assets === nothing
                 g_png_uri(sprite)
             else
-                file = "$(id)_$(name)_$(column).png"
+                file = "$(asset_tag)_$(id)_$(name)_$(column).png"
                 g_save(assets, file, sprite)
                 prefix * file
             end
@@ -225,14 +234,15 @@ using Markdown
 A table of pictures, `cols` per row. `entries` is a vector of
 `(file, caption, image)`; each image is saved as `file` in the page's asset
 folder (upscaled `scale` times) and shown above its caption. Use it from an
-`@eval` block so the table becomes part of the page.
+`@example` block so the table becomes part of the page. `asset_prefix` is
+`"../assets/fns"` for library pages and `"assets/fns"` for top-level pages.
 """
-function g_gallery(page, entries; cols::Int = 4, scale::Int = 2)
+function g_gallery(page, entries; cols::Int = 4, scale::Int = 2, asset_prefix = g_asset_prefix())
     assets = g_assets(page)
     pics, captions = String[], String[]
     for (file, caption, img) in entries
         g_save(assets, file, g_up(g_canvas(img), scale))
-        push!(pics, "![$file](../assets/fns/$page/$file)")
+        push!(pics, "![$file]($asset_prefix/$page/$file)")
         push!(captions, caption)
     end
     pad(v) = vcat(v, fill(" ", cols - length(v)))

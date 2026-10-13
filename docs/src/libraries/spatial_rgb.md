@@ -25,6 +25,7 @@ This is an extension bundle, so it does not repeat `identity_rgb` or
 
 ```@example spatial_rgb_setup
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 
 rgb = SImageND(IntensityPixel{N0f8}.(rand(32, 32, 3)))
@@ -63,8 +64,10 @@ the same implementation while remaining quick to build.
 
 ```@setup spatial_rgb_gallery
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -83,7 +86,7 @@ names = (
     :local_std_rgb,
     :gabor_energy_rgb,
 )
-functions = Dict(name => bundle[name].fn(typeof(rgb_input)) for name in names)
+functions = Dict(name => g_timed(bundle[name].fn(typeof(rgb_input))) for name in names)
 
 assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "spatial_rgb")
 assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "spatial_rgb")
@@ -155,48 +158,75 @@ end
 
 ### Parameter-free edges
 
-```@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/input.png" alt="Coffee RGB input" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/sobel.png" alt="Channelwise Sobel magnitude" style="width:100%;" /><figcaption><code>sobel_magnitude_rgb</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/laplacian.png" alt="Channelwise Laplacian magnitude" style="width:100%;" /><figcaption><code>laplacian_magnitude_rgb</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
 ```
 
 ### Gaussian scale
 
-```@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/gaussian_0_5.png" alt="Gaussian sigma 0.5" style="width:100%;" /><figcaption><code>sigma = 0.5</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/gaussian_1_5.png" alt="Gaussian sigma 1.5" style="width:100%;" /><figcaption><code>sigma = 1.5</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/gaussian_3.png" alt="Gaussian sigma 3" style="width:100%;" /><figcaption><code>sigma = 3</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
 ```
 
 ### Difference-of-Gaussians scales
 
-```@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/dog_0_5_1.png" alt="DoG sigmas 0.5 and 1" style="width:100%;" /><figcaption><code>sigma = (0.5,1)</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/dog_1_2.png" alt="DoG sigmas 1 and 2" style="width:100%;" /><figcaption><code>sigma = (1,2)</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/dog_2_4.png" alt="DoG sigmas 2 and 4" style="width:100%;" /><figcaption><code>sigma = (2,4)</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
 ```
 
 ### Unsharp scale and amount
 
-```@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:22%; margin:0;"><img src="../assets/fns/spatial_rgb/unsharp_1_0.png" alt="Unsharp amount zero" style="width:100%;" /><figcaption><code>(sigma,amount) = (1,0)</code></figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/spatial_rgb/unsharp_0_5_1.png" alt="Unsharp sigma 0.5 amount 1" style="width:100%;" /><figcaption><code>(0.5,1)</code></figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/spatial_rgb/unsharp_1_5_1.png" alt="Unsharp sigma 1.5 amount 1" style="width:100%;" /><figcaption><code>(1.5,1)</code></figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/spatial_rgb/unsharp_1_2_5.png" alt="Unsharp sigma 1 amount 2.5" style="width:100%;" /><figcaption><code>(1,2.5)</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
 ```
 
 ### Local window radius
 
-```@raw html
+```@setup gallery_paths
+gallery_html_5 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/local_contrast_1.png" alt="Local contrast radius 1" style="width:100%;" /><figcaption><code>local_contrast</code>, radius 1</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/local_contrast_3.png" alt="Local contrast radius 3" style="width:100%;" /><figcaption><code>local_contrast</code>, radius 3</figcaption></figure>
@@ -205,11 +235,17 @@ end
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/local_std_3.png" alt="Local standard deviation radius 3" style="width:100%;" /><figcaption><code>local_std</code>, radius 3</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/local_std_5.png" alt="Local standard deviation radius 5" style="width:100%;" /><figcaption><code>local_std</code>, radius 5</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_5) # hide
 ```
 
 ### Gabor orientation and wavelength
 
-```@raw html
+```@setup gallery_paths
+gallery_html_6 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/gabor_o_0.png" alt="Gabor orientation zero" style="width:100%;" /><figcaption><code>orientation = 0</code>, wavelength 4</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/gabor_o_pi4.png" alt="Gabor orientation pi over four" style="width:100%;" /><figcaption><code>orientation = π/4</code>, wavelength 4</figcaption></figure>
@@ -218,6 +254,11 @@ end
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/gabor_w_4.png" alt="Gabor wavelength 4" style="width:100%;" /><figcaption><code>wavelength = 4</code>, orientation π/4</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/gabor_w_8.png" alt="Gabor wavelength 8" style="width:100%;" /><figcaption><code>wavelength = 8</code>, orientation π/4</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_6) # hide
 ```
 
 ```@docs
@@ -231,4 +272,21 @@ UTCGP.image3D_spatial_rgb.unsharp_mask_rgb_image3D_factory
 UTCGP.image3D_spatial_rgb.local_contrast_normalize_rgb_image3D_factory
 UTCGP.image3D_spatial_rgb.local_std_rgb_image3D_factory
 UTCGP.image3D_spatial_rgb.gabor_energy_rgb_image3D_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+### spatial rgb setup
+
+```@example spatial_rgb_setup
+g_timings() # hide
+```
+
+### spatial rgb gallery
+
+```@example spatial_rgb_gallery
+g_timings() # hide
 ```

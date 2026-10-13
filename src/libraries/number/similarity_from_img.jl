@@ -68,10 +68,12 @@ match centre (`match_y_<p>` the row, `match_score_<p>` the correlation in
 `[-1, 1]`). `(img, ref, s)` takes the template around `(s, s)` in `ref`
 instead of the centre.
 
-Templates wider than 16 pixels are searched coarse-to-fine: a grid of step
-`side ÷ 8` first, then every row of the columns around the best grid position.
-This is exact whenever the correlation peak is not narrower than the grid
-step.
+Templates whose shorter side is at least 16 pixels are searched coarse-to-fine:
+a grid of step `side ÷ 8` first, then every row of the columns around the best
+grid position.
+This is an approximate search: a coarse grid can miss the global maximum,
+even when a peak is broad. Use small templates when an exhaustive search is
+needed; the implementation searches every position when `min(height, width) < 16`.
 
 Combine with `zoom_recenter_<sel>` to centre an object in a reference frame,
 then find the same-looking object in later frames.
@@ -318,11 +320,18 @@ end
 Best lag (in pixels) of `q` against `p` by cross-correlation of mean-removed profiles.
 
 The lag maximises the mean of `p[i] · q[i + lag]` over the overlapping part.
+Scores tied within `1e-12` prefer the smallest absolute lag; equally distant
+negative and positive lags prefer the negative one. Flat profiles return zero.
 Example: `p` peaks at index 3, `q` at index 5 → lag `+2` (q is p moved 2
 steps forward).
 """
 function _best_lag(p::Vector{Float64}, q::Vector{Float64})
     n = length(p)
+    n <= 1 && return 0
+    # A constant profile contains no displacement information. Besides fixing
+    # the tie convention, this avoids the quadratic lag scan for empty masks,
+    # uniform frames and images constant along one axis.
+    (allequal(p) || allequal(q)) && return 0
     # Remove the means so a uniform brightness change does not dominate the products.
     p = p .- sum(p) / n
     q = q .- sum(q) / n
@@ -338,7 +347,7 @@ function _best_lag(p::Vector{Float64}, q::Vector{Float64})
         end
         overlap == 0 && continue
         score = dot / overlap                        # mean product: comparable between lags of different overlap
-        if score > best + 1e-12                      # strictly better (ties keep the smaller |lag| seen first)
+        if score > best + 1e-12 || (abs(score - best) <= 1e-12 && abs(lag) < abs(best_lag))
             best = score
             best_lag = lag
         end
@@ -463,8 +472,8 @@ Best normalised cross-correlation of `template` over `img`: `(row, col, score)`
 of the match centre.
 
 Dot products are accumulated per template coefficient over a column of
-candidate rows (one long SIMD loop). Templates wider than 16 pixels are first
-scored on a grid of step `stride = side ÷ 8` in both directions, then every row
+candidate rows (one long SIMD loop). Templates whose shorter side is at least
+16 pixels are first scored on a grid of step `stride = side ÷ 8` in both directions, then every row
 of the columns within one step of the best grid position is scored. Window
 variances come from integral images. Temporaries live in per-task scratch
 buffers.

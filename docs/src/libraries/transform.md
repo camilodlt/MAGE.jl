@@ -37,7 +37,7 @@ function frame_values(; ball = (30, 30))
 end
 frame = g_intensity(frame_values())
 I = typeof(frame)
-op(name) = bundle_image2DIntensity_transform_factory[name].fn(I)
+op(name) = g_timed(bundle_image2DIntensity_transform_factory[name].fn(I))
 save_img(name, img; scale = 2) = g_save(assets, name, g_up(g_canvas(img), scale))
 save_img("frame.png", frame)
 for name in (:transform_flip_h, :transform_flip_v, :transform_rotate_180,
@@ -184,8 +184,8 @@ sampling:
 ```@setup tr
 mask = g_binary(frame_values() .> 0.5)
 segment = g_segment(round.(Int, 3 .* frame_values()))
-bop(name) = bundle_image2DBinary_transform_factory[name].fn(typeof(mask))
-sop(name) = bundle_image2DSegment_transform_factory[name].fn(typeof(segment))
+bop(name) = g_timed(bundle_image2DBinary_transform_factory[name].fn(typeof(mask)))
+sop(name) = g_timed(bundle_image2DSegment_transform_factory[name].fn(typeof(segment)))
 save_img("mask.png", mask)
 save_img("mask_rotate.png", g_call(bop(:transform_rotate), mask, 0.06))
 save_img("segment.png", segment)
@@ -196,11 +196,6 @@ save_img("segment_rotate.png", g_call(sop(:transform_rotate), segment, 0.06))
 |:--:|:--:|:--:|:--:|
 | ![mask](../assets/fns/transform/mask.png) | ![mask rotate](../assets/fns/transform/mask_rotate.png) | ![segment](../assets/fns/transform/segment.png) | ![segment rotate](../assets/fns/transform/segment_rotate.png) |
 
-## Performance
-
-On an 84×84 image: flips and quarter turns ~3 µs, shifts ~4 µs (wrapping
-~6 µs), `flip_*_if_*` 3–6 µs, arbitrary rotation and axis alignment ~48 µs
-(bilinear; ~20 µs for masks and segment maps).
 
 ## Bundles
 
@@ -209,4 +204,13 @@ UTCGP.image2D_transform
 UTCGP.image2D_transform.bundle_image2DIntensity_transform_factory
 UTCGP.image2D_transform.bundle_image2DBinary_transform_factory
 UTCGP.image2D_transform.bundle_image2DSegment_transform_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example tr
+g_timings() # hide
 ```

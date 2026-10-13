@@ -49,6 +49,16 @@
     end
 
     @testset "shift estimation" begin
+        # Flat profiles have no evidence of motion: tied scores select zero.
+        for value in (0.0, 0.4, 1.0)
+            flat = _sim_intensity(fill(value, h, w))
+            @test S.sim_shift_x(flat, flat) == 0.0
+            @test S.sim_shift_y(flat, flat) == 0.0
+            @test S.sim_shift_x(flat, a) == 0.0
+            @test S.sim_shift_y(a, flat) == 0.0
+        end
+        @test S._best_lag([1.0], [1.0]) == 0
+        @test S._best_lag([1.0, 0.0, 1.0], [0.0, 1.0, 0.0]) == -1
         @test S.sim_shift_x(a, shifted) ≈ 3 / w
         @test S.sim_shift_y(a, shifted) == 0.0
         down = zeros(h, w)

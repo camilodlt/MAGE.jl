@@ -74,8 +74,10 @@ stronger; this is the orientation the scalars use.
 
 ```@setup orientation_summary_assets
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8
 
 function orientation_vertical_step_array(n::Int = 30)
@@ -213,7 +215,7 @@ ops = [:orientation_energy_0, :orientation_energy_45, :orientation_energy_90, :o
 short = ["E0", "E45", "E90", "E135", "dominant", "coherence", "spread"]
 println(rpad("", 17), join(lpad.(short, 10)))
 for (name, img) in images
-    values = [UTCGP.bundle_float_orientation[op].fn(img) for op in ops]
+    values = [g_call(UTCGP.bundle_float_orientation[op].fn, img) for op in ops]
     println(rpad(name, 17), join(lpad.(string.(round.(values, digits = 2)), 10)))
 end
 ```
@@ -224,11 +226,14 @@ Measure how aligned the edges are. The vertical bars have only vertical edges, s
 
 ```@example orientation_summary_assets
 img = orientation_coherence_img
-fn = UTCGP.bundle_float_orientation[:orientation_coherence].fn
+fn = g_timed(UTCGP.bundle_float_orientation[:orientation_coherence].fn)
 fn(img)
 ```
 
-```@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/orientation_coherence_original.png" alt="orientation_coherence original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">gx</div><img src="../assets/fns/orientation_summary/orientation_coherence_gx.png" alt="orientation_coherence sobel x" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -236,6 +241,11 @@ fn(img)
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">grad θ</div><img src="../assets/fns/orientation_summary/orientation_coherence_grad_theta.png" alt="orientation_coherence gradient angle" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">glyph θ</div><img src="../assets/fns/orientation_summary/orientation_coherence_structure_theta.png" alt="orientation_coherence orientation glyphs" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
 ```
 
 ### `dominant_orientation`
@@ -244,11 +254,12 @@ The edge orientation bin with the most edge strength. This step has a single `/`
 
 ```@example orientation_summary_assets
 img = dominant_orientation_img
-fn = UTCGP.bundle_float_orientation[:dominant_orientation].fn
+fn = g_timed(UTCGP.bundle_float_orientation[:dominant_orientation].fn)
 fn(img)
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/dominant_orientation_original.png" alt="dominant_orientation original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">gx</div><img src="../assets/fns/orientation_summary/dominant_orientation_gx.png" alt="dominant_orientation sobel x" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -256,6 +267,11 @@ fn(img)
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">grad θ</div><img src="../assets/fns/orientation_summary/dominant_orientation_grad_theta.png" alt="dominant_orientation gradient angle" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">glyph θ</div><img src="../assets/fns/orientation_summary/dominant_orientation_structure_theta.png" alt="dominant_orientation orientation glyphs" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
 ```
 
 ### `orientation_energy_0`
@@ -264,11 +280,12 @@ Share of the edge strength on horizontal edges. The horizontal step gives `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_0_img
-fn = UTCGP.bundle_float_orientation[:orientation_energy_0].fn
+fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_0].fn)
 fn(img)
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/orientation_energy_0_original.png" alt="orientation_energy_0 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">gx</div><img src="../assets/fns/orientation_summary/orientation_energy_0_gx.png" alt="orientation_energy_0 sobel x" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -276,6 +293,11 @@ fn(img)
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">grad θ</div><img src="../assets/fns/orientation_summary/orientation_energy_0_grad_theta.png" alt="orientation_energy_0 gradient angle" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">glyph θ</div><img src="../assets/fns/orientation_summary/orientation_energy_0_structure_theta.png" alt="orientation_energy_0 orientation glyphs" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
 ```
 
 ### `orientation_energy_45`
@@ -284,11 +306,12 @@ Share of the edge strength on `\` diagonal edges (down to the right, 45° clockw
 
 ```@example orientation_summary_assets
 img = orientation_energy_45_img
-fn = UTCGP.bundle_float_orientation[:orientation_energy_45].fn
+fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_45].fn)
 fn(img)
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/orientation_energy_45_original.png" alt="orientation_energy_45 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">gx</div><img src="../assets/fns/orientation_summary/orientation_energy_45_gx.png" alt="orientation_energy_45 sobel x" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -296,6 +319,11 @@ fn(img)
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">grad θ</div><img src="../assets/fns/orientation_summary/orientation_energy_45_grad_theta.png" alt="orientation_energy_45 gradient angle" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">glyph θ</div><img src="../assets/fns/orientation_summary/orientation_energy_45_structure_theta.png" alt="orientation_energy_45 orientation glyphs" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
 ```
 
 ### `orientation_energy_90`
@@ -304,11 +332,12 @@ Share of the edge strength on vertical edges. The vertical step gives `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_90_img
-fn = UTCGP.bundle_float_orientation[:orientation_energy_90].fn
+fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_90].fn)
 fn(img)
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_5 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/orientation_energy_90_original.png" alt="orientation_energy_90 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">gx</div><img src="../assets/fns/orientation_summary/orientation_energy_90_gx.png" alt="orientation_energy_90 sobel x" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -316,6 +345,11 @@ fn(img)
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">grad θ</div><img src="../assets/fns/orientation_summary/orientation_energy_90_grad_theta.png" alt="orientation_energy_90 gradient angle" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">glyph θ</div><img src="../assets/fns/orientation_summary/orientation_energy_90_structure_theta.png" alt="orientation_energy_90 orientation glyphs" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_5) # hide
 ```
 
 ### `orientation_energy_135`
@@ -324,11 +358,12 @@ Share of the edge strength on `/` diagonal edges (135° clockwise). The `/` line
 
 ```@example orientation_summary_assets
 img = orientation_energy_135_img
-fn = UTCGP.bundle_float_orientation[:orientation_energy_135].fn
+fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_135].fn)
 fn(img)
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_6 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/orientation_energy_135_original.png" alt="orientation_energy_135 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">gx</div><img src="../assets/fns/orientation_summary/orientation_energy_135_gx.png" alt="orientation_energy_135 sobel x" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -336,6 +371,11 @@ fn(img)
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">grad θ</div><img src="../assets/fns/orientation_summary/orientation_energy_135_grad_theta.png" alt="orientation_energy_135 gradient angle" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">glyph θ</div><img src="../assets/fns/orientation_summary/orientation_energy_135_structure_theta.png" alt="orientation_energy_135 orientation glyphs" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_6) # hide
 ```
 
 ### `orientation_spread`
@@ -344,11 +384,12 @@ fn(img)
 
 ```@example orientation_summary_assets
 img = orientation_spread_img
-fn = UTCGP.bundle_float_orientation[:orientation_spread].fn
+fn = g_timed(UTCGP.bundle_float_orientation[:orientation_spread].fn)
 fn(img)
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_7 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/orientation_spread_original.png" alt="orientation_spread original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">gx</div><img src="../assets/fns/orientation_summary/orientation_spread_gx.png" alt="orientation_spread sobel x" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -356,6 +397,11 @@ fn(img)
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">grad θ</div><img src="../assets/fns/orientation_summary/orientation_spread_grad_theta.png" alt="orientation_spread gradient angle" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">glyph θ</div><img src="../assets/fns/orientation_summary/orientation_spread_structure_theta.png" alt="orientation_spread orientation glyphs" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_7) # hide
 ```
 
 ## Image To Float Region Statistics
@@ -455,10 +501,12 @@ come from the same bounds functions the operators use.
 - [`region_entropy_10p`](#region_entropy_10p)
 - [`region_entropy_20p`](#region_entropy_20p)
 
-```@eval
+```@setup region_stats
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using Markdown
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -469,20 +517,18 @@ mkpath(docs_assets_build)
 
 function _save_region_gray(name, img)
     vals = Float64.(img)
-    minv = minimum(vals)
-    maxv = maximum(vals)
-    scaled = maxv == minv ? zeros(size(vals)) : (vals .- minv) ./ (maxv - minv)
+    scaled = clamp.(vals, 0.0, 1.0)
     g = Gray.(scaled)
     save(joinpath(docs_assets_src, name), g)
     save(joinpath(docs_assets_build, name), g)
     return nothing
 end
 
+_base_rgb(img::AbstractMatrix{<:SegmentPixel}) = g_label_canvas(img)
+
 function _base_rgb(img)
     vals = Float64.(img)
-    minv = minimum(vals)
-    maxv = maximum(vals)
-    scaled = maxv == minv ? zeros(size(vals)) : (vals .- minv) ./ (maxv - minv)
+    scaled = clamp.(vals, 0.0, 1.0)
     return RGB.(Gray.(scaled))
 end
 
@@ -528,12 +574,12 @@ region_segment = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(region_segment_arr))
 
 _save_region_gray("region_intensity.png", region_intensity_arr)
 _save_region_gray("region_binary.png", Float64.(region_binary_arr))
-_save_region_gray("region_segment.png", Float64.(region_segment_arr))
+g_save([docs_assets_src, docs_assets_build], "region_segment.png", g_canvas(region_segment))
 
 function _region_examples_md(specs)
     io = IOBuffer()
     for (idx, (fn_name, desc)) in enumerate(specs)
-        fn = UTCGP.bundle_number_regionFromImg[fn_name].fn
+        fn = g_timed(UTCGP.bundle_number_regionFromImg[fn_name].fn)
         cx = mod(3 * idx + 1, 9) / 10
         cy = mod(5 * idx + 2, 9) / 10
         result = (
@@ -570,7 +616,7 @@ function _region_examples_md(specs)
         segment_img = string(fn_name, "_segment.png")
         _save_region_overlay(intensity_img, region_intensity_arr, _boxes_for(region_intensity))
         _save_region_overlay(binary_img, Float64.(region_binary_arr), _boxes_for(region_binary))
-        _save_region_overlay(segment_img, Float64.(region_segment_arr), _boxes_for(region_segment))
+        _save_region_overlay(segment_img, region_segment.img, _boxes_for(region_segment))
 
         println(io, "### `", fn_name, "`")
         println(io)
@@ -594,7 +640,8 @@ function _region_examples_md(specs)
         println(io, "| ![](../assets/fns/region_stats/", intensity_img, ") | ![](../assets/fns/region_stats/", binary_img, ") | ![](../assets/fns/region_stats/", segment_img, ") |")
         println(io)
     end
-    return Markdown.parse(String(take!(io)))
+    html = sprint(show, MIME"text/html"(), Markdown.parse(String(take!(io))))
+    return HTML(g_operator_anchors(html))
 end
 
 region_fn_specs = [
@@ -640,7 +687,11 @@ region_fn_specs = [
     (:region_entropy_20p, "Entropy (bits) of an 8-bin histogram of a local patch sized from 20% of min(image side)."),
 ]
 
-_region_examples_md(region_fn_specs)
+region_examples = _region_examples_md(region_fn_specs)
+```
+
+```@example region_stats
+region_examples # hide
 ```
 
 ## Haar Features From Image
@@ -711,8 +762,10 @@ end
 
 ```@setup haar_from_img_assets
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -919,7 +972,7 @@ columns 4–7: the `+` half (columns 4–5) is half white, the `−` half
 (columns 6–7) black, so the value is `0.5`.
 
 ```@example haar_from_img_assets
-fn = UTCGP.bundle_number_haarFromImg[:haar_lr].fn
+fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_lr].fn)
 (
     intensity_size_1 = fn(haar_lr_intensity, 0.5, 1),
     intensity_size_2 = fn(haar_lr_intensity, 0.5, 2),
@@ -929,7 +982,8 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_lr].fn
 )
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_8 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity size=1 orig</div><img src="../assets/fns/haar_from_img/haar_lr_intensity_s1_intensity_orig.png" alt="haar_lr intensity size 1 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity size=1 overlay</div><img src="../assets/fns/haar_from_img/haar_lr_intensity_s1_intensity_overlay.png" alt="haar_lr intensity size 1 overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -946,6 +1000,11 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_lr].fn
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.75 size=2 orig</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p075_s2_binary_orig.png" alt="haar_lr binary position 0.75 size 2 original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary pos=0.75 size=2 overlay</div><img src="../assets/fns/haar_from_img/haar_lr_binary_p075_s2_binary_overlay.png" alt="haar_lr binary position 0.75 size 2 overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_8) # hide
 ```
 
 ### `haar_tb`
@@ -953,17 +1012,23 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_lr].fn
 Top half (`+`) minus bottom half (`−`): positive when the top is brighter.
 
 ```@example haar_from_img_assets
-fn = UTCGP.bundle_number_haarFromImg[:haar_tb].fn
+fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_tb].fn)
 (fn(haar_tb_intensity, 0.5, 2), fn(haar_tb_binary, 0.5, 2))
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_9 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity orig</div><img src="../assets/fns/haar_from_img/haar_tb_intensity_orig.png" alt="haar_tb intensity original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity overlay</div><img src="../assets/fns/haar_from_img/haar_tb_intensity_overlay.png" alt="haar_tb intensity overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary orig</div><img src="../assets/fns/haar_from_img/haar_tb_binary_orig.png" alt="haar_tb binary original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary overlay</div><img src="../assets/fns/haar_from_img/haar_tb_binary_overlay.png" alt="haar_tb binary overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_9) # hide
 ```
 
 ### `haar_diag_main`
@@ -971,17 +1036,23 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_tb].fn
 Top-left and bottom-right quadrants (`+`) minus top-right and bottom-left quadrants (`−`): positive when the bright parts lie along the main diagonal (top-left to bottom-right).
 
 ```@example haar_from_img_assets
-fn = UTCGP.bundle_number_haarFromImg[:haar_diag_main].fn
+fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_diag_main].fn)
 (fn(haar_diag_main_intensity, 0.5, 2), fn(haar_diag_main_binary, 0.5, 2))
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_10 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity orig</div><img src="../assets/fns/haar_from_img/haar_diag_main_intensity_orig.png" alt="haar_diag_main intensity original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity overlay</div><img src="../assets/fns/haar_from_img/haar_diag_main_intensity_overlay.png" alt="haar_diag_main intensity overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary orig</div><img src="../assets/fns/haar_from_img/haar_diag_main_binary_orig.png" alt="haar_diag_main binary original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary overlay</div><img src="../assets/fns/haar_from_img/haar_diag_main_binary_overlay.png" alt="haar_diag_main binary overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_10) # hide
 ```
 
 ### `haar_diag_anti`
@@ -989,17 +1060,23 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_diag_main].fn
 Top-right and bottom-left quadrants (`+`) minus top-left and bottom-right quadrants (`−`): positive when the bright parts lie along the anti-diagonal (top-right to bottom-left).
 
 ```@example haar_from_img_assets
-fn = UTCGP.bundle_number_haarFromImg[:haar_diag_anti].fn
+fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_diag_anti].fn)
 (fn(haar_diag_anti_intensity, 0.5, 2), fn(haar_diag_anti_binary, 0.5, 2))
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_11 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity orig</div><img src="../assets/fns/haar_from_img/haar_diag_anti_intensity_orig.png" alt="haar_diag_anti intensity original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity overlay</div><img src="../assets/fns/haar_from_img/haar_diag_anti_intensity_overlay.png" alt="haar_diag_anti intensity overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary orig</div><img src="../assets/fns/haar_from_img/haar_diag_anti_binary_orig.png" alt="haar_diag_anti binary original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary overlay</div><img src="../assets/fns/haar_from_img/haar_diag_anti_binary_overlay.png" alt="haar_diag_anti binary overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_11) # hide
 ```
 
 ### `haar_center_surround`
@@ -1007,17 +1084,23 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_diag_anti].fn
 Central rectangle (the middle third, `+`) minus the rest of the window (`−`): positive for a bright spot on a darker background.
 
 ```@example haar_from_img_assets
-fn = UTCGP.bundle_number_haarFromImg[:haar_center_surround].fn
+fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_center_surround].fn)
 (fn(haar_center_surround_intensity, 0.5, 2), fn(haar_center_surround_binary, 0.5, 2))
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_12 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity orig</div><img src="../assets/fns/haar_from_img/haar_center_surround_intensity_orig.png" alt="haar_center_surround intensity original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity overlay</div><img src="../assets/fns/haar_from_img/haar_center_surround_intensity_overlay.png" alt="haar_center_surround intensity overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary orig</div><img src="../assets/fns/haar_from_img/haar_center_surround_binary_orig.png" alt="haar_center_surround binary original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary overlay</div><img src="../assets/fns/haar_from_img/haar_center_surround_binary_overlay.png" alt="haar_center_surround binary overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_12) # hide
 ```
 
 ### `haar_three_h`
@@ -1025,17 +1108,23 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_center_surround].fn
 Left and right bands (`+`) minus the middle band (`−`), three equal vertical bands centred in the window: positive for a dark vertical line between brighter areas.
 
 ```@example haar_from_img_assets
-fn = UTCGP.bundle_number_haarFromImg[:haar_three_h].fn
+fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_three_h].fn)
 (fn(haar_three_h_intensity, 0.5, 2), fn(haar_three_h_binary, 0.5, 2))
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_13 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity orig</div><img src="../assets/fns/haar_from_img/haar_three_h_intensity_orig.png" alt="haar_three_h intensity original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity overlay</div><img src="../assets/fns/haar_from_img/haar_three_h_intensity_overlay.png" alt="haar_three_h intensity overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary orig</div><img src="../assets/fns/haar_from_img/haar_three_h_binary_orig.png" alt="haar_three_h binary original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary overlay</div><img src="../assets/fns/haar_from_img/haar_three_h_binary_overlay.png" alt="haar_three_h binary overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_13) # hide
 ```
 
 ### `haar_three_v`
@@ -1043,17 +1132,23 @@ fn = UTCGP.bundle_number_haarFromImg[:haar_three_h].fn
 Top and bottom bands (`+`) minus the middle band (`−`), three equal horizontal bands centred in the window: positive for a dark horizontal line between brighter areas.
 
 ```@example haar_from_img_assets
-fn = UTCGP.bundle_number_haarFromImg[:haar_three_v].fn
+fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_three_v].fn)
 (fn(haar_three_v_intensity, 0.5, 2), fn(haar_three_v_binary, 0.5, 2))
 ```
 
-```@raw html
+```@setup gallery_paths
+gallery_html_14 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity orig</div><img src="../assets/fns/haar_from_img/haar_three_v_intensity_orig.png" alt="haar_three_v intensity original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">intensity overlay</div><img src="../assets/fns/haar_from_img/haar_three_v_intensity_overlay.png" alt="haar_three_v intensity overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary orig</div><img src="../assets/fns/haar_from_img/haar_three_v_binary_orig.png" alt="haar_three_v binary original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 <div style="width:22%;"><div style="text-align:center; font-size:0.9em;">binary overlay</div><img src="../assets/fns/haar_from_img/haar_three_v_binary_overlay.png" alt="haar_three_v binary overlay" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_14) # hide
 ```
 
 ## Arithmetic
@@ -1197,4 +1292,27 @@ bundle_number_coordinatesFromImg
 bundle_number_relativeCoordinatesFromImg
 bundle_number_regionFromImg
 bundle_number_haarFromImg
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+### orientation summary assets
+
+```@example orientation_summary_assets
+g_timings() # hide
+```
+
+### haar from img assets
+
+```@example haar_from_img_assets
+g_timings() # hide
+```
+
+### region statistics
+
+```@example region_stats
+g_timings() # hide
 ```

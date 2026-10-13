@@ -39,6 +39,7 @@ error. Objects are 26-connected and cavities 6-connected.
 
 ```@setup vol
 using UTCGP
+volume_gallery_tag = "volume_operators"
 include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "volume_gallery.jl"))
 ```
 
@@ -466,15 +467,6 @@ Turning a volume into 2D images (projections, slices) or into numbers
 (shape, size distribution, intensity profiles) is on the next page,
 [3D Volumes: Projections and Descriptors](@ref).
 
-## Performance
-
-On a 28³ volume, while the machine was also running other heavy jobs (so
-these are upper bounds): projections, slices, flips, shifts, masking and
-most scalar descriptors run in tens of microseconds (median over all 3D
-operators ≈ 75 µs); filters and grey morphology 0.1–0.45 ms; distance maps
-and the larger openings 0.3–0.75 ms. Shifts along `x` and `z` are processed
-as long contiguous loops, labelling works on runs, and temporaries are
-reused per task.
 
 ## Bundles
 
@@ -486,4 +478,13 @@ UTCGP.image3D_volume_basic.bundle_image3DBinary_volume_basic_factory
 UTCGP.image3D_volume
 UTCGP.image3D_volume.bundle_image3DIntensity_volume_factory
 UTCGP.image3D_volume.bundle_image3DBinary_volume_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example vol
+g_timings() # hide
 ```

@@ -56,6 +56,24 @@ correct_all_nodes!(ut_genome, model_arch, ml, shared_inputs)
 The full walkthrough, including the loss function and the search loop, is in
 [Getting Started](@ref).
 
+## All bundles by output type
+
+These are the bundles exported by the installed package, generated at build
+time. Each link opens its complete operator list in the catalogue. A factory
+bundle is specialised on a concrete output type before use. Numeric and generic
+operators can return different concrete types depending on inputs; the
+library's caster enforces the chromosome type. Mixed image reductions include
+integer sizes alongside floating-point statistics. Coordinate and descriptor
+bundles returning `Float64` are grouped with floats, regardless of their name.
+Bundles named
+`number_*FromImg` return scalars, even though their inputs are images.
+
+```@eval
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "bundle_inventory.jl"))
+bundle_output_index()
+```
+
 ## Reading order
 
 | Page | What it covers |
@@ -66,6 +84,7 @@ The full walkthrough, including the loss function and the search loop, is in
 | [Genome and Nodes](@ref) | the representation: elements, nodes, chromosomes |
 | [Libraries](@ref) | bundles, libraries, casters, premade collections |
 | [Bundle Catalogue](@ref) | every operator MAGE ships, generated from the source |
+| [Timing methodology](timings.md) | measured gallery calls, stress inputs and performance limits |
 | [Programs](@ref) | decoding a genome, evaluating and compiling programs |
 | [Mutations](@ref) | the mutation operators and how they differ |
 | [Crossover](@ref) | the crossover operator |

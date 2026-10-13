@@ -4,6 +4,7 @@ using Documenter
 DocMeta.setdocmeta!(UTCGP, :DocTestSetup, :(using UTCGP); recursive = true)
 
 makedocs(;
+    root = @__DIR__,
     modules = [UTCGP],
     authors = "Camilo De La Torre <camilo.de-la-torre@ut-capitole.fr> and contributors",
     repo = "https://github.com/camilodlt/MAGE.jl/blob/{commit}{path}#{line}",
@@ -35,6 +36,7 @@ makedocs(;
             "Fitters and Callbacks" => "fitters.md",
             "Endpoints and Tracking" => "endpoints.md",
             "Image Types" => "image_types.md",
+            "Timing methodology" => "timings.md",
         ],
         "Advanced" => [
             "Automatically Defined Functions" => "adf.md",
@@ -77,4 +79,11 @@ makedocs(;
     ],
 )
 
-deploydocs(; repo = "github.com/camilodlt/MAGE.jl.git", devbranch = "main")
+# Keep branch documentation separate from the main development manual.
+# Pull-request builds retain Documenter's normal preview behaviour.
+docs_branch = get(ENV, "GITHUB_REF_NAME", "main") == "adf" ? "adf" : "main"
+deploydocs(;
+    repo = "github.com/camilodlt/MAGE.jl.git",
+    devbranch = docs_branch,
+    devurl = docs_branch == "adf" ? "adf" : "dev",
+)

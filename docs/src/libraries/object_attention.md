@@ -55,12 +55,13 @@ All examples run on the same 80×120 Atari-like frame (shown at 2×): a square
 its own label. The second frame moves the ball, for `motion_*`.
 
 ```@setup oa
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 # Generates every image of `object_attention.md`. Included from the page's
 # `@setup` block, so the gallery always reflects the current implementation.
-
-using UTCGP
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
 const OA_L = UTCGP.number_locateFromImg
@@ -187,8 +188,8 @@ function oa_save_query(name, img, query, found; window = nothing)
     oa_save(name, canvas)
 end
 
-oa_zoom(bundle, name, prototype) = bundle[name].fn(typeof(prototype))
-oa_call(fn, args...) = Base.invokelatest(fn, args...)
+oa_zoom(bundle, name, prototype) = g_timed(bundle[name].fn(typeof(prototype)))
+oa_call(fn, args...) = g_call(fn, args...)
 
 # ---------------------------------------------------------------------------
 # Inputs
@@ -208,8 +209,8 @@ for (name, args...) in (
         (:argmax, ), (:argmin, ), (:projpeak, ), (:projpeak, 0.5),
         (:contrast, ), (:odd, ), (:rare, ), (:rare, 0.01),
     )
-    x = getfield(OA_L, Symbol(name, :_x))(scene, args...)
-    y = getfield(OA_L, Symbol(name, :_y))(scene, args...)
+    x = g_call(getfield(OA_L, Symbol(name, :_x)), scene, args...)
+    y = g_call(getfield(OA_L, Symbol(name, :_y)), scene, args...)
     suffix = isempty(args) ? "" : "_" * replace(string(args[1]), "." => "")
     oa_save_point("loc_$(name)$(suffix).png", scene, x, y)
 end
@@ -251,16 +252,16 @@ function oa_profile_figure(img, weight, x, y; x2 = nothing, y2 = nothing)
 end
 oa_mean = sum(Float64(p) for p in scene.img) / length(scene.img)
 oa_profiles = (
-    ("com", OA_L._Above(0.0), (OA_L.com_x(scene), OA_L.com_y(scene))),
-    ("com_05", OA_L._Above(0.5), (OA_L.com_x(scene, 0.5), OA_L.com_y(scene, 0.5))),
-    ("median", OA_L._Above(0.0), (OA_L.median_x(scene), OA_L.median_y(scene))),
-    ("median_05", OA_L._Above(0.5), (OA_L.median_x(scene, 0.5), OA_L.median_y(scene, 0.5))),
-    ("projpeak", OA_L._Above(0.0), (OA_L.projpeak_x(scene), OA_L.projpeak_y(scene))),
-    ("projpeak_05", OA_L._Above(0.5), (OA_L.projpeak_x(scene, 0.5), OA_L.projpeak_y(scene, 0.5))),
-    ("contrast", OA_L._AbsDeviation(oa_mean), (OA_L.contrast_x(scene), OA_L.contrast_y(scene))),
-    ("odd", OA_L._off_mode_weight(scene.img), (OA_L.odd_x(scene), OA_L.odd_y(scene))),
-    ("rare", OA_L._rare_weight(scene.img, 0.05), (OA_L.rare_x(scene), OA_L.rare_y(scene))),
-    ("rare_001", OA_L._rare_weight(scene.img, 0.01), (OA_L.rare_x(scene, 0.01), OA_L.rare_y(scene, 0.01))),
+    ("com", OA_L._Above(0.0), (g_call(OA_L.com_x, scene), g_call(OA_L.com_y, scene))),
+    ("com_05", OA_L._Above(0.5), (g_call(OA_L.com_x, scene, 0.5), g_call(OA_L.com_y, scene, 0.5))),
+    ("median", OA_L._Above(0.0), (g_call(OA_L.median_x, scene), g_call(OA_L.median_y, scene))),
+    ("median_05", OA_L._Above(0.5), (g_call(OA_L.median_x, scene, 0.5), g_call(OA_L.median_y, scene, 0.5))),
+    ("projpeak", OA_L._Above(0.0), (g_call(OA_L.projpeak_x, scene), g_call(OA_L.projpeak_y, scene))),
+    ("projpeak_05", OA_L._Above(0.5), (g_call(OA_L.projpeak_x, scene, 0.5), g_call(OA_L.projpeak_y, scene, 0.5))),
+    ("contrast", OA_L._AbsDeviation(oa_mean), (g_call(OA_L.contrast_x, scene), g_call(OA_L.contrast_y, scene))),
+    ("odd", OA_L._off_mode_weight(scene.img), (g_call(OA_L.odd_x, scene), g_call(OA_L.odd_y, scene))),
+    ("rare", OA_L._rare_weight(scene.img, 0.05), (g_call(OA_L.rare_x, scene), g_call(OA_L.rare_y, scene))),
+    ("rare_001", OA_L._rare_weight(scene.img, 0.01), (g_call(OA_L.rare_x, scene, 0.01), g_call(OA_L.rare_y, scene, 0.01))),
 )
 for (tag, weight, (x, y)) in oa_profiles
     oa_save("prof_$(tag).png", oa_profile_figure(scene, weight, x, y))
@@ -268,21 +269,21 @@ end
 for threshold in (0.3, 0.5, 0.8)
     oa_save("prof_extremes_$(replace(string(threshold), "." => "")).png",
         oa_profile_figure(scene, OA_L._Above(threshold),
-            OA_L.first_x(scene, threshold), OA_L.first_y(scene, threshold);
-            x2 = OA_L.last_x(scene, threshold), y2 = OA_L.last_y(scene, threshold)))
+            g_call(OA_L.first_x, scene, threshold), g_call(OA_L.first_y, scene, threshold);
+            x2 = g_call(OA_L.last_x, scene, threshold), y2 = g_call(OA_L.last_y, scene, threshold)))
 end
 # Motion: the weight is |frame − next frame|.
 let difference = SImageND(IntensityPixel{N0f8}.(abs.(Float64.(scene.img) .- Float64.(scene_next.img))))
     oa_save("prof_motion.png", oa_profile_figure(difference, OA_L._Above(0.0),
-        OA_L.motion_x(scene, scene_next), OA_L.motion_y(scene, scene_next)))
+        g_call(OA_L.motion_x, scene, scene_next), g_call(OA_L.motion_y, scene, scene_next)))
 end
 # A one-dimensional toy profile to explain the three statistics side by side.
 oa_toy = [0.0, 1, 1, 0, 0, 0, 0, 0, 3, 0, 0, 1]
 
 for threshold in (0.0, 0.5)
     canvas = oa_upscale(oa_canvas(scene))
-    x, y = OA_L.com_x(scene, threshold), OA_L.com_y(scene, threshold)
-    sx, sy = OA_L.spread_x(scene, threshold), OA_L.spread_y(scene, threshold)
+    x, y = g_call(OA_L.com_x, scene, threshold), g_call(OA_L.com_y, scene, threshold)
+    sx, sy = g_call(OA_L.spread_x, scene, threshold), g_call(OA_L.spread_y, scene, threshold)
     to_r(u) = clamp(round(Int, 1 + u * (OA_H - 1)), 1, OA_H)
     to_c(u) = clamp(round(Int, 1 + u * (OA_W - 1)), 1, OA_W)
     oa_rect!(canvas, to_r(y - sy), to_r(y + sy), to_c(x - sx), to_c(x + sx))
@@ -292,14 +293,14 @@ end
 
 for threshold in (0.3, 0.5, 0.8)
     canvas = oa_upscale(oa_canvas(scene))
-    oa_cross!(canvas, OA_L.first_x(scene, threshold), nothing)
-    oa_cross!(canvas, OA_L.last_x(scene, threshold), nothing; color = OA_BLUE)
-    oa_cross!(canvas, nothing, OA_L.first_y(scene, threshold))
-    oa_cross!(canvas, nothing, OA_L.last_y(scene, threshold); color = OA_BLUE)
+    oa_cross!(canvas, g_call(OA_L.first_x, scene, threshold), nothing)
+    oa_cross!(canvas, g_call(OA_L.last_x, scene, threshold), nothing; color = OA_BLUE)
+    oa_cross!(canvas, nothing, g_call(OA_L.first_y, scene, threshold))
+    oa_cross!(canvas, nothing, g_call(OA_L.last_y, scene, threshold); color = OA_BLUE)
     oa_save("loc_extremes_$(replace(string(threshold), "." => "")).png", canvas)
 end
 
-oa_save_point("loc_motion.png", scene_next, OA_L.motion_x(scene, scene_next), OA_L.motion_y(scene, scene_next))
+oa_save_point("loc_motion.png", scene_next, g_call(OA_L.motion_x, scene, scene_next), g_call(OA_L.motion_y, scene, scene_next))
 
 "Window drawn by refine/peak, in original pixel coordinates."
 function oa_window(x, y, fraction)
@@ -314,7 +315,7 @@ oa_query = (0.38, 0.45)
 for (stem, pct) in Iterators.product((:refine, :peak), (10, 25, 50))
     fx = getfield(OA_L, Symbol(stem, :_x_, pct, :p))
     fy = getfield(OA_L, Symbol(stem, :_y_, pct, :p))
-    found = (fx(scene, oa_query...), fy(scene, oa_query...))
+    found = (g_call(fx, scene, oa_query...), g_call(fy, scene, oa_query...))
     oa_save_query("loc_$(stem)_$(pct).png", scene, oa_query, found;
         window = oa_window(oa_query..., pct / 100))
 end
@@ -322,7 +323,7 @@ end
 for pct in (10, 25, 50)
     fx = getfield(OA_L, Symbol(:refine_x_, pct, :p))
     fy = getfield(OA_L, Symbol(:refine_y_, pct, :p))
-    found = (fx(mask, oa_query...), fy(mask, oa_query...))
+    found = (g_call(fx, mask, oa_query...), g_call(fy, mask, oa_query...))
     oa_save_query("loc_refine_mask_$(pct).png", mask, oa_query, found;
         window = oa_window(oa_query..., pct / 100))
 end
@@ -330,7 +331,7 @@ end
 let point = (0.2, 0.2), canvas = oa_upscale(oa_canvas(mask))
     oa_cross!(canvas, point...; color = OA_BLUE)
     for step in 1:3
-        point = (OA_L.refine_x_25p(mask, point...), OA_L.refine_y_25p(mask, point...))
+        point = (g_call(OA_L.refine_x_25p, mask, point...), g_call(OA_L.refine_y_25p, mask, point...))
         oa_cross!(canvas, point...; color = step == 3 ? OA_RED : OA_GREEN)
     end
     oa_save("loc_refine_chain_mask.png", canvas)
@@ -339,13 +340,13 @@ end
 let point = (0.2, 0.2), canvas = oa_upscale(oa_canvas(scene))
     oa_cross!(canvas, point...; color = OA_BLUE)
     for step in 1:3
-        point = (OA_L.refine_x_25p(scene, point...), OA_L.refine_y_25p(scene, point...))
+        point = (g_call(OA_L.refine_x_25p, scene, point...), g_call(OA_L.refine_y_25p, scene, point...))
         oa_cross!(canvas, point...; color = step == 3 ? OA_RED : OA_GREEN)
     end
     oa_save("loc_refine_chain.png", canvas)
 end
 let s = 0.2
-    found = (OA_L.refine_x_25p(scene, s), OA_L.refine_y_25p(scene, s))
+    found = (g_call(OA_L.refine_x_25p, scene, s), g_call(OA_L.refine_y_25p, scene, s))
     oa_save_query("loc_refine_diagonal.png", scene, (s, s), found; window = oa_window(s, s, 0.25))
 end
 
@@ -355,22 +356,22 @@ end
 
 oa_selectors = (first.(UTCGP.image2D_object_common.SELECTOR_FUNCTIONS)...,)
 for selector in oa_selectors
-    x = getfield(OA_O, Symbol(:obj_x_, selector))(mask)
-    y = getfield(OA_O, Symbol(:obj_y_, selector))(mask)
+    x = g_call(getfield(OA_O, Symbol(:obj_x_, selector)), mask)
+    y = g_call(getfield(OA_O, Symbol(:obj_y_, selector)), mask)
     oa_save_point("obj_$(selector).png", scene, x, y)
 end
 for selector in (:brightest, :darkest)
-    x = getfield(OA_O, Symbol(:obj_x_, selector))(mask, scene)
-    y = getfield(OA_O, Symbol(:obj_y_, selector))(mask, scene)
+    x = g_call(getfield(OA_O, Symbol(:obj_x_, selector)), mask, scene)
+    y = g_call(getfield(OA_O, Symbol(:obj_y_, selector)), mask, scene)
     oa_save_point("obj_$(selector).png", scene, x, y)
 end
 for threshold in (0.3, 0.5, 0.8)
     oa_save_point("obj_largest_t$(replace(string(threshold), "." => "")).png", scene,
-        OA_O.obj_x_largest(scene, threshold), OA_O.obj_y_largest(scene, threshold))
+        g_call(OA_O.obj_x_largest, scene, threshold), g_call(OA_O.obj_y_largest, scene, threshold))
 end
 for k in (0.0, 0.5, 1.0)
     oa_save_point("obj_rank_$(replace(string(k), "." => "")).png", scene,
-        OA_O.obj_x_rank_area(mask, k), OA_O.obj_y_rank_area(mask, k))
+        g_call(OA_O.obj_x_rank_area, mask, k), g_call(OA_O.obj_y_rank_area, mask, k))
 end
 oa_like_examples = (
     (:area, 0.0005), (:area, 0.03), (:width, 0.25), (:height, 0.4),
@@ -378,18 +379,18 @@ oa_like_examples = (
 )
 for (property, v) in oa_like_examples
     oa_save_point("obj_like_$(property)_$(replace(string(v), "." => "")).png", scene,
-        getfield(OA_O, Symbol(:obj_x_like_, property))(mask, v),
-        getfield(OA_O, Symbol(:obj_y_like_, property))(mask, v))
+        g_call(getfield(OA_O, Symbol(:obj_x_like_, property)), mask, v),
+        g_call(getfield(OA_O, Symbol(:obj_y_like_, property)), mask, v))
 end
 for (label, query) in (("diag", (0.3, 0.3)), ("xy", (0.9, 0.2)))
     args = label == "diag" ? (query[1],) : query
-    found = (OA_O.obj_x_nearest(mask, args...), OA_O.obj_y_nearest(mask, args...))
+    found = (g_call(OA_O.obj_x_nearest, mask, args...), g_call(OA_O.obj_y_nearest, mask, args...))
     oa_save_query("obj_nearest_$(label).png", scene, query, found)
 end
 for (a, b) in ((:smallest, :largest), (:smallest, :most_elongated), (:second_largest, :largest))
     canvas = oa_upscale(oa_canvas(scene))
-    oa_cross!(canvas, getfield(OA_O, Symbol(:obj_x_, b))(mask), getfield(OA_O, Symbol(:obj_y_, b))(mask); color = OA_BLUE)
-    oa_cross!(canvas, getfield(OA_O, Symbol(:obj_x_, a))(mask), getfield(OA_O, Symbol(:obj_y_, a))(mask))
+    oa_cross!(canvas, g_call(getfield(OA_O, Symbol(:obj_x_, b)), mask), g_call(getfield(OA_O, Symbol(:obj_y_, b)), mask); color = OA_BLUE)
+    oa_cross!(canvas, g_call(getfield(OA_O, Symbol(:obj_x_, a)), mask), g_call(getfield(OA_O, Symbol(:obj_y_, a)), mask))
     oa_save("obj_delta_$(a)_$(b).png", canvas)
 end
 
@@ -455,7 +456,7 @@ oa_save_image("recenter_point_diag.png", oa_call(oa_zoom(oa_zi, :zoom_recenter_p
 oa_lena_values = Float64.(Gray.(load(joinpath(oa_repo_root, "assets", "lena_gray_16bit.png"))))[1:2:end, 1:2:end]
 lena = SImageND(IntensityPixel{N0f16}.(oa_lena_values))
 oa_lena_saliency = oa_call(
-    bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(lena)), lena)
+    g_timed(bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(lena))), lena)
 
 "Save at native resolution, optionally with a crosshair."
 function oa_save_native(name, img; point = nothing)
@@ -473,8 +474,8 @@ end
 oa_save_native("lena.png", lena)
 oa_save_native("lena_saliency.png", oa_lena_saliency)
 oa_save_native("lena_obj_largest.png", lena;
-    point = (OA_O.obj_x_largest(oa_lena_saliency), OA_O.obj_y_largest(oa_lena_saliency)))
-oa_save_native("lena_rare.png", lena; point = (OA_L.rare_x(lena), OA_L.rare_y(lena)))
+    point = (g_call(OA_O.obj_x_largest, oa_lena_saliency), g_call(OA_O.obj_y_largest, oa_lena_saliency)))
+oa_save_native("lena_rare.png", lena; point = (g_call(OA_L.rare_x, lena), g_call(OA_L.rare_y, lena)))
 for (name, file) in (
         (:zoom_crop_bbox_largest, "lena_bbox_largest.png"),
         (:zoom_crop_aspect_largest, "lena_aspect_largest.png"),
@@ -484,7 +485,7 @@ for (name, file) in (
     oa_save_native(file, oa_call(oa_zoom(oa_zi, name, lena), lena, oa_lena_saliency, 0.2))
 end
 oa_save_native("lena_glimpse.png", oa_call(oa_zoom(oa_zi, :zoom_glimpse_25p, lena), lena,
-    OA_O.obj_x_largest(oa_lena_saliency), OA_O.obj_y_largest(oa_lena_saliency)))
+    g_call(OA_O.obj_x_largest, oa_lena_saliency), g_call(OA_O.obj_y_largest, oa_lena_saliency)))
 ```
 
 | Frame (`N0f8`) | Mask | Segment labels | Next frame |
@@ -570,13 +571,13 @@ calls = [
     ("spread", ()), ("spread", (0.5,)),
 ]
 for (stem, args) in calls
-    x = getfield(OA_L, Symbol(stem, :_x))(scene, args...)
-    y = getfield(OA_L, Symbol(stem, :_y))(scene, args...)
+    x = g_call(getfield(OA_L, Symbol(stem, :_x)), scene, args...)
+    y = g_call(getfield(OA_L, Symbol(stem, :_y)), scene, args...)
     call = isempty(args) ? "(img)" : "(img, $(args[1]))"
     println(rpad("$(stem)_x / $(stem)_y $call", 34), "x = ", rpad(round(x, digits = 3), 8), "y = ", round(y, digits = 3))
 end
-println(rpad("motion_x / motion_y (frame, next)", 34), "x = ", rpad(round(OA_L.motion_x(scene, scene_next), digits = 3), 8),
-        "y = ", round(OA_L.motion_y(scene, scene_next), digits = 3))
+println(rpad("motion_x / motion_y (frame, next)", 34), "x = ", rpad(round(g_call(OA_L.motion_x, scene, scene_next), digits = 3), 8),
+        "y = ", round(g_call(OA_L.motion_y, scene, scene_next), digits = 3))
 ```
 
 ### Around a point: `refine` and `peak`
@@ -611,8 +612,8 @@ background between the square, the disk and the ball:
 
 ```@example oa
 for (stem, input, label) in ((:refine, scene, "frame"), (:refine, mask, "mask"), (:peak, scene, "frame")), p in (10, 25, 50)
-    x = getfield(OA_L, Symbol(stem, :_x_, p, :p))(input, oa_query...)
-    y = getfield(OA_L, Symbol(stem, :_y_, p, :p))(input, oa_query...)
+    x = g_call(getfield(OA_L, Symbol(stem, :_x_, p, :p)), input, oa_query...)
+    y = g_call(getfield(OA_L, Symbol(stem, :_y_, p, :p)), input, oa_query...)
     println(rpad("$(stem)_x_$(p)p / $(stem)_y_$(p)p ($label, 0.38, 0.45)", 48), "x = ", rpad(round(x, digits = 3), 8), "y = ", round(y, digits = 3))
 end
 ```
@@ -673,8 +674,8 @@ The values behind the pictures:
 
 ```@example oa
 for sel in (:largest, :smallest, :most_elongated, :most_circular, :least_circular, :tallest)
-    x = getfield(OA_O, Symbol(:obj_x_, sel))(mask)
-    y = getfield(OA_O, Symbol(:obj_y_, sel))(mask)
+    x = g_call(getfield(OA_O, Symbol(:obj_x_, sel)), mask)
+    y = g_call(getfield(OA_O, Symbol(:obj_y_, sel)), mask)
     println(rpad(sel, 16), "x = ", round(x, digits = 3), "  y = ", round(y, digits = 3))
 end
 ```
@@ -731,7 +732,7 @@ the ball relative to the paddle. Red is `<a>`, blue is `<b>`.
 ```@example oa
 for (a, b) in ((:smallest, :largest), (:smallest, :most_elongated), (:second_largest, :largest)), d in (:dx, :dy)
     name = Symbol(:obj_, d, :_, a, :_, b)
-    println(rpad(name, 34), round(getfield(OA_O, name)(mask), digits = 3))
+    println(rpad(name, 34), round(g_call(getfield(OA_O, name), mask), digits = 3))
 end
 ```
 
@@ -757,7 +758,7 @@ example mask:
 descriptors = (:area, :width, :height, :elongation, :circularity, :extent, :orientation)
 println(rpad("selector", 18), join(rpad.(string.(descriptors), 12)))
 for sel in oa_selectors
-    values = [getfield(OA_O, Symbol(:obj_, d, :_, sel))(mask) for d in descriptors]
+    values = [g_call(getfield(OA_O, Symbol(:obj_, d, :_, sel)), mask) for d in descriptors]
     println(rpad(sel, 18), join(rpad.(string.(round.(values, digits = 3)), 12)))
 end
 ```
@@ -769,7 +770,7 @@ square; from `(0.9, 0.6)` the thin vertical bar:
 ```@example oa
 println(rpad("", 44), join(rpad.(string.(descriptors), 12)))
 for point in ((0.1, 0.1), (0.9, 0.6))
-    values = [getfield(OA_O, Symbol(:obj_, d, :_nearest))(mask, point...) for d in descriptors]
+    values = [g_call(getfield(OA_O, Symbol(:obj_, d, :_nearest)), mask, point...) for d in descriptors]
     println(rpad("obj_<descriptor>_nearest(mask, $(point[1]), $(point[2]))", 44), join(rpad.(string.(round.(values, digits = 3)), 12)))
 end
 ```
@@ -779,11 +780,11 @@ centroid, divided by the image diagonal):
 
 ```@example oa
 (
-    count_mask = OA_O.obj_count(mask),
-    count_t05 = OA_O.obj_count(scene, 0.5),
-    count_t08 = OA_O.obj_count(scene, 0.8),
-    dist_from_centre = round(OA_O.obj_dist_nearest(mask), digits = 3),
-    dist_from_corner = round(OA_O.obj_dist_nearest(mask, 0.0, 0.0), digits = 3),
+    count_mask = g_call(OA_O.obj_count, mask),
+    count_t05 = g_call(OA_O.obj_count, scene, 0.5),
+    count_t08 = g_call(OA_O.obj_count, scene, 0.8),
+    dist_from_centre = round(g_call(OA_O.obj_dist_nearest, mask), digits = 3),
+    dist_from_corner = round(g_call(OA_O.obj_dist_nearest, mask, 0.0, 0.0), digits = 3),
 )
 ```
 
@@ -938,21 +939,6 @@ locator output.
 |:--:|:--:|:--:|:--:|:--:|
 | ![bbox](../assets/fns/object_attention/lena_bbox_largest.png) | ![aspect](../assets/fns/object_attention/lena_aspect_largest.png) | ![isolate](../assets/fns/object_attention/lena_isolate_largest.png) | ![brightest](../assets/fns/object_attention/lena_bbox_brightest.png) | ![glimpse](../assets/fns/object_attention/lena_glimpse.png) |
 
-## Performance
-
-Measured on an 84×84 frame with ten sprites (median of each family):
-
-| Operator | Time |
-|:--|:--|
-| mask-free locators (`com`, `spread`, `median`, `projpeak`, `first`/`last`) | ~3 µs; `argmax` ~7 µs; `refine`/`peak` 1–4 µs; `rare`, `odd` ~12 µs |
-| object locators and descriptors (labelling + all moments) | 6–10 µs |
-| zooms (labelling included for selectors) | 11–20 µs |
-| reference: `ImageMorphology.label_components` alone | 34 µs |
-
-Labelling works on vertical runs of foreground pixels (moments of a run in
-closed form), 8-bit thresholds go through a 256-entry lookup table, and large
-temporaries live in per-task scratch buffers, so a hot loop does not allocate
-them on every call.
 
 ## Bundles
 
@@ -967,4 +953,13 @@ UTCGP.image2D_zoom
 UTCGP.image2D_zoom.bundle_image2DIntensity_zoom_factory
 UTCGP.image2D_zoom.bundle_image2DBinary_zoom_factory
 UTCGP.image2D_zoom.bundle_image2DSegment_zoom_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example oa
+g_timings() # hide
 ```

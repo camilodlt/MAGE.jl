@@ -94,8 +94,10 @@ the library's runtime target; Lena remains at its native 256×256 resolution.
 
 ```@setup foreground_extraction_assets
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -116,12 +118,12 @@ lena = foreground_image(joinpath(repo_root, "assets", "lena_gray_16bit.png"), N0
 
 function foreground_functions(image)
     prototype = SImageND(BinaryPixel.(falses(size(image))))
-    foreground_fn = bundle_image2DBinary_foreground_extraction_factory[
+    foreground_fn = g_timed(bundle_image2DBinary_foreground_extraction_factory[
         :boykov_jolly_foreground
-    ].fn(typeof(prototype))
-    saliency_fn = bundle_image2DIntensity_saliency_fixation_factory[
+    ].fn(typeof(prototype)))
+    saliency_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[
         :spectral_residual_saliency
-    ].fn(typeof(image))
+    ].fn(typeof(image)))
     return foreground_fn, saliency_fn
 end
 
@@ -176,12 +178,20 @@ The same coffee saliency map is supplied in all three calls. Stronger
 regularization suppresses isolated assignments and favors coherent boundaries,
 while contrast still permits cuts at strong intensity changes.
 
-```@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_smoothness_0_0.png" alt="Coffee foreground with smoothness zero" style="width:100%;" /><figcaption><code>smoothness = 0.0</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_smoothness_5_0.png" alt="Coffee foreground with default smoothness" style="width:100%;" /><figcaption><code>smoothness = 5.0</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_smoothness_15_0.png" alt="Coffee foreground with strong smoothness" style="width:100%;" /><figcaption><code>smoothness = 15.0</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
 ```
 
 ### Effect of `foreground_quantile`
@@ -190,12 +200,18 @@ These calls use internal spectral-residual saliency. Higher quantiles make the
 hard foreground seed set more selective; the graph cut still labels the full
 image from appearance and boundary evidence.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_quantile_0_75.png" alt="Coffee foreground at quantile 0.75" style="width:100%;" /><figcaption><code>foreground_quantile = 0.75</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_quantile_0_9.png" alt="Coffee foreground at default quantile" style="width:100%;" /><figcaption><code>foreground_quantile = 0.9</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_quantile_0_97.png" alt="Coffee foreground at quantile 0.97" style="width:100%;" /><figcaption><code>foreground_quantile = 0.97</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
 ```
 
 ## GrabCut
@@ -238,9 +254,9 @@ saliency map returns an all-zero mask.
 ```@example foreground_extraction_assets
 function grabcut_function(image)
     prototype = SImageND(BinaryPixel.(falses(size(image))))
-    return bundle_image2DBinary_foreground_extraction_factory[
+    return g_timed(bundle_image2DBinary_foreground_extraction_factory[
         :grabcut_foreground
-    ].fn(typeof(prototype))
+    ].fn(typeof(prototype)))
 end
 
 for (name, image) in (("cell", cell), ("coffee", coffee), ("lena", lena))
@@ -292,11 +308,17 @@ The same coffee image and supplied saliency are used below. The second round
 refits both mixtures from the first cut. If the first mask is already stable,
 both outputs are intentionally identical.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:48%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_grabcut_iterations_1_0.png" alt="Coffee GrabCut after one iteration" style="width:100%;" /><figcaption><code>iterations = 1</code></figcaption></figure>
 <figure style="width:48%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_grabcut_iterations_2_0.png" alt="Coffee GrabCut after two iterations" style="width:100%;" /><figcaption><code>iterations = 2</code> (default)</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
 ```
 
 ### Effect of GrabCut `smoothness`
@@ -304,12 +326,18 @@ both outputs are intentionally identical.
 These calls use automatic spectral-residual saliency. Increasing smoothness
 makes cuts through similar neighboring intensities more expensive.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_grabcut_smoothness_0_0.png" alt="Coffee GrabCut with smoothness zero" style="width:100%;" /><figcaption><code>smoothness = 0.0</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_grabcut_smoothness_5_0.png" alt="Coffee GrabCut with default smoothness" style="width:100%;" /><figcaption><code>smoothness = 5.0</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_grabcut_smoothness_15_0.png" alt="Coffee GrabCut with strong smoothness" style="width:100%;" /><figcaption><code>smoothness = 15.0</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
 ```
 
 !!! note "Why the automatic seeds are often wrong"
@@ -330,12 +358,12 @@ x = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:
 cell = g_intensity(x)
 I = typeof(cell)
 B = typeof(g_binary(falses(size(x)...)))
-otsu = g_call(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B), cell)
-fat = g_call(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B), otsu, 7.0)   # a deliberately rough mask
+otsu = g_call(g_timed(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B)), cell)
+fat = g_call(g_timed(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B)), otsu, 7.0)   # a deliberately rough mask
 D = UTCGP.image2D_foreground_extraction_discrete
 "Seeds of a mask as a picture: white foreground seeds, black background seeds, grey undecided."
 function seeds_picture(mask, band)
-    fg, bg = D._mask_band_seeds(BitMatrix(Bool.(reinterpret(mask.img))), band)
+    fg, bg = g_call(D._mask_band_seeds, BitMatrix(Bool.(reinterpret(mask.img))), band)
     return g_intensity(ifelse.(fg, 1.0, ifelse.(bg, 0.0, 0.5)))
 end
 ```
@@ -360,8 +388,8 @@ Here the Otsu mask of the cells is dilated by 7 pixels to make it deliberately
 rough; both operators pull it back to the cells:
 
 ```@example fg_mask
-bj = bundle_image2DBinary_foreground_extraction_factory[:boykov_jolly_foreground].fn(B)
-gc = bundle_image2DBinary_foreground_extraction_factory[:grabcut_foreground].fn(B)
+bj = g_timed(bundle_image2DBinary_foreground_extraction_factory[:boykov_jolly_foreground].fn(B))
+gc = g_timed(bundle_image2DBinary_foreground_extraction_factory[:grabcut_foreground].fn(B))
 g_gallery(page, [
     ("cell.png", "`cell`", cell),
     ("otsu.png", "Otsu mask", otsu),
@@ -394,3 +422,20 @@ References:
   Segmentation of Objects in N-D Images* (ICCV 2001).
 - Rother, Kolmogorov, and Blake, *GrabCut: Interactive Foreground Extraction
   Using Iterated Graph Cuts* (ACM SIGGRAPH 2004).
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+### foreground extraction assets
+
+```@example foreground_extraction_assets
+g_timings() # hide
+```
+
+### fg mask
+
+```@example fg_mask
+g_timings() # hide
+```

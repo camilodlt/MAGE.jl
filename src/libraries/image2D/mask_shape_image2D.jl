@@ -92,7 +92,8 @@ Distance maps of a mask, returned as a same-size intensity image in `[0, 1]`.
 
 - `shape_distance_inside`: distance from each object pixel to the nearest
   background pixel, divided by the largest such distance (thick parts are
-  bright, the ridge is the skeleton).
+  bright; ridges indicate thick regions but are not the thinning skeleton).
+  Empty masks return zeros; full masks return ones (no background sample).
 - `shape_proximity`: `1 − d / diagonal` with `d` the distance to the nearest
   object pixel: `1` on objects, fading with distance.
 
@@ -304,7 +305,10 @@ end
 """
 Distance from each object pixel to the background, divided by the largest such distance (`0` outside).
 
-Example: a disk of radius 10 gets `1` at its centre and about `0.1` on its rim.
+Empty masks return zeros; full masks return ones because there is no
+background sample inside the frame. Distances do not treat the image exterior
+as background. Example: a disk of radius 10 surrounded by background gets `1`
+at its centre and about `0.1` on its rim.
 """
 function _distance_inside(fg::AbstractMatrix{Bool})
     any(fg) || return zeros(size(fg))            # no object

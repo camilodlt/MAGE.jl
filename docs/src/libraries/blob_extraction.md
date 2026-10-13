@@ -98,8 +98,10 @@ Source, saliency, and masked outputs retain `N0f16` inside MAGE.
 
 ```@setup blob_extraction_assets
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f16
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -110,17 +112,17 @@ mkpath(assets_build)
 
 lena_values = Float64.(Gray.(load(joinpath(repo_root, "assets", "lena_gray_16bit.png"))))
 lena_image = SImageND(IntensityPixel{N0f16}.(lena_values))
-saliency_fn = bundle_image2DIntensity_saliency_fixation_factory[
+saliency_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[
     :itti_koch_saliency
-].fn(typeof(lena_image))
+].fn(typeof(lena_image)))
 lena_saliency = saliency_fn(lena_image)
 binary_prototype = SImageND(BinaryPixel.(falses(size(lena_values))))
 binary_functions = Dict(
-    wrapper.name => wrapper.fn(typeof(binary_prototype))
+    wrapper.name => g_timed(wrapper.fn(typeof(binary_prototype)))
     for wrapper in bundle_image2DBinary_blob_extraction_factory
 )
 intensity_functions = Dict(
-    wrapper.name => wrapper.fn(typeof(lena_image))
+    wrapper.name => g_timed(wrapper.fn(typeof(lena_image)))
     for wrapper in bundle_image2DIntensity_blob_extraction_factory
 )
 
@@ -192,44 +194,70 @@ for selector in statistic_selectors
 end
 ```
 
-```@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/source.png" alt="Lena 16-bit grayscale source" style="width:100%;" /><figcaption>Source (<code>N0f16</code>)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/saliency.png" alt="Lena Itti-Koch saliency map" style="width:100%;" /><figcaption>Itti-Koch saliency</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/components_min20.png" alt="Components of at least twenty pixels" style="width:100%;" /><figcaption><code>threshold = 0.5</code>, area at least 20</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
 ```
 
 ### Effect of `threshold`
 
 This preprocessing parameter is shared by every intensity-saliency overload.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/threshold_035.png" alt="Largest blob at threshold 0.35" style="width:100%;" /><figcaption><code>threshold = 0.35</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/threshold_05.png" alt="Largest blob at threshold 0.5" style="width:100%;" /><figcaption><code>threshold = 0.5</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/threshold_07.png" alt="Largest blob at threshold 0.7" style="width:100%;" /><figcaption><code>threshold = 0.7</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
 ```
 
 ### Effect of `min_pixels`
 
-```@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/minimum_area_1.png" alt="Smallest blob with minimum one pixel" style="width:100%;" /><figcaption><code>min_pixels = 1</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/minimum_area_50.png" alt="Smallest blob with minimum fifty pixels" style="width:100%;" /><figcaption><code>min_pixels = 50</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/minimum_area_300.png" alt="Smallest blob with minimum three hundred pixels" style="width:100%;" /><figcaption><code>min_pixels = 300</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
 ```
 
 ### Effect of area bounds
 
-```@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/area_1_250.png" alt="Blobs from one to 250 pixels" style="width:100%;" /><figcaption>1-250 pixels</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/area_200_500.png" alt="Blobs from 200 to 500 pixels" style="width:100%;" /><figcaption>200-500 pixels</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/area_500_2000.png" alt="Blobs from 500 to 2000 pixels" style="width:100%;" /><figcaption>500-2000 pixels</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
 ```
 
 ## Geometry output gallery
@@ -265,4 +293,13 @@ masked-intensity result.
 UTCGP.image2D_blob_extraction
 UTCGP.image2D_blob_extraction.bundle_image2DBinary_blob_extraction_factory
 UTCGP.image2D_blob_extraction.bundle_image2DIntensity_blob_extraction_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example blob_extraction_assets
+g_timings() # hide
 ```

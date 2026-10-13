@@ -49,7 +49,7 @@ for k in 1:30
 end
 mask = g_binary(m)
 B = typeof(mask)
-op(name) = bundle_image2DBinary_maskshape_factory[name].fn(B)
+op(name) = g_timed(bundle_image2DBinary_maskshape_factory[name].fn(B))
 save_mask(name, img) = g_save(assets, name, g_up(g_canvas(img), 2))
 save_mask("mask.png", mask)
 for name in (:shape_fill_holes, :shape_holes, :shape_convex_hull, :shape_convex_hull_objects,
@@ -118,7 +118,7 @@ pixels (`p = 1`, the default, fills all of them):
 
 ```@setup shape
 I = typeof(g_intensity(zeros(H, W)))
-iop(name) = bundle_image2DIntensity_maskshape_factory[name].fn(I)
+iop(name) = g_timed(bundle_image2DIntensity_maskshape_factory[name].fn(I))
 filled = g_call(op(:shape_fill_holes), g_call(op(:shape_remove_small), mask))
 save_mask("filled_clean.png", filled)
 save_mask("distance_inside.png", g_call(iop(:shape_distance_inside), filled))
@@ -143,9 +143,9 @@ chain of clean-up operators turns it into a few solid regions.
 ```@setup shape
 lena_values = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "lena_gray_16bit.png"))))[1:2:end, 1:2:end]
 lena = g_intensity(lena_values, N0f16)
-saliency = g_call(bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(lena)), lena)
+saliency = g_call(g_timed(bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(lena))), lena)
 LB = typeof(g_binary(falses(size(lena_values))))
-lop(name) = bundle_image2DBinary_maskshape_factory[name].fn(LB)
+lop(name) = g_call(bundle_image2DBinary_maskshape_factory[name].fn, LB)
 step1 = g_call(lop(:shape_majority), saliency, 0.45)
 step2 = g_call(lop(:shape_remove_small), step1, 0.002)
 step3 = g_call(lop(:shape_fill_holes), step2)
@@ -160,12 +160,6 @@ end
 |:--:|:--:|:--:|:--:|:--:|
 | ![saliency](../assets/fns/mask_shape/lena_saliency.png) | ![step 1](../assets/fns/mask_shape/lena_step1.png) | ![step 2](../assets/fns/mask_shape/lena_step2.png) | ![step 3](../assets/fns/mask_shape/lena_step3.png) | ![step 4](../assets/fns/mask_shape/lena_step4.png) |
 
-## Performance
-
-On an 84×84 mask: boundary ~7 µs, majority ~8 µs, bounding boxes ~13 µs, fill
-holes ~14 µs, size and border filters ~16 µs, convex hulls 17–22 µs, skeleton
-~60 µs (ImageMorphology's Guo-Hall thinning), distance maps 60–75 µs (an exact
-Euclidean distance transform, Felzenszwalb–Huttenlocher).
 
 ## Bundles
 
@@ -173,4 +167,13 @@ Euclidean distance transform, Felzenszwalb–Huttenlocher).
 UTCGP.image2D_mask_shape
 UTCGP.image2D_mask_shape.bundle_image2DBinary_maskshape_factory
 UTCGP.image2D_mask_shape.bundle_image2DIntensity_maskshape_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example shape
+g_timings() # hide
 ```

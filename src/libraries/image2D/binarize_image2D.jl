@@ -516,10 +516,14 @@ end
 Manual Binarizer uses manual thresholds to filter the image. 
 
 The functions in the dispatcher are : 
-- manual_binarize(img), the threshold is 0.5 
-- manual_binarize(img, t::Int) : the threshold is t/100 and then clamped ∈ [0,1]
-- manual_binarize(img, t::Float) : the threshold is t if ∈ [0,1]
-- manual_binarize(img1, img2) : the threshold is the mean of img2
+- binarize_manual2D(img), the threshold is 0.5
+- binarize_manual2D(img, t::Int) : the threshold is t/255 and then clamped ∈ [0,1]
+- binarize_manual2D(img, t::Float) : the threshold is t if ∈ [0,1]
+- binarize_manual2D(img1, img2) : the threshold is the mean of img2
+
+Pixels at or above the threshold are retained (`>=`), including on constant
+images. For example, a constant intensity of `0.8` with the default threshold
+produces a full mask.
 
 """
 function binarizeManual_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:BinaryPixel}} where SIZE

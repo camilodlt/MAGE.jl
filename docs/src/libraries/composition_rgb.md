@@ -27,6 +27,7 @@ or `return_rgb`; add it after the basic RGB bundle:
 
 ```@example rgb_composition_setup
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 
 rgb = SImageND(IntensityPixel{N0f8}.(rand(32, 32, 3)))
@@ -62,8 +63,10 @@ but retaining it as an intensity image also permits soft boundaries.
 
 ```@setup rgb_composition_gallery
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -106,7 +109,7 @@ names = (
     :alpha_blend_rgb,
     :set_luminance_rgb,
 )
-functions = Dict(name => bundle[name].fn(typeof(rgb_input)) for name in names)
+functions = Dict(name => g_timed(bundle[name].fn(typeof(rgb_input))) for name in names)
 
 assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "composition_rgb")
 assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "composition_rgb")
@@ -170,18 +173,27 @@ The first result reconstructs the source. The other two demonstrate that each
 input is an ordinary evolved intensity image: channels can be permuted,
 filtered, masked, or replaced before composition.
 
-```@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/input.png" alt="Coffee RGB input" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/compose_original.png" alt="RGB recomposed from source channels" style="width:100%;" /><figcaption><code>compose_rgb(R,G,B)</code></figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/compose_permuted.png" alt="RGB composed from permuted channels" style="width:100%;" /><figcaption><code>compose_rgb(B,R,G)</code></figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/compose_blue_only.png" alt="RGB composed with only blue" style="width:100%;" /><figcaption><code>compose_rgb(0,0,B)</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
 ```
 
 ### Replicating and replacing planes
 
-```@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/luminance_map.png" alt="Luminance control map" style="width:100%;" /><figcaption>luminance operand</figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/gray_luminance.png" alt="Luminance repeated as RGB" style="width:100%;" /><figcaption><code>gray_to_rgb(Y)</code></figcaption></figure>
@@ -189,6 +201,11 @@ filtered, masked, or replaced before composition.
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/replace_green.png" alt="Green replaced by luminance" style="width:100%;" /><figcaption><code>replace_green_rgb(rgb,Y)</code></figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/replace_blue.png" alt="Blue replaced by luminance" style="width:100%;" /><figcaption><code>replace_blue_rgb(rgb,Y)</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
 ```
 
 ### Continuous masks and alpha blending
@@ -196,7 +213,8 @@ filtered, masked, or replaced before composition.
 An all-zero intensity mask returns an all-black image of the specialized RGB
 type. It never returns `nothing` or a 2D image.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/radial_mask.png" alt="Soft radial mask" style="width:100%;" /><figcaption>radial mask</figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/masked_luminance.png" alt="RGB continuously masked by luminance" style="width:100%;" /><figcaption><code>multiply_rgb_intensity(rgb,Y)</code></figcaption></figure>
@@ -205,6 +223,11 @@ type. It never returns `nothing` or a 2D image.
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/horizontal_alpha.png" alt="Horizontal alpha map" style="width:100%;" /><figcaption>alpha operand</figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/blend_horizontal.png" alt="Spatial blend of two RGB images" style="width:100%;" /><figcaption><code>alpha_blend_rgb</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
 ```
 
 ### Replacing luminance
@@ -213,12 +236,18 @@ The common channel offset preserves colour differences until clipping at zero
 or one becomes necessary. The middle example uses the source's own luminance
 and therefore reconstructs it up to pixel quantization.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/composition_rgb/luminance_dark.png" alt="RGB with target luminance 0.25" style="width:100%;" /><figcaption>target luminance 0.25</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/composition_rgb/luminance_original.png" alt="RGB with original luminance map" style="width:100%;" /><figcaption>source luminance map</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/composition_rgb/luminance_bright.png" alt="RGB with target luminance 0.75" style="width:100%;" /><figcaption>target luminance 0.75</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
 ```
 
 ## API
@@ -234,4 +263,21 @@ UTCGP.image3D_rgb_composition.replace_blue_rgb_image3D_factory
 UTCGP.image3D_rgb_composition.multiply_rgb_intensity_image3D_factory
 UTCGP.image3D_rgb_composition.alpha_blend_rgb_image3D_factory
 UTCGP.image3D_rgb_composition.set_luminance_rgb_image3D_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+### rgb composition setup
+
+```@example rgb_composition_setup
+g_timings() # hide
+```
+
+### rgb composition gallery
+
+```@example rgb_composition_gallery
+g_timings() # hide
 ```

@@ -80,8 +80,10 @@ saliency = fn(img)
 
 ```@setup fixation_saliency_assets
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -94,7 +96,7 @@ mkpath(assets_build)
 gray = Float64.(Gray.(load(input_path)))
 gray = gray[1:2:end, 1:2:end]
 input_img = SImageND(IntensityPixel{N0f8}.(gray))
-saliency_fn = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(input_img))
+saliency_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(input_img)))
 saliency_img = saliency_fn(input_img)
 
 function save_fixation_example(name, values)
@@ -109,7 +111,7 @@ save_fixation_example("itti_koch_output.png", reinterpret(saliency_img.img))
 coffee = Float64.(Gray.(load(joinpath(repo_root, "assets", "coffee.png"))))
 coffee = coffee[1:2:end, 1:2:end]
 coffee_img = SImageND(IntensityPixel{N0f8}.(coffee))
-coffee_fn = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(coffee_img))
+coffee_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(coffee_img)))
 coffee_saliency = coffee_fn(coffee_img)
 save_fixation_example("itti_koch_coffee_input.png", reinterpret(coffee_img.img))
 save_fixation_example("itti_koch_coffee_output.png", reinterpret(coffee_saliency.img))
@@ -129,7 +131,7 @@ end
 
 lena = Float64.(Gray.(load(joinpath(repo_root, "assets", "lena_gray_16bit.png"))))
 lena_img = SImageND(IntensityPixel{N0f16}.(lena))
-lena_fn = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(lena_img))
+lena_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency].fn(typeof(lena_img)))
 lena_saliency = lena_fn(lena_img)
 save_fixation_example("itti_koch_lena_input.png", reinterpret(lena_img.img))
 save_fixation_example("itti_koch_lena_output.png", reinterpret(lena_saliency.img))
@@ -147,9 +149,9 @@ for (name, orientation_weight, smoothing_sigma) in lena_parameter_examples
     save_fixation_example(name, reinterpret(output.img))
 end
 
-spectral_cell_fn = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(input_img))
-spectral_coffee_fn = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(coffee_img))
-spectral_lena_fn = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(lena_img))
+spectral_cell_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(input_img)))
+spectral_coffee_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(coffee_img)))
+spectral_lena_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency].fn(typeof(lena_img)))
 spectral_cell = spectral_cell_fn(input_img)
 spectral_coffee = spectral_coffee_fn(coffee_img)
 spectral_lena = spectral_lena_fn(lena_img)
@@ -172,22 +174,36 @@ end
 
 ```
 
-```@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_input.png" alt="Itti-Koch input" style="width:100%;" /><figcaption>Input intensity image</figcaption></figure>
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_output.png" alt="Itti-Koch saliency output" style="width:100%;" /><figcaption>Output fixation-saliency map</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
 ```
 
 The coffee photograph provides a scene with several stronger competing
 fixation targets. The source image is the `coffee.png` test image distributed
 by [JuliaImages/TestImages.jl](https://github.com/JuliaImages/TestImages.jl).
 
-```@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_input.png" alt="Coffee photograph input" style="width:100%;" /><figcaption>Coffee input (grayscale)</figcaption></figure>
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_output.png" alt="Itti-Koch coffee saliency output" style="width:100%;" /><figcaption>Output fixation-saliency map</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
 ```
 All parameter comparisons below use the same coffee input shown above.
 
@@ -196,12 +212,18 @@ All parameter comparisons below use the same coffee input shown above.
 At `0`, only intensity contrast contributes. At `1`, only oriented contrast
 contributes; `0.5` gives both equal weight.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_orientation_0.png" alt="Coffee saliency with orientation weight zero" style="width:100%;" /><figcaption><code>orientation_weight = 0.0</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_orientation_05.png" alt="Coffee saliency with equal intensity and orientation weights" style="width:100%;" /><figcaption><code>orientation_weight = 0.5</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_orientation_1.png" alt="Coffee saliency with orientation weight one" style="width:100%;" /><figcaption><code>orientation_weight = 1.0</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
 ```
 
 #### Effect of `smoothing_sigma`
@@ -209,12 +231,18 @@ contributes; `0.5` gives both equal weight.
 Increasing the Gaussian standard deviation merges nearby responses and spreads
 sharp peaks. A value of `0` skips final smoothing.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_smoothing_0.png" alt="Coffee saliency without final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 0.0</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_smoothing_15.png" alt="Coffee saliency with moderate final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 1.5</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_smoothing_4.png" alt="Coffee saliency with strong final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 4.0</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
 ```
 
 
@@ -224,31 +252,49 @@ The source is `lena_gray_16bit.png` from
 [JuliaImages/TestImages.jl](https://github.com/JuliaImages/TestImages.jl). This
 example keeps `N0f16` storage through the MAGE input and output wrappers.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_5 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_input.png" alt="Lena 16-bit grayscale input" style="width:100%;" /><figcaption>Lena input (<code>N0f16</code>)</figcaption></figure>
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_output.png" alt="Itti-Koch Lena saliency output" style="width:100%;" /><figcaption>Default fixation-saliency map</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_5) # hide
 ```
 
 ##### Effect of `orientation_weight`
 
-```@raw html
+```@setup gallery_paths
+gallery_html_6 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_orientation_0.png" alt="Lena saliency with orientation weight zero" style="width:100%;" /><figcaption><code>orientation_weight = 0.0</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_orientation_05.png" alt="Lena saliency with equal intensity and orientation weights" style="width:100%;" /><figcaption><code>orientation_weight = 0.5</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_orientation_1.png" alt="Lena saliency with orientation weight one" style="width:100%;" /><figcaption><code>orientation_weight = 1.0</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_6) # hide
 ```
 
 ##### Effect of `smoothing_sigma`
 
-```@raw html
+```@setup gallery_paths
+gallery_html_7 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_smoothing_0.png" alt="Lena saliency without final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 0.0</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_smoothing_15.png" alt="Lena saliency with moderate final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 1.5</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_smoothing_4.png" alt="Lena saliency with strong final smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 4.0</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_7) # hide
 ```
 
 ```@docs
@@ -299,20 +345,32 @@ saliency = fn(img)
 
 ### Cell image
 
-```@raw html
+```@setup gallery_paths
+gallery_html_8 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_input.png" alt="Cell intensity input" style="width:100%;" /><figcaption>Cell input</figcaption></figure>
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_cell_output.png" alt="Spectral residual cell saliency" style="width:100%;" /><figcaption>Spectral-residual saliency</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_8) # hide
 ```
 
 ### Coffee cup
 
-```@raw html
+```@setup gallery_paths
+gallery_html_9 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_coffee_input.png" alt="Coffee intensity input" style="width:100%;" /><figcaption>Coffee input (grayscale)</figcaption></figure>
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_output.png" alt="Spectral residual coffee saliency" style="width:100%;" /><figcaption>Default spectral-residual saliency</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_9) # hide
 ```
 
 #### Effect of `spectral_average_radius`
@@ -320,31 +378,49 @@ saliency = fn(img)
 A larger radius removes broader trends in the log spectrum and changes the
 spatial scale at which spectral novelty is emphasized.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_10 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_radius_1.png" alt="Coffee spectral residual radius one" style="width:100%;" /><figcaption><code>spectral_average_radius = 1</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_radius_3.png" alt="Coffee spectral residual radius three" style="width:100%;" /><figcaption><code>spectral_average_radius = 3</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_radius_7.png" alt="Coffee spectral residual radius seven" style="width:100%;" /><figcaption><code>spectral_average_radius = 7</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_10) # hide
 ```
 
 #### Effect of `smoothing_sigma`
 
-```@raw html
+```@setup gallery_paths
+gallery_html_11 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_smoothing_0.png" alt="Coffee spectral residual without smoothing" style="width:100%;" /><figcaption><code>smoothing_sigma = 0.0</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_smoothing_2.png" alt="Coffee spectral residual smoothing two" style="width:100%;" /><figcaption><code>smoothing_sigma = 2.0</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_coffee_smoothing_5.png" alt="Coffee spectral residual smoothing five" style="width:100%;" /><figcaption><code>smoothing_sigma = 5.0</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_11) # hide
 ```
 
 ### Lena (16-bit grayscale)
 
-```@raw html
+```@setup gallery_paths
+gallery_html_12 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_lena_input.png" alt="Lena 16-bit intensity input" style="width:100%;" /><figcaption>Lena input (<code>N0f16</code>)</figcaption></figure>
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/spectral_residual_lena_output.png" alt="Spectral residual Lena saliency" style="width:100%;" /><figcaption>Default spectral-residual saliency</figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_12) # hide
 ```
 
 ```@docs
@@ -354,6 +430,13 @@ UTCGP.image2D_saliency_fixation.spectral_residual_saliency_image2D_factory
 Reference: [Hou and Zhang (2007)](https://doi.org/10.1109/CVPR.2007.383267).
 
 ## Orientation Image Maps
+
+The gallery and scalar summaries share the same Sobel machinery. Its
+conventions distinguish gradient directions from directions along edges:
+
+```@docs
+UTCGP.image2D_orientation_common
+```
 
 `bundle_image2DIntensity_orientation_factory` turns an intensity image into
 maps of its edges, from Sobel derivatives:
@@ -384,7 +467,7 @@ assets = g_assets("orientation")
 # border is a 2-pixel ramp, so the angles are not quantised by a pixel staircase.
 disk = g_intensity([0.1 + 0.8 * clamp((23 - hypot(r - 32.5, c - 32.5)) / 2, 0, 1) for r in 1:64, c in 1:64])
 I = typeof(disk)
-op(name) = bundle_image2DIntensity_orientation_factory[name].fn(I)
+op(name) = g_timed(bundle_image2DIntensity_orientation_factory[name].fn(I))
 save3(name, img) = g_save(assets, name, g_up(g_canvas(img), 3))
 save3("disk.png", disk)
 save3("disk_magnitude.png", g_call(op(:grad_magnitude), disk))
@@ -407,7 +490,7 @@ for (k, (_, values)) in enumerate(steps)
 end
 cell_values = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end]
 cell = g_intensity(cell_values)
-cop(name) = bundle_image2DIntensity_orientation_factory[name].fn(typeof(cell))
+cop(name) = g_timed(bundle_image2DIntensity_orientation_factory[name].fn(typeof(cell)))
 g_save(assets, "cell.png", g_canvas(cell))
 g_save(assets, "cell_magnitude.png", g_canvas(g_call(cop(:grad_magnitude), cell)))
 g_save(assets, "cell_orientation.png", g_canvas(g_call(cop(:grad_orientation), cell)))
@@ -520,9 +603,11 @@ max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(t
 
 ```@setup pool_gallery
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
 input_path = joinpath(repo_root, "assets", "000_img.png")
@@ -553,20 +638,20 @@ end
 img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(gray)))
 img_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
 segment_template = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
-seg_fn = UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template))
+seg_fn = g_timed(UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template)))
 img_segment = seg_fn(img_intensity, 0.1)
 
-avg_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img_intensity))
-avg_binary = UTCGP.bundle_image2DBinary_pool_factory[:avgpool_blocks].fn(typeof(img_binary))
-avg_segment = UTCGP.bundle_image2DSegment_pool_factory[:avgpool_blocks].fn(typeof(img_segment))
+avg_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img_intensity)))
+avg_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:avgpool_blocks].fn(typeof(img_binary)))
+avg_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:avgpool_blocks].fn(typeof(img_segment)))
 
-max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img_intensity))
-max_binary = UTCGP.bundle_image2DBinary_pool_factory[:maxpool_blocks].fn(typeof(img_binary))
-max_segment = UTCGP.bundle_image2DSegment_pool_factory[:maxpool_blocks].fn(typeof(img_segment))
+max_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img_intensity)))
+max_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:maxpool_blocks].fn(typeof(img_binary)))
+max_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:maxpool_blocks].fn(typeof(img_segment)))
 
-min_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:minpool_blocks].fn(typeof(img_intensity))
-min_binary = UTCGP.bundle_image2DBinary_pool_factory[:minpool_blocks].fn(typeof(img_binary))
-min_segment = UTCGP.bundle_image2DSegment_pool_factory[:minpool_blocks].fn(typeof(img_segment))
+min_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:minpool_blocks].fn(typeof(img_intensity)))
+min_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:minpool_blocks].fn(typeof(img_binary)))
+min_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:minpool_blocks].fn(typeof(img_segment)))
 
 cross_demo = zeros(Float64, 10, 10)
 cross_demo[3, 1:5] .= 1.0
@@ -579,18 +664,18 @@ cross_demo[8, 6:10] .= 0.4
 cross_demo[6:10, 8] .= 0.4
 
 img_cross_demo = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(cross_demo))
-avg_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_cross_blocks].fn(typeof(img_cross_demo))
-max_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_cross_blocks].fn(typeof(img_cross_demo))
-min_cross_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:minpool_cross_blocks].fn(typeof(img_cross_demo))
+avg_cross_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_cross_blocks].fn(typeof(img_cross_demo)))
+max_cross_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_cross_blocks].fn(typeof(img_cross_demo)))
+min_cross_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:minpool_cross_blocks].fn(typeof(img_cross_demo)))
 
-avg_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:avgpool_cross_blocks].fn(typeof(img_binary))
-avg_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:avgpool_cross_blocks].fn(typeof(img_segment))
+avg_cross_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:avgpool_cross_blocks].fn(typeof(img_binary)))
+avg_cross_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:avgpool_cross_blocks].fn(typeof(img_segment)))
 
-max_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:maxpool_cross_blocks].fn(typeof(img_binary))
-max_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:maxpool_cross_blocks].fn(typeof(img_segment))
+max_cross_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:maxpool_cross_blocks].fn(typeof(img_binary)))
+max_cross_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:maxpool_cross_blocks].fn(typeof(img_segment)))
 
-min_cross_binary = UTCGP.bundle_image2DBinary_pool_factory[:minpool_cross_blocks].fn(typeof(img_binary))
-min_cross_segment = UTCGP.bundle_image2DSegment_pool_factory[:minpool_cross_blocks].fn(typeof(img_segment))
+min_cross_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:minpool_cross_blocks].fn(typeof(img_binary)))
+min_cross_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:minpool_cross_blocks].fn(typeof(img_segment)))
 ```
 
 ### Avg Pool
@@ -1187,8 +1272,10 @@ iqr_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:iqrpool].fn(typeof
 
 ```@setup pooler_gallery
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -1226,7 +1313,7 @@ end
 img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(gray)))
 img_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
 segment_template = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
-seg_fn = UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template))
+seg_fn = g_timed(UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template)))
 img_segment = seg_fn(img_intensity, 0.1)
 
 pooler_syms = (
@@ -1240,9 +1327,9 @@ pooler_syms = (
     :argmincountpool,
     :iqrpool,
 )
-pooler_intensity = Dict(sym => UTCGP.bundle_image2DIntensity_pooler_factory[sym].fn(typeof(img_intensity)) for sym in pooler_syms)
-pooler_binary = Dict(sym => UTCGP.bundle_image2DBinary_pooler_factory[sym].fn(typeof(img_binary)) for sym in pooler_syms)
-pooler_segment = Dict(sym => UTCGP.bundle_image2DSegment_pooler_factory[sym].fn(typeof(img_segment)) for sym in pooler_syms)
+pooler_intensity = Dict(sym => g_timed(UTCGP.bundle_image2DIntensity_pooler_factory[sym].fn(typeof(img_intensity))) for sym in pooler_syms)
+pooler_binary = Dict(sym => g_timed(UTCGP.bundle_image2DBinary_pooler_factory[sym].fn(typeof(img_binary))) for sym in pooler_syms)
+pooler_segment = Dict(sym => g_timed(UTCGP.bundle_image2DSegment_pooler_factory[sym].fn(typeof(img_segment))) for sym in pooler_syms)
 ```
 
 ### Mean Pool
@@ -2146,4 +2233,33 @@ UTCGP.image_pooler
 bundle_image2DIntensity_pooler_factory
 bundle_image2DBinary_pooler_factory
 bundle_image2DSegment_pooler_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+### fixation saliency assets
+
+```@example fixation_saliency_assets
+g_timings() # hide
+```
+
+### orientation maps
+
+```@example orientation_maps
+g_timings() # hide
+```
+
+### pool gallery
+
+```@example pool_gallery
+g_timings() # hide
+```
+
+### pooler gallery
+
+```@example pooler_gallery
+g_timings() # hide
 ```

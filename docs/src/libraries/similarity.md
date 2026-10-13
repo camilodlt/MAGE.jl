@@ -35,8 +35,8 @@ function pong(ball; left = 40, right = 55)
 end
 base = pong((32, 58))
 reference = g_intensity(base)
-shift_fn = bundle_image2DIntensity_transform_factory[:transform_shift].fn(typeof(reference))
-flip_fn = bundle_image2DIntensity_transform_factory[:transform_flip_h].fn(typeof(reference))
+shift_fn = g_timed(bundle_image2DIntensity_transform_factory[:transform_shift].fn(typeof(reference)))
+flip_fn = g_timed(bundle_image2DIntensity_transform_factory[:transform_flip_h].fn(typeof(reference)))
 noise = [0.06 * sin(12.9898r + 78.233c) for r in 1:80, c in 1:120]   # deterministic pseudo-noise
 variants = [
     ("same", reference),
@@ -66,7 +66,7 @@ metrics = (:sim_mse, :sim_mae, :sim_correlation, :sim_ssim, :sim_hist_intersecti
 println(rpad("", 24), join(rpad.(first.(variants), 12)))
 for m in metrics
     f = getfield(S, m)
-    println(rpad(m, 24), join(rpad.(string.(round.([f(reference, img) for (_, img) in variants], digits = 3)), 12)))
+    println(rpad(m, 24), join(rpad.(string.(round.([g_call(f, reference, img) for (_, img) in variants], digits = 3)), 12)))
 end
 ```
 
@@ -80,7 +80,7 @@ How to read them:
 | `sim_hist_intersection`, `sim_hist_bhattacharyya` | `[0, 1]`, `1` = same | compare value histograms only: blind to *where* things are, so a shift or mirror scores `≈ 1` |
 | `sim_iou`, `sim_dice`, `sim_coverage`, `sim_hamming` | `[0, 1]` | compare foregrounds (pixels `>= 0.5`, or a third-argument threshold); `sim_coverage(a, b)` is the share of `a` inside `b` |
 | `sim_chamfer` | `0` = overlapping | mean distance between the two foregrounds over the image diagonal; grows smoothly as objects drift apart |
-| `sim_shift_x`, `sim_shift_y` | `[-0.5, 0.5]` | estimated translation of `b` relative to `a` (fraction of the size); `0.05` = the 6 px shift. Only meaningful when `b` really is a moved copy of `a`: for the inverted frame or another rally the value is arbitrary, so pair it with `sim_correlation` |
+| `sim_shift_x`, `sim_shift_y` | `[-0.5, 0.5]` | estimated translation of `b` relative to `a` (fraction of the size); `0.05` = the 6 px shift. Flat row or column profiles return zero along that axis. Otherwise only meaningful when `b` really is a moved copy of `a`: for the inverted frame or another rally the value is arbitrary, so pair it with `sim_correlation` |
 
 `sim_mse`, `sim_mae` and `sim_correlation` take an optional binary mask as
 third argument and compare only the pixels inside it. Below, the mask covers
@@ -92,10 +92,10 @@ frame they differ, but inside the mask they are identical.
 right_half = g_binary([c > 61 for r in 1:80, c in 1:120])
 moved_ball = variants[2][2]
 (
-    mse_whole = round(S.sim_mse(reference, moved_ball), digits = 5),
-    mse_right_half = round(S.sim_mse(reference, moved_ball, right_half), digits = 5),
-    correlation_whole = round(S.sim_correlation(reference, moved_ball), digits = 3),
-    correlation_right_half = round(S.sim_correlation(reference, moved_ball, right_half), digits = 3),
+    mse_whole = round(g_call(S.sim_mse, reference, moved_ball), digits = 5),
+    mse_right_half = round(g_call(S.sim_mse, reference, moved_ball, right_half), digits = 5),
+    correlation_whole = round(g_call(S.sim_correlation, reference, moved_ball), digits = 3),
+    correlation_right_half = round(g_call(S.sim_correlation, reference, moved_ball, right_half), digits = 3),
 )
 ```
 
@@ -107,8 +107,8 @@ net (`0.35`) joins the paddles and the ball, at `0.9` only the ball remains.
 ```@example sim
 for t in (0.3, 0.5, 0.9)
     println(rpad("threshold $t", 16),
-        "sim_iou(reference, ball moved) = ", rpad(round(S.sim_iou(reference, moved_ball, t), digits = 3), 8),
-        "sim_chamfer = ", round(S.sim_chamfer(reference, moved_ball, t), digits = 3))
+        "sim_iou(reference, ball moved) = ", rpad(round(g_call(S.sim_iou, reference, moved_ball, t), digits = 3), 8),
+        "sim_chamfer = ", round(g_call(S.sim_chamfer, reference, moved_ball, t), digits = 3))
 end
 ```
 
@@ -142,8 +142,8 @@ let canvas = g_up(g_canvas(lena), 3)
 end
 let canvas = g_up(g_canvas(moved), 3)
     for (p, color) in ((10, G_RED), (20, G_GREEN), (30, G_BLUE))
-        x = getfield(S, Symbol(:match_x_, p, :p))(moved, lena)
-        y = getfield(S, Symbol(:match_y_, p, :p))(moved, lena)
+        x = g_call(getfield(S, Symbol(:match_x_, p, :p)), moved, lena)
+        y = g_call(getfield(S, Symbol(:match_y_, p, :p)), moved, lena)
         g_cross!(canvas, x, y, 3; color = color, lines = false)
     end
     g_save(assets, "template_match.png", canvas)
@@ -152,7 +152,7 @@ end
 # Tracking a sprite: recentre the ball in the previous frame, find it in the next.
 previous = reference
 next_frame = g_intensity(pong((50, 30)))
-recenter_fn = bundle_image2DIntensity_zoom_factory[:zoom_recenter_smallest].fn(typeof(previous))
+recenter_fn = g_timed(bundle_image2DIntensity_zoom_factory[:zoom_recenter_smallest].fn(typeof(previous)))
 ball_template = g_call(recenter_fn, previous, previous)
 let canvas = g_up(g_canvas(ball_template), 3)
     th, tw = round(Int, 0.1 * 80), round(Int, 0.1 * 120)
@@ -160,7 +160,7 @@ let canvas = g_up(g_canvas(ball_template), 3)
     g_save(assets, "ball_template.png", canvas)
 end
 let canvas = g_up(g_canvas(next_frame), 3)
-    g_cross!(canvas, S.match_x_10p(next_frame, ball_template), S.match_y_10p(next_frame, ball_template), 3)
+    g_cross!(canvas, g_call(S.match_x_10p, next_frame, ball_template), g_call(S.match_y_10p, next_frame, ball_template), 3)
     g_save(assets, "ball_match.png", canvas)
 end
 ```
@@ -176,9 +176,9 @@ centre is up-left of the image centre (`0.5`, `0.5`):
 
 ```@example sim
 for p in (10, 20, 30)
-    x = getfield(S, Symbol(:match_x_, p, :p))(moved, lena)
-    y = getfield(S, Symbol(:match_y_, p, :p))(moved, lena)
-    score = getfield(S, Symbol(:match_score_, p, :p))(moved, lena)
+    x = g_call(getfield(S, Symbol(:match_x_, p, :p)), moved, lena)
+    y = g_call(getfield(S, Symbol(:match_y_, p, :p)), moved, lena)
+    score = g_call(getfield(S, Symbol(:match_score_, p, :p)), moved, lena)
     println(rpad("match_x_$(p)p / match_y_$(p)p / match_score_$(p)p", 44), "x = ", rpad(round(x, digits = 3), 8),
             "y = ", rpad(round(y, digits = 3), 8), "score = ", round(score, digits = 3))
 end
@@ -196,18 +196,14 @@ previous)` puts the ball at the centre (green box = the 10% template), and
 |:--:|:--:|
 | ![ball template](../assets/fns/similarity/ball_template.png) | ![ball match](../assets/fns/similarity/ball_match.png) |
 
+Templates with a shorter side below 16 pixels are searched exhaustively.
+Larger templates use a coarse grid and refine around its best column; this
+can miss the global maximum. Repeated patterns may also give ambiguous
+locations. A high match score alone does not establish the intended identity.
+
 A flat template (nothing at the centre of `ref`) has no shape to match:
 `match_x`/`match_y` return `0.5` and `match_score` returns `0`.
 
-## Performance
-
-On an 84×84 frame: pixel and mask scores 3–10 µs, histograms ~22 µs,
-`sim_shift_*` ~5 µs, `sim_chamfer` ~110 µs (two exact distance transforms).
-Template matching takes ~105 µs (10%), ~125 µs (20%) and ~160 µs (30%):
-correlations are accumulated over whole columns of candidate positions in SIMD
-loops, and templates wider than 16 pixels are searched coarse-to-fine (a grid
-of step `side ÷ 8`, then every row of the columns around the best grid
-position).
 
 ## Bundles
 
@@ -215,4 +211,13 @@ position).
 UTCGP.number_similarityFromImg
 UTCGP.number_similarityFromImg.bundle_number_similarityFromImg
 UTCGP.number_similarityFromImg.bundle_number_templateFromImg
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example sim
+g_timings() # hide
 ```

@@ -38,6 +38,7 @@ by tests so later insertions cannot silently break the convention.
 
 ```@example rgb_types
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 
 red = [1.0 0.0; 0.5 0.0]
@@ -47,13 +48,12 @@ rgb = SImageND(IntensityPixel{N0f8}.(cat(red, green, blue; dims = 3)))
 output_template = SImageND(IntensityPixel{N0f8}.(zeros(2, 2)))
 
 rgb_bundle = bundle_image3DIntensity_rgb_factory
-identity_fn = rgb_bundle[:identity_rgb].fn(typeof(rgb))
-return_fn = rgb_bundle[:return_rgb].fn(typeof(rgb))
+identity_fn = g_timed(rgb_bundle[:identity_rgb].fn(typeof(rgb)))
+return_fn = g_timed(rgb_bundle[:return_rgb].fn(typeof(rgb)))
 constant_rgb = return_fn()
 
-luminance = bundle_image2DIntensity_color_statistics_rgb_factory[:rgb_luminance].fn(
-    typeof(output_template),
-)(rgb)
+luminance = g_timed(bundle_image2DIntensity_color_statistics_rgb_factory[:rgb_luminance].fn(typeof(output_template),
+))(rgb)
 
 (identity_fn(rgb) === rgb, size(constant_rgb), all(isone, reinterpret(constant_rgb.img)), size(luminance))
 ```
@@ -97,7 +97,7 @@ other_rgb = SImageND(IntensityPixel{N0f8}.(fill(0.25, 2, 2, 3)))
 rgb_bundle = bundle_image3DIntensity_rgb_factory
 
 function first_triplet(name)
-    fn = rgb_bundle[name].fn(typeof(rgb))
+    fn = g_timed(rgb_bundle[name].fn(typeof(rgb)))
     # The factory defines a specialized method during this example block.
     result = Base.invokelatest(fn, rgb, other_rgb)
     values = Float64.(reinterpret(result.img))
@@ -144,8 +144,10 @@ The input below is the `coffee.png` image distributed by
 
 ```@setup rgb_gallery
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -178,7 +180,7 @@ for name in (
         :normalized_green,
         :normalized_blue,
     )
-    fn = bundle_image2DIntensity_color_statistics_rgb_factory[name].fn(intensity_type)
+    fn = g_timed(bundle_image2DIntensity_color_statistics_rgb_factory[name].fn(intensity_type))
     result = fn(rgb_input)
     save_rgb_gallery("$(name).png", Gray.(reinterpret(result.img)))
 end
@@ -200,7 +202,7 @@ adjustment_names = (
     :adjust_gamma_rgb,
 )
 rgb_fns = Dict(
-    name => rgb_bundle[name].fn(typeof(rgb_input))
+    name => g_timed(rgb_bundle[name].fn(typeof(rgb_input)))
     for name in (unary_names..., adjustment_names...)
 )
 
@@ -234,10 +236,10 @@ for (name, parameter, filename) in adjustment_variants
     save_rgb_result(filename, result)
 end
 
-luminance_fn = bundle_image2DIntensity_color_statistics_rgb_factory[:rgb_luminance].fn(intensity_type)
+luminance_fn = g_timed(bundle_image2DIntensity_color_statistics_rgb_factory[:rgb_luminance].fn(intensity_type))
 luminance_values = reinterpret(luminance_fn(rgb_input).img)
 bright_mask = SImageND(BinaryPixel{Bool}.(luminance_values .>= 0.5))
-mult_rgb = bundle_image3DIntensity_rgb_factory[:mult_image3D].fn(typeof(rgb_input))
+mult_rgb = g_timed(bundle_image3DIntensity_rgb_factory[:mult_image3D].fn(typeof(rgb_input)))
 masked_rgb = reinterpret(mult_rgb(rgb_input, bright_mask).img)
 save_rgb_gallery(
     "coffee_masked_rgb.png",
@@ -245,7 +247,10 @@ save_rgb_gallery(
 )
 ```
 
-```@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/coffee_rgb.png" alt="Coffee RGB input" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/rgb_luminance.png" alt="Coffee luminance" style="width:100%;" /><figcaption><code>rgb_luminance</code></figcaption></figure>
@@ -256,11 +261,17 @@ save_rgb_gallery(
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/normalized_green.png" alt="Coffee normalized green" style="width:100%;" /><figcaption><code>normalized_green</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/normalized_blue.png" alt="Coffee normalized blue" style="width:100%;" /><figcaption><code>normalized_blue</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
 ```
 
 ### Unary RGB input/output examples
 
-```@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
 <figure style="width:22%; margin:0;"><img src="../assets/fns/color_statistics_rgb/coffee_rgb.png" alt="Coffee RGB input" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/color_statistics_rgb/invert_rgb.png" alt="Inverted coffee RGB" style="width:100%;" /><figcaption><code>invert_rgb</code></figcaption></figure>
@@ -271,46 +282,75 @@ save_rgb_gallery(
 <figure style="width:22%; margin:0;"><img src="../assets/fns/color_statistics_rgb/rotate_channels_left_rgb.png" alt="Coffee RGB channels rotated left" style="width:100%;" /><figcaption><code>rotate_channels_left_rgb</code></figcaption></figure>
 <figure style="width:22%; margin:0;"><img src="../assets/fns/color_statistics_rgb/rotate_channels_right_rgb.png" alt="Coffee RGB channels rotated right" style="width:100%;" /><figcaption><code>rotate_channels_right_rgb</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
 ```
 
 ### Brightness parameters
 
-```@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/brightness_minus_0_3.png" alt="Coffee brightness minus 0.3" style="width:100%;" /><figcaption><code>amount = -0.3</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/brightness_0.png" alt="Coffee brightness unchanged" style="width:100%;" /><figcaption><code>amount = 0</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/brightness_plus_0_3.png" alt="Coffee brightness plus 0.3" style="width:100%;" /><figcaption><code>amount = 0.3</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
 ```
 
 ### Contrast parameters
 
-```@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/contrast_0_5.png" alt="Coffee contrast factor 0.5" style="width:100%;" /><figcaption><code>factor = 0.5</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/contrast_1.png" alt="Coffee contrast factor 1" style="width:100%;" /><figcaption><code>factor = 1</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/contrast_2.png" alt="Coffee contrast factor 2" style="width:100%;" /><figcaption><code>factor = 2</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
 ```
 
 ### Saturation parameters
 
-```@raw html
+```@setup gallery_paths
+gallery_html_5 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/saturation_0.png" alt="Coffee saturation factor 0" style="width:100%;" /><figcaption><code>factor = 0</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/saturation_1.png" alt="Coffee saturation factor 1" style="width:100%;" /><figcaption><code>factor = 1</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/saturation_2.png" alt="Coffee saturation factor 2" style="width:100%;" /><figcaption><code>factor = 2</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_5) # hide
 ```
 
 ### Gamma parameters
 
-```@raw html
+```@setup gallery_paths
+gallery_html_6 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/gamma_0_5.png" alt="Coffee gamma 0.5" style="width:100%;" /><figcaption><code>gamma = 0.5</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/gamma_1.png" alt="Coffee gamma 1" style="width:100%;" /><figcaption><code>gamma = 1</code></figcaption></figure>
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/gamma_2.png" alt="Coffee gamma 2" style="width:100%;" /><figcaption><code>gamma = 2</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_6) # hide
 ```
 
 ## Masking RGB with a binary image
@@ -321,11 +361,17 @@ the complete RGB triplet; a black pixel produces black in all three channels.
 An all-black mask returns a valid, all-black RGB image of the specialized type,
 never `nothing`.
 
-```@raw html
+```@setup gallery_paths
+gallery_html_7 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:40%; margin:0;"><img src="../assets/fns/color_statistics_rgb/coffee_rgb.png" alt="Coffee RGB input before masking" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
 <figure style="width:40%; margin:0;"><img src="../assets/fns/color_statistics_rgb/coffee_masked_rgb.png" alt="Coffee RGB masked by luminance" style="width:100%;" /><figcaption><code>mult_image3D(rgb, luminance ≥ 0.5)</code></figcaption></figure>
 </div>
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_7) # hide
 ```
 
 ```@docs
@@ -359,4 +405,21 @@ UTCGP.image3D_rgb.adjust_contrast_rgb_image3D_factory
 UTCGP.image3D_rgb.adjust_saturation_rgb_image3D_factory
 UTCGP.image3D_rgb.adjust_gamma_rgb_image3D_factory
 UTCGP.image3D_rgb.mult_image3D_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+### rgb types
+
+```@example rgb_types
+g_timings() # hide
+```
+
+### rgb gallery
+
+```@example rgb_gallery
+g_timings() # hide
 ```

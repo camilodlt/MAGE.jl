@@ -93,8 +93,10 @@ native 256×256 resolution.
 
 ~~~@setup continuous_foreground_assets
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 using FileIO
-using Images
+using Colors: RGB, Gray
+using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
 repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
@@ -139,12 +141,12 @@ lena = continuous_foreground_image(
 )
 
 function continuous_foreground_functions(image)
-    random_walker_fn = bundle_image2DIntensity_foreground_extraction_factory[
+    random_walker_fn = g_timed(bundle_image2DIntensity_foreground_extraction_factory[
         :random_walker_foreground
-    ].fn(typeof(image))
-    saliency_fn = bundle_image2DIntensity_saliency_fixation_factory[
+    ].fn(typeof(image)))
+    saliency_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[
         :spectral_residual_saliency
-    ].fn(typeof(image))
+    ].fn(typeof(image)))
     return random_walker_fn, saliency_fn
 end
 
@@ -212,13 +214,21 @@ The same coffee image and supplied saliency map are used in every call. With
 harmonic interpolation. Increasing contrast makes intensity boundaries more
 resistant to probability diffusion.
 
-~~~@raw html
+```@setup gallery_paths
+using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_random_walker_contrast_0_0.png" alt="Coffee Random Walker probability with contrast zero" style="width:100%;" /><figcaption><code>contrast = 0.0</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_random_walker_contrast_90_0.png" alt="Coffee Random Walker probability with default contrast" style="width:100%;" /><figcaption><code>contrast = 90.0</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_random_walker_contrast_500_0.png" alt="Coffee Random Walker probability with strong contrast" style="width:100%;" /><figcaption><code>contrast = 500.0</code></figcaption></figure>
 </div>
-~~~
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_1) # hide
+```
 
 ### Effect of foreground seed quantile
 
@@ -226,13 +236,19 @@ These calls compute spectral-residual saliency internally. A higher quantile
 makes the probability-one seed set smaller and more selective; the Laplacian
 still assigns every unseeded pixel.
 
-~~~@raw html
+```@setup gallery_paths
+gallery_html_2 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_random_walker_quantile_0_9.png" alt="Coffee Random Walker probability with foreground quantile 0.9" style="width:100%;" /><figcaption><code>foreground_quantile = 0.9</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_random_walker_quantile_0_95.png" alt="Coffee Random Walker probability with default foreground quantile" style="width:100%;" /><figcaption><code>foreground_quantile = 0.95</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_random_walker_quantile_0_98.png" alt="Coffee Random Walker probability with foreground quantile 0.98" style="width:100%;" /><figcaption><code>foreground_quantile = 0.98</code></figcaption></figure>
 </div>
-~~~
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_2) # hide
+```
 
 The output can remain soft for downstream multiplication
 (<code>image * probabilities</code>) or be converted later to a binary decision
@@ -313,15 +329,15 @@ contains the resulting continuous alpha matte.
 
 ~~~@example continuous_foreground_assets
 function closed_form_function(image)
-    return bundle_image2DIntensity_foreground_extraction_factory[
+    return g_timed(bundle_image2DIntensity_foreground_extraction_factory[
         :closed_form_matting
-    ].fn(typeof(image))
+    ].fn(typeof(image)))
 end
 
 function automatic_closed_form_trimap(image)
-    saliency_fn = bundle_image2DIntensity_saliency_fixation_factory[
+    saliency_fn = g_timed(bundle_image2DIntensity_saliency_fixation_factory[
         :spectral_residual_saliency
-    ].fn(typeof(image))
+    ].fn(typeof(image)))
     saliency = saliency_fn(image)
     trimap_values, _ =
         UTCGP.image2D_foreground_extraction_continuous.
@@ -379,26 +395,38 @@ the desired foreground object is known externally.
 All three outputs use the same coffee image and explicit automatic trimap, so
 only the local matting regularization changes.
 
-~~~@raw html
+```@setup gallery_paths
+gallery_html_3 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_closed_form_sensitivity_2_0.png" alt="Coffee alpha with edge sensitivity two" style="width:100%;" /><figcaption><code>edge_sensitivity = 2.0</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_closed_form_sensitivity_7_0.png" alt="Coffee alpha with default edge sensitivity" style="width:100%;" /><figcaption><code>edge_sensitivity = 7.0</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_closed_form_sensitivity_12_0.png" alt="Coffee alpha with edge sensitivity twelve" style="width:100%;" /><figcaption><code>edge_sensitivity = 12.0</code></figcaption></figure>
 </div>
-~~~
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_3) # hide
+```
 
 ### Effect of automatic foreground quantile
 
 These image-plus-number calls regenerate the saliency trimap each time. Higher
 quantiles make the known-foreground portion smaller and more selective.
 
-~~~@raw html
+```@setup gallery_paths
+gallery_html_4 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_closed_form_quantile_0_9.png" alt="Coffee alpha with foreground quantile 0.9" style="width:100%;" /><figcaption><code>foreground_quantile = 0.9</code></figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_closed_form_quantile_0_95.png" alt="Coffee alpha with default foreground quantile" style="width:100%;" /><figcaption><code>foreground_quantile = 0.95</code> (default)</figcaption></figure>
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_closed_form_quantile_0_98.png" alt="Coffee alpha with foreground quantile 0.98" style="width:100%;" /><figcaption><code>foreground_quantile = 0.98</code></figcaption></figure>
 </div>
-~~~
+"""
+```
+
+```@example gallery_paths
+g_raw_gallery(gallery_html_4) # hide
+```
 
 !!! note "Why the automatic seeds are often wrong"
     Without a mask, the seeds come from spectral-residual saliency, which
@@ -418,12 +446,12 @@ x = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:
 cell = g_intensity(x)
 I = typeof(cell)
 B = typeof(g_binary(falses(size(x)...)))
-otsu = g_call(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B), cell)
-fat = g_call(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B), otsu, 7.0)   # a deliberately rough mask
+otsu = g_call(g_timed(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B)), cell)
+fat = g_call(g_timed(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B)), otsu, 7.0)   # a deliberately rough mask
 D = UTCGP.image2D_foreground_extraction_discrete
 "Seeds of a mask as a picture: white foreground seeds, black background seeds, grey undecided."
 function seeds_picture(mask, band)
-    fg, bg = D._mask_band_seeds(BitMatrix(Bool.(reinterpret(mask.img))), band)
+    fg, bg = g_call(D._mask_band_seeds, BitMatrix(Bool.(reinterpret(mask.img))), band)
     return g_intensity(ifelse.(fg, 1.0, ifelse.(bg, 0.0, 0.5)))
 end
 ```
@@ -445,8 +473,8 @@ mean squared neighbour difference), so dim images such as the cells still get
 sharp boundaries; the matting uses the mask as its trimap.
 
 ```@example fg_mask
-rw = bundle_image2DIntensity_foreground_extraction_factory[:random_walker_foreground].fn(I)
-cf = bundle_image2DIntensity_foreground_extraction_factory[:closed_form_matting].fn(I)
+rw = g_timed(bundle_image2DIntensity_foreground_extraction_factory[:random_walker_foreground].fn(I))
+cf = g_timed(bundle_image2DIntensity_foreground_extraction_factory[:closed_form_matting].fn(I))
 g_gallery(page, [
     ("cell.png", "`cell`", cell),
     ("fat.png", "`rough` = Otsu dilated by 7", fat),
@@ -469,3 +497,20 @@ References:
 - Levin, Lischinski, and Weiss, *A Closed-Form Solution to Natural Image
   Matting* (IEEE Transactions on Pattern Analysis and Machine Intelligence,
   2008).
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+### continuous foreground assets
+
+```@example continuous_foreground_assets
+g_timings() # hide
+```
+
+### fg mask
+
+```@example fg_mask
+g_timings() # hide
+```

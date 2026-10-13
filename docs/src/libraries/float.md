@@ -73,13 +73,14 @@ best-connected object.
 
 ```@example imagegraph
 using UTCGP
+include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
 m = falses(40, 40)
 for (r, c) in ((5, 5), (5, 30), (20, 15), (33, 8), (30, 32), (15, 36))
     m[r:r+3, c:c+3] .= true                       # six 4×4 objects
 end
 mask = SImageND(BinaryPixel.(m))
 for name in (:diameter, :clustering_coefficient, :meandegreecentrality, :maximumbetweennesscentrality)
-    println(rpad(name, 30), bundle_float_imagegraph[name].fn(mask))
+    println(rpad(name, 30), g_call(bundle_float_imagegraph[name].fn, mask))
 end
 ```
 
@@ -113,4 +114,13 @@ UTCGP.experimental_GLCM
 
 ```@docs
 experimental_bundle_float_glcm_factory
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example imagegraph
+g_timings() # hide
 ```

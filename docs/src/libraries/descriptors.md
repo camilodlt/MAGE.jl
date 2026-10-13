@@ -60,6 +60,8 @@ kinds = (:round, :elongated, :lobed, :vacuolated)
 images = Dict(k => g_intensity(cell(k)) for k in kinds)
 masks = Dict(k => g_binary(cell(k) .>= 0.5) for k in kinds)
 for k in kinds
+    g_name!(images[k], k)
+    g_name!(masks[k], "$(k) mask")
     g_save(assets, "$(k).png", g_up(g_canvas(images[k]), 3))
     g_save(assets, "$(k)_mask.png", g_up(g_canvas(masks[k]), 3))
 end
@@ -119,10 +121,10 @@ function histogram_plot(img; bins = 64, size = (120, 260))
         canvas[clamp(top, 1, h):h, c0:c1] .= RGB{Float64}(0.6, 0.62, 0.66)
     end
     mark(x, color) = (c = clamp(round(Int, x * (w - 1)) + 1, 1, w); canvas[:, c] .= color; canvas[:, min(c + 1, w)] .= color)
-    for q in (I.stat_q25(img), I.stat_q50(img), I.stat_q75(img))
+    for q in (g_call(I.stat_q25, img), g_call(I.stat_q50, img), g_call(I.stat_q75, img))
         mark(q, G_BLUE)
     end
-    mark(I.stat_otsu_threshold(img), G_RED)
+    mark(g_call(I.stat_otsu_threshold, img), G_RED)
     return canvas
 end
 g_save(assets, "hist_round.png", histogram_plot(images[:round]))
@@ -140,14 +142,14 @@ Every statistic on the whole image of each class:
 ```@example desc
 stats = (:q05, :q25, :q50, :q75, :q95, :iqr, :mean, :std, :mad, :skewness, :kurtosis, :entropy, :uniformity,
          :bimodality, :otsu_threshold, :otsu_separability, :frac_above)
-table([("stat_$(s)", [getfield(I, Symbol(:stat_, s))(images[k]) for k in kinds]) for s in stats], kinds)
+table([("stat_$(s)", [g_call(getfield(I, Symbol(:stat_, s)), images[k]) for k in kinds]) for s in stats], kinds)
 ```
 
 `stat_frac_above(img, t)`: the share of pixels at or above `t`. Sweeping `t`
 reads the image's brightness distribution from the top:
 
 ```@example desc
-table([("stat_frac_above(img, $t)", [I.stat_frac_above(images[k], t) for k in kinds]) for t in (0.2, 0.5, 0.7, 0.8)], kinds)
+table([("stat_frac_above(img, $t)", [g_call(I.stat_frac_above, images[k], t) for k in kinds]) for t in (0.2, 0.5, 0.7, 0.8)], kinds)
 ```
 
 The ROI forms separate the cell from its background. Here the ROI is each
@@ -160,7 +162,7 @@ outside: the background):
 ```@example desc
 println(rpad("statistic", 26), rpad("stat_x(img, mask)", 20), rpad("stat_x_out(img, mask)", 24), "stat_x_diff(img, mask)")
 for s in stats
-    vals = [getfield(I, Symbol(:stat_, s, suffix))(images[:round], masks[:round]) for suffix in ("", "_out", "_diff")]
+    vals = [g_call(getfield(I, Symbol(:stat_, s, suffix)), images[:round], masks[:round]) for suffix in ("", "_out", "_diff")]
     println(rpad("stat_$(s)", 26), rpad(round(vals[1], digits = 3), 20), rpad(round(vals[2], digits = 3), 24), round(vals[3], digits = 3))
 end
 ```
@@ -170,9 +172,9 @@ The same for three statistics across the four classes:
 ```@example desc
 rows = []
 for s in (:mean, :std, :entropy)
-    push!(rows, ("stat_$(s)(img, mask)", [getfield(I, Symbol(:stat_, s))(images[k], masks[k]) for k in kinds]))
-    push!(rows, ("stat_$(s)_out(img, mask)", [getfield(I, Symbol(:stat_, s, :_out))(images[k], masks[k]) for k in kinds]))
-    push!(rows, ("stat_$(s)_diff(img, mask)", [getfield(I, Symbol(:stat_, s, :_diff))(images[k], masks[k]) for k in kinds]))
+    push!(rows, ("stat_$(s)(img, mask)", [g_call(getfield(I, Symbol(:stat_, s)), images[k], masks[k]) for k in kinds]))
+    push!(rows, ("stat_$(s)_out(img, mask)", [g_call(getfield(I, Symbol(:stat_, s, :_out)), images[k], masks[k]) for k in kinds]))
+    push!(rows, ("stat_$(s)_diff(img, mask)", [g_call(getfield(I, Symbol(:stat_, s, :_diff)), images[k], masks[k]) for k in kinds]))
 end
 table(rows, kinds)
 ```
@@ -198,18 +200,18 @@ moments on the four images:
 ```@example desc
 ops = (:solidity, :circularity, :elongation, :extent, :fill, :hole_fraction, :euler,
        :hu1, :hu2, :hu3, :hu4, :hu5, :hu6, :hu7)
-table([("shape_$(s)", [getfield(Sh, Symbol(:shape_, s))(masks[k]) for k in kinds]) for s in ops], kinds)
+table([("shape_$(s)", [g_call(getfield(Sh, Symbol(:shape_, s)), masks[k]) for k in kinds]) for s in ops], kinds)
 ```
 
 ```@example desc
-table([("shape_hu$(k)_weighted", [getfield(Sh, Symbol(:shape_hu, k, :_weighted))(images[k2]) for k2 in kinds]) for k in 1:7], kinds)
+table([("shape_hu$(k)_weighted", [g_call(getfield(Sh, Symbol(:shape_hu, k, :_weighted)), images[k2]) for k2 in kinds]) for k in 1:7], kinds)
 ```
 
 On an intensity image, `(img, t)` thresholds at `t` before measuring. The
 lobed cell's mask grows as `t` drops and swallows the background:
 
 ```@example desc
-table([("shape_$(s)(img, $t)", [getfield(Sh, Symbol(:shape_, s))(images[:lobed], t)]) for s in (:fill, :solidity) for t in (0.2, 0.5, 0.8)], (:lobed,))
+table([("shape_$(s)(img, $t)", [g_call(getfield(Sh, Symbol(:shape_, s)), images[:lobed], t)]) for s in (:fill, :solidity) for t in (0.2, 0.5, 0.8)], (:lobed,))
 ```
 
 The lobed cell has the lowest solidity, the elongated one the highest
@@ -241,7 +243,7 @@ end
 | ![1](../assets/fns/descriptors/hu_variant_1.png) | ![2](../assets/fns/descriptors/hu_variant_2.png) | ![3](../assets/fns/descriptors/hu_variant_3.png) | ![4](../assets/fns/descriptors/hu_variant_4.png) | ![5](../assets/fns/descriptors/hu_variant_5.png) |
 
 ```@example desc
-table([("shape_hu$(k)", [getfield(Sh, Symbol(:shape_hu, k))(g_binary(m)) for (_, m) in variants]) for k in 1:7],
+table([("shape_hu$(k)", [g_call(getfield(Sh, Symbol(:shape_hu, k)), g_binary(m)) for (_, m) in variants]) for k in 1:7],
       first.(variants))
 ```
 
@@ -294,9 +296,9 @@ Every aggregate on the two fields:
 
 ```@example desc
 O = UTCGP.number_shapeFromImg
-rows = [(String(w.name), [w.fn(g_binary(m)) for (_, m) in fields])
+rows = [(String(w.name), [g_call(w.fn, g_binary(m)) for (_, m) in fields])
         for w in bundle_number_objectStatsFromImg if !startswith(String(w.name), "objs_intensity")]
-push!(rows, ("objs_area_mean(mask, top)", [O.objs_area_mean(g_binary(m), top_half) for (_, m) in fields]))
+push!(rows, ("objs_area_mean(mask, top)", [g_call(O.objs_area_mean, g_binary(m), top_half) for (_, m) in fields]))
 table(rows, first.(fields))
 ```
 
@@ -304,7 +306,7 @@ table(rows, first.(fields))
 the four cell images, each with its own mask:
 
 ```@example desc
-table([("objs_intensity_$(a)", [getfield(O, Symbol(:objs_intensity_, a))(images[k], masks[k]) for k in kinds])
+table([("objs_intensity_$(a)", [g_call(getfield(O, Symbol(:objs_intensity_, a)), images[k], masks[k]) for k in kinds])
        for a in (:mean, :std, :min, :max, :median, :cv)], kinds)
 ```
 
@@ -351,8 +353,8 @@ curve(values) = x -> begin
     end
     return values[end]
 end
-fine_curve = [getfield(G, Symbol(:gran_open_r, r))(g_binary(fine)) for r in radii]
-coarse_curve = [getfield(G, Symbol(:gran_open_r, r))(g_binary(coarse)) for r in radii]
+fine_curve = [g_call(getfield(G, Symbol(:gran_open_r, r)), g_binary(fine)) for r in radii]
+coarse_curve = [g_call(getfield(G, Symbol(:gran_open_r, r)), g_binary(coarse)) for r in radii]
 g_save(assets, "spectrum_binary.png", g_plot([(curve(fine_curve), G_RED), (curve(coarse_curve), G_BLUE)];
     xlim = (0.0, 9.0), ylim = (-0.1, 1.1)))
 
@@ -371,8 +373,8 @@ fine_texture = g_intensity([0.5 + 0.4 * sin(1.3r) * sin(1.1c) for r in 1:96, c i
 coarse_texture = g_intensity([0.5 + 0.4 * sin(0.25r) * sin(0.2c) for r in 1:96, c in 1:96])
 g_save(assets, "texture_fine.png", g_up(g_canvas(fine_texture), 2))
 g_save(assets, "texture_coarse.png", g_up(g_canvas(coarse_texture), 2))
-grey_fine = [getfield(G, Symbol(:gran_grey_open_r, r))(fine_texture) for r in radii]
-grey_coarse = [getfield(G, Symbol(:gran_grey_open_r, r))(coarse_texture) for r in radii]
+grey_fine = [g_call(getfield(G, Symbol(:gran_grey_open_r, r)), fine_texture) for r in radii]
+grey_coarse = [g_call(getfield(G, Symbol(:gran_grey_open_r, r)), coarse_texture) for r in radii]
 g_save(assets, "spectrum_grey.png", g_plot([(curve(grey_fine), G_RED), (curve(grey_coarse), G_BLUE)];
     xlim = (0.0, 9.0), ylim = (-0.1, 1.1)))
 ```
@@ -394,10 +396,10 @@ collapses at radius 4; the coarse one holds until radius 6–8.
 Every binary granulometry operator on the two grain masks:
 
 ```@example desc
-table(vcat([("gran_open_r$(r)", [getfield(G, Symbol(:gran_open_r, r))(g_binary(m)) for m in (fine, coarse)]) for r in radii],
-           [("gran_open_bg_r$(r)", [getfield(G, Symbol(:gran_open_bg_r, r))(g_binary(m)) for m in (fine, coarse)]) for r in radii],
-           [("gran_thickness_mean", [G.gran_thickness_mean(g_binary(m)) for m in (fine, coarse)]),
-            ("gran_thickness_max", [G.gran_thickness_max(g_binary(m)) for m in (fine, coarse)])]),
+table(vcat([("gran_open_r$(r)", [g_call(getfield(G, Symbol(:gran_open_r, r)), g_binary(m)) for m in (fine, coarse)]) for r in radii],
+           [("gran_open_bg_r$(r)", [g_call(getfield(G, Symbol(:gran_open_bg_r, r)), g_binary(m)) for m in (fine, coarse)]) for r in radii],
+           [("gran_thickness_mean", [g_call(G.gran_thickness_mean, g_binary(m)) for m in (fine, coarse)]),
+            ("gran_thickness_max", [g_call(G.gran_thickness_max, g_binary(m)) for m in (fine, coarse)])]),
       ("fine", "coarse"))
 ```
 
@@ -411,7 +413,7 @@ fits each grain exactly (`1.0`), while the radius-4 disk's outline trims a
 few edge pixels (`0.956`). A brute-force opening gives the same values.
 
 ```@example desc
-table([("gran_open(mask, $r)  [radius $(1 + round(Int, 15r))]", [G.gran_open(g_binary(m), r) for m in (fine, coarse)])
+table([("gran_open(mask, $r)  [radius $(1 + round(Int, 15r))]", [g_call(G.gran_open, g_binary(m), r) for m in (fine, coarse)])
        for r in (0.0, 0.1, 0.2, 0.3, 0.5)], ("fine", "coarse"))
 ```
 
@@ -427,25 +429,11 @@ Every grey operator on the two textures (`gran_grey_close_r<k>` measures the
 dark structures the same way):
 
 ```@example desc
-table(vcat([("gran_grey_open_r$(r)", [getfield(G, Symbol(:gran_grey_open_r, r))(t) for t in (fine_texture, coarse_texture)]) for r in radii],
-           [("gran_grey_close_r$(r)", [getfield(G, Symbol(:gran_grey_close_r, r))(t) for t in (fine_texture, coarse_texture)]) for r in radii]),
+table(vcat([("gran_grey_open_r$(r)", [g_call(getfield(G, Symbol(:gran_grey_open_r, r)), t) for t in (fine_texture, coarse_texture)]) for r in radii],
+           [("gran_grey_close_r$(r)", [g_call(getfield(G, Symbol(:gran_grey_close_r, r)), t) for t in (fine_texture, coarse_texture)]) for r in radii]),
       ("fine texture", "coarse texture"))
 ```
 
-## Performance
-
-On an 84×84 image (median per family):
-
-| Family | Time |
-|:--|:--|
-| intensity statistics, 8-bit (one exact 256-level histogram) | ~9 µs |
-| intensity statistics, 16-bit (exact radix selection for quantiles) | ~22 µs |
-| Hu moments of a mask / of an intensity image | ~4 µs / ~11 µs |
-| other shape descriptors (solidity, Euler number, …) | ~4 µs |
-| object aggregates | ~7 µs |
-| binary openings (distance transforms bounded by the radius) | 20–85 µs, ~36 µs median |
-| grey openings and closings (shifted whole-column comparisons) | 19–57 µs |
-| thickness (exact distance transform) | ~55 µs |
 
 ## Bundles
 
@@ -457,4 +445,13 @@ UTCGP.number_shapeFromImg.bundle_number_shapeFromImg
 UTCGP.number_shapeFromImg.bundle_number_objectStatsFromImg
 UTCGP.number_granulometryFromImg
 UTCGP.number_granulometryFromImg.bundle_number_granulometryFromImg
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example desc
+g_timings() # hide
 ```

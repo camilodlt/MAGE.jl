@@ -11,6 +11,7 @@ Microscopy](@ref): drag a row's slider to move through the slices.
 
 ```@setup vol
 using UTCGP
+volume_gallery_tag = "volume_projections"
 include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "volume_gallery.jl"))
 nodule_mask = call(bv(:vol_threshold), vol, 0.85)
 ```
@@ -178,13 +179,13 @@ it.
 ```@example vol
 ST = UTCGP.number_intensityStatsFromImg
 println(rpad("", 30), join(rpad.(first.(classes), 18)))
-for (name, f) in (("stat_q95", ST.stat_q95), ("stat_frac_above(·, 0.85)", v -> ST.stat_frac_above(v, 0.85)),
+for (name, f) in (("stat_q95", ST.stat_q95), ("stat_frac_above(·, 0.85)", v -> g_call(ST.stat_frac_above, v, 0.85)),
                   ("stat_entropy", ST.stat_entropy))
     println(rpad(name, 30), join(rpad.(string.(round.([f(v) for (_, v) in classes], digits = 3)), 18)))
 end
 for bundle in (bundle_number_volumeShapeFromImg, bundle_number_volumeGranulometryFromImg, bundle_number_volumeProfileFromImg)
     for w in bundle
-        values = [w.fn(v) for (_, v) in classes]
+        values = [g_call(w.fn, v) for (_, v) in classes]
         println(rpad(w.name, 30), join(rpad.(string.(round.(values, digits = 3)), 18)))
     end
 end
@@ -200,4 +201,13 @@ UTCGP.number_volumeFromImg
 UTCGP.number_volumeFromImg.bundle_number_volumeShapeFromImg
 UTCGP.number_volumeFromImg.bundle_number_volumeGranulometryFromImg
 UTCGP.number_volumeFromImg.bundle_number_volumeProfileFromImg
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example vol
+g_timings() # hide
 ```

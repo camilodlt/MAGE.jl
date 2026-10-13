@@ -41,3 +41,19 @@ The clients that back [Generated Functions](@ref) —
 (`llm_generated_function_client_backend` and
 `llm_generated_function_client_status`) are how runner code asks a client what
 it is and whether it is ready, without branching on the provider.
+
+
+## Typed DAG interchange
+
+`UTCGP.TypedGraphBridge` represents a MAGE program as a typed directed acyclic
+graph and builds a catalogue of the function dispatches supported by a task's
+architecture and libraries. It preserves the fixed-width connection alleles,
+including ignored padding, while recording the arguments actually consumed by
+each call. This is useful when another search implementation exchanges graphs
+with MAGE.
+
+```@docs
+UTCGP.TypedGraphBridge
+UTCGP.TypedGraphBridge.dispatch_descriptor
+UTCGP.TypedGraphBridge.padding_connection
+```

@@ -30,7 +30,7 @@ bundle_float_basic = FunctionBundle(fallback)
 # FUNCTIONS ---
 
 """
-    identity_float(from::Int, args...)
+    identity_float(from::Float64, args...)
 """
 function identity_float(from::Float64, args...)
     return identity(from)

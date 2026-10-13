@@ -23,7 +23,7 @@ fallback(args...) = return ""
 """
     bundle_string_parse
 
-`parse_number`: read a number out of a string.
+`parse_number`: convert a number to its string representation (`string(n)`).
 """
 bundle_string_parse = FunctionBundle(fallback)
 
@@ -31,7 +31,7 @@ bundle_string_parse = FunctionBundle(fallback)
 """
     parse_number(n::Number, args...)
 
-Parses the number to string.
+Returns `string(n)`. For example, `parse_number(2.5) == "2.5"`.
 """
 function parse_number(n::Number, args...)
     return string(n)

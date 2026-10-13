@@ -46,16 +46,16 @@ g_save(assets, "previous.png", g_up(g_canvas(previous_frame), 3))
 ```
 
 ```@example decision
-ball_x0, ball_y0 = O.obj_x_smallest(previous_frame), O.obj_y_smallest(previous_frame)
-ball_x, ball_y = O.obj_x_smallest(frame), O.obj_y_smallest(frame)
-paddle_x, paddle_y = O.obj_x_rightmost(frame), O.obj_y_rightmost(frame)
+ball_x0, ball_y0 = g_call(O.obj_x_smallest, previous_frame), g_call(O.obj_y_smallest, previous_frame)
+ball_x, ball_y = g_call(O.obj_x_smallest, frame), g_call(O.obj_y_smallest, frame)
+paddle_x, paddle_y = g_call(O.obj_x_rightmost, frame), g_call(O.obj_y_rightmost, frame)
 
 vx = ball_x - ball_x0                        # speed, per frame
 vy = ball_y - ball_y0
 frames_left = (paddle_x - ball_x) / vx       # frames until the ball reaches the paddle
 
-target_y = D.number_bounce(ball_y, vy, frames_left)   # where it will cross, after bouncing
-action = D.number_toward(target_y, paddle_y, 0.03)    # -1 up, 0 stay, +1 down
+target_y = g_call(D.number_bounce, ball_y, vy, frames_left)   # where it will cross, after bouncing
+action = g_call(D.number_toward, target_y, paddle_y, 0.03)    # -1 up, 0 stay, +1 down
 
 (ball_y = round(ball_y, digits = 3), vy = round(vy, digits = 3),
  frames_left = round(frames_left, digits = 1), target_y = round(target_y, digits = 3),
@@ -66,7 +66,7 @@ action = D.number_toward(target_y, paddle_y, 0.03)    # -1 up, 0 stay, +1 down
 let canvas = g_up(g_canvas(frame), 3)
     for k in 0:0.1:frames_left
         x = ball_x + vx * k
-        y = D.number_reflect01(ball_y + vy * k)
+        y = g_call(D.number_reflect01, ball_y + vy * k)
         g_dot!(canvas, 1 + y * 79 + 0.5, 1 + x * 119 + 0.5, 3)
     end
     g_cross!(canvas, ball_x0, ball_y0, 3; color = G_BLUE, lines = false)
@@ -92,28 +92,28 @@ both from `-1.5` to `1.5`; grid lines every `0.5`, darker axes at `0`.
 
 ```@setup decision
 plots = [
-    ("abs", [(x -> D.number_abs(x), G_RED)]),
-    ("sign", [(x -> D.number_sign(x), G_RED)]),
-    ("clamp01", [(x -> D.number_clamp01(x), G_RED)]),
-    ("clamp", [(x -> D.number_clamp(x, -0.5, 1.0), G_RED)]),
-    ("step", [(x -> D.number_step(x), G_RED), (x -> D.number_step(x, 0.5), G_BLUE)]),
-    ("deadzone", [(x -> D.number_deadzone(x, 0.5), G_RED)]),
-    ("band", [(x -> D.number_band(x, -0.5, 0.5), G_RED)]),
-    ("smoothstep", [(x -> D.number_smoothstep(x, -1.0, 1.0), G_RED)]),
-    ("min_max", [(x -> D.number_min(x, 0.5), G_RED), (x -> D.number_max(x, 0.5), G_BLUE)]),
-    ("mean", [(x -> D.number_mean(x, 1.0), G_RED)]),
-    ("gt_lt", [(x -> D.number_gt(x, 0.5), G_RED), (x -> D.number_lt(x, 0.5) - 0.02, G_BLUE)]),
-    ("closer", [(x -> D.number_closer(x, 1.0, 0.0), G_RED)]),
-    ("toward", [(x -> D.number_toward(0.0, x), G_RED), (x -> D.number_toward(0.0, x, 0.5) + 0.03, G_BLUE)]),
-    ("lerp", [(t -> D.number_lerp(-1.0, 1.0, t), G_RED)]),
+    ("abs", [(x -> g_call(D.number_abs, x), G_RED)]),
+    ("sign", [(x -> g_call(D.number_sign, x), G_RED)]),
+    ("clamp01", [(x -> g_call(D.number_clamp01, x), G_RED)]),
+    ("clamp", [(x -> g_call(D.number_clamp, x, -0.5, 1.0), G_RED)]),
+    ("step", [(x -> g_call(D.number_step, x), G_RED), (x -> g_call(D.number_step, x, 0.5), G_BLUE)]),
+    ("deadzone", [(x -> g_call(D.number_deadzone, x, 0.5), G_RED)]),
+    ("band", [(x -> g_call(D.number_band, x, -0.5, 0.5), G_RED)]),
+    ("smoothstep", [(x -> g_call(D.number_smoothstep, x, -1.0, 1.0), G_RED)]),
+    ("min_max", [(x -> g_call(D.number_min, x, 0.5), G_RED), (x -> g_call(D.number_max, x, 0.5), G_BLUE)]),
+    ("mean", [(x -> g_call(D.number_mean, x, 1.0), G_RED)]),
+    ("gt_lt", [(x -> g_call(D.number_gt, x, 0.5), G_RED), (x -> g_call(D.number_lt, x, 0.5) - 0.02, G_BLUE)]),
+    ("closer", [(x -> g_call(D.number_closer, x, 1.0, 0.0), G_RED)]),
+    ("toward", [(x -> g_call(D.number_toward, 0.0, x), G_RED), (x -> g_call(D.number_toward, 0.0, x, 0.5) + 0.03, G_BLUE)]),
+    ("lerp", [(t -> g_call(D.number_lerp, -1.0, 1.0, t), G_RED)]),
 ]
 for (name, curves) in plots
     g_save(assets, "plot_$(name).png", g_plot(curves))
 end
-g_save(assets, "plot_wrap01.png", g_plot([(x -> D.number_wrap01(x), G_RED)]; ylim = (-0.5, 1.5)))
-g_save(assets, "plot_reflect01.png", g_plot([(x -> D.number_reflect01(x), G_RED)]; xlim = (-1.0, 3.0), ylim = (-0.5, 1.5)))
-g_save(assets, "plot_bounce.png", g_plot([(t -> D.number_bounce(0.2, 0.7, t), G_RED), (t -> D.number_extrapolate(0.2, 0.7, t), G_BLUE)]; xlim = (0.0, 3.0), ylim = (-0.5, 2.5)))
-g_save(assets, "plot_sin_cos.png", g_plot([(t -> D.number_sin(t), G_RED), (t -> D.number_cos(t), G_BLUE)]; xlim = (0.0, 1.5)))
+g_save(assets, "plot_wrap01.png", g_plot([(x -> g_call(D.number_wrap01, x), G_RED)]; ylim = (-0.5, 1.5)))
+g_save(assets, "plot_reflect01.png", g_plot([(x -> g_call(D.number_reflect01, x), G_RED)]; xlim = (-1.0, 3.0), ylim = (-0.5, 1.5)))
+g_save(assets, "plot_bounce.png", g_plot([(t -> g_call(D.number_bounce, 0.2, 0.7, t), G_RED), (t -> g_call(D.number_extrapolate, 0.2, 0.7, t), G_BLUE)]; xlim = (0.0, 3.0), ylim = (-0.5, 2.5)))
+g_save(assets, "plot_sin_cos.png", g_plot([(t -> g_call(D.number_sin, t), G_RED), (t -> g_call(D.number_cos, t), G_BLUE)]; xlim = (0.0, 1.5)))
 ```
 
 | Operator | Call plotted | Plot | What it is for |
@@ -144,11 +144,11 @@ Three-input choosers are easier to read as examples:
 
 ```@example decision
 (
-    median3 = D.number_median3(0.9, 0.1, 0.5),      # middle of three estimates
-    argmax3_first = D.number_argmax3(0.9, 0.1, 0.5),   # 0.0: the first is largest
-    argmax3_second = D.number_argmax3(0.1, 0.9, 0.5),  # 0.5: the second
-    argmax3_third = D.number_argmax3(0.1, 0.2, 0.5),   # 1.0: the third
-    closer = D.number_closer(0.1, 0.8, 0.6),           # 0.8 is closer to 0.6
+    median3 = g_call(D.number_median3, 0.9, 0.1, 0.5),      # middle of three estimates
+    argmax3_first = g_call(D.number_argmax3, 0.9, 0.1, 0.5),   # 0.0: the first is largest
+    argmax3_second = g_call(D.number_argmax3, 0.1, 0.9, 0.5),  # 0.5: the second
+    argmax3_third = g_call(D.number_argmax3, 0.1, 0.2, 0.5),   # 1.0: the third
+    closer = g_call(D.number_closer, 0.1, 0.8, 0.6),           # 0.8 is closer to 0.6
 )
 ```
 
@@ -168,14 +168,14 @@ direction (a fraction of a turn: `0` right, `0.25` down, `0.5` left, `0.75`
 up):
 
 ```@example decision
-dx = O.obj_dx_smallest_largest(g_binary(Float64.(reinterpret(frame.img)) .> 0.5))
-dy = O.obj_dy_smallest_largest(g_binary(Float64.(reinterpret(frame.img)) .> 0.5))
+dx = g_call(O.obj_dx_smallest_largest, g_binary(Float64.(reinterpret(frame.img)) .> 0.5))
+dy = g_call(O.obj_dy_smallest_largest, g_binary(Float64.(reinterpret(frame.img)) .> 0.5))
 (
-    dist_3_4 = D.number_dist(0.3, 0.4),
-    angle_right = D.number_angle(1.0, 0.0),
-    angle_down = D.number_angle(0.0, 1.0),
-    angle_up_left = D.number_angle(-1.0, -1.0),
-    ball_to_paddle_distance = round(D.number_dist(dx, dy), digits = 3),
+    dist_3_4 = g_call(D.number_dist, 0.3, 0.4),
+    angle_right = g_call(D.number_angle, 1.0, 0.0),
+    angle_down = g_call(D.number_angle, 0.0, 1.0),
+    angle_up_left = g_call(D.number_angle, -1.0, -1.0),
+    ball_to_paddle_distance = round(g_call(D.number_dist, dx, dy), digits = 3),
 )
 ```
 
@@ -185,4 +185,13 @@ dy = O.obj_dy_smallest_largest(g_binary(Float64.(reinterpret(frame.img)) .> 0.5)
 UTCGP.number_decision
 UTCGP.number_decision.bundle_number_decision
 UTCGP.number_decision.bundle_number_motion
+```
+
+## Timings for the examples
+
+Measured during this documentation build. See [Timing methodology](../timings.md)
+for measurement limits and input cases that can make operators expensive.
+
+```@example decision
+g_timings() # hide
 ```
