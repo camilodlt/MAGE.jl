@@ -32,11 +32,12 @@ end
 @inline function _typed_read(r::TypedPopulationRef{G,T}, args, values, row) where {G,T}
     return (r.kind == 0 ? args[r.index] : values[][G][row,r.index])::T
 end
+@inline _typed_invoke(fn, xs) = _invoke_fn(fn, xs...)
 @inline _typed_cast(::Nothing, x) = x
 @inline _typed_cast(c, x) = c(x)
 @inline function _typed_call(s::TypedPopulationCall{F,C,B,N,T,G,R,RP}, xs) where {F,C,B,N,T,G,R,RP}
     value = try
-        _typed_cast(s.caster, _invoke_fn(s.fn, xs...))
+        _typed_cast(s.caster, _typed_invoke(s.fn, xs))
     catch
         s.fallback()
     end
@@ -102,7 +103,8 @@ function TypedPopulationWorkspace(g::PopulationSequentialProgram; batch_size::In
             isnothing(s.fn.cache) || return nothing
             input_types = [r.type for r in s.inputs]
             all(isconcretetype,input_types) || return nothing
-            R = Core.Compiler.return_type(_invoke_fn,Tuple{typeof(s.fn.fn),input_types...})
+            R = s.fn.fn isa ADFSlotFunction ? s.fn.fn.output_type :
+                Core.Compiler.return_type(_invoke_fn,Tuple{typeof(s.fn.fn),input_types...})
             if !isnothing(s.fn.caster)
                 isconcretetype(R) || return nothing
                 R = Core.Compiler.return_type(s.fn.caster,Tuple{R})
@@ -184,4 +186,75 @@ function evaluate_population_into!(P::Matrix,g::PopulationSequentialProgram,samp
         end
     end
     return P
+end
+
+@inline _typed_step_value(s::TypedPopulationCall{F,C,B,N,T,G}, values, row) where {F,C,B,N,T,G} = values[][G][row,s.index]
+@inline _typed_step_value(s::TypedPopulationConstant{T,G}, values, row) where {T,G} = values[][G][row,s.index]
+
+"""
+    evaluate_population_steps_into!(S::Matrix{Float64}, program::PopulationSequentialProgram,
+                                    samples; workspace=nothing)
+
+Write every Float64 step to `S[step, sample]`; other step types get NaN.
+Uses tiled typed execution where supported, otherwise the generic interpreter.
+Workspace ownership and invalidation follow `evaluate_population_into!`.
+"""
+function evaluate_population_steps_into!(S::Matrix{Float64}, g::PopulationSequentialProgram, samples; workspace=nothing)
+    size(S) == (length(g.steps),length(samples)) || throw(DimensionMismatch("expected steps × samples"))
+    g.has_input_layout || throw(ArgumentError("empty population"))
+    all(a -> length(a)==length(g.input_types),samples) || throw(DimensionMismatch("sample input count"))
+    w = isnothing(workspace) ? TypedPopulationWorkspace(g) : workspace
+    compatible = !SAFE_CALL[] && w isa TypedPopulationWorkspace && all(a -> all(i -> typeof(a[i])===g.input_types[i],eachindex(a)),samples)
+    fill!(S,NaN)
+    if compatible
+        w.program === g && length(w.steps)==length(g.steps) || throw(ArgumentError("workspace does not match program"))
+        for firstrow in 1:w.batch_size:length(samples)
+            w.tile.firstrow=firstrow
+            w.tile.count=min(w.batch_size,length(samples)-firstrow+1)
+            for k in eachindex(w.steps)
+                _typed_batch!(w.steps[k],w.values,samples,w.tile)
+                if g.steps[k].return_type === Float64
+                    for row in 1:w.tile.count
+                        S[k,firstrow+row-1]=_typed_step_value(w.steps[k],w.values,row)
+                    end
+                end
+            end
+        end
+    else
+        gw=PopulationSequentialWorkspace(g)
+        for (row,args) in enumerate(samples)
+            for (k,step) in enumerate(g.steps)
+                gw.values[k]=_interpret_population_step(step,args,gw.values)
+                step.return_type === Float64 && (S[k,row]=gw.values[k])
+            end
+        end
+    end
+    return S
+end
+
+"""
+    sequential_step_values(prog::SequentialProgram, samples)
+
+Return `(values, original_nodes)` in original sequential step order, including
+repeated computations merged by the population graph. Non-Float64 steps are NaN.
+"""
+function sequential_step_values(prog::SequentialProgram, samples)
+    g=PopulationSequentialProgram()
+    _assert_population_input_layout!(g,prog)
+    mapping=Dict{Int,Int}()
+    ids=Int[]
+    for (k,step) in enumerate(prog.steps)
+        refs=step isa SequentialCallStep ? AbstractPopulationSequentialRef[_population_ref(r,mapping) for r in step.inputs] : AbstractPopulationSequentialRef[]
+        key=_population_step_key(step,refs)
+        id=get(g.structural_key_to_step,key,0)
+        if id==0
+            push!(g.steps,_population_step(step,refs))
+            id=length(g.steps)
+            g.structural_key_to_step[key]=id
+        end
+        mapping[k]=id
+        push!(ids,id)
+    end
+    S=evaluate_population_steps_into!(Matrix{Float64}(undef,length(g.steps),length(samples)),g,samples)
+    return S[ids,:], [step.original_node for step in prog.steps]
 end

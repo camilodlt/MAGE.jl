@@ -794,6 +794,10 @@ module UTCGP
     include("adf/usage.jl")
     include("adf/genome_flatten.jl")
     include("adf/serialization.jl")
+    include("adf/extract.jl")
+    export adf_genome_from_step, adf_step_input_indices
+    export evaluate_population_steps_into!, sequential_step_values
+    export set_node_input_connection!, set_output_node_connection!
     export ADFRegistry, ADFSlotFunction, EmptyADFDefinition, ActiveADFDefinition
     export SavedADFRef, SavedADFDefinition, SavedADFEnvironment
     export SavedIndividualWithADFEnvironment
