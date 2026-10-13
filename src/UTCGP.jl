@@ -184,6 +184,8 @@ module UTCGP
     include("programs/evaluate.jl")
     include("programs/compile/compile_program.jl")
     include("programs/compile/population_sequential_program.jl")
+    include("programs/compile/typed_population.jl")
+    export evaluate_population_into!, TypedPopulationWorkspace
 
     export InputPromise, OperationInput, Operation, Program
     export SequentialProgram, SequentialCallStep, SequentialConstantStep, SequentialOutput
