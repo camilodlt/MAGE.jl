@@ -1,6 +1,6 @@
 # Standalone: never writes the runner environment. Run from MAGENetRunner root.
 import Pkg
-const REPRO_DIR = isdir(joinpath(@__DIR__, "POPULATION_datasets")) ? @__DIR__ : normpath(joinpath(@__DIR__, "../../POPULATION_reproducibility"))
+const REPRO_DIR = isdir(joinpath(@__DIR__, "POPULATION_datasets")) ? (@__DIR__) : normpath(joinpath(@__DIR__, "../../POPULATION_reproducibility"))
 const CLONE = normpath(joinpath(REPRO_DIR, "../POPULATION_MAGE_fastpop"))
 const CHECK_ENV = mktempdir()
 for name in ("Project.toml", "Manifest.toml")
