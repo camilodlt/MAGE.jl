@@ -795,6 +795,7 @@ module UTCGP
     include("adf/genome_flatten.jl")
     include("adf/serialization.jl")
     include("adf/extract.jl")
+    include("adf/native_frames.jl")
     export adf_genome_from_step, adf_step_input_indices
     export evaluate_population_steps_into!, sequential_step_values
     export set_node_input_connection!, set_output_node_connection!

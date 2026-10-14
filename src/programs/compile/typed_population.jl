@@ -93,6 +93,7 @@ function TypedPopulationWorkspace(g::PopulationSequentialProgram; batch_size::In
         return TypedPopulationRef{group,r.type}(1,index)
     end
     steps = AbstractTypedPopulationStep[]
+    native_functions = IdDict{Any,Any}()
     for (k,s) in enumerate(g.steps)
         T = s.return_type
         group,index = locations[k]
@@ -113,8 +114,12 @@ function TypedPopulationWorkspace(g::PopulationSequentialProgram; batch_size::In
             Core.Compiler.return_type(s.fn.fallback,Tuple{}) === T || return nothing
             refs = Tuple(ref.(s.inputs))
             any(isnothing,refs) && return nothing
-            push!(steps,TypedPopulationCall{typeof(s.fn.fn),typeof(s.fn.caster),typeof(s.fn.fallback),length(refs),T,group,typeof(refs),s.return_type_policy isa Type ? Type{s.return_type_policy} : typeof(s.return_type_policy)}(
-                s.fn.fn,s.fn.caster,s.fn.fallback,refs,s.return_type_policy,s.fn,index))
+            # Native ADF frames keep the outer caster/catch/assertion intact.
+            fn = s.fn.fn isa ADFSlotFunction ? get!(native_functions,s.fn.fn) do
+                _population_native_function(s.fn.fn)
+            end : s.fn.fn
+            push!(steps,TypedPopulationCall{typeof(fn),typeof(s.fn.caster),typeof(s.fn.fallback),length(refs),T,group,typeof(refs),s.return_type_policy isa Type ? Type{s.return_type_policy} : typeof(s.return_type_policy)}(
+                fn,s.fn.caster,s.fn.fallback,refs,s.return_type_policy,s.fn,index))
         end
     end
     outputs = [ref(only(o)) for o in g.individual_outputs]
