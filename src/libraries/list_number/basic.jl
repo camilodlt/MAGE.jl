@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Basic vectors 
- 
-Exports : **bundle\\_listnumber\\_basic**: 
-- `ones_`
-- `zeros_`
+Constant numeric lists.
 
+# Bundles
+
+- [`bundle_listnumber_basic`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listnumber_basic
 
@@ -14,6 +16,11 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = Number[]
 
+"""
+    bundle_listnumber_basic
+
+Constant lists: `ones_` and `zeros_`.
+"""
 bundle_listnumber_basic = FunctionBundle(fallback)
 
 VECTORNUM = Vector{<:Number}

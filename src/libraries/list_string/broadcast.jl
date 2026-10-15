@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-""" 
-Broadcast some operations to every element in a list of strings.
+"""
+Operations broadcast over every element of a list of strings.
 
-Exports :
+# Bundles
 
-- **bundle\\_string\\_broadcast** :
-    - `reverse_broadcast`
-    - `numbers_to_string`
+- [`bundle_liststring_broadcast`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module liststring_broadcast
 
@@ -21,6 +21,12 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = return String[]
 
+"""
+    bundle_liststring_broadcast
+
+Element-wise transforms over a list of strings: `reverse_broadcast` and
+`numbers_to_string`.
+"""
 bundle_liststring_broadcast = FunctionBundle(fallback)
 
 

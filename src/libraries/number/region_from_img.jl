@@ -1,21 +1,13 @@
-""" Region-statistics functions from image to Float64
-
-Local image-to-scalar reducers over fixed-size patches centered at normalized
+"""
+Statistics over a rectangular patch of an image, centred on normalised
 coordinates in `[0, 1]`.
 
-Exports :
+# Bundles
 
-- **bundle\\_number\\_regionFromImg** :
-    - `region_mean`
-    - `region_std`
-    - `region_min`
-    - `region_max`
-    - `region_sum`
-    - `region_median`
-    - `region_range`
-    - `region_contrast`
-    - `region_energy`
-    - `region_entropy`
+- [`bundle_number_regionFromImg`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module number_regionFromImg
 
@@ -29,6 +21,26 @@ using ..number_imgRegionCommon:
     _region_window
 
 fallback(args...) = return 0.0
+"""
+    bundle_number_regionFromImg
+
+Statistics over a rectangular region of an image, located by relative
+coordinates.
+
+Ten statistics — `region_mean`, `region_std`, `region_min`, `region_max`,
+`region_sum`, `region_median`, `region_range`, `region_contrast`,
+`region_energy`, `region_entropy` — each in four window sizes: a fixed `3 × 3`
+window (no suffix), and the `_5p`, `_10p` and `_20p` variants whose side is
+5%, 10% and 20% of the image's shorter side (odd, at least 3 pixels).
+
+Every operator takes `(img, cx, cy)`: the window's centre as normalised
+coordinates (`cx` = column, `cy` = row, `0` to `1`). Windows are clipped at
+the image border.
+
+`region_contrast` is the mean of the window minus the mean of the ring
+around it: the `5 × 5` window without the `3 × 3` one, or for the `_<pct>p`
+variants a window of half-width `2 · half + 1` (at most half the image).
+"""
 bundle_number_regionFromImg = FunctionBundle(fallback)
 
 const _REGION_HALF_SIZE = 1
@@ -45,6 +57,12 @@ function _region_reduce(reducer::F, from::SImageND, cx::Number, cy::Number; half
     return Float64(reducer(patch))
 end
 
+"""
+Half-width of the `_<pct>p` windows: the window side is `pct` of the shorter
+image side, made odd, and at least 3 pixels (half-width `≥ 1`). Example:
+`pct = 0.2` on a `30 × 30` image → side 6 → 7 → half-width 3; `pct = 0.05` on
+`28 × 28` → side 1 → 3 (a 1-pixel window would make `std` undefined).
+"""
 function _region_half_size_from_percent(from::SImageND, pct::Float64)
     h, w = size(from)
     max_side = min(h, w)
@@ -56,7 +74,7 @@ function _region_half_size_from_percent(from::SImageND, pct::Float64)
     if iseven(kernel_size) && kernel_size > 1
         kernel_size -= 1
     end
-    return fld(kernel_size - 1, 2)
+    return max(fld(kernel_size - 1, 2), 1)
 end
 
 function _region_entropy_impl(
@@ -97,34 +115,39 @@ function _region_contrast_bounds(from::SImageND, cx::Number, cy::Number, half_si
     return _region_bounds(from, cx, cy, outer_half_size)
 end
 
-function _region_contrast_impl(from::SImageND, cx::Number, cy::Number)
-    inner = _region_window(from, cx, cy, _REGION_HALF_SIZE)
-    outer = _region_window(from, cx, cy, _REGION_CONTRAST_OUTER_HALF_SIZE)
-    inner_h, inner_w = size(inner)
-    outer_h, outer_w = size(outer)
-    row_offset = fld(outer_h - inner_h, 2)
-    col_offset = fld(outer_w - inner_w, 2)
-    ring_mask = trues(outer_h, outer_w)
-    ring_mask[row_offset + 1:row_offset + inner_h, col_offset + 1:col_offset + inner_w] .= false
-    ring_values = outer[ring_mask]
-    isempty(ring_values) && return 0.0
-    return Float64(mean(inner) - mean(ring_values))
+"""
+Mean of the inner window minus mean of the ring around it (the outer window
+without the inner one), both centred on `(cx, cy)` and clipped at the border.
+The ring is taken from the actual clipped bounds, so it stays correct next to
+any border. `0` when the ring is empty.
+"""
+function _ring_contrast(from::SImageND, cx::Number, cy::Number, inner_half::Int, outer_half::Int)
+    img = _image_numeric(from)
+    i_r0, i_r1, i_c0, i_c1 = _region_bounds(from, cx, cy, inner_half)
+    o_r0, o_r1, o_c0, o_c1 = _region_bounds(from, cx, cy, outer_half)
+    inner_sum = 0.0
+    ring_sum = 0.0
+    ring_count = 0
+    @inbounds for c in o_c0:o_c1, r in o_r0:o_r1
+        if i_r0 <= r <= i_r1 && i_c0 <= c <= i_c1
+            inner_sum += img[r, c]
+        else
+            ring_sum += img[r, c]
+            ring_count += 1
+        end
+    end
+    ring_count == 0 && return 0.0
+    inner_count = (i_r1 - i_r0 + 1) * (i_c1 - i_c0 + 1)
+    return inner_sum / inner_count - ring_sum / ring_count
 end
 
-function _region_contrast_impl(from::SImageND, cx::Number, cy::Number, half_size::Int)
-    outer_half_size = _region_contrast_outer_half_size(from, half_size)
-    inner = _region_window(from, cx, cy, half_size)
-    outer = _region_window(from, cx, cy, outer_half_size)
-    inner_h, inner_w = size(inner)
-    outer_h, outer_w = size(outer)
-    row_offset = fld(outer_h - inner_h, 2)
-    col_offset = fld(outer_w - inner_w, 2)
-    ring_mask = trues(outer_h, outer_w)
-    ring_mask[row_offset + 1:row_offset + inner_h, col_offset + 1:col_offset + inner_w] .= false
-    ring_values = outer[ring_mask]
-    isempty(ring_values) && return 0.0
-    return Float64(mean(inner) - mean(ring_values))
-end
+"`region_contrast`: 3 × 3 centre against the ring of the 5 × 5 window around it."
+_region_contrast_impl(from::SImageND, cx::Number, cy::Number) =
+    _ring_contrast(from, cx, cy, _REGION_HALF_SIZE, _REGION_CONTRAST_OUTER_HALF_SIZE)
+
+"`region_contrast_<pct>p`: centre window of half-width `half_size` against its ring (outer half-width from `_region_contrast_outer_half_size`)."
+_region_contrast_impl(from::SImageND, cx::Number, cy::Number, half_size::Int) =
+    _ring_contrast(from, cx, cy, half_size, _region_contrast_outer_half_size(from, half_size))
 
 """
     region_mean(from::SImageND, cx::Number, cy::Number, args...)

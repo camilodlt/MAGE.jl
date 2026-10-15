@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Algebraic operations on a vector
- 
-Exports : **bundle\\_listnumber\\_algebraic**: 
-- `abs_vector`
+Algebraic operations over a numeric list.
 
+# Bundles
+
+- [`bundle_listnumber_algebraic`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listnumber_algebraic
 
@@ -13,6 +16,11 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = Number[]
 
+"""
+    bundle_listnumber_algebraic
+
+`abs_vector`: element-wise absolute value.
+"""
 bundle_listnumber_algebraic = FunctionBundle(fallback)
 
 VECTORNUM = Vector{<:Number}

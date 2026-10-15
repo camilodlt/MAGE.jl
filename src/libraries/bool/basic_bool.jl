@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-""" Basic Bool functions
+"""
+Boolean operators.
 
-Exports :
+# Bundles
 
-- **bundle\\_bool\\_basic** :
-    - `ret_true`
-    - `ret_false`
-    - `parse_string`
+- [`bundle_bool_basic`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module bool_basic
 
@@ -15,6 +16,13 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return false
 
+"""
+    bundle_bool_basic
+
+Boolean building blocks: `identity_bool`, the constants `ret_true` and
+`ret_false`, and `parse_string`, which evaluates a string and reports whether it
+is `true`.
+"""
 bundle_bool_basic = FunctionBundle(fallback)
 
 baremodule BM_ end

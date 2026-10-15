@@ -1,14 +1,14 @@
 # # -*- coding: utf-8 -*-
 
-""" Grep Operations
+"""
+Pattern matching and replacement.
 
-Exports :
+# Bundles
 
-- **bundle\\_string\\_grep** :
-    - `replace_pattern`
-    - `replace\\_first\\_pattern`
-    - `remove_pattern`
+- [`bundle_string_grep`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module str_grep
 
@@ -19,6 +19,12 @@ using ..UTCGP: FunctionBundle, append_method!
 # ########### #
 fallback(args...) = return ""
 
+"""
+    bundle_string_grep
+
+Pattern rewriting: `replace_pattern` (all matches), `replace_first_pattern`, and
+`remove_pattern`.
+"""
 bundle_string_grep = FunctionBundle(fallback)
 
 # # FUNCTIONS ---

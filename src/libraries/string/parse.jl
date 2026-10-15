@@ -1,12 +1,14 @@
 # # -*- coding: utf-8 -*-
 
-""" 
-Parse types to String. 
+"""
+Parse a string into another type.
 
-Exports :
+# Bundles
 
-- **bundle\\_string\\_parse** :
-    - `parse_number`
+- [`bundle_string_parse`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module str_parse
 
@@ -18,13 +20,18 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return ""
 
+"""
+    bundle_string_parse
+
+`parse_number`: convert a number to its string representation (`string(n)`).
+"""
 bundle_string_parse = FunctionBundle(fallback)
 
 # FUNCTIONS ---
 """
     parse_number(n::Number, args...)
 
-Parses the number to string.
+Returns `string(n)`. For example, `parse_number(2.5) == "2.5"`.
 """
 function parse_number(n::Number, args...)
     return string(n)

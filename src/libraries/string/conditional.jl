@@ -1,16 +1,14 @@
 # # -*- coding: utf-8 -*-
 
-""" Conditional Operations
+"""
+String-valued branching and selection.
 
-Exports :
+# Bundles
 
-- **bundle\\_string\\_conditional** :
-    - `if_string`
-    - `if_not_string`
-    - `if_else_string`
-    - `longest_string`
-    - `shortest_string`
+- [`bundle_string_conditional`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module str_conditional
 
@@ -22,6 +20,12 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return ""
 
+"""
+    bundle_string_conditional
+
+String-valued branching: `if_string`, `if_not_string`, `if_else_string`, and the
+selectors `longest_string` and `shortest_string`.
+"""
 bundle_string_conditional = FunctionBundle(fallback)
 
 # FUNCTIONS ---

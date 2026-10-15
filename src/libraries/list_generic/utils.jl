@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Utils to work with lists
+Sorting, appending, deduplicating and remapping lists.
 
-Exports :
+# Bundles
 
-- **bundle\\_listgeneric\\_utils** :
-    - `sort_list`
-    - `append_to_list`
-    - `unique_in_list`
-    - `replace_by_mapping`
+- [`bundle_listgeneric_utils`](@ref)
+- [`bundle_listgeneric_utils_factory`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listgeneric_utils
 
@@ -22,7 +21,23 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback() = []
 
+"""
+    bundle_listgeneric_utils
+
+List utilities: `sort_list`, `append_to_list`, `unique_in_list` and
+`replace_by_mapping`.
+"""
 bundle_listgeneric_utils = FunctionBundle(fallback)
+"""
+    bundle_listgeneric_utils_factory
+
+Factory form of [`bundle_listgeneric_utils`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listgeneric_utils_factory = FunctionBundle(fallback)
 
 # Sort --- 

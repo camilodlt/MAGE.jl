@@ -1,4 +1,18 @@
 
+"""
+    AIM_LossEpoch(run)
+
+Epoch callback logging the best loss of each generation to an
+[Aim](https://aimstack.io) run.
+
+`run` is the Python `aim.Run` object (through `PythonCall`); the callback calls
+`run.track(best_loss, name = "loss", step = generation)`. Pass it in the
+`epoch_callbacks` slot of [`fit`](@ref):
+
+```julia
+fit(..., (AIM_LossEpoch(aim_run),), ...)
+```
+"""
 struct AIM_LossEpoch <: AbstractCallable
     run::Any
 end

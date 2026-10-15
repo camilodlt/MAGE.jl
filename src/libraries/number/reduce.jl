@@ -1,18 +1,15 @@
 
 # # -*- coding: utf-8 -*-
 
-""" REDUCE Functions : from vector of number to number
+"""
+Reduce a numeric list to a single number.
 
-Exports :
+# Bundles
 
-- **bundle\\_number\\_reduce** :
-    - `reduce_sum`
-    - `reduce_min`
-    - `reduce_max`
-    - `reduce_argmin`
-    - `reduce_argmax`
-    - `reduce_length`
+- [`bundle_number_reduce`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module number_reduce
 
@@ -24,6 +21,12 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0.0
 
+"""
+    bundle_number_reduce
+
+Reduce a numeric list to one number: `reduce_sum`, `reduce_min`, `reduce_max`,
+`reduce_argmin`, `reduce_argmax`, `reduce_length`.
+"""
 bundle_number_reduce = FunctionBundle(fallback)
 
 # FUNCTIONS ---

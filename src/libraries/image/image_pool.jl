@@ -1,28 +1,16 @@
-""" Image pooling functions
+"""
+Block pooling: cut the image into a grid of `k × k` blocks, reduce each block
+to one value, and write that value back over the whole block. The output has
+the same size as the input (a blocky, "pixelated" version of it).
 
-Exports :
+# Bundles
 
-- **bundle\\_image2DIntensity\\_pool\\_factory** :
-    - `avgpool_blocks`
-    - `avgpool_cross_blocks`
-    - `maxpool_blocks`
-    - `maxpool_cross_blocks`
-    - `minpool_blocks`
-    - `minpool_cross_blocks`
-- **bundle\\_image2DBinary\\_pool\\_factory** :
-    - `avgpool_blocks`
-    - `avgpool_cross_blocks`
-    - `maxpool_blocks`
-    - `maxpool_cross_blocks`
-    - `minpool_blocks`
-    - `minpool_cross_blocks`
-- **bundle\\_image2DSegment\\_pool\\_factory** :
-    - `avgpool_blocks`
-    - `avgpool_cross_blocks`
-    - `maxpool_blocks`
-    - `maxpool_cross_blocks`
-    - `minpool_blocks`
-    - `minpool_cross_blocks`
+- [`bundle_image2DIntensity_pool_factory`](@ref)
+- [`bundle_image2DBinary_pool_factory`](@ref)
+- [`bundle_image2DSegment_pool_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module image_pool
 
@@ -41,10 +29,86 @@ using ..UTCGP:
     _validate_factory_type, _get_image_pixel_type, IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
+"""
+    bundle_image2DIntensity_pool_factory
+
+Block pooling of intensity images: the image is cut into a grid of
+non-overlapping `k × k` blocks (from the top-left; the last row and column of
+blocks may be smaller), each block is reduced to one value, and the value is
+written back over the block. The output keeps the input's size and pixel type.
+
+`avgpool_blocks`, `maxpool_blocks`, `minpool_blocks` reduce the whole block;
+the `_cross_` variants reduce only the block's centre row and centre column
+(a "+" shape). Call `op(img, k)` (`k` rounded, clamped to `1` … the image
+side; default `2`) or `op(img)`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_pool_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DBinary_pool_factory
+
+Block pooling of masks. See [`bundle_image2DIntensity_pool_factory`](@ref).
+The average operators set a block when at least half of it is set (majority).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_pool_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DSegment_pool_factory
+
+Block pooling of label maps. See
+[`bundle_image2DIntensity_pool_factory`](@ref). Labels are categories, so the
+"average" operators return the most frequent label of the block (ties: the
+smallest), never a label that is not in the block; max and min compare label
+numbers.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DSegment_pool_factory = FunctionBundle(fallback)
 
+"""
+Block size from the evolved parameter `k`: rounded and clamped to `1` … the
+image's longer side; `NaN` and `±Inf` give the default `2`.
+"""
+function _block_size(k::Number, img::AbstractMatrix)
+    kf = Float64(k)
+    isfinite(kf) || return 2
+    return round(Int, clamp(kf, 1.0, Float64(maximum(size(img)))))
+end
+
+"""
+Most frequent value of a window (ties: the smallest). The "average" of a
+label map: unlike the mean of label numbers, it never invents a label.
+Example: labels `[1, 1, 3, 3, 3]` → `3`; `[1, 3]` → `1`.
+"""
+function _mode(window)
+    counts = Dict{eltype(window),Int}()
+    for v in window
+        counts[v] = get(counts, v, 0) + 1
+    end
+    best_count = maximum(values(counts))
+    return minimum(k for (k, c) in counts if c == best_count)
+end
+
+"The average reducer for a pixel type: `_mode` for label maps, `mean` otherwise."
+_average_reducer(::Type{<:SegmentPixel}) = _mode
+_average_reducer(::Type) = mean
+
+"""
+Reduce every non-overlapping `k × k` block with `pool_fn` and write the result
+over the block. Example (`k = 2`, mean) on a 2 × 4 image `[1 3 5 5; 1 3 5 5]`
+→ `[2 2 5 5; 2 2 5 5]`.
+"""
 function _block_pool_same_size(img::AbstractMatrix, k::Integer, pool_fn::F) where {F<:Function}
     h, w = size(img)
     out = similar(float.(img))
@@ -62,6 +126,10 @@ function _block_pool_same_size(img::AbstractMatrix, k::Integer, pool_fn::F) wher
     return out
 end
 
+"""
+Reduce the "+" of a block: its centre row and centre column (centre = `cld`
+of the side, so the upper-left of the two middles for even sides).
+"""
 function _cross_reduce(window::AbstractMatrix, pool_fn::F) where {F<:Function}
     h, w = size(window)
     row_idx = cld(h, 2)
@@ -76,6 +144,7 @@ function _cross_reduce(window::AbstractMatrix, pool_fn::F) where {F<:Function}
     return pool_fn(vals)
 end
 
+"Same as `_block_pool_same_size`, reducing only each block's centre row and column."
 function _block_cross_pool_same_size(img::AbstractMatrix, k::Integer, pool_fn::F) where {F<:Function}
     h, w = size(img)
     out = similar(float.(img))
@@ -93,6 +162,7 @@ function _block_cross_pool_same_size(img::AbstractMatrix, k::Integer, pool_fn::F
     return out
 end
 
+# Pooled values back to the pixel kind: masks by majority (≥ 0.5), labels rounded.
 _pool_cast(::Type{<:BinaryPixel}, pooled) = pooled .>= 0.5
 _pool_cast(::Type{<:IntensityPixel}, pooled) = pooled
 _pool_cast(::Type{<:SegmentPixel}, pooled) = round.(pooled)
@@ -111,8 +181,8 @@ function avgpool_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage2D}
     FUNCTION_NAME = Symbol(:avgpool_blocks_image2D, :_, Symbol(I))
 
     f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
-        k_int = round(Int, k)
-        pooled = _block_pool_same_size(reinterpret(img.img), k_int, mean)
+        k_int = _block_size(k, img.img)
+        pooled = _block_pool_same_size(reinterpret(img.img), k_int, $(_average_reducer(PT)))
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
@@ -138,8 +208,8 @@ function avgpool_cross_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage
     FUNCTION_NAME = Symbol(:avgpool_cross_blocks_image2D, :_, Symbol(I))
 
     f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
-        k_int = round(Int, k)
-        pooled = _block_cross_pool_same_size(reinterpret(img.img), k_int, mean)
+        k_int = _block_size(k, img.img)
+        pooled = _block_cross_pool_same_size(reinterpret(img.img), k_int, $(_average_reducer(PT)))
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
@@ -165,7 +235,7 @@ function maxpool_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage2D}
     FUNCTION_NAME = Symbol(:maxpool_blocks_image2D, :_, Symbol(I))
 
     f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
-        k_int = round(Int, k)
+        k_int = _block_size(k, img.img)
         pooled = _block_pool_same_size(reinterpret(img.img), k_int, maximum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
@@ -192,7 +262,7 @@ function maxpool_cross_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage
     FUNCTION_NAME = Symbol(:maxpool_cross_blocks_image2D, :_, Symbol(I))
 
     f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
-        k_int = round(Int, k)
+        k_int = _block_size(k, img.img)
         pooled = _block_cross_pool_same_size(reinterpret(img.img), k_int, maximum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
@@ -219,7 +289,7 @@ function minpool_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage2D}
     FUNCTION_NAME = Symbol(:minpool_blocks_image2D, :_, Symbol(I))
 
     f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
-        k_int = round(Int, k)
+        k_int = _block_size(k, img.img)
         pooled = _block_pool_same_size(reinterpret(img.img), k_int, minimum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
@@ -246,7 +316,7 @@ function minpool_cross_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage
     FUNCTION_NAME = Symbol(:minpool_cross_blocks_image2D, :_, Symbol(I))
 
     f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
-        k_int = round(Int, k)
+        k_int = _block_size(k, img.img)
         pooled = _block_cross_pool_same_size(reinterpret(img.img), k_int, minimum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
@@ -261,9 +331,9 @@ end
 
 function _pool_blocks_description(name::Symbol)::String
     if name === :avgpool_blocks
-        return "Pools each non-overlapping block by mean and broadcasts that value within the block."
+        return "Pools each non-overlapping block by mean (labels: most frequent) and broadcasts that value within the block."
     elseif name === :avgpool_cross_blocks
-        return "Pools each non-overlapping block by averaging its center row and column."
+        return "Pools each non-overlapping block by averaging its center row and column (labels: most frequent)."
     elseif name === :maxpool_blocks
         return "Pools each non-overlapping block by maximum and broadcasts that value within the block."
     elseif name === :maxpool_cross_blocks
