@@ -189,12 +189,12 @@ for metric in fns
             [mean, median, minimum, maximum, std]
         )
         name = Symbol("$(stat_name)$(metric)_float_factory")
-        @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+        @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
             g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
             res = $metric(g) |> $(stat)
             return res
         end
-        @eval function $name(img::SizedImage{S, <:BinaryPixel}, r::Number, args::Vararg{Any}) where {S}
+        @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, r::Number, args::Vararg{Any}) where {S}
             r_ = r > 0 ? 1 : 2
             g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img, r_)
             res = $metric(g) |> $(stat)
@@ -203,28 +203,28 @@ for metric in fns
     end
 
     name = Symbol("xCoorArgmax$(metric)_float_factory")
-    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmax
         return centers[which][2]        # centroids are (row, column): x is the column
     end
 
     name = Symbol("yCoorArgmax$(metric)_float_factory")
-    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmax
         return centers[which][1]        # centroids are (row, column): y is the row
     end
 
     name = Symbol("xCoorArgmin$(metric)_float_factory")
-    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmin
         return centers[which][2]        # centroids are (row, column): x is the column
     end
 
     name = Symbol("yCoorArgmin$(metric)_float_factory")
-    @eval function $name(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+    @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmin
         return centers[which][1]        # centroids are (row, column): y is the row
@@ -232,24 +232,24 @@ for metric in fns
 end
 
 # SOME COEFFS ---
-function assortativity_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function assortativity_float_factory(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = assortativity(g)
     return res
 end
-function global_clustering_coefficient_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function global_clustering_coefficient_float_factory(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = global_clustering_coefficient(g)
     return res
 end
-function diameter_float_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function diameter_float_factory(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = diameter(g)
     return res
 end
 
 # SPECIAL COMMUNITIES
-function label_propagation_factory(img::SizedImage{S, <:BinaryPixel}, args::Vararg{Any}) where {S}
+function label_propagation_factory(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
     g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
     res = label_propagation(g)[1] |> unique |> length # nb of communities
     return res

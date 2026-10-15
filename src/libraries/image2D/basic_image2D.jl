@@ -102,7 +102,7 @@ function ones_2D_factory(i::Type{I}) where {I <: SizedImage2D{SIZE}} where {SIZE
     Returns a matrix of ones.
     """
     m1 = @eval (args::Vararg{Any},) -> begin
-        return SImageND($PT.(ones($IT, $S1, $S2)))
+        return SImageND($PT.(ones($IT, $S1, $S2)), $S)
     end
     return m1
 end
@@ -122,7 +122,7 @@ function zeros_2D_factory(i::Type{I}) where {I <: SizedImage2D}
     Returns a matrix of zeros in the type needed.
     """
     return @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
-        return SImageND($PT.(zeros($IT, $S1, $S2)))
+        return SImageND($PT.(zeros($IT, $S1, $S2)), $S)
     end
 end
 

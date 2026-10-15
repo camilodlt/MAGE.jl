@@ -36,6 +36,7 @@ makedocs(;
             "Fitters and Callbacks" => "fitters.md",
             "Endpoints and Tracking" => "endpoints.md",
             "Image Types" => "image_types.md",
+            "Image-to-scalar inputs" => "image_scalar_contract.md",
             "Timing methodology" => "timings.md",
         ],
         "Advanced" => [

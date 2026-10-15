@@ -30,6 +30,7 @@ module number_similarityFromImg
 using ImageCore: N0f8
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..number_intensityStatsFromImg: _reject_unmatched_roi, _is_set
 using ..image2D_object_common: clamp_unit, position_to_unit, pixel_value, scratch, squared_distance_map!
 
 # Returned by the bundles when no method matches the inputs.
@@ -38,7 +39,11 @@ fallback(args...) = return 0.0
 """
     bundle_number_similarityFromImg
 
-Scores comparing two same-size images `a` and `b` (intensity or binary).
+Scores comparing two images `a` and `b` (intensity or binary) that share
+height and width. `a` and `b` have the same size, or one is 3D (RGB or volume)
+and the other 2D: the 2D image is then compared with every channel / depth
+slice and the samples are pooled. Histogram scores are position-free and accept
+any two images. SSIM, chamfer and shifts are planar (2D pairs only).
 
 - Pixel differences: `sim_mse`, `sim_mae` (`0` = identical).
 - Structure: `sim_correlation` (Pearson, `[-1, 1]`), `sim_ssim` (mean SSIM over
@@ -54,7 +59,10 @@ Scores comparing two same-size images `a` and `b` (intensity or binary).
   the image size in `[-0.5, 0.5]`.
 
 `sim_mse`, `sim_mae` and `sim_correlation` also accept a binary mask as third
-argument and then compare only the pixels inside it.
+argument and then compare only the samples inside it. The mask shares the
+pair's height and width: a 2D mask (repeated through every channel / slice of a
+3D comparison), or a 3D mask of exactly the comparison's size. A 2D pair has no
+3D-mask method: MAGE's decoder then selects the unmasked pair method.
 """
 bundle_number_similarityFromImg = FunctionBundle(fallback)
 
@@ -80,10 +88,89 @@ then find the same-looking object in later frames.
 """
 bundle_number_templateFromImg = FunctionBundle(fallback)
 
-"Comparable 2D image: intensity or binary."
-const _Img = SImageND{S,T,2,C} where {S,T<:Union{IntensityPixel,BinaryPixel},C}
-"Binary 2D image."
-const _Mask = SImageND{S,T,2,C} where {S,T<:BinaryPixel,C}
+"Comparable array: intensity or binary (including RGB channel samples)."
+const _Img{S} = SImageND{S,T,N,C} where {T<:Union{IntensityPixel,BinaryPixel},N,C}
+const _Mask{S} = SImageND{S,T,N,C} where {T<:BinaryPixel,N,C}
+const _SpatialImg = SImageND{S,T,2,C} where {S,T<:Union{IntensityPixel,BinaryPixel},C}
+"2D intensity or binary image of height `H` and width `W`."
+const _Img2{H,W} = SImageND{Tuple{H,W},T,2,C} where {T<:Union{IntensityPixel,BinaryPixel},C}
+"3D intensity or binary array (RGB or volume) of height `H`, width `W` and depth `D`."
+const _Img3{H,W,D} = SImageND{Tuple{H,W,D},T,3,C} where {T<:Union{IntensityPixel,BinaryPixel},C}
+"2D binary mask of height `H` and width `W`."
+const _Mask2{H,W} = SImageND{Tuple{H,W},T,2,C} where {T<:BinaryPixel,C}
+"3D binary mask of height `H`, width `W` and depth `D`."
+const _Mask3{H,W,D} = SImageND{Tuple{H,W,D},T,3,C} where {T<:BinaryPixel,C}
+
+"""
+A 2D plane seen as `H×W×depth`: every channel / slice is the plane. Lets a 2D
+image be compared sample by sample with a 3D one without copying it.
+"""
+struct _PlaneStack{T,M<:AbstractMatrix{T}} <: AbstractArray{T,3}
+    plane::M
+    depth::Int
+end
+Base.size(s::_PlaneStack) = (size(s.plane, 1), size(s.plane, 2), s.depth)
+Base.IndexStyle(::Type{<:_PlaneStack}) = IndexLinear()
+@inline Base.getindex(s::_PlaneStack, i::Int) = @inbounds s.plane[mod1(i, length(s.plane))]
+
+"""
+    _pair(a, b) -> (x, y)
+
+Pixel arrays of equal size for a comparison: unchanged for a same-size pair; a
+2D image facing a 3D one (same height and width) is repeated through its depth.
+"""
+_pair(a::SImageND{S}, b::SImageND{S}) where {S} = (a.img, b.img)
+_pair(a::_Img3{H,W,D}, b::_Img2{H,W}) where {H,W,D} = (a.img, _PlaneStack(b.img, D))
+_pair(a::_Img2{H,W}, b::_Img3{H,W,D}) where {H,W,D} = (_PlaneStack(a.img, D), b.img)
+
+"""
+    _selection(x, mask) -> (pixels, is_in)
+
+Which samples of the compared array `x` take part: a binary mask of `x`'s size
+as is, or a 2D mask repeated through every channel / slice of a 3D `x`.
+"""
+_selection(x::AbstractArray{T,N}, mask::SImageND{S,P,N}) where {T,N,S,P<:BinaryPixel} = (mask.img, _is_set)
+_selection(x::AbstractArray{T,3}, mask::SImageND{S,P,2}) where {T,S,P<:BinaryPixel} =
+    (_PlaneStack(mask.img, size(x, 3)), _is_set)
+
+# Accepted (a, b) shapes of the elementwise comparisons: same size, or 3D vs 2D
+# sharing height and width (either order). Each entry: (a type, b type, parameters).
+const _PAIR_SIGNATURES = (
+    (:(_Img{S}), :(_Img{S}), (:S,)),
+    (:(_Img3{H,W,D}), :(_Img2{H,W}), (:H, :W, :D)),
+    (:(_Img2{H,W}), :(_Img3{H,W,D}), (:H, :W, :D)),
+)
+# Accepted (a, b, mask) shapes of the masked comparisons: a binary mask of the
+# comparison's size, or a 2D mask repeated through a 3D comparison (see
+# `_selection`). A 2D pair has no 3D-mask method.
+const _MASKED_SIGNATURES = (
+    (:(_Img{S}), :(_Img{S}), :(_Mask{S}), (:S,)),
+    (:(_Img3{H,W,D}), :(_Img3{H,W,D}), :(_Mask2{H,W}), (:H, :W, :D)),
+    (:(_Img3{H,W,D}), :(_Img2{H,W}), :(_Mask3{H,W,D}), (:H, :W, :D)),
+    (:(_Img3{H,W,D}), :(_Img2{H,W}), :(_Mask2{H,W}), (:H, :W, :D)),
+    (:(_Img2{H,W}), :(_Img3{H,W,D}), :(_Mask3{H,W,D}), (:H, :W, :D)),
+    (:(_Img2{H,W}), :(_Img3{H,W,D}), :(_Mask2{H,W}), (:H, :W, :D)),
+)
+
+"""
+    bundle_number_similarityNDFromImg
+
+Dimension-independent pixel differences, Pearson correlation, histograms and
+foreground overlap. Works on 2D images, 3D volumes and RGB channel arrays;
+RGB samples are pooled, not converted to luminance. Masked differences accept
+a same-size binary mask or a matching 2D mask repeated through a 3D source.
+"""
+bundle_number_similarityNDFromImg = FunctionBundle(fallback)
+
+"""
+    bundle_number_similarity2DFromImg
+
+Planar similarity only: 8×8-block SSIM, 2D chamfer distance, and x/y profile
+shifts. Does not accept volumes or RGB arrays. Use the separate ND bundle for
+position-free comparisons. The historical `bundle_number_similarityFromImg`
+retains every operator as a compatibility collection.
+"""
+bundle_number_similarity2DFromImg = FunctionBundle(fallback)
 "Bins of the value histograms."
 const _HIST_BINS = 32
 "Side of the SSIM blocks."
@@ -100,7 +187,7 @@ end
 
 "Whether pixel `i` is compared: always without a mask, else when the mask pixel is set."
 @inline _compared(mask::Nothing, i) = true
-@inline _compared(mask::AbstractMatrix, i) = @inbounds mask[i].pixel == true
+@inline _compared(selection::Tuple, i) = @inbounds selection[2](selection[1][i])
 
 """
 Mean squared difference over the compared pixels (`0` when none).
@@ -552,7 +639,13 @@ end
 "Attach `doc` to the function `name` and register it in `bundle`."
 function _register!(bundle, name::Symbol, description::String, doc::String)
     @eval @doc $doc $name
-    append_method!(bundle, getfield(@__MODULE__, name), name; description = description)
+    fn = getfield(@__MODULE__, name)
+    append_method!(bundle, fn, name; description = description)
+    if bundle === bundle_number_similarityFromImg
+        target = name in (:sim_ssim, :sim_chamfer, :sim_shift_x, :sim_shift_y) ?
+            bundle_number_similarity2DFromImg : bundle_number_similarityNDFromImg
+        append_method!(target, fn, name; description = description)
+    end
 end
 
 # Pixel-wise comparisons: (operator name, kernel function name, description).
@@ -562,14 +655,25 @@ for (name, kernel, what) in (
         (:sim_mae, :_mae, "Mean absolute difference (0 = identical)."),
         (:sim_correlation, :_correlation, "Pearson correlation of pixel values, in [-1, 1]."),
     )
-    @eval begin
-        $name(a::_Img, b::_Img, args...) = $kernel(a.img, b.img, nothing)
-        $name(a::_Img, b::_Img, mask::_Mask, args...) = ($(_check_same_size)(a, mask); $kernel(a.img, b.img, mask.img))
+    for (A, B, parameters) in _PAIR_SIGNATURES
+        @eval $name(a::$A, b::$B, args...) where {$(parameters...)} =
+            (_reject_unmatched_roi(args...); $kernel(_pair(a, b)..., nothing))
+    end
+    for (A, B, R, parameters) in _MASKED_SIGNATURES
+        @eval function $name(a::$A, b::$B, mask::$R, args...) where {$(parameters...)}
+            x, y = _pair(a, b)
+            return $kernel(x, y, _selection(x, mask))
+        end
     end
     _register!(bundle_number_similarityFromImg, name, what, """
         $name(a, b, [mask], args...)
 
-    $what With a binary `mask`, only pixels inside it are compared.
+    $what `a` and `b` share height and width: same size, or one 3D (RGB or
+    volume) and one 2D, in which case the 2D image is compared with every
+    channel / depth slice and all samples are pooled. With a binary `mask`
+    only the samples inside it are compared: a 2D mask (repeated through
+    every channel / slice of a 3D comparison) or a 3D mask of exactly the
+    comparison's size. No sample inside → `0.0`.
     """)
 end
 
@@ -579,11 +683,23 @@ for (name, kernel, what) in (
         (:sim_hist_intersection, :_hist_intersection, "Histogram intersection (32 bins), in [0, 1]."),
         (:sim_hist_bhattacharyya, :_hist_bhattacharyya, "Bhattacharyya coefficient of the histograms (32 bins), in [0, 1]."),
     )
-    @eval $name(a::_Img, b::_Img, args...) = ($(_check_same_size)(a, b); $kernel(a.img, b.img))
-    _register!(bundle_number_similarityFromImg, name, what, """
+    if name == :sim_ssim
+        # Planar blocks: two 2D images of the same height and width.
+        @eval $name(a::_Img2{H,W}, b::_Img2{H,W}, args...) where {H,W} = $kernel(a.img, b.img)
+    else
+        # Value histograms are position-free: any two images, of any sizes.
+        @eval $name(a::_Img, b::_Img, args...) = $kernel(a.img, b.img)
+    end
+    _register!(bundle_number_similarityFromImg, name, what, name == :sim_ssim ? """
         $name(a, b, args...)
 
-    $what
+    $what Planar: `a` and `b` are 2D images of the same height and width.
+    """ : """
+        $name(a, b, args...)
+
+    $what Position-free: compares the value histograms of all samples, so `a`
+    and `b` may have any sizes and dimensions (e.g. an RGB array, pooling its
+    channels, against a 2D plane).
     """)
 end
 
@@ -596,28 +712,41 @@ for (name, kernel, what) in (
         (:sim_hamming, :_hamming, "Share of pixels whose foreground status differs."),
         (:sim_chamfer, :_chamfer, "Mean distance between the two foregrounds over the image diagonal."),
     )
-    @eval begin
-        $name(a::_Img, b::_Img, args...) = $kernel(a.img, b.img, 0.5)
-        $name(a::_Img, b::_Img, threshold::Number, args...) = $kernel(a.img, b.img, clamp_unit(threshold))
+    signatures = name == :sim_chamfer ? ((:(_Img2{H,W}), :(_Img2{H,W}), (:H, :W)),) : _PAIR_SIGNATURES
+    for (A, B, parameters) in signatures
+        @eval begin
+            $name(a::$A, b::$B, args...) where {$(parameters...)} = $kernel(_pair(a, b)..., 0.5)
+            $name(a::$A, b::$B, threshold::Number, args...) where {$(parameters...)} =
+                $kernel(_pair(a, b)..., clamp_unit(threshold))
+        end
     end
-    _register!(bundle_number_similarityFromImg, name, what, """
+    _register!(bundle_number_similarityFromImg, name, what, name == :sim_chamfer ? """
         $name(a, b, [threshold], args...)
 
     $what Pixels at or above `threshold` (default `0.5`) are foreground;
-    binary masks use their own values.
+    binary masks use their own values. Planar: `a` and `b` are 2D images of
+    the same height and width.
+    """ : """
+        $name(a, b, [threshold], args...)
+
+    $what Pixels at or above `threshold` (default `0.5`) are foreground;
+    binary masks use their own values. `a` and `b` share height and width:
+    same size, or one 3D (RGB or volume) and one 2D, whose foreground is then
+    compared with every channel / depth slice (samples pooled).
     """)
 end
 
 # Displacement: (operator name, axis of the profile (1 columns, 2 rows), wording).
 for (name, axis, what) in ((:sim_shift_x, 1, "horizontal"), (:sim_shift_y, 2, "vertical"))
-    @eval $name(a::_Img, b::_Img, args...) = _shift($axis, a.img, b.img)
+    @eval $name(a::_Img2{H,W}, b::_Img2{H,W}, args...) where {H,W} = _shift($axis, a.img, b.img)
     _register!(bundle_number_similarityFromImg, name,
         "Estimated $what shift of b relative to a, as a fraction of the size.", """
         $name(a, b, args...)
 
     Estimated $what translation of `b` relative to `a`, from the
     cross-correlation of their $(axis == 1 ? "column" : "row") profiles, as a
-    signed fraction of the image size in `[-0.5, 0.5]`.
+    signed fraction of the image size in `[-0.5, 0.5]`. Planar: `a` and `b`
+    are 2D images of the same height and width.
     """)
 end
 
@@ -634,9 +763,9 @@ for (suffix, fraction) in ((:_10p, 0.10), (:_20p, 0.20), (:_30p, 0.30))
         name = Symbol(stem, suffix)
         # QuoteNode keeps `what` a Symbol (:x, :y, :score) inside the generated code.
         @eval begin
-            $name(img::_Img, ref::_Img, args...) =
+            $name(img::_SpatialImg, ref::_SpatialImg, args...) =
                 _match_output($(QuoteNode(what)), img.img, ref.img, 0.5, 0.5, $fraction)
-            $name(img::_Img, ref::_Img, s::Number, args...) =
+            $name(img::_SpatialImg, ref::_SpatialImg, s::Number, args...) =
                 (u = clamp_unit(s); _match_output($(QuoteNode(what)), img.img, ref.img, u, u, $fraction))
         end
         _register!(bundle_number_templateFromImg, name,

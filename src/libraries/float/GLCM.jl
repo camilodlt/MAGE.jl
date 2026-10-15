@@ -43,7 +43,12 @@ inverse difference moment, angular second moment, entropy, maximum probability,
 energy and dissimilarity — each aggregated over the co-occurrence directions
 five ways (`mean`, `sum`, `std`, `minimum`, `maximum`).
 
-Experimental: the API may change.
+Planar intensity and label inputs only. Co-occurrences use bounded levels
+1–255, scaled by the image maximum; all-zero images occupy the first level.
+These are symmetric raw count matrices, not probability-normalised matrices.
+Distance is clamped to 1–10, matrix size to at most 255 (at least the smaller
+of five and the number of distinct samples). Non-finite parameters use
+`distance=1`, `matrix_size=16`. Experimental: the API may change.
 
 This is a *factory* bundle: each entry is a function of a type that returns the
 method specialised for it, so the same operator can be instantiated for several
@@ -53,18 +58,32 @@ into a library.
 experimental_bundle_float_glcm_factory = FunctionBundle(fallback)
 
 # Utils
-function prep_glcm(img::SImageND, dis::Int, matrix_size::Int, angles)
-    real_img = reinterpret(img.img)
-
-    # Neighborhood extension
+# Work in Float64 before quantisation. For fixed-point inputs the previous
+# i * bins / maximum calculation could round the maximum above `bins`, so
+# ceil selected an out-of-bounds (bins + 1) row in ImageFeatures._glcm.
+function prep_glcm(img::InputType, dis::Int, matrix_size::Int, angles)
+    real_img = Float64.(img.img)
     distance_neighborhood = clamp(dis, 1, 10)
-
-    # GLCM granularity
     min_matrix_size = length(unique(real_img))
-    new_matrix_size = clamp(matrix_size, min(5, min_matrix_size), 255)
-
-    glcm_array = glcm_symmetric(real_img, distance_neighborhood, angles, new_matrix_size)
+    new_matrix_size = clamp(matrix_size, max(1, min(5, min_matrix_size)), 255)
+    maximum_value = isempty(real_img) ? 0.0 : maximum(real_img)
+    levels = map(real_img) do v
+        maximum_value <= 0 && return 1
+        clamp(ceil(Int, clamp(v / maximum_value, 0.0, 1.0) * new_matrix_size), 1, new_matrix_size)
+    end
+    # Use ImageFeatures' co-occurrence kernel on our bounded levels. Avoid
+    # asking its public wrapper to quantise the image a second time.
+    glcm_array = map(angles) do angle
+        counts = ImageFeatures._glcm(levels, distance_neighborhood, angle, new_matrix_size)
+        counts + counts'
+    end
     return (glcm = glcm_array, img = real_img, ditance = dis, matrix_size = matrix_size)
+end
+
+"Finite, bounded integer parameters, with the documented default for NaN/Inf."
+function _glcm_parameter(value::Number, default::Int, upper::Int)
+    v = Float64(value)
+    return isfinite(v) ? ceil(Int, clamp(v, 1.0, Float64(upper))) : default
 end
 
 # FUNCTIONS ---
@@ -74,8 +93,8 @@ function glcm_dispatcher(property::Function, operation::Function, name) #
     global InputType
     fn = @eval function $name(img::CONCT, dis::Number, matrix_size::Number, args::Vararg{Any}) where {CONCT <: $InputType}
         global angles_all_directions
-        res_tuple = prep_glcm(img, Base.ceil(Int, dis), Base.ceil(Int, matrix_size), angles_all_directions)
-        return $operation($property.(res_tuple.glcm))
+        res_tuple = prep_glcm(img, _glcm_parameter(dis, 1, 10), _glcm_parameter(matrix_size, 16, 255), angles_all_directions)
+        return Float64($operation($property.(res_tuple.glcm)))::Float64
     end
 
 

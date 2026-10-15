@@ -84,6 +84,7 @@ bundle_output_index()
 | [Genome and Nodes](@ref) | the representation: elements, nodes, chromosomes |
 | [Libraries](@ref) | bundles, libraries, casters, premade collections |
 | [Bundle Catalogue](@ref) | every operator MAGE ships, generated from the source |
+| [Image-to-scalar inputs](image_scalar_contract.md) | supported dimensions, RGB/ROI semantics and inferred scalar results |
 | [Timing methodology](timings.md) | measured gallery calls, stress inputs and performance limits |
 | [Programs](@ref) | decoding a genome, evaluating and compiling programs |
 | [Mutations](@ref) | the mutation operators and how they differ |

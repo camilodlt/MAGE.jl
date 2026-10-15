@@ -33,9 +33,11 @@ bundle must accept a trailing `args...` and swallow the extra arguments:
 number_sum(a::Number, b::Number, args...) = a + b
 ```
 
-For the same reason, two methods of the *same* name that differ only in arity
-cannot both live in a bundle: the widest one would always shadow the narrower.
-Give them different names instead.
+Register one named function per operator. Its supported signatures are methods
+of that same function, including different dimensions, ROI forms and optional
+scalar arguments. Julia selects the most specific applicable method; the
+framework reads its fixed arguments to determine how many inputs it consumes.
+Do not register a separate operator for each method.
 
 Whether a function is applicable to a node is decided with `hasmethod`, and the
 decoder uses `which` to determine how many inputs the node consumes. A factory

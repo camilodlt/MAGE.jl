@@ -221,3 +221,11 @@ This is the shared machinery under [Automatically Defined Functions](@ref) and
 Modules = [UTCGP]
 Pages = ["libraries/modular_function.jl", "libraries/modular_library.jl"]
 ```
+
+## Choosing image-to-scalar operators
+
+Use [`get_image_scalar_bundles`](@ref) to select applicable methods from the
+input types, spatial domain (`:image2D`, `:rgb` or `:volume`) and node arity.
+See [Image-to-scalar inputs and inference](image_scalar_contract.md) for the
+complete dimensional contract and ROI conventions. The historical getters
+above retain their operator membership and order.

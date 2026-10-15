@@ -83,6 +83,7 @@ groups = [
     ]),
     ("Image comparison and scalar decisions", [
         ("similarity", ["bundle_number_similarityFromImg", "bundle_number_templateFromImg"]),
+        ("../image_scalar_contract", ["bundle_number_similarityNDFromImg", "bundle_number_similarity2DFromImg"]),
         ("decision", ["bundle_number_decision", "bundle_number_motion"]),
     ]),
     ("Classification descriptors", [
@@ -158,7 +159,7 @@ const BUNDLE_OUTPUT_GROUPS = [
     "Element T" => r"^bundle_element_",
     "Number (generic arithmetic and mixed image reductions)" => r"^bundle_number_(arithmetic(_sr)?|transcendental(_sr)?|reduce|reduceFromImg)$",
     "Float64 (scalar descriptors, coordinates and decisions)" =>
-        r"^(?:(experimental_)?bundle_float_|bundle_number_(coordinatesFromImg|relativeCoordinatesFromImg|regionFromImg|haarFromImg|locateFromImg|objectLocateFromImg|objectDescribeFromImg|decision|motion|similarityFromImg|templateFromImg|intensityStatsFromImg|shapeFromImg|objectStatsFromImg|granulometryFromImg|volumeShapeFromImg|volumeGranulometryFromImg|volumeProfileFromImg)$)",
+        r"^(?:(experimental_)?bundle_float_|bundle_number_(coordinatesFromImg|relativeCoordinatesFromImg|regionFromImg|haarFromImg|locateFromImg|objectLocateFromImg|objectDescribeFromImg|decision|motion|similarityFromImg|similarityNDFromImg|similarity2DFromImg|templateFromImg|intensityStatsFromImg|shapeFromImg|objectStatsFromImg|granulometryFromImg|volumeShapeFromImg|volumeGranulometryFromImg|volumeProfileFromImg)$)",
     "Int" => r"^bundle_integer_",
     "String" => r"^bundle_string_",
     "Vector{T}" => r"^bundle_listgeneric_",

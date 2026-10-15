@@ -103,6 +103,18 @@ Modules = [UTCGP]
 Pages = ["programs/compile/population_sequential_program.jl"]
 ```
 
+### Typed population workspaces and step values
+
+The matrix API writes one scalar output per individual and sample into reusable
+storage. Prepare a separate workspace per concurrent evaluation and rebuild it
+when the program or its wrappers change. Unsupported graphs use the generic
+interpreter; a concrete primitive return type enables the typed path.
+
+```@autodocs
+Modules = [UTCGP]
+Pages = ["programs/compile/typed_population.jl"]
+```
+
 ## Subgraph selection
 
 Any node of a decoded program can be treated as the root of a subgraph. That is

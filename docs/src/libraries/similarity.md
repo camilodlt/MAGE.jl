@@ -12,6 +12,12 @@ numbers, so they live in the number libraries and feed the float chromosome.
 |:--|:--|
 | `get_extension_similarity_nb()` | `bundle_number_similarityFromImg`, `bundle_number_templateFromImg` |
 
+For new libraries, `bundle_number_similarityNDFromImg` contains the nine
+position-free/pixel-wise comparisons and supports 2D, RGB and volumes.
+`bundle_number_similarity2DFromImg` contains planar SSIM, chamfer and shifts;
+template matching also remains planar. The original getter and combined
+bundle retain every operator. See [Image-to-scalar inputs](../image_scalar_contract.md).
+
 ## Comparing two images
 
 Every `sim_*` operator takes two same-size images (intensity or binary). The

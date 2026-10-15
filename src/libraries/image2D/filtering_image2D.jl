@@ -30,7 +30,7 @@ using ..UTCGP:
     SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel, SegmentPixel
 
-cast = image2D_morph.cast
+const cast = image2D_morph.cast
 fallback(args...) = return nothing
 
 """

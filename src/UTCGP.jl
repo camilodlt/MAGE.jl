@@ -420,8 +420,10 @@ module UTCGP
     include("libraries/number/similarity_from_img.jl")
     import .number_similarityFromImg:
         bundle_number_similarityFromImg,
+        bundle_number_similarityNDFromImg, bundle_number_similarity2DFromImg,
         bundle_number_templateFromImg
     export bundle_number_similarityFromImg,
+        bundle_number_similarityNDFromImg, bundle_number_similarity2DFromImg,
         bundle_number_templateFromImg
 
     include("libraries/number/img_region_common.jl")
@@ -704,7 +706,7 @@ module UTCGP
 
     # PRE MADE BUNDLES
     include("libraries/pre_made_libraries.jl")
-    export get_extension_nb
+    export get_extension_nb, get_image_scalar_bundles
     export get_extension_intensityimg
     export get_extension_binaryimg
     export get_extension_saliency_intensityimg

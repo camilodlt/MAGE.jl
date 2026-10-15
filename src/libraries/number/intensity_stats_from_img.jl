@@ -65,8 +65,20 @@ Each statistic comes in three forms:
 - `stat_x_diff(img, roi)`: inside minus outside, e.g. how much brighter or more
   textured an object is than its surroundings.
 
-All statistics work on 2D images and on 3D volumes alike; `roi` is a binary
-mask, or an intensity map thresholded at `0.5`, of the same size.
+All statistics work on 2D images, 3D volumes and RGB arrays (`H×W×3`).
+RGB statistics pool channel samples; they are not luminance statistics.
+`roi` is binary, or an intensity map thresholded at `0.5`, and shares the
+source's height and width:
+
+- 2D ROI on a 2D source, or on a 3D source (RGB or volume): the ROI pixel
+  selects that position in every channel / depth slice;
+- 3D ROI on a 3D source of the same size: each channel sample / voxel is
+  selected by its own ROI value.
+
+These rules are the method signatures (shared size parameters), so there is no
+ROI method for any other pairing. In particular a 2D source facing a 3D image
+has no ROI method: MAGE's decoder then selects `stat_x(img, args...)` and the
+node is a one-input whole-image statistic.
 `stat_frac_above` takes the threshold as its last argument (default `0.5`).
 An empty selection gives `0.0`.
 """
@@ -74,9 +86,9 @@ bundle_number_intensityStatsFromImg = FunctionBundle(fallback)
 
 # Type aliases matching any size and any number of dimensions `N` (2D images, 3D volumes).
 "Intensity image of any dimension (2D images and 3D volumes)."
-const _Img = SImageND{S,T,N,C} where {S,T<:IntensityPixel,N,C}
+const _Img{S} = SImageND{S,T,N,C} where {T<:IntensityPixel,N,C}
 "Binary mask of any dimension."
-const _Mask = SImageND{S,T,N,C} where {S,T<:BinaryPixel,N,C}
+const _Mask{S} = SImageND{S,T,N,C} where {T<:BinaryPixel,N,C}
 "Bins of the histogram behind `stat_entropy` and `stat_uniformity`."
 const _ENTROPY_BINS = 32
 
@@ -114,6 +126,28 @@ end
 "`(roi_pixels, is_in)`: the ROI's pixel array and its membership test."
 _roi(mask::_Mask) = (mask.img, _is_set)
 _roi(mask::_Img) = (mask.img, _at_half)
+
+# A spatial ROI repeats once per channel / depth slice in column-major storage.
+# Keep this as a typed view: no replicated H×W×depth mask is allocated.
+struct _RepeatedROI{M}
+    pixels::M
+end
+@inline Base.getindex(r::_RepeatedROI, i::Int) = @inbounds r.pixels[mod1(i, length(r.pixels))]
+@inline Base.getindex(r::_RepeatedROI, i::CartesianIndex{3}) = @inbounds r.pixels[i[1],i[2]]
+const _ROI2D{H,W} = SImageND{Tuple{H,W},P,2,C} where {P<:Union{IntensityPixel,BinaryPixel},C}
+_roi(img::_Img{S}, roi::Union{_Mask{S},_Img{S}}) where {S} = (_check_same_size(img, roi); _roi(roi))
+function _roi(img::SImageND{Tuple{H,W,D},P,3,C}, roi::_ROI2D{H,W}) where {H,W,D,P<:IntensityPixel,C}
+    size(img.img)[1:2] == size(roi.img) || throw(DimensionMismatch("image and spatial ROI must share height and width"))
+    pixels, predicate = _roi(roi)
+    return _RepeatedROI(pixels), predicate
+end
+
+# Public ROI methods share the size parameter, or the first two dimensions
+# for a 3D source and a spatial 2D ROI. All methods retain the operator's name.
+const _ROI_SIGNATURES = (
+    (:(_Img{S}), :(Union{_Mask{S},_Img{S}}), (:S,)),
+    (:(SImageND{Tuple{H,W,D},P,3,C}), :(_ROI2D{H,W}), (:H,:W,:D,:(P<:IntensityPixel),:C)),
+)
 
 # ---------------------------------------------------------------------------
 # Summary of the selected pixels
@@ -470,6 +504,17 @@ function _check_same_size(img, roi)
     return nothing
 end
 
+# A mismatched image in the ROI slot must not fall through the framework's
+# unary args... method and silently become a whole-image statistic.
+# (MAGE's decoder never reaches this: it consumes only the fixed arguments of
+# the method `which` selects, so extra connections are not passed.)
+@inline function _reject_unmatched_roi(args...)
+    if !isempty(args) && first(args) isa SImageND
+        throw(DimensionMismatch("ROI must match the image size, or share height and width as a 2D ROI for a 3D image"))
+    end
+    return nothing
+end
+
 "`statistic` of the selected pixels; `0` when none is selected."
 @inline function _stat(statistic::F, pixels, selection) where {F}
     s = _summary(pixels, selection)
@@ -494,21 +539,21 @@ for (stat, statistic, what) in _STATISTICS
     outside = Symbol(:stat_, stat, :_out)
     diff = Symbol(:stat_, stat, :_diff)
     @eval begin
-        $inside(img::_Img, args...) = _stat($statistic, img.img, _All())
-        function $inside(img::_Img, roi::Union{_Mask,_Img}, args...)
-            _check_same_size(img, roi)
-            # _roi(roi)... expands to (roi pixel array, membership test).
-            return _stat($statistic, img.img, _Inside(_roi(roi)...))
-        end
-        function $outside(img::_Img, roi::Union{_Mask,_Img}, args...)
-            _check_same_size(img, roi)
-            return _stat($statistic, img.img, _Outside(_roi(roi)...))
-        end
-        function $diff(img::_Img, roi::Union{_Mask,_Img}, args...)
-            _check_same_size(img, roi)
-            mask, is_in = _roi(roi)
-            return _stat($statistic, img.img, _Inside(mask, is_in)) -
-                   _stat($statistic, img.img, _Outside(mask, is_in))
+        $inside(img::_Img, args...) = (_reject_unmatched_roi(args...); _stat($statistic, img.img, _All()))
+    end
+    for (source, region, parameters) in _ROI_SIGNATURES
+        @eval begin
+            function $inside(img::$source, roi::$region, args...) where {$(parameters...)}
+                return _stat($statistic, img.img, _Inside(_roi(img, roi)...))
+            end
+            function $outside(img::$source, roi::$region, args...) where {$(parameters...)}
+                return _stat($statistic, img.img, _Outside(_roi(img, roi)...))
+            end
+            function $diff(img::$source, roi::$region, args...) where {$(parameters...)}
+                mask, is_in = _roi(img, roi)
+                return _stat($statistic, img.img, _Inside(mask, is_in)) -
+                       _stat($statistic, img.img, _Outside(mask, is_in))
+            end
         end
     end
     _register!(inside, "Intensity $what, over the image or inside a ROI.", """
@@ -516,49 +561,57 @@ for (stat, statistic, what) in _STATISTICS
         $inside(img, roi, args...)
 
     Intensity $what over the whole image, or over the pixels inside `roi`
-    (binary mask, or intensity map at `0.5`). Empty selection → `0.0`.
+    (binary mask, or intensity map at `0.5`). `img` is a 2D image, a 3D volume
+    or an RGB array (channel samples pooled). `roi` shares `img`'s height and
+    width: a 2D ROI (repeated through every channel / slice of a 3D `img`), or
+    a 3D ROI of exactly `img`'s size. A 2D `img` has no 3D-ROI method.
+    Empty selection → `0.0`.
     """)
     _register!(outside, "Intensity $what outside a ROI.", """
         $outside(img, roi, args...)
 
-    Intensity $what over the pixels outside `roi`. Empty selection → `0.0`.
+    Intensity $what over the pixels outside `roi`; same `img` / `roi`
+    combinations as `$inside`. Empty selection → `0.0`.
     """)
     _register!(diff, "Intensity $what inside a ROI minus outside it.", """
         $diff(img, roi, args...)
 
     `$inside(img, roi) − $outside(img, roi)`: how the region differs from its
-    surroundings.
+    surroundings. Same `img` / `roi` combinations as `$inside`.
     """)
 end
 
 # stat_frac_above does not fit the summary pattern (it takes a threshold), so its
 # methods are written out. `_All()` selects every pixel, `_Inside(…)` / `_Outside(…)`
 # the pixels inside / outside the region; the last number is the threshold.
-stat_frac_above(img::_Img, args...) = _frac_above(img.img, _All(), 0.5)                            # whole image, threshold 0.5
+stat_frac_above(img::_Img, args...) = (_reject_unmatched_roi(args...); _frac_above(img.img, _All(), 0.5))                            # whole image, threshold 0.5
 stat_frac_above(img::_Img, t::Number, args...) = _frac_above(img.img, _All(), clamp_unit(t))       # whole image, threshold t
-stat_frac_above(img::_Img, roi::Union{_Mask,_Img}, args...) =                                       # inside roi, threshold 0.5
-    (_check_same_size(img, roi); _frac_above(img.img, _Inside(_roi(roi)...), 0.5))
-stat_frac_above(img::_Img, roi::Union{_Mask,_Img}, t::Number, args...) =                            # inside roi, threshold t
-    (_check_same_size(img, roi); _frac_above(img.img, _Inside(_roi(roi)...), clamp_unit(t)))
-stat_frac_above_out(img::_Img, roi::Union{_Mask,_Img}, args...) =                                   # outside roi, threshold 0.5
-    (_check_same_size(img, roi); _frac_above(img.img, _Outside(_roi(roi)...), 0.5))
-stat_frac_above_out(img::_Img, roi::Union{_Mask,_Img}, t::Number, args...) =                        # outside roi, threshold t
-    (_check_same_size(img, roi); _frac_above(img.img, _Outside(_roi(roi)...), clamp_unit(t)))
-# Inside minus outside, threshold t …
-function stat_frac_above_diff(img::_Img, roi::Union{_Mask,_Img}, t::Number, args...)
-    _check_same_size(img, roi)
-    mask, is_in = _roi(roi)
-    return _frac_above(img.img, _Inside(mask, is_in), clamp_unit(t)) -
-           _frac_above(img.img, _Outside(mask, is_in), clamp_unit(t))
+for (source, region, parameters) in _ROI_SIGNATURES
+    @eval begin
+        stat_frac_above(img::$source, roi::$region, args...) where {$(parameters...)} =
+            _frac_above(img.img, _Inside(_roi(img, roi)...), 0.5)
+        stat_frac_above(img::$source, roi::$region, t::Number, args...) where {$(parameters...)} =
+            _frac_above(img.img, _Inside(_roi(img, roi)...), clamp_unit(t))
+        stat_frac_above_out(img::$source, roi::$region, args...) where {$(parameters...)} =
+            _frac_above(img.img, _Outside(_roi(img, roi)...), 0.5)
+        stat_frac_above_out(img::$source, roi::$region, t::Number, args...) where {$(parameters...)} =
+            _frac_above(img.img, _Outside(_roi(img, roi)...), clamp_unit(t))
+        function stat_frac_above_diff(img::$source, roi::$region, t::Number, args...) where {$(parameters...)}
+            mask, is_in = _roi(img, roi)
+            t = clamp_unit(t)
+            return _frac_above(img.img, _Inside(mask, is_in), t) -
+                   _frac_above(img.img, _Outside(mask, is_in), t)
+        end
+        stat_frac_above_diff(img::$source, roi::$region, args...) where {$(parameters...)} = stat_frac_above_diff(img, roi, 0.5)
+    end
 end
-# … or threshold 0.5.
-stat_frac_above_diff(img::_Img, roi::Union{_Mask,_Img}, args...) = stat_frac_above_diff(img, roi, 0.5)
 
 _register!(:stat_frac_above, "Fraction of pixels at or above a threshold (default 0.5).", """
     stat_frac_above(img, [roi], [threshold], args...)
 
 Fraction of the selected pixels with intensity at or above `threshold`
-(default `0.5`).
+(default `0.5`). `roi` follows the same rules as the other statistics: a 2D
+ROI (repeated through a 3D `img`), or a 3D ROI of exactly `img`'s size.
 """)
 _register!(:stat_frac_above_out, "Fraction of pixels outside a ROI at or above a threshold.", """
     stat_frac_above_out(img, roi, [threshold], args...)

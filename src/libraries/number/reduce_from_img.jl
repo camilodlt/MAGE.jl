@@ -53,7 +53,10 @@ bundle_number_reduceFromImg = FunctionBundle(fallback)
 """
     bundle_number_coordinatesFromImg
 
-Absolute coordinates of an image's brightest point:
+Row/column coordinates of the maximal sample in a 2D or 3D array.
+For RGB, the winning sample is the largest channel value (not luminance);
+for volumes these are the row and column of the brightest voxel.
+Operators:
 `experimental_horizontal_argmax` and `experimental_vertical_argmax`.
 """
 bundle_number_coordinatesFromImg = FunctionBundle(fallback)
@@ -228,15 +231,19 @@ function reduce_minimum(from::SImageND{S, T, D, C}, args...) where {S, T <: Inte
     return Float64(minimum(float(from)))
 end
 
+# Max-sample x/y location is meaningful in both a plane and an H×W×D
+# array (including RGB channels). A vector has no horizontal coordinate.
+const _CoordinateImg{S} = Union{SImageND{S,T,2,C},SImageND{S,T,3,C}} where {T<:Union{IntensityPixel,BinaryPixel},C}
+
 # Vertical argmax ---
 """
     experimental_vertical_argmax()
 Return the y coordinate where the image has it max value
 """
 function experimental_vertical_argmax(
-        from::SImageND{S, T, D, C},
+        from::_CoordinateImg{S},
         args...,
-    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
+    ) where {S}
     argmax_values = argmax(float(from))
     return argmax_values[1] |> Float64
 end
@@ -247,9 +254,9 @@ end
 Return the x coordinate where the image has it max value
 """
 function experimental_horizontal_argmax(
-        from::SImageND{S, T, D, C},
+        from::_CoordinateImg{S},
         args...,
-    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
+    ) where {S}
     argmax_values = argmax(float(from))
     return argmax_values[2] |> Float64
 end
@@ -260,9 +267,9 @@ end
 Return the y coordinate where the image has it max value, divided by the image height
 """
 function experimental_vertical_relative_argmax(
-        from::SImageND{S, T, D, C},
+        from::_CoordinateImg{S},
         args...,
-    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
+    ) where {S}
     argmax_values = argmax(float(from))
     return Float64(argmax_values[1] / size(from)[1])
 end
@@ -273,9 +280,9 @@ end
 Return the x coordinate where the image has it max value, divided by the image width
 """
 function experimental_horizontal_relative_argmax(
-        from::SImageND{S, T, D, C},
+        from::_CoordinateImg{S},
         args...,
-    ) where {S, T <: Union{IntensityPixel, BinaryPixel}, D, C}
+    ) where {S}
     argmax_values = argmax(float(from))
     return Float64(argmax_values[2] / size(from)[2])
 end

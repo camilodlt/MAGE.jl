@@ -17,7 +17,7 @@ using Statistics: mean, median, std, quantile
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     SizedImage2D, SImageND, _get_image_type, _validate_factory_type, _get_image_pixel_type,
-    IntensityPixel, BinaryPixel, SegmentPixel
+    _get_image_tuple_size, IntensityPixel, BinaryPixel, SegmentPixel
 
 fallback(args...) = return nothing
 """
@@ -148,7 +148,7 @@ function _make_pooler_factory(
     function_symbol::Symbol,
     postprocess::P = _identity_postprocess
 ) where {I<:SizedImage2D,F<:Function,P<:Function}
-    IT, PT = _get_image_type(I), _get_image_pixel_type(I)
+    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(function_symbol, :_image2D_, Symbol(I))
 
@@ -162,7 +162,7 @@ function _make_pooler_factory(
         pooled = _sliding_reduce_resize_same_size(reinterpret(img.img), k_int, stride_int, $(_label_safe(reducer, PT)))
         pooled = $postprocess(pooled)
         casted = _pooler_cast($PT, pooled)
-        return SImageND($PT.($IT.(casted)))
+        return SImageND($PT.($IT.(casted)), $S)
     end
 
     @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}

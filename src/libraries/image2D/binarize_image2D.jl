@@ -31,7 +31,7 @@ using ..UTCGP:
 using Statistics: mean
 using Logging
 
-cast = image2D_morph.cast
+const cast = image2D_morph.cast
 
 "`x` clamped to `[lo, hi]` as a Float64; `NaN` and `±Inf` give `default`."
 _finite_clamp(x::Real, lo::Float64, hi::Float64, default::Float64) =

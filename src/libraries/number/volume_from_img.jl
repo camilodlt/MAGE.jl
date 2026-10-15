@@ -213,7 +213,12 @@ function _principal_axes(fg)
     mean = sums ./ n
     # Covariance C[a, b] = E[p_a p_b] − E[p_a] E[p_b]; the diagonal gets +1/12,
     # the variance of a position spread uniformly over one voxel width.
-    C = [(a <= b ? cross_sums[a, b] : cross_sums[b, a]) / n - mean[a] * mean[b] + (a == b ? 1 / 12 : 0.0) for a in 1:3, b in 1:3]
+    # A comprehension captures the incremented `n` in a Core.Box, making
+    # the covariance and every downstream descriptor infer as Any.
+    C = Matrix{Float64}(undef, 3, 3)
+    @inbounds for b in 1:3, a in 1:3
+        C[a, b] = (a <= b ? cross_sums[a, b] : cross_sums[b, a]) / n - mean[a] * mean[b] + (a == b ? 1 / 12 : 0.0)
+    end
     # Eigenvalues, negatives from rounding clipped to 0, largest first.
     return (λ = sort(max.(eigvals(Symmetric(C)), 0.0); rev = true), n = n, mean = mean)
 end

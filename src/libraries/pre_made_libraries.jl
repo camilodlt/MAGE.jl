@@ -124,6 +124,76 @@ function get_extension_nb()
 end
 
 """
+    get_image_scalar_bundles(input_types; domain=:image2D, max_arity=3)
+
+Fresh image-to-scalar bundles containing only operators applicable to the
+available `input_types` within `max_arity` consumed inputs. Include scalar
+input types (e.g. `Float64`) when image operators may consume scalar arguments.
+All selected functions retain their original names and methods.
+
+`domain` selects spatial meaning: `:image2D`, `:volume` or `:rgb`. Every domain
+includes shared reductions, maximal-sample row/column coordinates, intensity
+statistics and ND comparisons. Only the
+2D domain adds planar descriptors, Haar/region features, orientation, graph
+features, block SSIM, chamfer, shifts and template matching. Only the volume
+domain adds volume shape, granulometry and profiles. RGB uses pooled channels
+and matching 2D ROIs, without treating the colour axis as spatial depth.
+
+RGB and depth-three volumes have the same Julia type (`H×W×3`), so `domain`
+is explicit: their intended meaning cannot be inferred from that type.
+The historical `get_extension_*_nb()` getters remain unchanged.
+
+```julia
+bundles = get_image_scalar_bundles([ImageType, MaskType, Float64];
+    domain=:image2D, max_arity=3)
+```
+"""
+function get_image_scalar_bundles(input_types::AbstractVector; domain::Symbol=:image2D, max_arity::Int=3)
+    domain in (:image2D, :volume, :rgb) || throw(ArgumentError("domain must be :image2D, :volume or :rgb"))
+    max_arity >= 1 || throw(ArgumentError("max_arity must be positive"))
+    all(t -> t isa Type && isconcretetype(t), input_types) ||
+        throw(ArgumentError("input_types must contain concrete types"))
+    candidates = [bundle_number_reduceFromImg, bundle_number_coordinatesFromImg,
+                  bundle_number_relativeCoordinatesFromImg, bundle_number_intensityStatsFromImg,
+                  bundle_number_similarityNDFromImg]
+    if domain === :image2D
+        append!(candidates, [extension_nb..., extension_locate_nb..., bundle_number_shapeFromImg,
+            bundle_number_objectStatsFromImg, bundle_number_granulometryFromImg,
+            bundle_float_imagegraph, experimental_bundle_float_glcm_factory,
+            bundle_number_similarity2DFromImg, bundle_number_templateFromImg])
+    elseif domain === :volume
+        append!(candidates, [bundle_number_volumeShapeFromImg,
+            bundle_number_volumeGranulometryFromImg, bundle_number_volumeProfileFromImg])
+    end
+    # Restrict the supplied image types to the chosen meaning. A 2D mask is
+    # also useful in an RGB/volume domain as a spatial ROI.
+    types = filter(input_types) do t
+        t <: SizedImage || return true
+        n = Base.unwrap_unionall(t).parameters[3]
+        return domain === :image2D ? n == 2 : n in (2, 3)
+    end
+    arities = unique([m.nargs - 2 for b in candidates for w in b for m in methods(w.fn)
+        if 1 <= m.nargs - 2 <= max_arity])
+    combinations = Dict(n => collect(Iterators.product(ntuple(_ -> types, n)...)) for n in arities)
+    result = FunctionBundle[]
+    for candidate in candidates
+        bundle = deepcopy(candidate)
+        filter!(bundle.functions) do wrapper
+            any(methods(wrapper.fn)) do method
+                n = method.nargs - 2             # function itself and trailing args...
+                1 <= n <= max_arity || return false
+                any(combinations[n]) do ts
+                    first(ts) <: SizedImage || return false
+                    hasmethod(wrapper.fn, Tuple{ts...}) && which(wrapper.fn, Tuple{ts...}) === method
+                end
+            end
+        end
+        isempty(bundle.functions) || push!(result, bundle)
+    end
+    return result
+end
+
+"""
     get_extension_intensityimg()
 
 Fresh copies of the historical extra intensity-image bundles: block pooling,

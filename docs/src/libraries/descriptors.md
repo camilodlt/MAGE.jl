@@ -25,6 +25,13 @@ Four synthetic cell classes, 64×64 (shown at 3×), each with a textured interio
 on a darker textured background. The masks are the images thresholded at
 `0.5`.
 
+Shared intensity statistics also accept RGB channel arrays and volumes.
+A matching 2D ROI selects all channels or depth slices; full-size ROIs select
+individual samples. RGB statistics pool channels rather than converting to
+luminance. Shape, object and granulometry descriptors on this page remain 2D;
+use the volume bundles for spatial 3D geometry. See
+[Image-to-scalar inputs](../image_scalar_contract.md) for dispatch and inference.
+
 ```@setup desc
 using UTCGP
 include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))

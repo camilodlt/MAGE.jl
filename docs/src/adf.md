@@ -62,6 +62,19 @@ Modules = [UTCGP]
 Pages = ["adf/usage.jl"]
 ```
 
+## Extracting a step's dependency cone
+
+Step harvesting can turn a compiled intermediate result into a reusable ADF.
+The current extraction helper supports Float64 cones with at most three formal
+inputs; it returns `nothing` for unsupported cones. Keep the original library's
+function indices when installing the extracted genome. Connection setters
+check bounds and ordering; callers remain responsible for compatible types.
+
+```@autodocs
+Modules = [UTCGP]
+Pages = ["adf/extract.jl"]
+```
+
 ## Flattening back to plain CGP
 
 ```@autodocs
