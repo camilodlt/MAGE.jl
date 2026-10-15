@@ -665,3 +665,68 @@ function (obj::eval_budget_early_stop)(ga_early_stop_args::GA_EARLYSTOP_ARGS)::B
     @info "Eval Budget. Curr budget : $(obj.cur_budget)"
     return decision
 end
+
+"""
+    ga_numbered_new_material_mutation_callback(args, cache, parent_cache, parent_indices; check=false)
+
+Opt-in mutation callback for exact parent copies, elites first. parent_indices[i]
+is the source slot whose genome was copied to destination i. Separate caches
+allow arbitrary repeated parents without overwriting source metadata. Capture
+parent_cache from evaluation programs before population replacement. check=true
+compares every child with a fresh decode before mutation (diagnostic only).
+"""
+function ga_numbered_new_material_mutation_callback(
+        args::Abstract_GA_MUTATION_ARGS, cache::ActiveNodeCache,
+        parent_cache::ActiveNodeCache, parent_indices::AbstractVector{<:Integer};
+        check::Bool = false)::Option{Population}
+    :n_elite in fieldnames(typeof(args.run_config)) || return none
+    pop = args.population
+    @assert length(parent_indices) == length(pop)
+    @assert length(cache.entries) >= length(pop)
+    @assert cache !== parent_cache "Use separate source/destination caches"
+    for i in eachindex(parent_indices)
+        entry = cache[i]
+        copy_active_nodes!(entry, parent_cache[parent_indices[i]])
+        if check && active_cache_matches(entry, pop[i])
+            check_active_nodes(entry, pop[i], args.meta_library, args.model_architecture, args.shared_inputs)
+        end
+        if i > args.run_config.n_elite
+            new_material_mutation!(pop[i], args.run_config, args.model_architecture,
+                args.meta_library, args.shared_inputs; active_positions=entry)
+        end
+    end
+    return some(pop)
+end
+
+"""
+    ga_population_callback(args::GA_POP_ARGS, cache, parent_cache, parent_indices)
+
+Standard GA selection with cache metadata copying and explicit parent indices.
+parent_indices is a preallocated destination vector of n_elite+n_new integers.
+Genomes use the standard callback's elite references/deepcopy behavior; pooled
+runners may instead copy genomes themselves and call copy_active_nodes!.
+"""
+function ga_population_callback(args::GA_POP_ARGS, cache::ActiveNodeCache,
+        parent_cache::ActiveNodeCache, parent_indices::AbstractVector{<:Integer})::Option{Population}
+    @assert cache !== parent_cache "Use separate source/destination caches"
+    config = args.run_config
+    n = config.n_elite + config.n_new
+    @assert length(parent_indices) == n
+    @assert length(cache.entries) >= n
+    inds = Vector{UTGenome}(undef, n)
+    for (i, parent) in enumerate(args.elite_idx)
+        inds[i] = args.population[parent]
+        parent_indices[i] = parent
+        copy_active_nodes!(cache[i], parent_cache[parent])
+    end
+    for i in (config.n_elite + 1):n
+        winner_opt, index_opt = tournament_selection(args.population,
+            config.tournament_size, args.fitnesses; return_idx=true)
+        winner = @unwrap_or winner_opt throw("Tournament could not take place with config : $(config)")
+        parent = @unwrap_or index_opt throw("Tournament did not return a parent index")
+        inds[i] = deepcopy(winner)
+        parent_indices[i] = parent
+        copy_active_nodes!(cache[i], parent_cache[parent])
+    end
+    return some(Population(inds))
+end

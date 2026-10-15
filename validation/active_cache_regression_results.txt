@@ -1,0 +1,16 @@
+Test Summary:             | Pass  Total  Time
+Ordered active-node cache | 1462   1462  3.1s
+Test Summary:                  | Pass  Total  Time
+Decode Program weak ref Inputs |    5      5  1.2s
+Test Summary:     | Pass  Total  Time
+Numbered Mutation |   13     13  1.7s
+Test Summary: | Pass  Total  Time
+GA RunConf    |    5      5  0.0s
+Test Summary:   | Pass  Total  Time
+GA Pop Callback |    7      7  1.1s
+Test Summary:          | Pass  Total  Time
+GA Population Mutation |    1      1  0.1s
+Test Summary:      | Pass  Total  Time
+GA Output Mutation |    2      2  0.0s
+Test Summary: | Pass  Total  Time
+GA selection  |    4      4  0.5s

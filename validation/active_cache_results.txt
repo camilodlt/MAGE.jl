@@ -1,0 +1,11 @@
+active nodes = 20
+warm capture bytes = 0
+warm copy bytes = 0
+warm materialize bytes = 0
+sample_n bytes = 656
+baseline_mutation_bytes bytes = 26160
+cache_mutation_bytes bytes = 26256
+lambda,uncached_ms,cached_ms,speedup,uncached_bytes,cached_bytes
+256,123.271563,61.901547,1.9914132840654208,45475456,17266304
+1024,511.652663,251.92031199999997,2.0310099608006205,181591488,68754880
+4096,2141.481707,1040.46307,2.0582005923574007,726750832,275404400

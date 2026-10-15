@@ -876,3 +876,19 @@ function racing_mutation!(
 end
 
 
+
+"""
+    default_decoding_callback(population, generation, run_config, arch, node_config, ml, shared, cache)
+
+Opt-in default evaluation decode: capture each slot from the programs already
+built for evaluation, without an additional decode or get_active_nodes vector.
+"""
+function default_decoding_callback(population::Population, generation::Int,
+        run_config::AbstractRunConf, arch::modelArchitecture, nc::nodeConfig,
+        ml::MetaLibrary, shared::SharedInput, cache::ActiveNodeCache)
+    programs = default_decoding_callback(population, generation, run_config, arch, nc, ml, shared)
+    for i in 1:length(population)
+        capture_active_nodes!(cache[i], population[i], programs[i])
+    end
+    return programs
+end

@@ -213,6 +213,9 @@ module UTCGP
     include("mutations/numbered_mutation.jl")
     export numbered_mutation!
     include("mutations/decreasing_mutation.jl")
+    include("mutations/active_node_cache.jl")
+    export ActiveNodeCache, ActiveNodeCacheEntry, capture_active_nodes!, copy_active_nodes!,
+        invalidate_active_nodes!, active_cache_matches, check_active_nodes
     include("mutations/new_material_mutation.jl")
     export new_material_mutation!
 

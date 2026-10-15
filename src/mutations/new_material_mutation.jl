@@ -16,7 +16,11 @@ until the node's decoded material differs, so an offspring is always a genuinely
 new program.
 
 `run_config.mutation_rate` must be `> 1.0`; its floor is the number of nodes to
-mutate.
+mutate. Pass `active_positions=entry::ActiveNodeCacheEntry` to reuse an exact
+copy's cached ordered positions. Invalid/layout-mismatched entries are freshly
+decoded and captured. A mutated entry is invalidated before node mutation.
+The returned selected-node vector is borrowed from the entry until its next use;
+without a cache the original fresh-vector behavior is unchanged.
 
 Exposed as [`default_numbered_new_material_mutation_callback`](@ref) and
 [`ga_numbered_new_material_mutation_callback`](@ref).
@@ -26,18 +30,26 @@ function new_material_mutation!(
         run_config::AbstractRunConf,
         model_architecture::modelArchitecture,
         meta_library::MetaLibrary,
-        shared_inputs::SharedInput,
+        shared_inputs::SharedInput;
+        active_positions::Union{Nothing,ActiveNodeCacheEntry} = nothing,
     )
     @assert run_config.mutation_rate > 1.0 "Mutation should be > 1."
     @assert length(model_architecture.inputs_types) > 0 "At least one input ? "
     @assert length(model_architecture.chromosomes_types) == length(ut_genome.genomes) "Need to give all chromosome types (Int, Float64, ...) in order so we check that nodes function with available signatures"  # noqa :: 3501
     # n to sample
     n = floor(Int, run_config.mutation_rate)
-    # decode
-    ind_progs =
-        decode_with_output_nodes(ut_genome, meta_library, model_architecture, shared_inputs)
-    # get active nodes
-    active_nodes = get_active_nodes(ind_progs)
+    # Cache is opt-in. Layout mismatch follows the original decode path and
+    # refreshes the slot before sampling; capture consumes no random numbers.
+    if active_positions === nothing
+        ind_progs = decode_with_output_nodes(ut_genome, meta_library, model_architecture, shared_inputs)
+        active_nodes = get_active_nodes(ind_progs)
+    else
+        if !active_cache_matches(active_positions, ut_genome)
+            ind_progs = decode_with_output_nodes(ut_genome, meta_library, model_architecture, shared_inputs)
+            capture_active_nodes!(active_positions, ut_genome, ind_progs)
+        end
+        active_nodes = active_positions.positions
+    end
     n_mutable_nodes = length(active_nodes)
     #
     if n > n_mutable_nodes
@@ -45,8 +57,13 @@ function new_material_mutation!(
         n = n_mutable_nodes
     end
     if n > 0
-        sampled_idx = sample_n(length(active_nodes), n)
-        selected_nodes = active_nodes[sampled_idx]
+        if active_positions === nothing
+            sampled_idx = sample_n(length(active_nodes), n)
+            selected_nodes = active_nodes[sampled_idx]
+        else
+            sampled_idx = _sample_active_nodes!(active_positions, ut_genome, n)
+            selected_nodes = active_positions.selected
+        end
         @debug "Selected node(s) to mutate : $([n.id for n in selected_nodes])"
         new_material_mutation!(
             selected_nodes,
