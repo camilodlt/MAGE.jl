@@ -51,8 +51,24 @@ function cache_mutation_bytes(g,e,f,conf)
     @allocated U.new_material_mutation!(g,conf,f.arch,f.ml,f.shared;active_positions=e)
 end
 baseline_mutation_bytes(g,e,f,conf) = @allocated cache_mutation_baseline!(g,e,f,conf)
+sample_cached_bytes(e,m,n) = @allocated U._sample_cached_indices!(e,m,n)
 function run_active_cache_tests()
     @testset "Ordered active-node cache" begin
+        @testset "Exact reusable sampling" begin
+            e = ActiveNodeCacheEntry()
+            for m in (1,2,3,10,40,100,501,1000), n in unique([1,cld(m,2),m]), seed in 1:20
+                Random.seed!(seed)
+                expected = U.sample_n(m,n)
+                state = copy(Random.default_rng())
+                following = rand(UInt64,4)
+                Random.seed!(seed)
+                @test U._sample_cached_indices!(e,m,n) == expected
+                @test copy(Random.default_rng()) == state
+                @test rand(UInt64,4) == following
+                sample_cached_bytes(e,m,n)
+                @test sample_cached_bytes(e,m,n) == 0
+            end
+        end
         for typed in (false,true), seed in 1:20
             Random.seed!(seed)
             f = cache_fixture(;typed)
@@ -123,9 +139,7 @@ function run_active_cache_tests()
         capture_active_nodes!(parent,f.genome,cache_decode(f))
         child=deepcopy(f.genome); child_entry=ActiveNodeCacheEntry()
         conf=runConf(2,10,2.0,0.0)
-        # Node-level inference/return-tuple escape can change its byte count
-        # between callers. Isolate the actual preparation helper, whose ONLY
-        # allocation must be the mandated sampler; no node mutation runs here.
+        # Isolate sampling plus materialisation from node mutation and tuple escape.
         copy_active_nodes!(child_entry,parent)
         U._sample_active_nodes!(child_entry,child,2)
         sample_bytes(n,k) = @allocated U.sample_n(n,k)
@@ -136,8 +150,38 @@ function run_active_cache_tests()
         sb=sample_bytes(length(parent.positions),2)
         Random.seed!(9876)
         pb=prepare_bytes(child_entry,child,2)
-        @test pb == sb
+        @test pb == 0
         @test !child_entry.valid
+        @testset "Concurrent independent slots" begin
+            count = 128
+            fixtures = [cache_fixture(;typed=iseven(i)) for i in 1:8]
+            sources = ActiveNodeCache(8)
+            destinations = ActiveNodeCache(count)
+            Threads.@threads for i in 1:8
+                local f = fixtures[i]
+                capture_active_nodes!(sources[i],f.genome,cache_decode(f))
+                U._sample_cached_indices!(sources[i],length(sources[i].positions),1)
+            end
+            snapshots = deepcopy(sources)
+            children = [deepcopy(fixtures[mod1(i,8)].genome) for i in 1:count]
+            Threads.@threads for i in 1:count
+                local parent = mod1(i,8)
+                local f = fixtures[parent]
+                local_shared = deepcopy(f.shared)
+                copy_active_nodes!(destinations[i],sources[parent])
+                U.new_material_mutation!(children[i],conf,f.arch,f.ml,local_shared;
+                    active_positions=destinations[i])
+                capture_active_nodes!(destinations[i],children[i],
+                    U.decode_with_output_nodes(children[i],f.ml,f.arch,local_shared))
+            end
+            for i in 1:count
+                f = fixtures[mod1(i,8)]
+                @test check_active_nodes(destinations[i],children[i],f.ml,f.arch,f.shared)
+            end
+            for i in 1:8, field in fieldnames(ActiveNodeCacheEntry)
+                @test getfield(sources[i],field) == getfield(snapshots[i],field)
+            end
+        end
         # Warm a small active cone, then expand it within the SAME layout.
         # Capture/copy must have reserved the layout capacity on their first use.
         expanding=cache_fixture()

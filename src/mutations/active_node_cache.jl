@@ -2,21 +2,34 @@
 Reusable ordered active-node positions for one population/pool slot. Row zero is
 reserved for output markers (outputs are currently excluded by get_active_nodes).
 The stamp contains every chromosome length followed by the output count.
-Buffers grow on first use or layout growth; warm capture/copy allocate nothing.
+Buffers grow on first use or size changes; warm capture/copy/sampling and
+materialisation allocate nothing. Both mutation result vectors are borrowed.
 """
 mutable struct ActiveNodeCacheEntry
     positions::Vector{NTuple{2,Int32}}
     layout::Vector{Int}
     seen::Vector{Bool}
     selected::Vector{AbstractGenomeNode}
+    sample_indices::Vector{Int}
+    sample_weights::Vector{Float64}
+    weights::StatsBase.Weights{Float64,Float64,Vector{Float64}}
+    sample_result::Vector{Int}
+    sample_heap::Vector{Pair{Float64,Int}}
     valid::Bool
 end
-ActiveNodeCacheEntry() = ActiveNodeCacheEntry(NTuple{2,Int32}[], Int[], Bool[], AbstractGenomeNode[], false)
+function ActiveNodeCacheEntry()
+    w = Float64[]
+    return ActiveNodeCacheEntry(NTuple{2,Int32}[], Int[], Bool[], AbstractGenomeNode[],
+        Int[], w, StatsBase.Weights(w), Int[], Pair{Float64,Int}[], false)
+end
 
 """Per-slot cache; use separate instances for the two sides of a genome pool.
 Entries must be invalidated after any genome edit, including output mutation.
 No genome identity is retained: callers own slot identity and exact-copy tracking.
-Not thread safe; each concurrently mutated slot needs its own entry.
+Each thread writes only its own destination entries and genomes. Sources remain
+read-only during variation; capture of different slots may run concurrently.
+All scratch is entry-owned. Task-local default RNG draws make multi-threaded
+execution schedule-dependent, as in uncached MAGE.
 """
 struct ActiveNodeCache
     entries::Vector{ActiveNodeCacheEntry}
@@ -114,10 +127,9 @@ function check_active_nodes(e::ActiveNodeCacheEntry, genome::UTGenome, ml::MetaL
     return true
 end
 
-# Return only the sampler's existing result vector; selected nodes live in the
-# entry. This avoids adding a temporary tuple to the mutation preparation path.
+# Both returned vectors are borrowed entry-owned scratch.
 function _sample_active_nodes!(e::ActiveNodeCacheEntry, genome::UTGenome, n::Int)
-    sampled_idx = sample_n(length(e.positions), n)
+    sampled_idx = _sample_cached_indices!(e, length(e.positions), n)
     _materialize_active_nodes!(e, genome, sampled_idx)
     invalidate_active_nodes!(e) # before node mutation, including on exceptions
     return sampled_idx
@@ -167,4 +179,77 @@ function _capture_position!(e, chromosomes::Vector{C}, node::AbstractGenomeNode)
         e.seen[index] = true
     end
     return nothing
+end
+
+"""Exact sample_n RNG path with per-entry buffers; result is borrowed.
+Mirrors installed StatsBase sampling.jl: sample -> sample! -> A-ExpJ.
+Its sample! allocates a heap, so reuse entry-owned heap storage with the same
+arithmetic and heap operations. Indices/weights are filled only on size changes.
+"""
+function _sample_cached_indices!(e::ActiveNodeCacheEntry, max_nb::Int, k::Int)
+    @assert max_nb > 0
+    @assert 0 < k <= max_nb
+    if length(e.sample_indices) != max_nb
+        resize!(e.sample_indices, max_nb)
+        resize!(e.sample_weights, max_nb)
+        for i in 1:max_nb
+            e.sample_indices[i] = i
+        end
+        fill!(e.sample_weights, 1.0)
+        e.weights = StatsBase.Weights(e.sample_weights)
+    end
+    resize!(e.sample_result, k)
+    resize!(e.sample_heap, k) # heappop! empties it, retaining capacity
+    a, wv, x, pq = e.sample_indices, e.weights, e.sample_result, e.sample_heap
+    rng = Random.default_rng()
+    n = max_nb
+    ordered = false
+    i = 0
+    s = 0
+    @inbounds for _s in 1:n
+        s = _s
+        w = wv.values[s]
+        w < 0 && error("Negative weight found in weight vector at index $s")
+        if w > 0
+            i += 1
+            pq[i] = (w/Random.randexp(rng) => s)
+        end
+        i >= k && break
+    end
+    i < k && throw(DimensionMismatch("wv must have at least $k strictly positive entries (got $i)"))
+    StatsBase.heapify!(pq)
+
+    # set threshold
+    @inbounds threshold = pq[1].first
+    X = threshold*Random.randexp(rng)
+
+    @inbounds for i in s+1:n
+        w = wv.values[i]
+        w < 0 && error("Negative weight found in weight vector at index $i")
+        w > 0 || continue
+        X -= w
+        X <= 0 || continue
+
+        # update priority queue
+        t = exp(-w/threshold)
+        pq[1] = (-w/log(t+rand(rng)*(1-t)) => i)
+        StatsBase.percolate_down!(pq, 1)
+
+        # update threshold
+        threshold = pq[1].first
+        X = threshold * Random.randexp(rng)
+    end
+    if ordered
+        # fill output array with items sorted as in a
+        sort!(pq, by=last)
+        @inbounds for i in 1:k
+            x[i] = a[pq[i].second]
+        end
+    else
+        # fill output array with items in descending order
+        @inbounds for i in k:-1:1
+            x[i] = a[StatsBase.heappop!(pq).second]
+        end
+    end
+    return x
 end

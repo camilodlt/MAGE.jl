@@ -14,6 +14,8 @@ No runner files are changed. Base: `fast-pop-eval`, `8b59d28`.
 - `seen::Vector{Bool}`: reusable flattened chromosome mask for deduplication.
 - `selected::Vector{AbstractGenomeNode}`: borrowed workspace containing only the
   sampled nodes, populated immediately before mutation.
+- Per-entry sampling indices, Float64 weights, cached `Weights` wrapper, result
+  indices, and `Pair{Float64,Int}` heap; no shared mutable scratch.
 - `valid::Bool`: explicit lifecycle state.
 
 Positions are derived directly from `node.y_position` and
@@ -64,7 +66,7 @@ UTCGP.ga_numbered_new_material_mutation_callback(args::UTCGP.Abstract_GA_MUTATIO
 
 The mutation result has the same `(selected_nodes, sampled_idx)` meaning as the
 original. **Cached `selected_nodes` is borrowed** until the next use of that slot;
-copy it if retaining it. `sampled_idx` remains the original sampler's fresh vector.
+copy it if retaining it. `sampled_idx` is also borrowed until the next slot use.
 Execution-value resets/evaluation do not change active positions and need no
 invalidation; material/topology changes do. A zero-node graph returns `nothing`, as before, and retains its valid empty entry.
 
@@ -102,8 +104,8 @@ invalidation; material/topology changes do. A zero-node graph returns `nothing`,
    a repeated parent's metadata being overwritten during population replacement.
 6. `new_material_mutation!` keeps the original assertions, floor, truncation
    warning, and exact `sample_n(length(active_nodes), n)` behavior. Missing/stale
-   entries decode and capture before sampling. `_sample_active_nodes!` invokes
-   the original sampler and returns only its already-allocated indices vector;
+   entries decode and capture before sampling. `_sample_active_nodes!` uses
+   reusable exact-sampling buffers and returns borrowed indices;
    `_materialize_active_nodes!` resolves only its chosen
    positions into the small reusable selected buffer. Invalidation occurs before
    calling the unchanged vector/node-level mutation, including on exceptions.
@@ -145,7 +147,11 @@ can skip the population overload and populate `parents` itself. For indexed
 populations without a pool, allocate a cache for the current population and
 recapture after reordering/replacement, or copy entries according to the same
 explicit parent mapping. Never infer individual identity from slot number.
-Slots are independent; do not concurrently capture/mutate the same entry.
+Each thread writes only its own destination slots and genomes. The source/parent
+cache stays read-only throughout variation. Capture of different slots can run
+in parallel; all scratch belongs to an entry. Never concurrently write the same
+entry or genome. Julia's task-local default RNG makes multi-threaded draw order
+schedule-dependent, as in MAGE without the cache.
 
 ## Validation and reproducibility
 
@@ -169,31 +175,77 @@ the following RNG draws,
 layout growth/output-count mismatch, corruption detection, callback parent
 mapping/RNG behavior, elite validity, and warm buffer allocations.
 
-### Allocation qualification
+### Exact sampling and allocation
 
-The approved requirement to call the existing `sample_n` cannot coexist with
-zero total allocation beyond node-level mutation: that sampler constructs an
-index vector, weight vector, and result vector. This implementation preserves
-that sampler and RNG stream. Warm capture, metadata copying, and sampled-node
-materialization are measured separately and must allocate zero. First use and
-larger buffer capacities can allocate. The original node-level mutation retains
-its existing allocations. The original `(selected_nodes, sampled_idx)` return
-can also allocate a 32-byte tuple at a call boundary; the tests isolate the
-actual preparation helper and compare its `@allocated`
-bytes with the identical sampler call from the same RNG state. This excludes
-both node mutation and result-tuple escape decisions from the cache-overhead
-measurement. Full API byte totals are also reported; node-level compiler escape
-decisions can differ between callers. No graph-size-dependent cache allocation
-is added.
-Debug logging/check mode can allocate as usual.
+The uncached `sample_n` is unchanged. The installed StatsBase 0.33.21 (XgjIN) dispatches
+`sample(rng, idx, Weights(w), n; replace=false)` through `sample!` to
+`efraimidis_aexpj_wsample_norep!`. Even `sample!` allocates an internal priority
+queue. `_sample_cached_indices!` reproduces that code path's arithmetic, random
+draws, heap operations and output order, with a reusable per-entry heap. The
+index/weight vectors are resized and filled only when the active count changes;
+the Weights wrapper is rebuilt then. Result and heap capacity are reused.
+No uniform/unweighted sampler is substituted. Regression tests compare indices,
+full RNG state and subsequent draws over many sizes, sample counts and seeds.
 
-### Results
+Warm sampling plus materialisation must allocate **0 bytes**. First use and
+buffer growth/size changes can allocate. Node mutation and public return tuple
+escape retain their existing allocations; the full mutation API is not claimed
+to be allocation-free. Both returned vectors are borrowed entry-owned buffers.
+
+### Current validation (2026-10-15)
+
+Julia 1.11.7, `_env3`, BLAS/OpenMP one. Four-thread run on CPUs 0–3:
+**3,350 passed, 0 failed, 0 errored**. Of these, the new exact sampling test
+contributes 1,680 assertions across 420 (active count, sample count, seed) cases,
+and the concurrent test contributes 208 assertions for 128 child slots and eight
+unchanged parent entries. The remaining 1,462 assertions cover existing cache
+behavior, including full cached/uncached mutation RNG equivalence.
+Warm sampling allocates **0 bytes** in every sampling case; combined sampling
+plus materialisation allocates **0 bytes**. Warm capture/copy/materialisation
+checks also pass at zero bytes. See `active_cache_threaded_results.txt`.
+
+```bash
+source POPULATION_tmp_r2/env.sh
+taskset -c 0-3 julia --project=POPULATION_MAGE_fastpop/_env3 \
+  --startup-file=no --compiled-modules=existing --threads=4 \
+  POPULATION_MAGE_fastpop/validation/active_cache_check.jl
+taskset -c 4-7 julia --project=POPULATION_MAGE_fastpop/_env3 \
+  --startup-file=no --compiled-modules=existing --threads=1 \
+  POPULATION_MAGE_fastpop/test/runtests.jl
+```
+
+The direct `test/runtests.jl` run reached the last file (`sn_test.jl`) in
+7m56.3s (the independent progress-instrumented run agreed):
+**26,209 passed, 41 failed, 3 errored**. All cache assertions passed. The failures
+and errors reproduce in independent runs that never invoke the active cache:
+
+- Generated-function reflection: 2 failures at
+  `test/libraries/test_llm_generated_functions.jl:88–89`, expecting MethodError
+  where Julia 1.11's `which` throws ErrorException.
+- Dice: 39 failures because the required constrained environment truncates
+  Cartesian products at BIG_ARRAY=1000 while the examples require up to 10,000.
+- Find pair: 1 BoundsError from constrained combinations (SMALL_ARRAY=100).
+- Behavior hasher: decode of `identity_float(::Vector{Int64})` throws; this
+  test is included twice by the registry, yielding 2 errors.
+
+`unrelated_failures_check.jl` reproduces **59 pass / 41 fail / 0 error**;
+`unrelated_errors_check.jl` reproduces **51 pass / 0 fail / 2 errors** (one
+behavior-hasher include). Logs are `active_cache_unrelated_results.txt` and
+`active_cache_unrelated_errors_results.txt`. No unrelated implementation was
+changed and the required UTCGP bounds were retained.
+
+The temp environment required exposing already-manifested ImageMorphology and
+Combinatorics as direct dependencies to load the entire registry. `_env3` remains
+untracked. Initial dependency-limited attempts are superseded by the complete
+runs above. The final direct-run log is `active_cache_full_results.txt`.
+
+### Previous benchmark results (before reusable sampling)
 
 Julia 1.11.7, one Julia thread, BLAS/OpenMP one, affinity CPUs 4–7,
 `_env3`, 2026-10-15. The registered cache suite passed **1,462 assertions**;
 existing decoding, numbered mutation, and GA suites passed **37 assertions**.
 See `active_cache_test_results.txt` and `active_cache_regression_results.txt`.
-The full repository test suite was not run.
+The full repository test suite was not run for that earlier revision.
 
 Warm capture, metadata copy, and sampled-node materialization each measured
 **0 bytes**, including a 600/599-node typed layout and expansion of a two-node
@@ -227,6 +279,5 @@ and allocation checks provide firmer evidence than small timing differences.
 
 The cache reuses ordered inline positions for exact copies, validates every
 layout dimension, preserves sampling/RNG behavior, and invalidates edited
-children. It is application-independent and opt-in. The sampler's existing
-allocations remain; active-graph decoding and full node-vector construction are
-removed from valid cached mutation.
+children. It is application-independent and opt-in. Warm sampling and materialisation allocate zero bytes; active-graph decoding
+and full node-vector construction are removed from valid cached mutation.

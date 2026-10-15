@@ -674,6 +674,9 @@ is the source slot whose genome was copied to destination i. Separate caches
 allow arbitrary repeated parents without overwriting source metadata. Capture
 parent_cache from evaluation programs before population replacement. check=true
 compares every child with a fresh decode before mutation (diagnostic only).
+For parallel variation, each task owns its destination slot and genome while
+parent_cache stays read-only. Distinct-slot capture/copy/mutation is safe;
+task-local default RNG draws remain schedule-dependent, as without the cache.
 """
 function ga_numbered_new_material_mutation_callback(
         args::Abstract_GA_MUTATION_ARGS, cache::ActiveNodeCache,

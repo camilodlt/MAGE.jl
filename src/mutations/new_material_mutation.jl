@@ -19,7 +19,7 @@ new program.
 mutate. Pass `active_positions=entry::ActiveNodeCacheEntry` to reuse an exact
 copy's cached ordered positions. Invalid/layout-mismatched entries are freshly
 decoded and captured. A mutated entry is invalidated before node mutation.
-The returned selected-node vector is borrowed from the entry until its next use;
+Both returned vectors are borrowed from the entry until its next use;
 without a cache the original fresh-vector behavior is unchanged.
 
 Exposed as [`default_numbered_new_material_mutation_callback`](@ref) and

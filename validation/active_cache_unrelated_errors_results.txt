@@ -1,0 +1,163 @@
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+┌ Warning: Decode fallback: no matching method for node function
+│   fn_name = :identity_float
+│   node_id = "node (8,1)"
+│   node_y_position = 1
+│   arg_types = (Vector{Int64},)
+│   real_input_types = 1-element Vector{DataType}: …
+│   declared_argument_names = nothing
+│   declared_input_types = nothing
+│   hasmethod_on_arg_types = false
+│   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke identity_float(::Vector{Int64})\nThe function `identity_float` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  identity_float(!Matched::Float64, Any...)\n   @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35\n"
+│   available_methods = "# 1 method for generic function \"identity_float\" from UTCGP.float_basic:\n [1] identity_float(from::Float64, args...)\n     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35"
+└ @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:193
+ERROR: LoadError: Some tests did not pass: 51 passed, 0 failed, 2 errored, 0 broken.
+in expression starting at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/validation/unrelated_errors_check.jl:3
+find pair: Error During Test at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:212
+  Test threw exception
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:213 =#
+    algo_find_pair(x, y)
+end
+  BoundsError: attempt to access 100-element Vector{Tuple{Int64, Int64}} at index [-1]
+  Stacktrace:
+   [1] throw_boundserror(A::Vector{Tuple{Int64, Int64}}, I::Tuple{Int64})
+     @ Base ./essentials.jl:14
+   [2] getindex
+     @ ./essentials.jl:916 [inlined]
+   [3] (::UTCGP.listgeneric_subset.var"#9#10")(::Vector{Tuple{Int64, Int64}}, ::Int64)
+     @ UTCGP.listgeneric_subset ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/list_generic/subset.jl:170
+   [4] algo_find_pair(x::Vector{Any}, y::Vector{Any})
+     @ Main ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:20
+   [5] macro expansion
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:213 [inlined]
+   [6] macro expansion
+     @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:677 [inlined]
+   [7] macro expansion
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:212 [inlined]
+   [8] macro expansion
+     @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+   [9] top-level scope
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:26
+sn_behavior_hasher: Error During Test at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:186
+  Test threw exception
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:187 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:187 =# Core.@doc "One parent and 4 children.\n    - First child => same behavior bc same phenotype, same genotype\n    - Second child => same behavior bc same phenotype but different genotype (inactive part mutated)\n    - Thrid child => new behavior with an unique phenotype and genotype\n    - Fourth child => same behavior as 3 with an unique phenotype and genotype\n\n" con = sn.create_DB()
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:196 =#
+    sn.create_SN_tables!(con, extra_nodes_cols = OrderedDict("gen_hash" => sn.SN_col_type(string = true), "phen_hash" => sn.SN_col_type(string = true), "behavior_hash" => sn.SN_col_type(string = true)), extra_edges_cols = OrderedDict("fitness" => sn.SN_col_type(float = true)))
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:205 =#
+    example_set = sn_behavior_hasher_set()
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:206 =#
+    sn_writer_callback = SN_writer(con, all_edges(), OrderedDict("gen_hash" => sn_genotype_hasher(), "phen_hash" => sn_softphenotype_hasher(), "behavior_hash" => sn_behavior_hasher(example_set)), OrderedDict("fitness" => sn_fitness_hasher()))
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:217 =#
+    d = sn_behavior_epoch_mock()
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:218 =#
+    parent = d["utgenome"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:219 =#
+    child1 = deepcopy(d["utgenome"])
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:220 =#
+    child2 = make_same_pheno_diff_geno(child1)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:221 =#
+    (child3, child4) = make_two_behaviors_the_same_but_diff_encoding(parent, d)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:222 =#
+    progs = []
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:223 =#
+    for g = [child1, child2, child3, child4, parent]
+        #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 =#
+        p = UTCGP.decode_with_output_nodes(g, d["meta_library"], d["model_architecture"], d["shared_inputs"])
+        #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:230 =#
+        push!(progs, p)
+        #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:232 =#
+    end
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:235 =#
+    sn_writer_callback([4.0, 4.0, 2.0, 2.0, 4.0], Population([child1, child2, child3, child4, parent]), 1, d["run_config"], d["model_architecture"], d["node_config"], d["meta_library"], d["shared_inputs"], UTCGP.PopulationPrograms(identity.(progs)), 1.0, progs[3], 1)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:251 =#
+    nodes = sn.get_nodes_from_db(con)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:252 =#
+    edges = sn.get_edges_from_db(con)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:253 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:253 =# @show nodes
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:255 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:255 =# @assert nrow(nodes) == 4
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:257 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:257 =# @assert nodes[1, "gen_hash"] != nodes[2, "gen_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:258 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:258 =# @assert nodes[1, "phen_hash"] == nodes[2, "phen_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:259 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:259 =# @assert nodes[1, "phen_hash"] != nodes[3, "phen_hash"] != nodes[4, "phen_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:260 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:260 =# @assert nodes[1, "behavior_hash"] == nodes[2, "behavior_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:261 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:261 =# @assert nodes[1, "behavior_hash"] != nodes[3, "behavior_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:264 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:264 =# @assert nodes[3, "phen_hash"] != nodes[4, "phen_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:265 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:265 =# @assert nodes[3, "gen_hash"] != nodes[4, "gen_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:266 =#
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:266 =# @assert nodes[3, "behavior_hash"] == nodes[4, "behavior_hash"]
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:267 =#
+    return true
+end
+  Calling invoke(f, t, args...) would throw:
+  MethodError: no method matching invoke identity_float(::Vector{Int64})
+  The function `identity_float` exists, but no method is defined for this combination of argument types.
+  
+  Closest candidates are:
+    identity_float(!Matched::Float64, Any...)
+     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+  
+  Stacktrace:
+   [1] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
+     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:200
+   [2] decode_with_output_node
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
+   [3] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
+     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+   [4] macro expansion
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
+   [5] macro expansion
+     @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:677 [inlined]
+   [6] macro expansion
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:186 [inlined]
+   [7] macro expansion
+     @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+   [8] top-level scope
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:176
+  
+  caused by: Calling invoke(f, t, args...) would throw:
+  MethodError: no method matching invoke identity_float(::Vector{Int64})
+  The function `identity_float` exists, but no method is defined for this combination of argument types.
+  
+  Closest candidates are:
+    identity_float(!Matched::Float64, Any...)
+     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+  
+  Stacktrace:
+   [1] which(f::Any, t::Any)
+     @ Base ./reflection.jl:2228
+   [2] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
+     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:163
+   [3] decode_with_output_node
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
+   [4] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
+     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+   [5] macro expansion
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
+   [6] macro expansion
+     @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:677 [inlined]
+   [7] macro expansion
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:186 [inlined]
+   [8] macro expansion
+     @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+   [9] top-level scope
+     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:176
+unique_hashes = ["23e544bc77f90ef63dd5f1a716f033c5fc44f2dd5e270cba6a724e9a57679be9"]
+Test Summary:                                 | Pass  Error  Total   Time
+Independent unrelated errors (no cache calls) |   51      2     53  12.0s
+  find pair                                   |   49      1     50   1.5s
+  sn_behavior_hasher                          |    1      1      2   3.9s
+  FP behavior hasher                          |    1             1   1.3s
