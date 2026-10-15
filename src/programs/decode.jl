@@ -240,6 +240,132 @@ The recursion is stopped at ConstantNode
 """
 function recursive_decode_node!(calling_node::ConstantNode, args...) end
 
+# Kept separate so the successful decode path does not compile the diagnostics.
+function _decode_method(fn::FunctionWrapper, arg_tuple_type::Type,
+        calling_node::AbstractEvolvableNode, inputs::Vector{OperationInput})
+    arg_types = tuple((op.type for op in inputs)...)
+    fn_name = fn.name
+
+    # check will function will be called
+    local m = nothing
+    try
+        m = which(fn.fn, arg_tuple_type)
+    catch err
+        declared_input_types = if hasfield(typeof(fn.fn), :input_types)
+            try
+                getfield(fn.fn, :input_types)
+            catch
+                nothing
+            end
+        else
+            nothing
+        end
+        declared_argument_names = if hasfield(typeof(fn.fn), :argument_names)
+            try
+                getfield(fn.fn, :argument_names)
+            catch
+                nothing
+            end
+        else
+            nothing
+        end
+        hasmethod_on_arg_types = try
+            Base.hasmethod(fn.fn, arg_tuple_type)
+        catch method_err
+            "ERROR: " * sprint(showerror, method_err)
+        end
+        available_methods = try
+            sprint(show, methods(fn.fn))
+        catch methods_err
+            "ERROR: " * sprint(showerror, methods_err)
+        end
+        @warn "Decode fallback: no matching method for node function" fn_name =
+            fn_name node_id = getfield(calling_node, :id) node_y_position =
+            getfield(calling_node, :y_position) arg_types = arg_types real_input_types =
+            [op.type for op in inputs] declared_argument_names =
+            declared_argument_names declared_input_types = declared_input_types hasmethod_on_arg_types =
+            hasmethod_on_arg_types error = sprint(showerror, err) available_methods =
+            available_methods
+        throw(err)
+    end
+
+    return m
+end
+
+# All metadata is local to ONE decode. No parent Programs, genome state, method
+# tables, or mutable ADF slots are cached between calls or across tasks.
+struct _DecodeScratch
+    operations::IdDict{AbstractEvolvableNode,Operation}
+    arities::Dict{Tuple{FunctionWrapper,Type},Int}
+end
+_DecodeScratch() = _DecodeScratch(IdDict{AbstractEvolvableNode,Operation}(),
+    Dict{Tuple{FunctionWrapper,Type},Int}())
+
+function _decode_operation(node::AbstractEvolvableNode, type_idx::Int,
+        ml::MetaLibrary, arch::modelArchitecture, genome::UTGenome,
+        scratch::_DecodeScratch)
+    # Scan material in the same order as the public extraction functions,
+    # without allocating their three filtered arrays.
+    material = node.node_material.material
+    fn_index = findfirst(e -> e.element_type == FUNCTION, material)
+    fn = ml.libraries[type_idx][material[fn_index].value]
+    inputs = OperationInput[]
+    type_at = firstindex(material)
+    for element in material
+        element.element_type == CONNEXION || continue
+        while type_at <= lastindex(material) && material[type_at].element_type != TYPE
+            type_at += 1
+        end
+        con_type = material[type_at].value
+        type_at += 1
+        chromosome = genome.genomes[con_type]
+        con = get_node_element_value(element)
+        input = if con <= chromosome.starting_point
+            _operation_input_from_shared_inputs(con, arch)
+        else
+            _operation_input_from_chromosome(chromosome, con - chromosome.starting_point, arch)
+        end
+        push!(inputs, input)
+    end
+    arg_tuple_type = Tuple{map(i -> i.type, Tuple(inputs))...}
+    key = (fn, arg_tuple_type)
+    n = get(scratch.arities, key, -1)
+    if n == -1
+        n = _decode_method(fn, arg_tuple_type, node, inputs).nargs - 2
+        scratch.arities[key] = n
+    end
+    # Retain bounds/error semantics of the old slice; every emitted occurrence
+    # owns its inputs, so downstream mutation cannot alias another occurrence.
+    inputs = inputs[1:n]
+    return Operation(fn, node, inputs)
+end
+
+function _recursive_decode_cached!(node::Union{CGPNode,OutputNode}, ml::MetaLibrary,
+        type_idx::Int, operations::Vector{Operation}, arch::modelArchitecture,
+        genome::UTGenome, program::Program, scratch::_DecodeScratch)
+    op = get(scratch.operations, node, nothing)
+    if op === nothing
+        op = _decode_operation(node, type_idx, ml, arch, genome, scratch)
+        scratch.operations[node] = op
+        push!(operations, op)
+    else
+        push!(operations, Operation(op.fn, node, copy(op.inputs)))
+    end
+    # Deliberately replay EVERY edge. Pruning a visited subtree would change
+    # raw operation multiplicity, compiler skipped_duplicates, and DFS order.
+    for input in op.inputs
+        next = @unwrap_or _extract_input_node_from_operationInput(program.program_inputs, input) begin
+            @show input
+            @show program
+            throw(ErrorException("Could not get the input node from an operation"))
+        end
+        _recursive_decode_cached!(next, ml, input.type_idx, operations, arch,
+            genome, program, scratch)
+    end
+    return nothing
+end
+_recursive_decode_cached!(::Union{InputNode,ConstantNode}, args...) = nothing
+
 """
     decode_with_output_node(
         ut_genome::UTGenome,
@@ -259,11 +385,12 @@ function decode_with_output_node(
         output_node::OutputNode,
         meta_library::MetaLibrary,
         model_architecture::modelArchitecture,
-        shared_inputs::SharedInput,
+        shared_inputs::SharedInput;
+        _scratch::_DecodeScratch = _DecodeScratch(),
     )::Program
     operations = Operation[]
     program = Program(operations, shared_inputs)
-    recursive_decode_node!(
+    _recursive_decode_cached!(
         output_node,
         meta_library,
         output_node.y_position, # its type ==  chromosome index
@@ -271,6 +398,7 @@ function decode_with_output_node(
         model_architecture,
         ut_genome,
         program,
+        _scratch,
     )
     reverse!(program)
     return program
@@ -298,13 +426,15 @@ function decode_with_output_nodes(
     )::IndividualPrograms
     output_nodes = ut_genome.output_nodes
     ind_progs = Program[]
+    scratch = _DecodeScratch()
     for output_node in output_nodes
         prog = decode_with_output_node(
             ut_genome,
             output_node,
             meta_library,
             model_architecture,
-            shared_inputs,
+            shared_inputs;
+            _scratch = scratch,
         )
         push!(ind_progs, prog)
     end
