@@ -23,7 +23,8 @@ typed_allocations(outputs, graph, samples, evaluator) =
     samples = [(0.0,), (-0.0,), (NaN,), (Inf,), (-10001.0,), (2.0,)]
     graphs = (typed_fixture(identity),
               typed_fixture(x -> x; caster=x -> clamp(x, -10000.0, 10000.0)),
-              typed_fixture(x -> x == 2.0 ? error("domain") : x; fallback=() -> -0.0))
+              typed_fixture(x -> x == 2.0 ? error("domain") : x; fallback=() -> -0.0),
+              typed_fixture(x -> (1.0,)[Int(x)]; fallback=() -> -0.0))
     for graph in graphs, engine in (:tiled, :per_sample), batch_size in (1, 2, 128)
         evaluator = TypedEvaluator(graph; engine, batch_size)
         outputs = zeros(1, length(samples))
@@ -94,4 +95,19 @@ end
     @test_throws ArgumentError TypedEvaluator(graph; engine=:unknown)
     other = typed_fixture(identity)
     @test_throws ArgumentError evaluate_population_into!(zeros(1, 2), graph, samples; evaluator=TypedEvaluator(other))
+end
+
+@testset "Tiled output-only dispatch does not box large step indices" begin
+    # Indices 512+ used to allocate at the abstract-step dispatch for every tile.
+    graph = typed_fixture(identity)
+    append!(graph.steps, fill(first(graph.steps), 649))
+    graph.individual_outputs[1][1] = UTCGP.PopulationSequentialTmpRef(650, Float64)
+    graph.individual_step_ids[1] = collect(1:650)
+    samples = fill((-0.0,), 257) # two full tiles and a partial tile
+    outputs = zeros(1, length(samples))
+    evaluator = TypedEvaluator(graph)
+    evaluate_population_into!(outputs, graph, samples; evaluator, check=true)
+    typed_allocations(outputs, graph, samples, evaluator)
+    @test typed_allocations(outputs, graph, samples, evaluator) == 0
+    @test all(x -> x === -0.0, outputs)
 end
