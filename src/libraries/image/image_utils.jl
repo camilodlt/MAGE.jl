@@ -308,3 +308,70 @@ function _generate_test_image(PIXEL::Type{SegmentPixel{T}}, size=(10, 10)) where
     # img = reinterpret.(N0f8, img)
     return SImageND(PIXEL.(img))
 end
+
+# Typed evaluation `check`: two images are identical when every pixel is `===`
+# (two separately allocated images are never the same object).
+_identical(a::SImageND, b::SImageND) = typeof(a) === typeof(b) &&
+    axes(a.img) == axes(b.img) && all(i -> a.img[i] === b.img[i], eachindex(a.img))
+
+# Library output contract: nothing retains the allocating API; a supplied output
+# has exactly the result's concrete type and is fully overwritten, including on
+# early returns. Never use its old pixels as scratch or assume they are zero.
+@inline _image_output(::Nothing, result) = result
+@inline function _image_output(out::T, result::T) where {T<:SImageND}
+    copyto!(out.img,result.img)
+    return out
+end
+
+"""
+    @image_out function ... end
+
+Internal adapter for allocating image kernels, including factory-generated
+methods. Adds `out=nothing` without changing positional dispatch or `nargs`.
+Return expressions preserve all original early returns. Kernels marked
+`# out: copy` can later replace this adapter with direct writes to `out.img`.
+Scalar operators must not use this macro.
+"""
+macro image_out(def)
+    def isa Expr && def.head in (:function, :->) || error("expected an image method")
+    sig,body = def.args
+    function keyword_signature(sig)
+        if sig isa Expr && sig.head === :where
+            return Expr(:where,keyword_signature(sig.args[1]),sig.args[2:end]...)
+        end
+        if sig isa Expr && sig.head === :call
+            return Expr(:call,sig.args[1],Expr(:parameters,Expr(:kw,:out,nothing)),sig.args[2:end]...)
+        elseif sig isa Expr && sig.head === :tuple
+            return Expr(:tuple,Expr(:parameters,Expr(:kw,:out,nothing)),sig.args...)
+        end
+        error("unsupported image method signature: $sig")
+    end
+    output = GlobalRef(@__MODULE__,:_image_output)
+    destination = gensym(:image_destination)
+    function rewrite_returns(ex)
+        ex isa Expr || return ex
+        # Nested kernels have their own returns and must keep their ordinary API.
+        ex.head in (:function, :->, :quote) && return ex
+        if ex.head === :return
+            return Expr(:return,Expr(:call,output,destination,only(ex.args)))
+        end
+        return Expr(ex.head,map(rewrite_returns,ex.args)...)
+    end
+    # Wrap the implicit final value as well as explicit returns. Keeping the body
+    # in the original scope avoids boxing reassigned positional arguments (e.g.
+    # threshold t = clamp(t,...)), which would otherwise degrade return inference.
+    # Some legacy kernels already use `out` as a local temporary. Save the
+    # keyword first so that those assignments cannot replace the destination.
+    wrapped = Expr(:block,Expr(:(=),destination,:out),
+        Expr(:call,output,destination,rewrite_returns(body)))
+    return esc(Expr(def.head,keyword_signature(sig),wrapped))
+end
+
+# Buffer pools of the per-sample engine (typed_population_buffers.jl): the size of an
+# SImageND is part of its type, so an image can be allocated from the type alone.
+# Its pixels are garbage: functions given `out` overwrite all of them.
+_has_static_size(::Type{SImageND{S,T,N,A}}) where {S,T,N,A<:Array{T,N}} = true
+
+function _new_buffer(::Type{SImageND{S,T,N,A}}) where {S,T,N,A<:Array{T,N}}
+    return SImageND(A(undef, Tuple(S.parameters)...), S)
+end

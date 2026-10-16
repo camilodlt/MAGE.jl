@@ -48,6 +48,8 @@ blur(vol, 0.0, 7)  # trailing extra inputs are ignored: σ = 0.3 voxel
 """
 module image3D_volume
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     BinaryPixel,
@@ -60,7 +62,7 @@ using ..UTCGP:
     _get_image_type,
     _validate_factory_type
 using ..image2D_object_common: scratch, clamp_unit, IsSet, AtLeast
-using ..image2D_zoom: zero_pixel
+using ..image2D_zoom: zero_pixel, to_storage
 using ..image3D_volume_common:
     voxel_values,
     voxel_foreground,
@@ -778,6 +780,21 @@ _as_output_pixels(::Type{P}, result::AbstractArray{Float64,3}) where {P<:Intensi
 _as_output_pixels(::Type{P}, result::AbstractArray{Bool,3}) where {P<:BinaryPixel} = to_pixels(P, result)         # Booleans → binary pixels
 _as_output_pixels(::Type{P}, result::AbstractArray{P,3}) where {P} = result                                       # already pixels of type P
 
+# Scalar storage conversion mirrors to_pixels exactly, including its rounding
+# and clamping policy for fixed-point storage and ordinary Float64 conversion.
+_volume_scalar(p::IntensityPixel) = Float64(p)
+_volume_scalar(p::BinaryPixel) = p.pixel
+_volume_pixel(::Type{IntensityPixel{T}}, value::Float64) where {T} = IntensityPixel{T}(to_storage(T,value))
+_volume_pixel(::Type{BinaryPixel{T}}, value::Bool) where {T} = BinaryPixel{T}(value)
+function _volume_elementwise!(out,operation,sources...)
+    PT = eltype(out.img)
+    for i in eachindex(out.img)
+        values = map(source -> _volume_scalar(source.img[i]),sources)
+        out.img[i] = _volume_pixel(PT,operation(values...))
+    end
+    return out
+end
+
 """
     _one_param_factory(I, operator, kernel, default) -> Function
 
@@ -790,12 +807,28 @@ where `input = _kernel_input(vol)`.
 """
 function _one_param_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
+    elementwise = operator in (:vol_not,:vol_invert,:vol_gamma)
     # op(vol, p, extra...): the parameter is clamped to [0, 1] (NaN → default).
-    fn = @eval function $name(src::Source, p::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy for kernels other than Boolean not, inversion and gamma.
+    fn = @eval @image_out function $name(src::Source, p::Real, args::Vararg{Any}) where {Source<:$I}
+        if out !== nothing && $elementwise
+            parameter = clamp_unit(p,$default)
+            operation = $(QuoteNode(operator)) === :vol_not ? (!) :
+                $(QuoteNode(operator)) === :vol_invert ? x -> 1.0-x :
+                x -> clamp(x,0.0,1.0)^(2.0^(4parameter-2))
+            return _volume_elementwise!(out,operation,src)
+        end
         return SImageND(_as_output_pixels($pixel_type, $kernel(_kernel_input(src), clamp_unit(p, $default))), $size_type)
     end
     # op(vol, extra...): no number given, use the default.
-    @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+    # out: copy for kernels other than Boolean not, inversion and gamma.
+    @eval @image_out function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        if out !== nothing && $elementwise
+            operation = $(QuoteNode(operator)) === :vol_not ? (!) :
+                $(QuoteNode(operator)) === :vol_invert ? x -> 1.0-x :
+                x -> clamp(x,0.0,1.0)^(2.0^(4*$default-2))
+            return _volume_elementwise!(out,operation,src)
+        end
         return SImageND(_as_output_pixels($pixel_type, $kernel(_kernel_input(src), $default)), $size_type)
     end
     return fn
@@ -815,17 +848,20 @@ Example: `vol_window(vol, 0.4)` uses level `0.4` and the default width `0.5`.
 function _two_param_factory(::Type{I}, operator::Symbol, kernel::K, default_first::Float64, default_second::Float64) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
     # Both parameters given.
-    fn = @eval function $name(src::Source, p1::Real, p2::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $name(src::Source, p1::Real, p2::Real, args::Vararg{Any}) where {Source<:$I}
         input = _kernel_input(src)
         return SImageND(_as_output_pixels($pixel_type, $kernel(input, clamp_unit(p1, $default_first), clamp_unit(p2, $default_second))), $size_type)
     end
     # Only the first: the second takes its default.
-    @eval function $name(src::Source, p1::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, p1::Real, args::Vararg{Any}) where {Source<:$I}
         input = _kernel_input(src)
         return SImageND(_as_output_pixels($pixel_type, $kernel(input, clamp_unit(p1, $default_first), $default_second)), $size_type)
     end
     # Neither.
-    @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
         return SImageND(_as_output_pixels($pixel_type, $kernel(_kernel_input(src), $default_first, $default_second)), $size_type)
     end
     return fn
@@ -840,7 +876,16 @@ scratch buffer.
 """
 function _two_volumes_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
-    return @eval function $name(src::Source, other::Other, args::Vararg{Any}) where {Source<:$I,Other<:$I}
+    operation = operator === :vol_add ? (+) : operator === :vol_sub ? (-) :
+        operator === :vol_absdiff ? ((a,b) -> abs(a-b)) : operator === :vol_mult ? (*) :
+        operator === :vol_min ? min : operator === :vol_max ? max :
+        operator === :vol_average ? ((a,b) -> (a+b)/2) : operator === :vol_and ? (&) :
+        operator === :vol_or ? (|) : operator === :vol_xor ? xor : nothing
+    # out: copy only for an extension kernel without a scalar equivalent.
+    return @eval @image_out function $name(src::Source, other::Other, args::Vararg{Any}) where {Source<:$I,Other<:$I}
+        if out !== nothing && $operation !== nothing
+            return _volume_elementwise!(out,$operation,src,other)
+        end
         # Without the copy, reading `other` would overwrite the buffer holding `src`'s values.
         first_input = copy(_kernel_input(src))
         return SImageND(_as_output_pixels($pixel_type, $kernel(first_input, _kernel_input(other))), $size_type)
@@ -863,22 +908,26 @@ function _volume_and_mask_factory(::Type{I}, operator::Symbol, kernel::K, defaul
     pixel_type, size_type, name = _factory_setup(I, operator)
     # The mask must have the volume's size ($size_type) but may be binary or intensity.
     # Binary mask, with a parameter.
-    fn = @eval function $name(src::Source, mask::Mask, p::Real, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $name(src::Source, mask::Mask, p::Real, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         fg = voxel_foreground(:vol_mask, mask.img, IsSet())
         return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, clamp_unit(p, $default))), $size_type)
     end
     # Binary mask, default parameter.
-    @eval function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         fg = voxel_foreground(:vol_mask, mask.img, IsSet())
         return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, $default)), $size_type)
     end
     # Intensity mask (voxels ≥ 0.5 are inside), with a parameter.
-    @eval function $name(src::Source, mask::Mask, p::Real, args::Vararg{Any}) where {Source<:$I,MaskStorage,Mask<:SizedImage{$size_type,IntensityPixel{MaskStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, mask::Mask, p::Real, args::Vararg{Any}) where {Source<:$I,MaskStorage,Mask<:SizedImage{$size_type,IntensityPixel{MaskStorage}}}
         fg = voxel_foreground(:vol_mask, mask.img, AtLeast(0.5))
         return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, clamp_unit(p, $default))), $size_type)
     end
     # Intensity mask, default parameter.
-    @eval function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskStorage,Mask<:SizedImage{$size_type,IntensityPixel{MaskStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskStorage,Mask<:SizedImage{$size_type,IntensityPixel{MaskStorage}}}
         fg = voxel_foreground(:vol_mask, mask.img, AtLeast(0.5))
         return SImageND(_as_output_pixels($pixel_type, $kernel(src, fg, $default)), $size_type)
     end
@@ -902,22 +951,26 @@ Example: `vol_threshold(vol, 0.3)` is the mask of voxels `≥ 0.3`
 function _mask_input_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
     # Binary input, with the kernel's parameter.
-    fn = @eval function $name(mask::Mask, p::Real, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $name(mask::Mask, p::Real, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         fg = copy(voxel_foreground(:vol_mask, mask.img, IsSet()))
         return SImageND(_as_output_pixels($pixel_type, $kernel(fg, clamp_unit(p, $default))), $size_type)
     end
     # Binary input, default parameter.
-    @eval function $name(mask::Mask, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(mask::Mask, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         fg = copy(voxel_foreground(:vol_mask, mask.img, IsSet()))
         return SImageND(_as_output_pixels($pixel_type, $kernel(fg, $default)), $size_type)
     end
     # Intensity input: the number is the threshold that makes the mask.
-    @eval function $name(vol::Vol, t::Real, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(vol::Vol, t::Real, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
         fg = copy(voxel_foreground(:vol_mask, vol.img, AtLeast(clamp_unit(t))))
         return SImageND(_as_output_pixels($pixel_type, $kernel(fg, $default)), $size_type)
     end
     # Intensity input, threshold 0.5.
-    @eval function $name(vol::Vol, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(vol::Vol, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
         fg = copy(voxel_foreground(:vol_mask, vol.img, AtLeast(0.5)))
         return SImageND(_as_output_pixels($pixel_type, $kernel(fg, $default)), $size_type)
     end
@@ -935,11 +988,13 @@ Binary output from an intensity volume. Methods:
 function _binarize_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
     # With a parameter (e.g. the fraction for vol_top_fraction).
-    fn = @eval function $name(vol::Vol, p::Real, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $name(vol::Vol, p::Real, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
         return SImageND(to_pixels($pixel_type, $kernel(voxel_values(:vol_in, vol.img), clamp_unit(p, $default))), $size_type)
     end
     # Default parameter.
-    @eval function $name(vol::Vol, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(vol::Vol, args::Vararg{Any}) where {VolStorage,Vol<:SizedImage{$size_type,IntensityPixel{VolStorage}}}
         return SImageND(to_pixels($pixel_type, $kernel(voxel_values(:vol_in, vol.img), $default)), $size_type)
     end
     return fn
@@ -955,11 +1010,13 @@ and `op(vol)` → `kernel(vol.img, default)`.
 function _voxel_geometry_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
     # With the geometry parameter (e.g. the shift amount).
-    fn = @eval function $name(src::Source, u::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $name(src::Source, u::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, clamp_unit(u, $default)), $size_type)
     end
     # Default parameter (flips and rotations ignore it).
-    @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, $default), $size_type)
     end
     return fn
@@ -988,12 +1045,14 @@ function _plane_to_volume_factory(::Type{I}, operator::Symbol, axis::Int, mode::
     A, B = dims[plane_axes[1]], dims[plane_axes[2]]   # required size of the 2D input
     if mode === :extrude
         # op(img2d): the volume is built from the 2D image alone.
-        return @eval function $name(img::Plane, args::Vararg{Any}) where {PlanePixel<:Union{IntensityPixel,BinaryPixel},Plane<:SizedImage{Tuple{$A,$B},PlanePixel}}
+        # out: copy (the kernel currently allocates its result).
+        return @eval @image_out function $name(img::Plane, args::Vararg{Any}) where {PlanePixel<:Union{IntensityPixel,BinaryPixel},Plane<:SizedImage{Tuple{$A,$B},PlanePixel}}
             return SImageND(_extrude($pixel_type, img.img, $axis, $dims), $size_type)
         end
     end
     # op(vol, mask2d): the 2D mask cuts the volume.
-    return @eval function $name(src::Source, mask::Plane, args::Vararg{Any}) where {Source<:$I,PlanePixel<:Union{IntensityPixel,BinaryPixel},Plane<:SizedImage{Tuple{$A,$B},PlanePixel}}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function $name(src::Source, mask::Plane, args::Vararg{Any}) where {Source<:$I,PlanePixel<:Union{IntensityPixel,BinaryPixel},Plane<:SizedImage{Tuple{$A,$B},PlanePixel}}
         return SImageND(_apply_plane(src.img, mask.img, $axis), $size_type)
     end
 end

@@ -12,6 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_morph
 
+using ..UTCGP: @image_out
+
 using ImageMorphology
 using ..UTCGP: image2D_basic
 using ..UTCGP: FunctionBundle, append_method!
@@ -112,6 +114,22 @@ function _morph_output(::Type{IT}, ::Type{PT}, ::Type{S}, res) where {IT, PT, S}
     return SImageND(PT.(cast(IT, res)), S)
 end
 
+# Reinterpret storage without copying pixel arrays. Compound morphology needs
+# one scratch array, but the result is written directly into the owned output.
+function _morph_into!(out,img,op!,se)
+    T = _get_image_type(out)
+    destination = reinterpret(T,out.img)
+    source = reinterpret(T,img.img)
+    if op! === erode! || op! === dilate!
+        se === nothing ? op!(destination,source) : op!(destination,source,se)
+    else
+        scratch = similar(source)
+        se === nothing ? op!(destination,source,scratch) : op!(destination,source,se,scratch)
+    end
+    clamp01nan!(destination)
+    return out
+end
+
 """
     _morph_factory(I, SIZE, name, op_with_se, op_default)
 
@@ -129,10 +147,21 @@ function _morph_factory(::Type{I}, SIZE, name::Symbol, op_with_se, op_default) w
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(name, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
-    f = @eval function $FUNCTION_NAME(img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
+    inplace = op_with_se === erode ? erode! : op_with_se === dilate ? dilate! :
+        op_with_se === opening ? opening! : op_with_se === closing ? closing! :
+        op_with_se === tophat ? tophat! : op_with_se === bothat ? bothat! : nothing
+    # out: copy only for mixed storage types or operators without a ! kernel.
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
+        if out !== nothing && $inplace !== nothing && _get_image_type(img) === $IT
+            return _morph_into!(out,img,$inplace,_morph_diamond(k_n))
+        end
         return _morph_output($IT, $PT, $S, $op_with_se(reinterpret(img.img), _morph_diamond(k_n)))
     end
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy only for mixed storage types or operators without a ! kernel.
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
+        if out !== nothing && $inplace !== nothing && _get_image_type(img) === $IT
+            return _morph_into!(out,img,$inplace,nothing)
+        end
         return _morph_output($IT, $PT, $S, $op_default(reinterpret(img.img)))
     end
     return f
@@ -217,14 +246,17 @@ function morphogradient_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:morphogradient_2D_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
-    f = @eval function $FUNCTION_NAME(img::CONCT, k_n::Number, mode_int::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k_n::Number, mode_int::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
         res = mgradient(reinterpret(img.img), _morph_diamond(k_n); mode = _morph_gradient_mode(mode_int))
         return _morph_output($IT, $PT, $S, res)
     end
-    @eval function $FUNCTION_NAME(img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
         return _morph_output($IT, $PT, $S, mgradient(reinterpret(img.img), _morph_diamond(k_n); mode = :beucher))
     end
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
         return _morph_output($IT, $PT, $S, mgradient(reinterpret(img.img); mode = :beucher))
     end
     return f

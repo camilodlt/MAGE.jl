@@ -14,6 +14,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image_pool
 
+using ..UTCGP: @image_out
+
 using Statistics: mean
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
@@ -180,14 +182,16 @@ function avgpool_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage2D}
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:avgpool_blocks_image2D, :_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
         k_int = _block_size(k, img.img)
         pooled = _block_pool_same_size(reinterpret(img.img), k_int, $(_average_reducer(PT)))
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, 2, args...)
     end
 
@@ -207,14 +211,16 @@ function avgpool_cross_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:avgpool_cross_blocks_image2D, :_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
         k_int = _block_size(k, img.img)
         pooled = _block_cross_pool_same_size(reinterpret(img.img), k_int, $(_average_reducer(PT)))
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, 2, args...)
     end
 
@@ -234,14 +240,16 @@ function maxpool_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage2D}
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:maxpool_blocks_image2D, :_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
         k_int = _block_size(k, img.img)
         pooled = _block_pool_same_size(reinterpret(img.img), k_int, maximum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, 2, args...)
     end
 
@@ -261,14 +269,16 @@ function maxpool_cross_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:maxpool_cross_blocks_image2D, :_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
         k_int = _block_size(k, img.img)
         pooled = _block_cross_pool_same_size(reinterpret(img.img), k_int, maximum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, 2, args...)
     end
 
@@ -288,14 +298,16 @@ function minpool_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage2D}
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:minpool_blocks_image2D, :_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
         k_int = _block_size(k, img.img)
         pooled = _block_pool_same_size(reinterpret(img.img), k_int, minimum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, 2, args...)
     end
 
@@ -315,14 +327,16 @@ function minpool_cross_blocks_image2D_factory(i::Type{I}) where {I <: SizedImage
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:minpool_cross_blocks_image2D, :_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
         k_int = _block_size(k, img.img)
         pooled = _block_cross_pool_same_size(reinterpret(img.img), k_int, minimum)
         casted = _pool_cast($PT, pooled)
         return SImageND($PT.($IT.(casted)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, 2, args...)
     end
 

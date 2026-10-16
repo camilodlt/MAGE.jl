@@ -9,11 +9,15 @@ using Test, UTCGP
         samples=[(-0.0,),(NaN,),(Inf,),(2.0,)]
         g=PopulationSequentialProgram([seq,seq])
         @test length(g.steps)==1
-        w=TypedPopulationWorkspace(g)
         P=zeros(2,4)
-        evaluate_population_into!(P,g,samples;workspace=w,check=true)
-        evaluate_population_into!(P,g,samples;workspace=w)
-        @test _typed_allocations(P,g,samples,w)==0
+        for engine in (:tiled,:per_sample)
+            evaluator=TypedEvaluator(g;engine)
+            evaluate_population_into!(P,g,samples;evaluator,check=true)
+        end
+        # The tiled engine calls the native frame without allocating.
+        evaluator=TypedEvaluator(g)
+        evaluate_population_into!(P,g,samples;evaluator)
+        @test typed_allocations(P,g,samples,evaluator)==0
         S,nodes=sequential_step_values(seq,samples)
         @test nodes==[seq.steps[1].original_node]
         @test all(i -> S[1,i]===P[1,i],1:4)

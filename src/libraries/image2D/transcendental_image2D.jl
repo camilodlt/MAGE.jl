@@ -12,6 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_transcendental
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
 using ..UTCGP: FunctionBundle, append_method!
@@ -65,7 +67,8 @@ function exp_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPix
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    # out: copy (the kernel currently allocates its result).
+    m1 = @eval @image_out ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
         img3 = exp.(float(img1))
         img3 = image2D_basic._normalize_img(img3)
         clamp01nan!(img3)
@@ -95,7 +98,13 @@ function loginv_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intensity
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    m1 = @eval @image_out ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img)
+                out.img[i] = $PT($IT(clamp01nan(log(float(img1.img[i])) * -1.0)))
+            end
+            return out
+        end
         img3 = log.(float(img1)) .*- 1.
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -108,7 +117,8 @@ function log_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPix
     _validate_factory_type(IT)
     TRUE_TYPE = IT.parameters[1]
 
-    m1 = @eval ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    # out: copy (the kernel currently allocates its result).
+    m1 = @eval @image_out ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
         img3 = image2D_basic._normalize_img(log.(convert.(Float32,reinterpret($TRUE_TYPE,reinterpret(img1.img)))))
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -137,7 +147,13 @@ function powerof_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intensit
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval ((img1::CONCT, p::Real, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    m1 = @eval @image_out ((img1::CONCT, p::Real, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img)
+                out.img[i] = $PT($IT(clamp01nan(float(img1.img[i]) ^ p)))
+            end
+            return out
+        end
         img3 = (float(img1)) .^ p
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)

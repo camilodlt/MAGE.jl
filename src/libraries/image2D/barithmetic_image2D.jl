@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_barithmetic
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
 using ..UTCGP: FunctionBundle, append_method!
@@ -69,7 +71,14 @@ function bsubtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intens
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img)
+                out.img[i] = $PT($IT(clamp01nan(-(float(img1.img[i]),p))))
+            end
+            return out
+        end
         img3 = float(img1) .- p
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -97,7 +106,14 @@ function badd_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPi
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img)
+                out.img[i] = $PT($IT(clamp01nan(+(float(img1.img[i]),p))))
+            end
+            return out
+        end
         img3 = float(img1) .+ p
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -125,7 +141,14 @@ function bmult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityP
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img)
+                out.img[i] = $PT($IT(clamp01nan(*(float(img1.img[i]),p))))
+            end
+            return out
+        end
         img3 = float(img1) .* p
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)

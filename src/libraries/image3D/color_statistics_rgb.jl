@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in the bundle is on the
 """
 module image3D_color_statistics_rgb
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     IntensityPixel,
@@ -99,10 +101,19 @@ function _rgb_statistic_factory(
     _validate_factory_type(IT)
     function_name = Symbol(operator_name, :_image3D_, Symbol(I))
 
-    fn = @eval function $function_name(
+    fn = @eval @image_out function $function_name(
             image::SImageND{Tuple{$S1,$S2,3},IntensityPixel{ST},3,C},
             args::Vararg{Any},
         ) where {ST,C}
+        if out !== nothing
+            for col in axes(out.img,2), row in axes(out.img,1)
+                r = _finite_channel(image.img[row,col,1].pixel)
+                g = _finite_channel(image.img[row,col,2].pixel)
+                b = _finite_channel(image.img[row,col,3].pixel)
+                out.img[row,col] = $PT($IT(_rgb_value(r,g,b,Val{$(QuoteNode(K))}())))
+            end
+            return out
+        end
         values = _rgb_statistic(image, Val{$(QuoteNode(K))}())
         return SImageND($PT.($IT.(values)), $S)
     end

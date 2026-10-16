@@ -12,6 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_arithmetic
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
 using ..UTCGP: FunctionBundle, append_method!
@@ -83,10 +85,18 @@ function subtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
         }) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(-(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = float(img1) - float(img2)
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -115,10 +125,18 @@ function add_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
         }) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(+(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = float(img1) + float(img2)
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -147,10 +165,18 @@ function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bin
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
         }) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(*(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = float(img1) .* float(img2)
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -165,10 +191,18 @@ function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
         }) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(max(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = max.(float(img1),float(img2))
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -183,10 +217,18 @@ function min_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
         }) -> begin
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(min(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = min.(float(img1),float(img2))
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)

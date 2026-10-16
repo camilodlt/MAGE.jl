@@ -34,6 +34,8 @@ holes(mask)         # only pixel (5, 5) is set
 """
 module image2D_mask_shape
 
+using ..UTCGP: @image_out
+
 using ImageMorphology: thinning
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -374,27 +376,32 @@ function _shape_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64
     to_output = pixel_type <: BinaryPixel ? :(SImageND($pixel_type.(result), $size_type)) :
                 :(SImageND($pixel_type.(to_storage.($storage_type, result)), $size_type))
     # Binary mask, with the parameter p.
-    fn = @eval function $function_name(mask::Mask, p::Real, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(mask::Mask, p::Real, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         result = $kernel(_bits(mask.img, IsSet()), clamp_unit(p, $default))
         return $to_output
     end
     # Binary mask, default p.
-    @eval function $function_name(mask::Mask, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(mask::Mask, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         result = $kernel(_bits(mask.img, IsSet()), $default)
         return $to_output
     end
     # Intensity map thresholded at `threshold`, with p.
-    @eval function $function_name(saliency::Saliency, threshold::Real, p::Real, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(saliency::Saliency, threshold::Real, p::Real, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
         result = $kernel(_bits(saliency.img, AtLeast(clamp_unit(threshold))), clamp_unit(p, $default))
         return $to_output
     end
     # Intensity map thresholded at `threshold`, default p.
-    @eval function $function_name(saliency::Saliency, threshold::Real, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(saliency::Saliency, threshold::Real, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
         result = $kernel(_bits(saliency.img, AtLeast(clamp_unit(threshold))), $default)
         return $to_output
     end
     # Intensity map thresholded at 0.5, default p.
-    @eval function $function_name(saliency::Saliency, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(saliency::Saliency, args::Vararg{Any}) where {SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
         result = $kernel(_bits(saliency.img, AtLeast(0.5)), $default)
         return $to_output
     end

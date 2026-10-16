@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_segmentation
 
+using ..UTCGP: @image_out
+
 using ImageSegmentation
 using ImageMorphology
 using LRUCache
@@ -74,7 +76,8 @@ function felzenswalb_image2D_factory(i::Type{I}) where {I<:SizedImage}
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     StorageType = TT.types[1] # UInt8, UInt16 ...
 
-    @eval function $FUNCTION_NAME(img::CONCT, k::Int, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Int, args::Vararg{Any}) where {CONCT<:$I}
         S = CONCT.parameters[1] # Tuple{X,Y}
         k = clamp(k, 1, k)
         segments = felzenszwalb(img, k)
@@ -121,7 +124,8 @@ function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
     DefaultTH = 0.3
     # m1 (img, th::Float)
 
-    @eval function $FUNCTION_NAME(img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT<:$I}
         S = CONCT.parameters[1] # Tuple{X,Y}
         th = isnan(th) ? $DefaultTH : th
         th = clamp(th, eps(Float64), th)
@@ -132,7 +136,8 @@ function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
         return SImageND(reinterpreted, S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         S = CONCT.parameters[1] # Tuple{X,Y}
         gimg = Gray.(img)
         segments = unseeded_region_growing(gimg, $DefaultTH)
@@ -161,7 +166,8 @@ function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Seg
     FUNCTION_NAME = Symbol(:fastscanning_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
 
-    @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         th = isnan(th) ? 0.1 : th
         th = clamp(th, eps(Float64), 1.)
         segments = fast_scanning(reinterpret(img.img), th)
@@ -169,7 +175,8 @@ function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Seg
         reinterpreted = convert.($T, seg)
         return SImageND($PT.(reinterpreted), $S)
     end
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         $FUNCTION_NAME(img, 0.1)
     end
     return getfield(@__MODULE__, FUNCTION_NAME)
@@ -225,18 +232,21 @@ function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Segmen
     FUNCTION_NAME = Symbol(:watershed_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
 
-    @eval function $FUNCTION_NAME(img::CONCT, restrict::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, restrict::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
         labels = _watershed_split(reinterpret(img.img), reinterpret(restrict.img), _watershed_level(th))
         return SImageND($PT.(convert.($IT, labels)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
         fg = reinterpret(img.img)
         labels = _watershed_split(fg, trues(size(fg)), _watershed_level(th))
         return SImageND($PT.(convert.($IT, labels)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
         $FUNCTION_NAME(img, 0.7)
     end
 

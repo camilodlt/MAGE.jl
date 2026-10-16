@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_orientation
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     SizedImage2D, SImageND, _get_image_type, _get_image_pixel_type, _get_image_tuple_size,
@@ -57,7 +59,8 @@ function grad_magnitude_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:grad_magnitude_image2D_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         mag, _, _ = image2D_orientation_common._grad_magnitude_matrix(img)
         out = image2D_orientation_common._normalize01(mag)
         return SImageND($PT.($IT.(out)), $S)
@@ -70,7 +73,8 @@ function grad_orientation_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:grad_orientation_image2D_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         theta, _, _ = image2D_orientation_common._gradient_orientation_matrix(img)
         out = theta ./ π
         return SImageND($PT.($IT.(out)), $S)
@@ -83,7 +87,8 @@ function orientation_select_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:orientation_select_image2D_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(img::CONCT, theta_::Number, bw_::Number, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, theta_::Number, bw_::Number, args::Vararg{Any}) where {CONCT<:$I}
         mag, _, _ = image2D_orientation_common._grad_magnitude_matrix(img)
         theta_map, _, _ = image2D_orientation_common._gradient_orientation_matrix(img)
         theta = _theta_from_number(theta_)
@@ -94,11 +99,13 @@ function orientation_select_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
         return SImageND($PT.($IT.(out)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, theta_::Number, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, theta_::Number, args::Vararg{Any}) where {CONCT<:$I}
         return $FUNCTION_NAME(img, theta_, 0.2, args...)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
         return $FUNCTION_NAME(img, 0.0, 0.2, args...)
     end
 

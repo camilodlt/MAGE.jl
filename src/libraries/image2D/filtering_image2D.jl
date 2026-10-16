@@ -11,6 +11,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_filtering
 
+using ..UTCGP: @image_out
+
 using LoopVectorization
 using TimerOutputs
 using ImageFiltering
@@ -234,7 +236,8 @@ function XYM_filter_image2D_factory(axis::Type{<:_GradientAxis}, which_kernel::T
         # if is Intensity
         # accepts BinaryPixel => Always will be Bool
         # accepts IntensityPixel of the orig type
-        f = @eval function $FUNCTION_NAME(img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{Bool}, IntensityPixel}}}
+        # out: copy (the kernel currently allocates its result).
+        f = @eval @image_out function $FUNCTION_NAME(img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{Bool}, IntensityPixel}}}
             # global to
             ax, km = $axis, $which_kernel
             s = ($S1, $S2)
@@ -253,7 +256,8 @@ function XYM_filter_image2D_factory(axis::Type{<:_GradientAxis}, which_kernel::T
             return SImageND($PT.(cast($IT, out_float)), $S)
         end
 
-        @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
             return $FUNCTION_NAME(img, 0.0, args...)
         end
 
@@ -289,7 +293,8 @@ function one_filter_image2D_factory(which_kernel::Type{<:KernelMethod}, name::St
         S1, S2 = S.parameters[1], S.parameters[2]
         _validate_factory_type(IT)
         FUNCTION_NAME = Symbol(fn_name, :_, Symbol(I))
-        f = @eval function $FUNCTION_NAME(img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+        # out: copy (the kernel currently allocates its result).
+        f = @eval @image_out function $FUNCTION_NAME(img::CONCT, b::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
             # global to
             km = $which_kernel
             s = ($S1, $S2)
@@ -307,7 +312,8 @@ function one_filter_image2D_factory(which_kernel::Type{<:KernelMethod}, name::St
             return SImageND($PT.(cast($IT, out_float)), $S)
         end
 
-        @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
             return $FUNCTION_NAME(img, 0.0, args...)
         end
 
@@ -326,7 +332,8 @@ function dog_factory(i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixe
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:dog_image2D, :_, Symbol(I))
-    f = @eval function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
         # σ along y (p1) and along x (p2), in pixels, clamped to [0.1, 10]; NaN → 0.5.
         p1, p2 = _finite_clamp(p1_, 0.1, 10.0, 0.5), _finite_clamp(p2_, 0.1, 10.0, 0.5)
@@ -346,10 +353,12 @@ function dog_factory(i::Type{I}) where {I <: SizedImage{SIZE, <:Union{BinaryPixe
         return SImageND($PT.(cast($IT, out_float)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, p1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, p1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         return $FUNCTION_NAME(img, p1_, p1_, args)
     end
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         return $FUNCTION_NAME(img, 0.5, 0.5, args)
     end
 
@@ -363,7 +372,8 @@ function moffat_factories(ksize::Int)
         _validate_factory_type(IT)
         # The kernel size is in the name: moffat5, moffat13 and moffat25 must not share a function.
         FUNCTION_NAME = Symbol(:moffat, ksize, :_image2D, :_, Symbol(I))
-        f = @eval function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+        # out: copy (the kernel currently allocates its result).
+        f = @eval @image_out function $FUNCTION_NAME(img::CONCT, p1_::Real, p2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
             s = ($S1, $S2)
             # α (core width, p1) and β (fall-off, p2), clamped to [0.1, 100]; NaN → 0.5.
             p1, p2 = _finite_clamp(p1_, 0.1, 100.0, 0.5), _finite_clamp(p2_, 0.1, 100.0, 0.5)
@@ -382,7 +392,8 @@ function moffat_factories(ksize::Int)
             return SImageND($PT.(cast($IT, out_float)), $S)
         end
 
-        @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
             return $FUNCTION_NAME(img, 0.5, 0.5, args)
         end
 
@@ -400,7 +411,8 @@ function findlocalminima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
     _validate_factory_type(IT)
 
     FUNCTION_NAME = Symbol(:findlocalminima_image2D, :_, Symbol(I))
-    f = @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
         # Window rows (w1) and columns (w2), clamped to [2, 25]; NaN → 3.
         w1, w2 = round(Int, _finite_clamp(w1_, 2.0, 25.0, 3.0)), round(Int, _finite_clamp(w2_, 2.0, 25.0, 3.0))
@@ -410,11 +422,13 @@ function findlocalminima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
         return SImageND($PT.(cast($IT, canvas)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, w1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         return $FUNCTION_NAME(img, w1_, w1_, args)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         return $FUNCTION_NAME(img, 3, 3, args)
     end
 
@@ -426,7 +440,8 @@ function findlocalmaxima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:findlocalmaxima_image2D, :_, Symbol(I))
-    f = @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, w1_::Real, w2_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         s = ($S1, $S2)
         # Window rows (w1) and columns (w2), clamped to [2, 25]; NaN → 3.
         w1, w2 = round(Int, _finite_clamp(w1_, 2.0, 25.0, 3.0)), round(Int, _finite_clamp(w2_, 2.0, 25.0, 3.0))
@@ -436,11 +451,13 @@ function findlocalmaxima_factory(i::Type{I}) where {I <: SizedImage{SIZE, Binary
         return SImageND($PT.(cast($IT, canvas)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, w1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, w1_::Real, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         return $FUNCTION_NAME(img, w1_, w1_, args)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         return $FUNCTION_NAME(img, 3, 3, args)
     end
 

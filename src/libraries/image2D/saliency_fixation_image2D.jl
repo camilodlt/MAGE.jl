@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_saliency_fixation
 
+using ..UTCGP: @image_out
+
 using FFTW: fft, ifft
 using ImageFiltering: Kernel, imfilter
 using ..UTCGP: FunctionBundle, append_method!
@@ -275,7 +277,8 @@ function itti_koch_saliency_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:itti_koch_saliency_image2D_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::CONCT,
             orientation_weight_input::Real,
             smoothing_sigma_input::Real,
@@ -294,14 +297,16 @@ function itti_koch_saliency_image2D_factory(
         )
         return SImageND($PT.($IT.(saliency)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             orientation_weight::Real,
             args::Vararg{Any},
         ) where {CONCT<:$I}
         return $function_name(image, orientation_weight, 0.0, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             args::Vararg{Any},
         ) where {CONCT<:$I}
@@ -411,7 +416,8 @@ function spectral_residual_saliency_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:spectral_residual_saliency_image2D_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::CONCT,
             spectral_average_radius_input::Real,
             smoothing_sigma_input::Real,
@@ -429,14 +435,16 @@ function spectral_residual_saliency_image2D_factory(
         )
         return SImageND($PT.($IT.(saliency)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             spectral_average_radius::Real,
             args::Vararg{Any},
         ) where {CONCT<:$I}
         return $function_name(image, spectral_average_radius, 2.0, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             args::Vararg{Any},
         ) where {CONCT<:$I}

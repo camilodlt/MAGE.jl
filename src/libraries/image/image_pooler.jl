@@ -13,6 +13,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image_pooler
 
+using ..UTCGP: @image_out
+
 using Statistics: mean, median, std, quantile
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -152,7 +154,8 @@ function _make_pooler_factory(
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(function_symbol, :_image2D_, Symbol(I))
 
-    f = @eval function $FUNCTION_NAME(
+    # out: copy (the kernel currently allocates its result).
+    f = @eval @image_out function $FUNCTION_NAME(
         img::CONCT,
         k::Number,
         stride::Number,
@@ -165,11 +168,13 @@ function _make_pooler_factory(
         return SImageND($PT.($IT.(casted)), $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, k::Number, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, k, 1, args...)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         return $FUNCTION_NAME(img, 2, 1, args...)
     end
 

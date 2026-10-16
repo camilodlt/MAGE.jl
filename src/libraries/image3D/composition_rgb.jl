@@ -7,6 +7,8 @@ Cross-chromosome composition of typed 2D intensity images and RGB images.
 """
 module image3D_rgb_composition
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     IntensityPixel,
@@ -131,7 +133,8 @@ function _rgb_composition_factory(
     function_name = Symbol(operator_name, :_, Symbol(I))
 
     if operation === :compose
-        fn = @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        fn = @eval @image_out function $function_name(
                 red::SImageND{Tuple{$S1,$S2},IntensityPixel{RT},2,RC},
                 green::SImageND{Tuple{$S1,$S2},IntensityPixel{GT},2,GC},
                 blue::SImageND{Tuple{$S1,$S2},IntensityPixel{BT},2,BC},
@@ -141,7 +144,8 @@ function _rgb_composition_factory(
             return SImageND($PT.($IT.(output)), $S)
         end
     elseif operation === :gray
-        fn = @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        fn = @eval @image_out function $function_name(
                 gray::SImageND{Tuple{$S1,$S2},IntensityPixel{MT},2,MC},
                 args::Vararg{Any},
             ) where {MT,MC}
@@ -157,7 +161,8 @@ function _rgb_composition_factory(
         else
             :(_set_luminance_rgb_values(rgb, plane))
         end
-        fn = @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        fn = @eval @image_out function $function_name(
                 rgb::CONCT,
                 plane::SImageND{Tuple{$S1,$S2},IntensityPixel{MT},2,MC},
                 args::Vararg{Any},
@@ -166,7 +171,8 @@ function _rgb_composition_factory(
             return SImageND($PT.($IT.(output)), $S)
         end
     elseif operation === :blend
-        fn = @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        fn = @eval @image_out function $function_name(
                 foreground::CONCT,
                 background::CONCT,
                 alpha::SImageND{Tuple{$S1,$S2},IntensityPixel{MT},2,MC},

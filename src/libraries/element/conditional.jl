@@ -13,7 +13,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module element_conditional
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..UTCGP: FunctionBundle, append_method!, SizedImage, @image_out
 
 # ################### #
 #  CONDITIONAL        #
@@ -60,6 +60,12 @@ bundle_element_conditional_factory = FunctionBundle(fallback)
 # end
 
 function if_else_multiplexer_factory(element_type::Type{T}) where {T}
+    if T <: SizedImage
+        # Branch selection can return an input: the adapter copies on that path too.
+        return @eval @image_out ((cond::Number, a::E, b::E, args::Vararg{Any}) where {E<:$T}) -> begin
+            return cond > 0 ? a : b
+        end
+    end
     m1 = @eval ((cond::Number, a::E, b::E, args::Vararg{Any}) where {E<:$T}) -> begin
         if cond > 0
             return a

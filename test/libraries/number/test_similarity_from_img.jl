@@ -106,6 +106,9 @@
                 end
             end
         end
-        @test_throws DimensionMismatch S.sim_mse(a, _sim_intensity(zeros(h, w + 1)))
+        # Pairs must have the same size (or 3D vs 2D with the same H, W): a mismatched
+        # pair has no method, so the decoder never builds such a call.
+        @test_throws MethodError S.sim_mse(a, _sim_intensity(zeros(h, w + 1)))
+        @test !hasmethod(S.sim_mse, Tuple{typeof(a), typeof(_sim_intensity(zeros(h, w + 1)))})
     end
 end

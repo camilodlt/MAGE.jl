@@ -1,5 +1,3 @@
-@inline _typed_invoke(fn::ADFSlotFunction, xs) = fn(xs...)::fn.output_type
-
 """Return sorted original program input indices used by a step's dependency cone."""
 function adf_step_input_indices(prog::SequentialProgram, step_index::Int)
     _, inputs = _adf_step_cone(prog,step_index)

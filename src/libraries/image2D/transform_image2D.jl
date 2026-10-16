@@ -39,6 +39,8 @@ rotate(img, 0.25)         # a quarter turn counter-clockwise about the centre
 """
 module image2D_transform
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     AbstractPixel,
@@ -395,7 +397,8 @@ end
 "Method `op(img)` → `kernel(pixels)`."
 function _plain_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
-    return @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img), $size_type)
     end
 end
@@ -403,7 +406,8 @@ end
 "Method `op(img, u)` → `kernel(pixels, clamp_unit(u))`."
 function _scalar_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
-    return @eval function $name(src::Source, u::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function $name(src::Source, u::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, clamp_unit(u)), $size_type)
     end
 end
@@ -411,10 +415,12 @@ end
 "Methods `op(img, x, y)` → `kernel(pixels, x, y)` and `op(img, s)` → `kernel(pixels, s, s)` (clamped to `[0, 1]`)."
 function _point_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
-    fn = @eval function $name(src::Source, x::Real, y::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $name(src::Source, x::Real, y::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, clamp_unit(x), clamp_unit(y)), $size_type)
     end
-    @eval function $name(src::Source, s::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, s::Real, args::Vararg{Any}) where {Source<:$I}
         u = clamp_unit(s)
         return SImageND($kernel(src.img, u, u), $size_type)
     end
@@ -431,18 +437,22 @@ Mask-driven methods, each calling `kernel(pixels, mask_pixels, is_foreground)`:
 """
 function _mask_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
-    fn = @eval function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $name(src::Source, mask::Mask, args::Vararg{Any}) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         return SImageND($kernel(src.img, mask.img, IsSet()), $size_type)
     end
-    @eval function $name(src::Source, saliency::Saliency, args::Vararg{Any}) where {Source<:$I,SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $name(src::Source, saliency::Saliency, args::Vararg{Any}) where {Source<:$I,SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
         return SImageND($kernel(src.img, saliency.img, AtLeast(0.5)), $size_type)
     end
     if pixel_type <: BinaryPixel
-        @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
             return SImageND($kernel(src.img, src.img, IsSet()), $size_type)
         end
     elseif pixel_type <: IntensityPixel
-        @eval function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $name(src::Source, args::Vararg{Any}) where {Source<:$I}
             return SImageND($kernel(src.img, src.img, AtLeast(0.5)), $size_type)
         end
     end

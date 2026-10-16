@@ -7,6 +7,8 @@ Fixed, training-free spatial feature transforms for typed RGB images.
 """
 module image3D_spatial_rgb
 
+using ..UTCGP: @image_out
+
 using ImageFiltering: Kernel, centered, imfilter, reflect
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -236,7 +238,8 @@ function _spatial_factory(
     end
 
     if operation in (:sobel, :laplacian)
-        fn = @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        fn = @eval @image_out function $function_name(
                 image::CONCT,
                 args::Vararg{Any},
             ) where {CONCT<:$I}
@@ -246,7 +249,8 @@ function _spatial_factory(
             return SImageND($PT.($IT.(clamped)), $S)
         end
     elseif operation in (:gaussian, :local_contrast, :local_std)
-        fn = @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        fn = @eval @image_out function $function_name(
                 image::CONCT,
                 parameter1::Real,
                 args::Vararg{Any},
@@ -257,7 +261,8 @@ function _spatial_factory(
             return SImageND($PT.($IT.(clamped)), $S)
         end
     else
-        fn = @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        fn = @eval @image_out function $function_name(
                 image::CONCT,
                 parameter1::Real,
                 parameter2::Real,

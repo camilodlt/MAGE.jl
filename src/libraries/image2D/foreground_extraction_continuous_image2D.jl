@@ -9,6 +9,8 @@ The exhaustive operator list is on the Bundle Catalogue page.
 """
 module image2D_foreground_extraction_continuous
 
+using ..UTCGP: @image_out
+
 using LinearAlgebra: Symmetric, cholesky
 using SparseArrays: sparse
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
@@ -263,7 +265,8 @@ function random_walker_foreground_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:random_walker_foreground_image2D_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             contrast_input::Real,
@@ -286,7 +289,8 @@ function random_walker_foreground_image2D_factory(
         )
         return SImageND($PT.($IT.(probabilities)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             args::Vararg{Any},
@@ -303,7 +307,8 @@ function random_walker_foreground_image2D_factory(
             args...,
         )
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             contrast_input::Real,
             foreground_quantile_input::Real,
@@ -326,7 +331,8 @@ function random_walker_foreground_image2D_factory(
         )
         return SImageND($PT.($IT.(probabilities)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             contrast::Real,
             args::Vararg{Any},
@@ -338,7 +344,8 @@ function random_walker_foreground_image2D_factory(
             args...,
         )
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             args::Vararg{Any},
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
@@ -350,7 +357,8 @@ function random_walker_foreground_image2D_factory(
         )
     end
     # Seeds from a rough mask and an uncertainty band.
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
@@ -366,7 +374,8 @@ function random_walker_foreground_image2D_factory(
         end
         return SImageND($PT.($IT.(probabilities)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             args::Vararg{Any},
@@ -649,7 +658,8 @@ function closed_form_matting_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:closed_form_matting_image2D_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::SOURCE,
             trimap::TRIMAP,
             edge_sensitivity_input::Real,
@@ -671,7 +681,8 @@ function closed_form_matting_image2D_factory(
         )
         return SImageND($PT.($IT.(alpha)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             trimap::TRIMAP,
             args::Vararg{Any},
@@ -688,7 +699,8 @@ function closed_form_matting_image2D_factory(
             args...,
         )
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             edge_sensitivity_input::Real,
             foreground_quantile_input::Real,
@@ -710,7 +722,8 @@ function closed_form_matting_image2D_factory(
             _closed_form_alpha(reinterpret(image.img), trimap, edge_sensitivity)
         return SImageND($PT.($IT.(alpha)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             edge_sensitivity::Real,
             args::Vararg{Any},
@@ -722,7 +735,8 @@ function closed_form_matting_image2D_factory(
             args...,
         )
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             args::Vararg{Any},
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
@@ -735,7 +749,8 @@ function closed_form_matting_image2D_factory(
     end
     # A rough mask and an uncertainty band define the trimap: deep inside 1,
     # far outside 0, the band along the mask's edge unknown.
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
@@ -753,7 +768,8 @@ function closed_form_matting_image2D_factory(
         end
         return SImageND($PT.($IT.(alpha)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             args::Vararg{Any},

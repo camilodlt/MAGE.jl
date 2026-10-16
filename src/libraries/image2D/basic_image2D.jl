@@ -13,7 +13,9 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_basic
 
-using ImageCore: clamp01nan!, Normed, float64
+using ..UTCGP: @image_out
+
+using ImageCore: clamp01nan!, clamp01nan, Normed, float64
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -80,7 +82,7 @@ bundle_image2DBinary_basic_factory = FunctionBundle(fallback)
     Returns the identity of the img.   
 """
 function identity_image2D_factory(I::Type{<:SI}) where {SI <: SizedImage{S, T}} where {S, T}
-    return @eval function (img::$I, args::Vararg{Any})
+    return @eval @image_out function (img::$I, args::Vararg{Any})
         return identity(img)
     end
 end
@@ -101,7 +103,11 @@ function ones_2D_factory(i::Type{I}) where {I <: SizedImage2D{SIZE}} where {SIZE
     """
     Returns a matrix of ones.
     """
-    m1 = @eval (args::Vararg{Any},) -> begin
+    m1 = @eval @image_out (args::Vararg{Any},) -> begin
+        if out !== nothing
+            fill!(out.img,$PT(one($IT)))
+            return out
+        end
         return SImageND($PT.(ones($IT, $S1, $S2)), $S)
     end
     return m1
@@ -121,7 +127,11 @@ function zeros_2D_factory(i::Type{I}) where {I <: SizedImage2D}
 
     Returns a matrix of zeros in the type needed.
     """
-    return @eval ((img::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    return @eval @image_out ((img::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+        if out !== nothing
+            fill!(out.img,$PT(zero($IT)))
+            return out
+        end
         return SImageND($PT.(zeros($IT, $S1, $S2)), $S)
     end
 end
@@ -137,7 +147,13 @@ function experimental_invert_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     # S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    return @eval @image_out function (img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+        if out !== nothing
+            for i in eachindex(out.img,img.img)
+                out.img[i] = $PT(clamp01nan(abs(1.0-Float64(img.img[i]))))
+            end
+            return out
+        end
         inv_ = abs.(1.0 .- float64.(img))
         clamp01nan!(inv_)
         return SImageND($PT.(inv_), $S)
@@ -186,7 +202,8 @@ end
 function experimental_normalize_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function (img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         normalized_img = _normalize_img(img)
         clamp01nan!(normalized_img)
         return SImageND($PT.(normalized_img), $S)
@@ -196,7 +213,8 @@ end
 function experimental_standardize_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function (img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
         normalized_img = _standardise_img(img)
         clamp01nan!(normalized_img)
         return SImageND($PT.(normalized_img), $S)
@@ -218,7 +236,8 @@ end
 function experimental_tobinary_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function (img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
         r = _to_binary(img)
         return SImageND(r, $S)
     end
@@ -227,7 +246,8 @@ end
 function experimental_tobinary_th_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function (img::CONCT, th::Float64, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
         r = _to_binary(img, th)
         return SImageND(r, $S)
     end
@@ -251,7 +271,8 @@ end
 function experimental_tointensity_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function (img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
         r = _to_intensity(img, $(IT))
         return SImageND(r, $S)
     end
@@ -264,7 +285,8 @@ end
 function experimental_tosegment_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE, SegmentPixel{ST}}} where {SIZE, ST}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), BinaryPixel{T}}} where {T}
+    # out: copy (the kernel currently allocates its result).
+    return @eval @image_out function (img::CONCT, args::Vararg{Any}) where {CONCT <: SizedImage{$(SIZE), BinaryPixel{T}}} where {T}
         r = _to_segment(img, $IT)
         return SImageND(r, $S)
     end

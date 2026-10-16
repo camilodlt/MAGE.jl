@@ -23,9 +23,14 @@ struct NativeADFIdentity <: Function end
     xs[1]
 end
 
+# A nested ADF that could not become a native frame is still called as a slot;
+# asserting its declared output type keeps the enclosing frame type-stable.
+@inline _native_adf_apply(fn, xs) = fn(xs...)
+@inline _native_adf_apply(fn::ADFSlotFunction, xs) = fn(xs...)::fn.output_type
+
 @inline function _native_adf_call(s::NativeADFCall, xs)
     value = try
-        _typed_cast(s.caster, _typed_invoke(s.fn, xs))
+        _apply_caster(s.caster, _native_adf_apply(s.fn, xs))
     catch
         s.fallback()
     end

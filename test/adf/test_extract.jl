@@ -54,7 +54,7 @@ end
             PopulationSequentialProgram(seq)
         end
         g=callgraph()
-        @test TypedPopulationWorkspace(g)!==nothing
+        @test TypedEvaluator(g) isa TypedEvaluator
         evaluate_population_into!(zeros(1,4),g,samples;check=true)
         @test adf_genome_from_step(f.seq,2,f.arch,f.ml;max_nodes=1)===nothing
         @test adf_step_input_indices(f.seq,2)==[1,2,3]
@@ -68,13 +68,13 @@ end
         end
         g=callgraph()
         @test length(g.steps[1].inputs)==3
-        w=TypedPopulationWorkspace(g;batch_size=2)
+        w=TypedEvaluator(g;batch_size=2)
         @test w!==nothing
         P=zeros(1,4)
-        evaluate_population_into!(P,g,samples;workspace=w,check=true)
+        evaluate_population_into!(P,g,samples;evaluator=w,check=true)
         @test all(i -> P[1,i]===S[2,i],1:4)
         T=zeros(length(g.steps),4)
-        evaluate_population_steps_into!(T,g,samples;workspace=w)
+        evaluate_population_steps_into!(T,g,samples;evaluator=w)
         @test all(i -> T[1,i]===S[2,i],1:4)
         # Only a subset of inputs is remapped; third argument remains unused.
         one=adf_genome_from_step(f.seq,1,f.arch,f.ml)

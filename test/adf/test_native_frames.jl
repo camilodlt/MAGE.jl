@@ -38,17 +38,17 @@ end
             throwing_outer=FunctionWrapper(slot,:outer,x->error("outer caster"),()->-123.0)
             native_outer=FunctionWrapper(UTCGP._population_native_function(slot),:native,x->error("outer caster"),()->-123.0)
             @test all(a -> safe_call(throwing_outer,a...;return_type=Float64) === safe_call(native_outer,a...;return_type=Float64),samples)
-            for caster in (nothing,x->clamp(x,-10000.0,10000.0))
+            for engine in (:tiled,:per_sample), caster in (nothing,x->clamp(x,-10000.0,10000.0))
                 outer=FunctionWrapper(slot,:outer,caster,()->-123.0)
                 g=native_test_graph(outer)
-                w=TypedPopulationWorkspace(g;batch_size=2)
+                w=TypedEvaluator(g;batch_size=2,engine)
                 @test w!==nothing
                 @test w.steps[1].fn isa UTCGP.NativeADFFrame
                 P=zeros(1,length(samples))
-                evaluate_population_into!(P,g,samples;workspace=w,check=true)
+                evaluate_population_into!(P,g,samples;evaluator=w,check=true)
                 @test all(i->P[1,i]===safe_call(outer,samples[i]...;return_type=Float64),eachindex(samples))
                 S=zeros(1,length(samples))
-                evaluate_population_steps_into!(S,g,samples;workspace=w)
+                evaluate_population_steps_into!(S,g,samples;evaluator=w)
                 @test all(i->S[1,i]===P[1,i],eachindex(samples))
             end
         end
@@ -56,21 +56,25 @@ end
         innerwrap=FunctionWrapper(inner,:inner,nothing,()->-1.0)
         outer=native_test_slot(f,native_test_seq(f,[(innerwrap,Float64),(plus,Float64)]),2)
         g=native_test_graph(FunctionWrapper(outer,:outer,nothing,()->-3.0))
-        w=TypedPopulationWorkspace(g)
+        w=TypedEvaluator(g)
         @test w.steps[1].fn.steps[1].fn isa UTCGP.NativeADFFrame
-        evaluate_population_into!(zeros(1,length(samples)),g,samples;workspace=w,check=true)
+        evaluate_population_into!(zeros(1,length(samples)),g,samples;evaluator=w,check=true)
         # Rebuild after nested replacement, wrapper mutation, or empty installation.
         inner.definition=EmptyADFDefinition()
-        w2=TypedPopulationWorkspace(g)
+        w2=TypedEvaluator(g)
         @test w2.steps[1].fn.steps[1].fn isa UTCGP.NativeADFIdentity
-        evaluate_population_into!(zeros(1,length(samples)),g,samples;workspace=w2,check=true)
+        evaluate_population_into!(zeros(1,length(samples)),g,samples;evaluator=w2,check=true)
         innerwrap.caster=x->clamp(x,-1.0,1.0)
-        w3=TypedPopulationWorkspace(g)
+        w3=TypedEvaluator(g)
         @test w3.steps[1].fn !== w2.steps[1].fn
-        evaluate_population_into!(zeros(1,length(samples)),g,samples;workspace=w3,check=true)
+        evaluate_population_into!(zeros(1,length(samples)),g,samples;evaluator=w3,check=true)
         emptyg=native_test_graph(FunctionWrapper(inner,:empty,x->clamp(x,-10000.0,10000.0),()->-1.0))
-        @test TypedPopulationWorkspace(emptyg).steps[1].fn isa UTCGP.NativeADFIdentity
+        @test TypedEvaluator(emptyg).steps[1].fn isa UTCGP.NativeADFIdentity
         evaluate_population_into!(zeros(1,length(samples)),emptyg,samples;check=true)
+        # SAFE_CALL does not change typed evaluation: proven steps cannot hit a MethodError.
+        UTCGP.SAFE_CALL[]=true
+        evaluate_population_into!(zeros(1,length(samples)),emptyg,samples;check=true)
+        UTCGP.SAFE_CALL[]=false
         # Cycle guard: do not execute an intentionally cyclic definition.
         inner.definition=ActiveADFDefinition(f.genome,f.inputs,f.arch,f.ml,native_test_seq(f,[(innerwrap,Float64)]))
         @test UTCGP._population_native_function(inner) === inner
@@ -79,8 +83,6 @@ end
         shared=PopulationSequentialProgram([s,s])
         @test length(shared.steps)==1
         @test shared.individual_outputs[1]==shared.individual_outputs[2]
-        UTCGP.SAFE_CALL[]=true
-        @test TypedPopulationWorkspace(emptyg)===nothing
     finally
         UTCGP.SAFE_CALL[]=old
     end

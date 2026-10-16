@@ -51,6 +51,8 @@ glimpse(img, 0.75, 0.2)   # a 10 × 10 window around column 30, row 9, resized t
 """
 module image2D_zoom
 
+using ..UTCGP: @image_out
+
 using ImageCore: Normed
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -515,7 +517,8 @@ function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K
     function_name = Symbol(operator, :_, Symbol(I))
 
     # (src, binary mask, margin) and (src, binary mask)
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             src::Source,
             mask::Mask,
             margin::Real,
@@ -523,7 +526,8 @@ function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K
         ) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         return SImageND($kernel(src.img, mask.img, IsSet(), clamp_unit(margin, $_DEFAULT_MARGIN)), $size_type)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             src::Source,
             mask::Mask,
             args::Vararg{Any},
@@ -531,7 +535,8 @@ function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K
         return SImageND($kernel(src.img, mask.img, IsSet(), $_DEFAULT_MARGIN), $size_type)
     end
     # (src, intensity saliency map, margin) and (src, saliency): threshold 0.5
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             src::Source,
             saliency::Saliency,
             margin::Real,
@@ -539,7 +544,8 @@ function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K
         ) where {Source<:$I,SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
         return SImageND($kernel(src.img, saliency.img, AtLeast(0.5), clamp_unit(margin, $_DEFAULT_MARGIN)), $size_type)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             src::Source,
             saliency::Saliency,
             args::Vararg{Any},
@@ -549,22 +555,27 @@ function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K
 
     if pixel_type <: BinaryPixel
         # (mask) and (mask, margin): a mask zooms on its own foreground.
-        @eval function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
             return SImageND($kernel(src.img, src.img, IsSet(), $_DEFAULT_MARGIN), $size_type)
         end
-        @eval function $function_name(src::Source, margin::Real, args::Vararg{Any}) where {Source<:$I}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $function_name(src::Source, margin::Real, args::Vararg{Any}) where {Source<:$I}
             return SImageND($kernel(src.img, src.img, IsSet(), clamp_unit(margin, $_DEFAULT_MARGIN)), $size_type)
         end
     elseif pixel_type <: IntensityPixel
         # (img), (img, threshold) and (img, threshold, margin): an intensity
         # image is thresholded to find its own foreground.
-        @eval function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
             return SImageND($kernel(src.img, src.img, AtLeast(0.5), $_DEFAULT_MARGIN), $size_type)
         end
-        @eval function $function_name(src::Source, threshold::Real, args::Vararg{Any}) where {Source<:$I}
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $function_name(src::Source, threshold::Real, args::Vararg{Any}) where {Source<:$I}
             return SImageND($kernel(src.img, src.img, AtLeast(clamp_unit(threshold)), $_DEFAULT_MARGIN), $size_type)
         end
-        @eval function $function_name(
+        # out: copy (the kernel currently allocates its result).
+        @eval @image_out function $function_name(
                 src::Source,
                 threshold::Real,
                 margin::Real,
@@ -592,16 +603,19 @@ function _point_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, Symbol(I))
     # (src, x, y): the point given by two coordinates.
-    fn = @eval function $function_name(src::Source, x::Real, y::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(src::Source, x::Real, y::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, clamp_unit(x), clamp_unit(y)), $size_type)
     end
     # (src, s): a point on the diagonal, x = y = s.
-    @eval function $function_name(src::Source, s::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(src::Source, s::Real, args::Vararg{Any}) where {Source<:$I}
         u = clamp_unit(s)
         return SImageND($kernel(src.img, u, u), $size_type)
     end
     # (src): the image centre.
-    @eval function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
         return SImageND($kernel(src.img, 0.5, 0.5), $size_type)
     end
     return fn
@@ -741,10 +755,12 @@ function _center_factory(::Type{I}) where {I}
     _validate_factory_type(storage_type)
     function_name = Symbol(:zoom_center_, Symbol(I))
     # (img, z): never smaller than 5% of each side.
-    fn = @eval function $function_name(src::Source, z::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(src::Source, z::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND(_zoom_point(src.img, 0.5, 0.5, max(clamp_unit(z), 0.05)), $size_type)
     end
-    @eval function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
         return SImageND(_zoom_point(src.img, 0.5, 0.5, 0.5), $size_type)
     end
     return fn
@@ -765,11 +781,13 @@ function _band_factory(::Type{I}, operator::Symbol, axis::Int) where {I}
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, Symbol(I))
     # (img, a, b): the band between a and b.
-    fn = @eval function $function_name(src::Source, a::Real, b::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(src::Source, a::Real, b::Real, args::Vararg{Any}) where {Source<:$I}
         return SImageND(_zoom_band(src.img, $axis, clamp_unit(a), clamp_unit(b)), $size_type)
     end
     # (img, a): a band from a − 0.125 to a + 0.125 (25% of the image), clipped.
-    @eval function $function_name(src::Source, a::Real, args::Vararg{Any}) where {Source<:$I}
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(src::Source, a::Real, args::Vararg{Any}) where {Source<:$I}
         u = clamp_unit(a)
         return SImageND(_zoom_band(src.img, $axis, max(u - 0.125, 0.0), min(u + 0.125, 1.0)), $size_type)
     end

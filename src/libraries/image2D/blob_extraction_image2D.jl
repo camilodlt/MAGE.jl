@@ -11,6 +11,8 @@ to specialize a factory always determines the output dimensions and pixel type.
 """
 module image2D_blob_extraction
 
+using ..UTCGP: @image_out
+
 using ImageMorphology: label_components, strel_box
 using Statistics: median!
 using ..UTCGP: FunctionBundle, append_method!
@@ -257,7 +259,8 @@ function _binary_geometry_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, selector, :_binary_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             saliency::CONCT,
             threshold_input::Real,
             minimum_area_input::Real,
@@ -272,20 +275,23 @@ function _binary_geometry_factory(
         )
         return SImageND($PT.(selected), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             saliency::CONCT,
             threshold::Real,
             args::Vararg{Any},
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(saliency, threshold, 1, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             saliency::CONCT,
             args::Vararg{Any},
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(saliency, 0.5, 1, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             mask::CONCT,
             minimum_area_input::Real,
             args::Vararg{Any},
@@ -298,7 +304,8 @@ function _binary_geometry_factory(
         )
         return SImageND($PT.(selected), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             mask::CONCT,
             args::Vararg{Any},
         ) where {BT,CONCT<:SizedImage{$S,BinaryPixel{BT}}}
@@ -317,7 +324,8 @@ function _intensity_geometry_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, selector, :_intensity_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::CONCT,
             saliency::SAL,
             threshold_input::Real,
@@ -330,14 +338,16 @@ function _intensity_geometry_factory(
         )
         return SImageND($PT.($IT.(_masked_values(image, selected))), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             saliency::SAL,
             args::Vararg{Any},
         ) where {CONCT<:$I,ST,SAL<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(image, saliency, 0.5, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             mask::MASK,
             minimum_area_input::Real,
@@ -351,7 +361,8 @@ function _intensity_geometry_factory(
         )
         return SImageND($PT.($IT.(_masked_values(image, selected))), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             mask::MASK,
             args::Vararg{Any},
@@ -370,7 +381,8 @@ function _binary_area_between_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_size_between_binary_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             saliency::CONCT,
             first_area_input::Real,
             second_area_input::Real,
@@ -386,13 +398,15 @@ function _binary_area_between_factory(
         )
         return SImageND($PT.(selected), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             saliency::CONCT,
             args::Vararg{Any},
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(saliency, 1, length(saliency), args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             mask::CONCT,
             first_area_input::Real,
             second_area_input::Real,
@@ -404,7 +418,8 @@ function _binary_area_between_factory(
         selected = _select_area_between(_binary_mask(mask), minimum_area, maximum_area)
         return SImageND($PT.(selected), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             mask::CONCT,
             args::Vararg{Any},
         ) where {BT,CONCT<:SizedImage{$S,BinaryPixel{BT}}}
@@ -424,7 +439,8 @@ function _binary_statistic_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, direction, :_, statistic, :_binary_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::IMG,
             saliency::SAL,
             threshold_input::Real,
@@ -442,7 +458,8 @@ function _binary_statistic_factory(
         )
         return SImageND($PT.(selected), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::IMG,
             saliency::SAL,
             args::Vararg{Any},
@@ -453,7 +470,8 @@ function _binary_statistic_factory(
         }
         return $function_name(image, saliency, 0.5, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::IMG,
             mask::MASK,
             args::Vararg{Any},
@@ -484,7 +502,8 @@ function _intensity_statistic_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, direction, :_, statistic, :_intensity_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::CONCT,
             saliency::SAL,
             threshold_input::Real,
@@ -498,14 +517,16 @@ function _intensity_statistic_factory(
         )
         return SImageND($PT.($IT.(_masked_values(image, selected))), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             saliency::SAL,
             args::Vararg{Any},
         ) where {CONCT<:$I,SST,SAL<:SizedImage{$S,IntensityPixel{SST}}}
         return $function_name(image, saliency, 0.5, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::CONCT,
             mask::MASK,
             args::Vararg{Any},

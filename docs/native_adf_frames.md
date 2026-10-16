@@ -1,6 +1,6 @@
 # Native ADF call frames
 
-Population typed workspaces automatically lower supported ADF definitions into
+Typed population evaluators automatically lower supported ADF definitions into
 `NativeADFFrame` objects. A generated function substitutes formal input refs
 and temporary refs with Julia arguments and local assignments. Nested ADFs
 are lowered recursively. Constants and wrapper objects are runtime fields;
@@ -24,10 +24,10 @@ The original `SequentialProgram`, population IR and generic interpreter remain
 unchanged. `check=true` therefore compares against the **non-native, non-inlined**
 ADF interpreter element by element using `===`. Cached wrappers, SAFE_CALL,
 non-IR definitions and cyclic/unsupported nested definitions retain that path.
-As before, rebuild a typed workspace after changing definitions or wrappers.
+As before, rebuild the typed evaluator after changing definitions or wrappers.
 The weak slot cache revalidates nested definitions, body refs, wrapper functions,
-casters, fallbacks and policies whenever a new workspace is built; construction
-is protected by a reentrant lock. One workspace memoizes each slot once.
+casters, fallbacks and policies whenever a new evaluator is built; construction
+is protected by a reentrant lock. Native frames are cached per slot.
 
 ## Genome metadata and harvesting
 
@@ -36,7 +36,7 @@ No synthetic body steps are exposed in either sequential or population IR.
 `sequential_step_values`, node credits and `adf_genome_from_step` operate in their
 original step order; a harvested ADF call remains a call in the extracted genome.
 Runner candidate DAG builders and harvest builders need no separate expansion
-logic: both use the same typed workspace lowering.
+logic: both use the same native-frame lowering.
 
 ## Limits
 

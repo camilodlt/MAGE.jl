@@ -103,12 +103,13 @@ Modules = [UTCGP]
 Pages = ["programs/compile/population_sequential_program.jl"]
 ```
 
-### Typed population workspaces and step values
+### Typed evaluation and step values
 
-The matrix API writes one scalar output per individual and sample into reusable
-storage. Prepare a separate workspace per concurrent evaluation and rebuild it
-when the program or its wrappers change. Unsupported graphs use the generic
-interpreter; a concrete primitive return type enables the typed path.
+See [Typed population evaluation](typed_population_engines.md) for the API,
+proven types, engine selection, buffer pools, timing and ISA-CGP step values.
+
+Build one `TypedEvaluator` per task and generation, with that task's
+`BufferPool`. A graph whose types cannot be proven throws `TypedEvaluationError`.
 
 ```@autodocs
 Modules = [UTCGP]

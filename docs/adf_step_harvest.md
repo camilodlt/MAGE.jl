@@ -4,7 +4,7 @@ Public APIs:
 
 ```julia
 evaluate_population_steps_into!(S::Matrix{Float64}, program::PopulationSequentialProgram,
-                                samples; workspace=nothing)
+                                samples; evaluator=nothing)
 sequential_step_values(prog::SequentialProgram, samples)
 adf_step_input_indices(prog::SequentialProgram, step_index::Int)
 adf_genome_from_step(prog::SequentialProgram, step_index::Int,
@@ -19,9 +19,9 @@ All are exported. `sequential_step_values` returns `(steps_by_samples, original_
 in the compiled program's step order, including output operations. Both harvest APIs
 write NaN for non-Float64 steps. Population steps are structurally deduplicated;
 single-program rows preserve repeated local steps. Samples are tuples of input values.
-A typed workspace is thread-local and must be rebuilt after changing graph/wrappers
-or installing a definition with a different slot signature. SAFE_CALL, cached wrappers,
-abstract types, and other unsupported typed graphs use the generic interpreter.
+A typed evaluator belongs to one task and must be rebuilt after changing graph/wrappers
+or installing a definition with a different slot signature. Graphs whose types cannot be
+proven (cached wrappers, abstract types, ...) throw `TypedEvaluationError`.
 
 Extraction returns only the independent definition genome, or `nothing` when the
 limits are exceeded or the cone contains a non-Float64 value. Inputs are mapped in

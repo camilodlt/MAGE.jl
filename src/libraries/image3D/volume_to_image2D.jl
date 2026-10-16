@@ -36,6 +36,8 @@ slice(vol, 0.0)   # slice 1;  slice(vol, 1.0) is slice 16, slice(vol, 0.5) slice
 """
 module image3D_to_image2D
 
+using ..UTCGP: @image_out
+
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     BinaryPixel,
@@ -321,33 +323,39 @@ function _bridge_factory(::Type{I}, operator::Symbol, axis::Int, kernel::K, form
     for form in forms
         f = if form === :intensity
             # op(intensity_vol, extra...)
-            @eval function $name(vol::Vol, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}}}
+            # out: copy (the kernel currently allocates its result).
+            @eval @image_out function $name(vol::Vol, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol)), $size_type)
             end
         elseif form === :binary
             # op(binary_vol, extra...)
-            @eval function $name(vol::Vol, args::Vararg{Any}) where {N,VolBool,Vol<:SizedImage{$volume_size,BinaryPixel{VolBool}}}
+            # out: copy (the kernel currently allocates its result).
+            @eval @image_out function $name(vol::Vol, args::Vararg{Any}) where {N,VolBool,Vol<:SizedImage{$volume_size,BinaryPixel{VolBool}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol)), $size_type)
             end
         elseif form === :intensity_scalar
             # op(intensity_vol, u, extra...), u clamped to [0, 1]
-            @eval function $name(vol::Vol, u::Real, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}}}
+            # out: copy (the kernel currently allocates its result).
+            @eval @image_out function $name(vol::Vol, u::Real, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol, clamp_unit(u))), $size_type)
             end
         elseif form === :binary_scalar
             # op(binary_vol, u, extra...)
-            @eval function $name(vol::Vol, u::Real, args::Vararg{Any}) where {N,VolBool,Vol<:SizedImage{$volume_size,BinaryPixel{VolBool}}}
+            # out: copy (the kernel currently allocates its result).
+            @eval @image_out function $name(vol::Vol, u::Real, args::Vararg{Any}) where {N,VolBool,Vol<:SizedImage{$volume_size,BinaryPixel{VolBool}}}
                 return SImageND(_to_image($pixel_type, $kernel(vol, clamp_unit(u))), $size_type)
             end
         elseif form === :intensity_mask
             # The size pattern lets the volume and mask differ along the collapsed axis, hence the check.
             # op(intensity_vol, binary_mask, extra...)
-            @eval function $name(vol::Vol, mask::Mask, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}},MaskBool,Mask<:SizedImage{$volume_size,BinaryPixel{MaskBool}}}
+            # out: copy (the kernel currently allocates its result).
+            @eval @image_out function $name(vol::Vol, mask::Mask, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}},MaskBool,Mask<:SizedImage{$volume_size,BinaryPixel{MaskBool}}}
                 size(vol) == size(mask) || throw(DimensionMismatch("volume and mask must have the same size"))
                 return SImageND(_to_image($pixel_type, $kernel(vol, voxel_foreground(:bridge_mask, mask.img, IsSet()))), $size_type)
             end
             # op(intensity_vol, intensity_mask, extra...): mask voxels ≥ 0.5 are inside
-            @eval function $name(vol::Vol, mask::Mask, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}},MaskStorage,Mask<:SizedImage{$volume_size,IntensityPixel{MaskStorage}}}
+            # out: copy (the kernel currently allocates its result).
+            @eval @image_out function $name(vol::Vol, mask::Mask, args::Vararg{Any}) where {N,VolStorage,Vol<:SizedImage{$volume_size,IntensityPixel{VolStorage}},MaskStorage,Mask<:SizedImage{$volume_size,IntensityPixel{MaskStorage}}}
                 size(vol) == size(mask) || throw(DimensionMismatch("volume and mask must have the same size"))
                 return SImageND(_to_image($pixel_type, $kernel(vol, voxel_foreground(:bridge_mask, mask.img, AtLeast(0.5)))), $size_type)
             end

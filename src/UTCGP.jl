@@ -184,8 +184,11 @@ module UTCGP
     include("programs/evaluate.jl")
     include("programs/compile/compile_program.jl")
     include("programs/compile/population_sequential_program.jl")
+    include("programs/compile/typed_population_buffers.jl")
     include("programs/compile/typed_population.jl")
-    export evaluate_population_into!, TypedPopulationWorkspace
+    include("programs/compile/typed_population_tiled.jl")
+    include("programs/compile/typed_population_per_sample.jl")
+    export evaluate_population_into!, TypedEvaluator, BufferPool, TypedEvaluationError
 
     export InputPromise, OperationInput, Operation, Program
     export SequentialProgram, SequentialCallStep, SequentialConstantStep, SequentialOutput

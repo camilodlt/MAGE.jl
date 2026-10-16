@@ -9,6 +9,8 @@ The exhaustive operator list is on the [Bundle Catalogue](@ref) page.
 """
 module image2D_foreground_extraction_discrete
 
+using ..UTCGP: @image_out
+
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
 using ImageFiltering: Kernel, imfilter
 using ImageMorphology: distance_transform, feature_transform, label_components
@@ -968,7 +970,8 @@ function boykov_jolly_foreground_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:boykov_jolly_foreground_image2D_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             smoothness_input::Real,
@@ -990,7 +993,8 @@ function boykov_jolly_foreground_image2D_factory(
         )
         return SImageND($PT.($IT.(mask)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             args::Vararg{Any},
@@ -1002,7 +1006,8 @@ function boykov_jolly_foreground_image2D_factory(
         }
         return $function_name(image, saliency, 5.0, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             smoothness_input::Real,
             foreground_quantile_input::Real,
@@ -1023,21 +1028,24 @@ function boykov_jolly_foreground_image2D_factory(
         )
         return SImageND($PT.($IT.(mask)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             smoothness::Real,
             args::Vararg{Any},
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(image, smoothness, 0.9, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             args::Vararg{Any},
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(image, 5.0, 0.9, args...)
     end
     # Seeds from a rough mask (e.g. a threshold) and an uncertainty band.
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
@@ -1049,7 +1057,8 @@ function boykov_jolly_foreground_image2D_factory(
         end
         return SImageND($PT.($IT.(result)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             args::Vararg{Any},
@@ -1111,7 +1120,8 @@ function grabcut_foreground_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:grabcut_foreground_image2D_, Symbol(I))
 
-    fn = @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    fn = @eval @image_out function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             iterations_input::Real,
@@ -1134,7 +1144,8 @@ function grabcut_foreground_image2D_factory(
         )
         return SImageND($PT.($IT.(mask)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             args::Vararg{Any},
@@ -1146,7 +1157,8 @@ function grabcut_foreground_image2D_factory(
         }
         return $function_name(image, saliency, 2.0, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             iterations_input::Real,
             smoothness_input::Real,
@@ -1168,21 +1180,24 @@ function grabcut_foreground_image2D_factory(
         )
         return SImageND($PT.($IT.(mask)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             iterations::Real,
             args::Vararg{Any},
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(image, iterations, 5.0, args...)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             args::Vararg{Any},
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(image, 2.0, 5.0, args...)
     end
     # Seeds from a rough mask and an uncertainty band; the mask is also the initial guess.
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
@@ -1195,7 +1210,8 @@ function grabcut_foreground_image2D_factory(
         end
         return SImageND($PT.($IT.(result)), $S)
     end
-    @eval function $function_name(
+    # out: copy (the kernel currently allocates its result).
+    @eval @image_out function $function_name(
             image::SOURCE,
             mask::MASK,
             args::Vararg{Any},
