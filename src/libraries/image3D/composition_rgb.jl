@@ -7,6 +7,8 @@ Cross-chromosome composition of typed 2D intensity images and RGB images.
 """
 module image3D_rgb_composition
 
+# Call tree: generated factory callable → pixel loop below → store_rgb!.
+# Direct pixel-field reads preserve values without ReinterpretArray indexing.
 using ..UTCGP: image_result
 
 using ..UTCGP: FunctionBundle, append_method!
@@ -43,73 +45,80 @@ bundle_image3DIntensity_rgb_composition_factory = FunctionBundle(fallback)
 
 @inline _finite01(value::Real) = isfinite(value) ? clamp(Float64(value), 0.0, 1.0) : 0.0
 
+"""Store one converted channel; e.g. 0.5 becomes the destination pixel type."""
 @inline function store_rgb!(destination, index, value)
     P = eltype(destination)
     T = fieldtype(P, 1)
     destination[index] = P(T(value))
 end
 
+"""Combine planes; e.g. (0.2, 0.4, 0.6) becomes one RGB pixel."""
 function compose_rgb!(destination, red, green, blue)
-    planes = (reinterpret(fieldtype(eltype(red.img), 1), red.img), reinterpret(fieldtype(eltype(green.img), 1), green.img), reinterpret(fieldtype(eltype(blue.img), 1), blue.img))
+    planes = (red.img, green.img, blue.img)
     @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
-        store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(planes[channel][row, col]))
+        store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(planes[channel][row, col].pixel))
     end
     return destination
 end
 
+"""Replicate gray; e.g. 0.5 becomes (0.5, 0.5, 0.5)."""
 function gray_to_rgb!(destination, gray)
-    source = reinterpret(fieldtype(eltype(gray.img), 1), gray.img)
+    source = gray.img
     @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
-        store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(source[row, col]))
+        store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(source[row, col].pixel))
     end
     return destination
 end
 
+"""Replace one plane; e.g. replacing red of (0, 0, 0) by 1 yields (1, 0, 0)."""
 function replace_channel!(destination, rgb, plane, selected_channel)
-    source = reinterpret(fieldtype(eltype(rgb.img), 1), rgb.img)
-    replacement = reinterpret(fieldtype(eltype(plane.img), 1), plane.img)
+    source = rgb.img
+    replacement = plane.img
     @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
-        value = source[row, col, channel]
+        value = source[row, col, channel].pixel
         if channel == selected_channel
-            value = replacement[row, col]
+            value = replacement[row, col].pixel
         end
         store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(value))
     end
     return destination
 end
 
+"""Scale channels; e.g. (1, 0, 0) times 0.5 yields (0.5, 0, 0)."""
 function multiply_rgb_intensity!(destination, rgb, mask)
-    source = reinterpret(fieldtype(eltype(rgb.img), 1), rgb.img)
-    weights = reinterpret(fieldtype(eltype(mask.img), 1), mask.img)
+    source = rgb.img
+    weights = mask.img
     @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
-        value = _finite01(source[row, col, channel]) * _finite01(weights[row, col])
+        value = _finite01(source[row, col, channel].pixel) * _finite01(weights[row, col].pixel)
         store_rgb!(destination, CartesianIndex(row, col, channel), value)
     end
     return destination
 end
 
+"""Blend channels; e.g. white and black with alpha 0.5 yield gray 0.5."""
 function alpha_blend_rgb!(destination, foreground, background, alpha)
-    front = reinterpret(fieldtype(eltype(foreground.img), 1), foreground.img)
-    back = reinterpret(fieldtype(eltype(background.img), 1), background.img)
-    weights = reinterpret(fieldtype(eltype(alpha.img), 1), alpha.img)
+    front = foreground.img
+    back = background.img
+    weights = alpha.img
     @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
-        weight = _finite01(weights[row, col])
-        value = weight * _finite01(front[row, col, channel]) +
-            (1.0 - weight) * _finite01(back[row, col, channel])
+        weight = _finite01(weights[row, col].pixel)
+        value = weight * _finite01(front[row, col, channel].pixel) +
+            (1.0 - weight) * _finite01(back[row, col, channel].pixel)
         store_rgb!(destination, CartesianIndex(row, col, channel), value)
     end
     return destination
 end
 
+"""Shift luminance; e.g. black with target 0.5 yields (0.5, 0.5, 0.5)."""
 function set_luminance_rgb!(destination, rgb, luminance)
-    source = reinterpret(fieldtype(eltype(rgb.img), 1), rgb.img)
-    target = reinterpret(fieldtype(eltype(luminance.img), 1), luminance.img)
+    source = rgb.img
+    target = luminance.img
     @inbounds for col in axes(destination, 2), row in axes(destination, 1)
-        red = _finite01(source[row, col, 1])
-        green = _finite01(source[row, col, 2])
-        blue = _finite01(source[row, col, 3])
+        red = _finite01(source[row, col, 1].pixel)
+        green = _finite01(source[row, col, 2].pixel)
+        blue = _finite01(source[row, col, 3].pixel)
         current = 0.2126 * red + 0.7152 * green + 0.0722 * blue
-        difference = _finite01(target[row, col]) - current
+        difference = _finite01(target[row, col].pixel) - current
         for (channel, value) in enumerate((red, green, blue))
             store_rgb!(destination, CartesianIndex(row, col, channel), clamp(value + difference, 0.0, 1.0))
         end

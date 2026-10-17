@@ -36,6 +36,46 @@ it explicitly with `get_extension_spatial_rgbimg`.
 """
 bundle_image3DIntensity_spatial_rgb_factory = FunctionBundle(fallback)
 
+# Kernel call tree: parameter clamp → _cached_kernel! → original builder.
+# Filtering still receives the same dense kernels and chooses its own algorithm.
+const _KERNEL_LOCK = ReentrantLock()
+const _GAUSSIAN_CACHE = Dict{Float64,typeof(Kernel.gaussian(1.0))}()
+const _CenteredKernel = typeof(centered(ones(1, 1)))
+const _BOX_CACHE = Dict{Int,_CenteredKernel}()
+const _GABOR_CACHE = Dict{Tuple{Float64,Float64},Tuple{_CenteredKernel,_CenteredKernel}}()
+const _KERNEL_CACHE_LIMIT = 64
+
+"""
+Reuse an exact kernel under a lock, retaining at most 64 parameter values per
+cache. For example, two requests for Gaussian σ=1 reuse the same kernel.
+The builders run under the lock so concurrent misses never duplicate work;
+returned kernels are read-only throughout this module.
+"""
+function _cached_kernel!(build::F, cache::Dict{K,V}, key::K)::V where {F,K,V}
+    lock(_KERNEL_LOCK) do
+        if haskey(cache, key)
+            return cache[key]
+        end
+        kernel = build()
+        if length(cache) >= _KERNEL_CACHE_LIMIT
+            empty!(cache)
+        end
+        cache[key] = kernel
+        return kernel
+    end
+end
+
+"""Exact cached Gaussian; for example, σ=1 has the original `Kernel.gaussian(1.0)` weights."""
+_gaussian_kernel(sigma::Float64) = _cached_kernel!(() -> Kernel.gaussian(sigma), _GAUSSIAN_CACHE, sigma)
+
+"""Exact cached box; for example, radius 1 produces a 3×3 matrix of `1/9`."""
+function _box_kernel(radius::Int)
+    return _cached_kernel!(_BOX_CACHE, radius) do
+        width = 2radius + 1
+        centered(fill(1.0 / width^2, width, width))
+    end
+end
+
 const _RGB_SOBEL_Y, _RGB_SOBEL_X = reflect.(Kernel.sobel())
 const _RGB_LAPLACIAN = reflect(convert(AbstractArray, Kernel.Laplacian((true, true))))
 
@@ -79,8 +119,10 @@ _plane(key::Symbol, values::Array{Float64,3}) = scratch(key, Float64, size(value
 Convolve one channel with `kernel`, reflected border, into `destination`.
 """
 function _filter_plane!(destination, plane, kernel)
-    # TODO speed: imfilter! pads the plane into a new array on every call; a
-    # padded working array kept across calls would remove that allocation.
+    # TODO speed: imfilter! pads the plane into a new array on every call; the
+    # public imfilter! API does not accept a reusable padding buffer.
+    # TODO speed: dense-kernel factorization and FFT workspaces also remain
+    # internal; changing factors or algorithms can change floating-point bits.
     return imfilter!(destination, plane, kernel, "reflect")
 end
 
@@ -134,22 +176,24 @@ function _laplacian_magnitude!(result, source)
     return result
 end
 
-"Gaussian blur of each channel, `σ` clamped to `[0.3, 4]` (NaN → 1)."
+"""Gaussian blur of each channel, `σ` clamped to `[0.3, 4]` (NaN → 1).
+Example: a constant 0.5 plane stays constant, up to the original filter rounding."""
 function _gaussian_blur!(result, source, sigma_input::Real)
     sigma = _finite_clamp(sigma_input, 0.3, 4.0, 1.0)
-    return _filter_channels!(result, source, Kernel.gaussian(sigma))
+    return _filter_channels!(result, source, _gaussian_kernel(sigma))
 end
 
 """
 Per channel, `|G(σ_small) − G(σ_large)|` divided by its maximum; σ1 and σ2
 are clamped to `[0.3, 4]` (defaults 0.8 and 1.6) and sorted.
+Example: equal sigmas produce zero energy.
 """
 function _difference_of_gaussians!(result, source, sigma1_input::Real, sigma2_input::Real)
     sigma1 = _finite_clamp(sigma1_input, 0.3, 4.0, 0.8)
     sigma2 = _finite_clamp(sigma2_input, 0.3, 4.0, 1.6)
     small_sigma, large_sigma = minmax(sigma1, sigma2)
-    small = _filter_channels!(result, source, Kernel.gaussian(small_sigma))
-    large = _filter_channels!(scratch(:rgb_large, Float64, size(source)...), source, Kernel.gaussian(large_sigma))
+    small = _filter_channels!(result, source, _gaussian_kernel(small_sigma))
+    large = _filter_channels!(scratch(:rgb_large, Float64, size(source)...), source, _gaussian_kernel(large_sigma))
     small .= abs.(small .- large)
     for c in 1:3
         _normalize_energy!(_channel(result, c))
@@ -159,12 +203,12 @@ end
 
 """
 Unsharp masking `v + amount · (v − G(σ))`, σ clamped to `[0.3, 4]` (NaN → 1)
-and amount to `[0, 3]` (NaN → 1).
+and amount to `[0, 3]` (NaN → 1). Example: amount 0 preserves the input.
 """
 function _unsharp_mask!(result, source, sigma_input::Real, amount_input::Real)
     sigma = _finite_clamp(sigma_input, 0.3, 4.0, 1.0)
     amount = _finite_clamp(amount_input, 0.0, 3.0, 1.0)
-    blurred = _filter_channels!(result, source, Kernel.gaussian(sigma))
+    blurred = _filter_channels!(result, source, _gaussian_kernel(sigma))
     blurred .= source .+ amount .* (source .- blurred)
     return result
 end
@@ -174,10 +218,10 @@ end
 
 Mean and variance of `plane` over the `(2r+1)²` window around each pixel
 (reflected border); variances at or below `1e-12` are set to `0`.
+Example: an all-zero plane has zero mean and variance.
 """
 function _local_moments!(local_mean, local_variance, plane, radius::Int)
-    width = 2radius + 1
-    box = centered(fill(1.0 / width^2, width, width))
+    box = _box_kernel(radius)
     _filter_plane!(local_mean, plane, box)
     squares = _plane(:rgb_squares, local_mean)
     squares .= plane .^ 2
@@ -231,6 +275,12 @@ function _gabor_kernels(orientation_input::Real, wavelength_input::Real)
     raw_orientation = Float64(orientation_input)
     orientation = isfinite(raw_orientation) ? mod(raw_orientation, π) : 0.0
     wavelength = _finite_clamp(wavelength_input, 2.0, 8.0, 4.0)
+    return _cached_kernel!(() -> _build_gabor_kernels(orientation, wavelength),
+        _GABOR_CACHE, (orientation, wavelength))
+end
+
+"""Build the original normalized pair; e.g. `(0.0, 4.0)` gives two 9×9 kernels."""
+function _build_gabor_kernels(orientation::Float64, wavelength::Float64)
     sigma = wavelength / 2
     radius = ceil(Int, 2sigma)
     real_kernel = Matrix{Float64}(undef, 2radius + 1, 2radius + 1)

@@ -7,7 +7,11 @@ Shape-preserving arithmetic and masking for typed RGB images.
 """
 module image3D_rgb
 
-using ..UTCGP: @image_out
+using ..UTCGP: @image_out, output_pixels, image_result, scratch
+using ImageCore: N0f8
+
+# Call tree: generated factory callable → destination image → direct pixel loop.
+# Both allocating and `out` calls use the same arithmetic/conversion order.
 
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -81,54 +85,36 @@ function return_rgb_image3D_factory(
             fill!(out.img,$PT(one($IT)))
             return out
         end
-        return SImageND($PT.(ones($IT, $S1, $S2, 3)), $S)
+        return SImageND(fill($PT(one($IT)), $S1, $S2, 3), $S)
     end
     return fn
 end
 
+"""Specialize a direct pixel loop; e.g. addition of 0.8 and 0.4 saturates to 1."""
 function _rgb_arithmetic_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
+    operation in (:add, :subtract, :multiply, :maximum, :minimum) || throw(ArgumentError("Unsupported RGB arithmetic operation: $operation"))
     IT = _get_image_type(I)
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(function_name_prefix, :_, Symbol(I))
-    calculation = if operation === :add
-        :(left .+ right)
-    elseif operation === :subtract
-        :(left .- right)
-    elseif operation === :multiply
-        :(left .* right)
-    elseif operation === :maximum
-        :(max.(left, right))
-    elseif operation === :minimum
-        :(min.(left, right))
-    else
-        throw(ArgumentError("Unsupported RGB arithmetic operation: $operation"))
-    end
-
     pixel_operation = operation === :add ? (+) : operation === :subtract ? (-) :
         operation === :multiply ? (*) : operation === :maximum ? max : min
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image1::CONCT,
             image2::CONCT,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I}
-        if out !== nothing
-            for i in eachindex(out.img,image1.img,image2.img)
-                value = $pixel_operation(Float64(image1.img[i]),Float64(image2.img[i]))
-                out.img[i] = $PT($IT(clamp(value,0.0,1.0)))
-            end
-            return out
+        pixels = output_pixels(out, image1)
+        @inbounds for i in eachindex(pixels, image1.img, image2.img)
+            value = $pixel_operation(Float64(image1.img[i]), Float64(image2.img[i]))
+            pixels[i] = $PT($IT(clamp(value, 0.0, 1.0)))
         end
-        left = Float64.(reinterpret(image1.img))
-        right = Float64.(reinterpret(image2.img))
-        values = $calculation
-        clamped = clamp.(values, 0.0, 1.0)
-        return SImageND($PT.($IT.(clamped)), $S)
+        return image_result(out, pixels, $S)
     end
     return fn
 end
@@ -197,10 +183,11 @@ function min_image3D_factory(
 end
 
 # These channel operations do not need temporary Float64 images. Keep the same
-# arithmetic and conversion order as the allocating implementation below.
-function _unary_rgb_into!(out,image,operation)
+# arithmetic and conversion order for allocating and buffered calls.
+"""Write a color transform; e.g. inversion maps (0, 0.5, 1) to (1, 0.5, 0)."""
+function _unary_rgb_into!(out,image,::Val{operation}) where {operation}
     PT, IT = eltype(out.img), _get_image_type(out)
-    for col in axes(image.img,2), row in axes(image.img,1)
+    @inbounds for col in axes(image.img,2), row in axes(image.img,1)
         r,g,b = (Float64(image.img[row,col,k]) for k in 1:3)
         channels = if operation === :invert
             (1.0-r,1.0-g,1.0-b)
@@ -225,79 +212,50 @@ function _unary_rgb_into!(out,image,operation)
     return out
 end
 
+"""Specialize the color loop; e.g. grayscale repeats the same luminance three times."""
 function _unary_rgb_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
+    operation in (:invert, :grayscale, :keep_red, :keep_green, :keep_blue, :rotate_left, :rotate_right) || throw(ArgumentError("Unsupported RGB unary operation: $operation"))
     IT = _get_image_type(I)
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(function_name_prefix, :_, Symbol(I))
-    calculation = if operation === :invert
-        :(output = 1.0 .- source)
-    elseif operation === :grayscale
-        quote
-            output = similar(source)
-            @inbounds for col in axes(source, 2), row in axes(source, 1)
-                luminance = 0.2126 * source[row, col, 1] +
-                    0.7152 * source[row, col, 2] +
-                    0.0722 * source[row, col, 3]
-                output[row, col, 1] = luminance
-                output[row, col, 2] = luminance
-                output[row, col, 3] = luminance
-            end
-        end
-    elseif operation === :keep_red
-        quote
-            output = zeros(Float64, size(source))
-            output[:, :, 1] .= source[:, :, 1]
-        end
-    elseif operation === :keep_green
-        quote
-            output = zeros(Float64, size(source))
-            output[:, :, 2] .= source[:, :, 2]
-        end
-    elseif operation === :keep_blue
-        quote
-            output = zeros(Float64, size(source))
-            output[:, :, 3] .= source[:, :, 3]
-        end
-    elseif operation === :rotate_left
-        quote
-            output = similar(source)
-            output[:, :, 1] .= source[:, :, 2]
-            output[:, :, 2] .= source[:, :, 3]
-            output[:, :, 3] .= source[:, :, 1]
-        end
-    elseif operation === :rotate_right
-        quote
-            output = similar(source)
-            output[:, :, 1] .= source[:, :, 3]
-            output[:, :, 2] .= source[:, :, 1]
-            output[:, :, 3] .= source[:, :, 2]
-        end
-    else
-        throw(ArgumentError("Unsupported unary RGB operation: $operation"))
-    end
-
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::CONCT,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I}
-        if out !== nothing
-            return _unary_rgb_into!(out,image,$(QuoteNode(operation)))
-        end
-        source = Float64.(reinterpret(image.img))
-        $calculation
-        clamped = clamp.(output, 0.0, 1.0)
-        return SImageND($PT.($IT.(clamped)), $S)
+        pixels = output_pixels(out, image)
+        destination = image_result(out, pixels, $S)
+        return _unary_rgb_into!(destination,image,Val($(QuoteNode(operation))))
     end
     return fn
 end
 
-function _adjust_rgb_into!(out,image,raw_parameter,operation)
+# Gamma call tree for N0f8: parameter clamp → task-local 256-pixel table
+# → _gamma_u8_into! → direct output lookup. Other types retain scalar arithmetic.
+"""
+Apply gamma to an N0f8 image using its 256 possible inputs. Each table entry
+uses the original Float64 power, clamp and pixel conversion; only repeated
+identical work is removed. For example, gamma 1 maps every byte to itself.
+"""
+function _gamma_u8_into!(pixels, source, parameter, table)
+    P = eltype(pixels)
+    @inbounds for raw in 0:255
+        value = Float64(reinterpret(N0f8, UInt8(raw)))
+        table[raw + 1] = P(N0f8(clamp(value^parameter, 0.0, 1.0)))
+    end
+    @inbounds for index in eachindex(pixels, source)
+        pixels[index] = table[Int(reinterpret(UInt8, source[index].pixel)) + 1]
+    end
+    return pixels
+end
+
+"""Write an adjustment; e.g. brightness 0.2 maps black to (0.2, 0.2, 0.2)."""
+function _adjust_rgb_into!(out,image,raw_parameter,::Val{operation}) where {operation}
     PT, IT = eltype(out.img), _get_image_type(out)
     parameter = if operation === :brightness
         isfinite(raw_parameter) ? clamp(raw_parameter,-1.0,1.0) : 0.0
@@ -306,85 +264,58 @@ function _adjust_rgb_into!(out,image,raw_parameter,operation)
     else
         isfinite(raw_parameter) ? clamp(raw_parameter,0.0,4.0) : 1.0
     end
-    for col in axes(image.img,2), row in axes(image.img,1)
-        luminance = operation === :saturation ?
-            0.2126*Float64(image.img[row,col,1]) +
-            0.7152*Float64(image.img[row,col,2]) +
-            0.0722*Float64(image.img[row,col,3]) : 0.0
-        for k in 1:3
-            source = Float64(image.img[row,col,k])
-            value = operation === :brightness ? source+parameter :
-                operation === :contrast ? 0.5+parameter*(source-0.5) :
-                operation === :saturation ? luminance+parameter*(source-luminance) :
+    if operation === :gamma && IT === N0f8
+        table = scratch(:rgb_gamma_lookup, PT, 256)
+        _gamma_u8_into!(out.img, image.img, parameter, table)
+        return out
+    end
+    if operation === :saturation
+        @inbounds for col in axes(image.img, 2), row in axes(image.img, 1)
+            red = Float64(image.img[row, col, 1])
+            green = Float64(image.img[row, col, 2])
+            blue = Float64(image.img[row, col, 3])
+            luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+            for (channel, source) in enumerate((red, green, blue))
+                value = luminance + parameter * (source - luminance)
+                out.img[row, col, channel] = PT(IT(clamp(value, 0.0, 1.0)))
+            end
+        end
+    else
+        @inbounds for index in eachindex(out.img, image.img)
+            source = Float64(image.img[index])
+            value = if operation === :brightness
+                source + parameter
+            elseif operation === :contrast
+                0.5 + parameter * (source - 0.5)
+            else
                 source^parameter
-            out.img[row,col,k] = PT(IT(clamp(value,0.0,1.0)))
+            end
+            out.img[index] = PT(IT(clamp(value, 0.0, 1.0)))
         end
     end
     return out
 end
 
+"""Specialize the adjustment loop; e.g. contrast 0 returns gray 0.5."""
 function _adjust_rgb_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
+    operation in (:brightness, :contrast, :saturation, :gamma) || throw(ArgumentError("Unsupported RGB adjustment operation: $operation"))
     IT = _get_image_type(I)
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(function_name_prefix, :_, Symbol(I))
-    calculation = if operation === :brightness
-        quote
-            parameter = isfinite(raw_parameter) ?
-                        clamp(raw_parameter, -1.0, 1.0) : 0.0
-            output = source .+ parameter
-        end
-    elseif operation === :contrast
-        quote
-            parameter = isfinite(raw_parameter) ?
-                        clamp(raw_parameter, 0.0, 4.0) : 1.0
-            output = 0.5 .+ parameter .* (source .- 0.5)
-        end
-    elseif operation === :saturation
-        quote
-            parameter = isfinite(raw_parameter) ?
-                        clamp(raw_parameter, 0.0, 4.0) : 1.0
-            output = similar(source)
-            @inbounds for col in axes(source, 2), row in axes(source, 1)
-                luminance = 0.2126 * source[row, col, 1] +
-                    0.7152 * source[row, col, 2] +
-                    0.0722 * source[row, col, 3]
-                output[row, col, 1] = luminance +
-                    parameter * (source[row, col, 1] - luminance)
-                output[row, col, 2] = luminance +
-                    parameter * (source[row, col, 2] - luminance)
-                output[row, col, 3] = luminance +
-                    parameter * (source[row, col, 3] - luminance)
-            end
-        end
-    elseif operation === :gamma
-        quote
-            parameter = isfinite(raw_parameter) ?
-                        clamp(raw_parameter, 0.1, 5.0) : 1.0
-            output = source .^ parameter
-        end
-    else
-        throw(ArgumentError("Unsupported RGB adjustment: $operation"))
-    end
-
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::CONCT,
             parameter_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I}
-        if out !== nothing
-            return _adjust_rgb_into!(out,image,Float64(parameter_input),$(QuoteNode(operation)))
-        end
-        source = Float64.(reinterpret(image.img))
-        raw_parameter = Float64(parameter_input)
-        $calculation
-        clamped = clamp.(output, 0.0, 1.0)
-        return SImageND($PT.($IT.(clamped)), $S)
+        pixels = output_pixels(out, image)
+        destination = image_result(out, pixels, $S)
+        return _adjust_rgb_into!(destination,image,Float64(parameter_input),Val($(QuoteNode(operation))))
     end
     return fn
 end
@@ -508,26 +439,17 @@ function mult_image3D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:mult_image3D_, Symbol(I))
 
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::CONCT,
             mask::SImageND{Tuple{$S1,$S2},BinaryPixel{MT},2,MC},
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,MT,MC}
-        if out !== nothing
-            for channel in 1:3, col in 1:$S2, row in 1:$S1
-                out.img[row,col,channel] = $PT(mask.img[row,col].pixel ?
-                    $IT(image.img[row,col,channel].pixel) : zero($IT))
-            end
-            return out
-        end
-        source = reinterpret(image.img)
-        keep = reinterpret(mask.img)
-        output = Array{$IT}(undef, $S1, $S2, 3)
+        pixels = output_pixels(out, image)
         @inbounds for channel in 1:3, col in 1:$S2, row in 1:$S1
-            output[row, col, channel] = keep[row, col] ?
-                $IT(source[row, col, channel]) : zero($IT)
+            pixels[row,col,channel] = $PT(mask.img[row,col].pixel ?
+                $IT(image.img[row,col,channel].pixel) : zero($IT))
         end
-        return SImageND($PT.(output), $S)
+        return image_result(out, pixels, $S)
     end
     return fn
 end
