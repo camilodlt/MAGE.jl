@@ -9,10 +9,10 @@ The exhaustive operator list is on the Bundle Catalogue page.
 """
 module image2D_foreground_extraction_continuous
 
-using ..UTCGP: @image_out
+using ..UTCGP: scratch, output_pixels, image_result
 
 using LinearAlgebra: Symmetric, cholesky
-using SparseArrays: sparse
+using SparseArrays: sparse, sparse!
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
 using ..image2D_foreground_extraction_discrete: _automatic_graphcut_seeds, _mask_band_seeds, _seed_band
 using ..UTCGP: FunctionBundle, append_method!
@@ -44,6 +44,40 @@ chromosome, or a rough binary mask with an uncertainty band
 (`(img, mask, band)`), which they refine to the image's edges.
 """
 bundle_image2DIntensity_foreground_extraction_factory = FunctionBundle(fallback)
+
+# Call tree: factory → _continuous_hard_mask (zero band), or seed helpers
+# → solve → triplet assembly → _continuous_sparse
+# → unchanged sparse! duplicate reduction → unchanged CHOLMOD Cholesky solve.
+
+"""
+Build a temporary sparse system using reusable assembly storage.
+
+Uses precisely the sparse! implementation called by sparse, preserving duplicate
+addition order. Storage is valid only until the next assembly in this task.
+Example: triplets ([1, 1], [1, 1], [2.0, 3.0]) produce the entry 5.0.
+"""
+function _continuous_sparse(rows, columns, coefficients, n::Int)
+    return sparse!(rows, columns, coefficients, n, n, +,
+        resize!(scratch(:continuous_last_touch, Int, 0), n),
+        resize!(scratch(:continuous_csr_ptr, Int, 0), n + 1),
+        resize!(scratch(:continuous_csr_col, Int, 0), length(rows)),
+        resize!(scratch(:continuous_csr_val, Float64, 0), length(rows)),
+        resize!(scratch(:continuous_csc_ptr, Int, 0), n + 1),
+        scratch(:continuous_csc_row, Int, 0),
+        scratch(:continuous_csc_val, Float64, 0))
+end
+
+"""
+Write an entirely hard-seeded mask using the original Float64-to-output conversion.
+Example: Bool[false true] gives intensity values [0.0 1.0]. At band zero,
+inside distances are at least one and outside distances are positive, so the
+imported seed rule fixes every pixel; neither solver can change this result.
+"""
+function _continuous_hard_mask(out, image, mask, pixel_type, storage_type, size_type)
+    pixels = output_pixels(out, image, pixel_type)
+    pixels .= pixel_type.(storage_type.(Float64.(mask)))
+    return image_result(out, pixels, size_type)
+end
 
 const _RANDOM_WALKER_DEFAULT_CONTRAST = 90.0
 const _RANDOM_WALKER_DEFAULT_FOREGROUND_QUANTILE = 0.95
@@ -86,6 +120,7 @@ end
 """
 Solve the two-label Random Walker Dirichlet problem for explicit hard seeds.
 
+Example: a row with foreground and background endpoints fixes them to 1 and 0.
 The returned matrix is the probability that a walker first reaches a
 foreground seed. Foreground seeds are exactly one, background seeds exactly
 zero, and unknown pixels solve the weighted graph Laplacian.
@@ -110,7 +145,7 @@ function _solve_random_walker(
     any(foreground_seeds) || return probabilities
     any(background_seeds) || return fill(1.0, h, w)
 
-    unknown_ids = zeros(Int, h, w)
+    unknown_ids = fill!(scratch(:walker_unknown_ids, Int, h, w), 0)
     unknown_count = 0
     @inbounds for row in 1:h, col in 1:w
         if !foreground_seeds[row, col] && !background_seeds[row, col]
@@ -120,13 +155,13 @@ function _solve_random_walker(
     end
     unknown_count == 0 && return probabilities
 
-    rows = Int[]
-    columns = Int[]
-    coefficients = Float64[]
-    right_hand_side = zeros(Float64, unknown_count)
-    sizehint!(rows, 5unknown_count)
-    sizehint!(columns, 5unknown_count)
-    sizehint!(coefficients, 5unknown_count)
+    rows = empty!(scratch(:continuous_triplet_rows, Int, 0))
+    columns = empty!(scratch(:continuous_triplet_cols, Int, 0))
+    coefficients = empty!(scratch(:continuous_triplet_values, Float64, 0))
+    right_hand_side = fill!(resize!(scratch(:walker_rhs, Float64, 0), unknown_count), 0.0)
+    sizehint!(rows, 5unknown_count; shrink = false)
+    sizehint!(columns, 5unknown_count; shrink = false)
+    sizehint!(coefficients, 5unknown_count; shrink = false)
 
     @inbounds for row in 1:h, col in 1:w
         equation = unknown_ids[row, col]
@@ -162,7 +197,7 @@ function _solve_random_walker(
         push!(coefficients, diagonal)
     end
 
-    laplacian = sparse(rows, columns, coefficients, unknown_count, unknown_count)
+    laplacian = _continuous_sparse(rows, columns, coefficients, unknown_count)
     solution = cholesky(Symmetric(laplacian)) \ right_hand_side
     @inbounds for row in 1:h, col in 1:w
         equation = unknown_ids[row, col]
@@ -215,8 +250,12 @@ function _random_walker_probabilities(
     return _solve_random_walker(values, foreground, background, contrast)
 end
 
+# TODO speed: CHOLMOD factorization and imported seed/saliency helpers still allocate;
+# preserve their algorithms and solver to retain bit-identical probabilities.
 """
     random_walker_foreground_image2D_factory(::Type{I})
+
+Example: `op(image, mask, 0)` fixes mask pixels to one and other pixels to zero.
 
 Specialize saliency-seeded Random Walker foreground extraction for a concrete
 MAGE intensity output type I.
@@ -265,12 +304,11 @@ function random_walker_foreground_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:random_walker_foreground_image2D_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             contrast_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
@@ -287,13 +325,14 @@ function random_walker_foreground_image2D_factory(
             contrast,
             $_RANDOM_WALKER_DEFAULT_FOREGROUND_QUANTILE,
         )
-        return SImageND($PT.($IT.(probabilities)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(probabilities))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
@@ -304,15 +343,14 @@ function random_walker_foreground_image2D_factory(
             image,
             saliency,
             $_RANDOM_WALKER_DEFAULT_CONTRAST,
-            args...,
+            args...; out,
         )
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             contrast_input::Real,
             foreground_quantile_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         contrast_value = Float64(contrast_input)
         quantile_value = Float64(foreground_quantile_input)
@@ -329,58 +367,60 @@ function random_walker_foreground_image2D_factory(
             contrast,
             foreground_quantile,
         )
-        return SImageND($PT.($IT.(probabilities)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(probabilities))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             contrast::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(
             image,
             contrast,
             $_RANDOM_WALKER_DEFAULT_FOREGROUND_QUANTILE,
-            args...,
+            args...; out,
         )
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(
             image,
             $_RANDOM_WALKER_DEFAULT_CONTRAST,
             $_RANDOM_WALKER_DEFAULT_FOREGROUND_QUANTILE,
-            args...,
+            args...; out,
         )
     end
     # Seeds from a rough mask and an uncertainty band.
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
         guess = BitMatrix(Bool.(reinterpret(mask.img)))
         probabilities = if !any(guess)
             zeros(Float64, size(guess))
         else
-            foreground, background = _mask_band_seeds(guess, _seed_band(band))
+            seed_band = _seed_band(band)
+            seed_band == 0 && return _continuous_hard_mask(out, image, guess, $PT, $IT, $S)
+            foreground, background = _mask_band_seeds(guess, seed_band)
             values = reinterpret(image.img)
             _solve_random_walker(values, foreground, background, _random_walker_adaptive_contrast(values))
         end
-        return SImageND($PT.($IT.(probabilities)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(probabilities))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
-        return $function_name(image, mask, 4.0, args...)
+        return $function_name(image, mask, 4.0, args...; out)
     end
     return fn
 end
@@ -497,20 +537,31 @@ function _closed_form_resize_bilinear(
     return output
 end
 
+"""
+Assemble the grayscale matting Laplacian in the original window/triplet order.
+Example: a constant 1×1 image contributes a zero Laplacian entry.
+The temporary sparse storage is consumed before another assembly can overwrite it.
+"""
 function _closed_form_matting_laplacian(
         values::AbstractMatrix{<:Real},
         epsilon::Float64,
     )
     h, w = size(values)
     pixel_count = h * w
-    rows = Int[]
-    columns = Int[]
-    coefficients = Float64[]
-    sizehint!(rows, 81pixel_count)
-    sizehint!(columns, 81pixel_count)
-    sizehint!(coefficients, 81pixel_count)
-    window_indices = Vector{Int}(undef, 9)
-    deviations = Vector{Float64}(undef, 9)
+    rows = empty!(scratch(:continuous_triplet_rows, Int, 0))
+    columns = empty!(scratch(:continuous_triplet_cols, Int, 0))
+    coefficients = empty!(scratch(:continuous_triplet_values, Float64, 0))
+    # Each window emits every ordered pair, including duplicates. Reserve the
+    # exact count, retaining the original emission and floating-point order.
+    row_pairs = h == 1 ? 1 : max(0, 9h - 10)
+    col_pairs = w == 1 ? 1 : max(0, 9w - 10)
+    triplet_count = row_pairs * col_pairs
+    resize!(rows, triplet_count)
+    resize!(columns, triplet_count)
+    resize!(coefficients, triplet_count)
+    triplet = 0
+    window_indices = scratch(:matting_window_indices, Int, 9)
+    deviations = scratch(:matting_deviations, Float64, 9)
 
     @inbounds for center_row in 1:h, center_col in 1:w
         first_row = max(1, center_row - 1)
@@ -545,13 +596,14 @@ function _closed_form_matting_laplacian(
                     (first_position == second_position ? 1.0 : 0.0) -
                     inverse_window_size *
                     (1.0 + first_deviation * deviations[second_position] / denominator)
-                push!(rows, first_index)
-                push!(columns, second_index)
-                push!(coefficients, coefficient)
+                triplet += 1
+                rows[triplet] = first_index
+                columns[triplet] = second_index
+                coefficients[triplet] = coefficient
             end
         end
     end
-    return sparse(rows, columns, coefficients, pixel_count, pixel_count)
+    return _continuous_sparse(rows, columns, coefficients, pixel_count)
 end
 
 function _solve_closed_form_matting(
@@ -609,8 +661,11 @@ function _closed_form_alpha(
     return alpha
 end
 
+# TODO speed: the unchanged CHOLMOD solve and sparse system addition still allocate.
 """
     closed_form_matting_image2D_factory(::Type{I})
+
+Example: `op(image, mask, 0)` restores the mask as exact hard constraints.
 
 Specialize grayscale closed-form alpha matting for a concrete MAGE intensity
 output type I.
@@ -658,12 +713,11 @@ function closed_form_matting_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:closed_form_matting_image2D_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::SOURCE,
             trimap::TRIMAP,
             edge_sensitivity_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
@@ -679,13 +733,14 @@ function closed_form_matting_image2D_factory(
             reinterpret(trimap.img),
             edge_sensitivity,
         )
-        return SImageND($PT.($IT.(alpha)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(alpha))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             trimap::TRIMAP,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
@@ -696,15 +751,14 @@ function closed_form_matting_image2D_factory(
             image,
             trimap,
             $_CLOSED_FORM_DEFAULT_EDGE_SENSITIVITY,
-            args...,
+            args...; out,
         )
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             edge_sensitivity_input::Real,
             foreground_quantile_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         raw_sensitivity = Float64(edge_sensitivity_input)
         raw_quantile = Float64(foreground_quantile_input)
@@ -720,61 +774,63 @@ function closed_form_matting_image2D_factory(
         alpha = maximum(normalized) == 0.0 ?
             zeros(Float64, $(S.parameters...)) :
             _closed_form_alpha(reinterpret(image.img), trimap, edge_sensitivity)
-        return SImageND($PT.($IT.(alpha)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(alpha))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             edge_sensitivity::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(
             image,
             edge_sensitivity,
             $_CLOSED_FORM_DEFAULT_FOREGROUND_QUANTILE,
-            args...,
+            args...; out,
         )
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         return $function_name(
             image,
             $_CLOSED_FORM_DEFAULT_EDGE_SENSITIVITY,
             $_CLOSED_FORM_DEFAULT_FOREGROUND_QUANTILE,
-            args...,
+            args...; out,
         )
     end
     # A rough mask and an uncertainty band define the trimap: deep inside 1,
     # far outside 0, the band along the mask's edge unknown.
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
         guess = BitMatrix(Bool.(reinterpret(mask.img)))
         alpha = if !any(guess)
             zeros(Float64, size(guess))
         else
-            foreground, background = _mask_band_seeds(guess, _seed_band(band))
+            seed_band = _seed_band(band)
+            seed_band == 0 && return _continuous_hard_mask(out, image, guess, $PT, $IT, $S)
+            foreground, background = _mask_band_seeds(guess, seed_band)
             trimap = fill(0.5, size(guess))
             trimap[background] .= 0.0
             trimap[foreground] .= 1.0
             _closed_form_alpha(reinterpret(image.img), trimap, $_CLOSED_FORM_DEFAULT_EDGE_SENSITIVITY)
         end
-        return SImageND($PT.($IT.(alpha)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(alpha))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
-        return $function_name(image, mask, 4.0, args...)
+        return $function_name(image, mask, 4.0, args...; out)
     end
     return fn
 end

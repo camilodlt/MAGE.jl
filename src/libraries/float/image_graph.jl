@@ -170,13 +170,48 @@ bundle_float_imagegraph = FunctionBundle(fallback)
 # BETWEENESS CENTRALITY #
 # ##################### #
 
+"""Seed of the eigen-solver's start vector in `reproducible_eigenvector_centrality` (any fixed value)."""
+const _EIGENVECTOR_SEED = 0x4d414745
+
+"""
+    reproducible_eigenvector_centrality(g) -> Vector{Float64}
+
+`Graphs.eigenvector_centrality(g)` with a reproducible result. Graphs computes it
+with an Arnoldi eigen-solver whose start vector is drawn from the task's random
+stream, so the last digits depended on what ran before in that task (and on how
+evaluation was split into threads and tasks): two identical runs could differ.
+Here the solver's random stream is seeded with `_EIGENVECTOR_SEED`, and the
+caller's stream is restored afterwards, so no other random draw changes.
+
+Example: on a path graph 1–2–3, `≈ [0.5, 0.707, 0.5]`, bit-identical on every call.
+"""
+function reproducible_eigenvector_centrality(g)
+    rng = Random.default_rng()
+    callers_state = copy(rng)
+    Random.seed!(rng, _EIGENVECTOR_SEED)
+    try
+        return eigenvector_centrality(g)
+    finally
+        copy!(rng, callers_state)
+    end
+end
+
+"""
+    _metric_name(metric) -> String
+
+Name used in the generated function names (e.g. `meaneigenvector_centrality_float_factory`):
+the metric's own name, except that the reproducible eigenvector centrality keeps the
+original name `eigenvector_centrality`, so programs and bundles refer to the same functions.
+"""
+_metric_name(metric) = metric === reproducible_eigenvector_centrality ? "eigenvector_centrality" : string(nameof(metric))
+
 fns = [
     betweenness_centrality,
     closeness_centrality,
     degree_centrality,
     indegree_centrality,
     outdegree_centrality,
-    eigenvector_centrality,
+    reproducible_eigenvector_centrality,
     radiality_centrality,
     stress_centrality,
     local_clustering_coefficient,
@@ -188,7 +223,7 @@ for metric in fns
             ["mean", "median", "minimum", "maximum", "std"],
             [mean, median, minimum, maximum, std]
         )
-        name = Symbol("$(stat_name)$(metric)_float_factory")
+        name = Symbol("$(stat_name)$(_metric_name(metric))_float_factory")
         @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
             g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
             res = $metric(g) |> $(stat)
@@ -202,28 +237,28 @@ for metric in fns
         end
     end
 
-    name = Symbol("xCoorArgmax$(metric)_float_factory")
+    name = Symbol("xCoorArgmax$(_metric_name(metric))_float_factory")
     @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmax
         return centers[which][2]        # centroids are (row, column): x is the column
     end
 
-    name = Symbol("yCoorArgmax$(metric)_float_factory")
+    name = Symbol("yCoorArgmax$(_metric_name(metric))_float_factory")
     @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmax
         return centers[which][1]        # centroids are (row, column): y is the row
     end
 
-    name = Symbol("xCoorArgmin$(metric)_float_factory")
+    name = Symbol("xCoorArgmin$(_metric_name(metric))_float_factory")
     @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmin
         return centers[which][2]        # centroids are (row, column): x is the column
     end
 
-    name = Symbol("yCoorArgmin$(metric)_float_factory")
+    name = Symbol("yCoorArgmin$(_metric_name(metric))_float_factory")
     @eval function $name(img::SizedImage{S, <:BinaryPixel, 2}, args::Vararg{Any}) where {S}
         g, centroids, centroids_mapping, centers, labelized, tri = make_graph_from_binary_img(img)
         which = $metric(g) |> argmin

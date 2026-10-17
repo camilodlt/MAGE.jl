@@ -1,9 +1,17 @@
-# Buffer pools: preallocated output images for the per-sample engine.
+# Buffer pools: preallocated images and working arrays for the per-sample engine.
 #
 # A library function that returns a sized image (`SImageND`, whose size is part of
 # its type) accepts `out`: it writes its result into `out` instead of allocating a
-# new image. A `BufferPool` holds those output images for one evaluating task, for
-# the whole run, so that no generation allocates its step outputs again.
+# new image. It may also accept working arrays of the size of `out`:
+# `float_scratch` (two Array{Float32}) and `image_scratch` (two images of the same
+# type as `out`), see libraries/image/image_buffers.jl. A `BufferPool` holds all of
+# them for one evaluating task, for the whole run, so that no generation allocates
+# them again:
+#   - output buffers: one per step returning a sized image (steps keep their
+#     outputs alive until the end of the sample, so they cannot share);
+#   - working arrays: one set per image type, shared by every step of the task
+#     (a working array is only used during one call, and a task makes one call at
+#     a time).
 #
 # Ownership: a pool is used by one task at a time (see `TypedEvaluator`). Pools
 # are created once at the start of the run, typically one per thread, and handed
@@ -20,6 +28,9 @@
 #   _take_buffer!(pool, next_buffer_index, T)          per step, when an evaluator is built
 #   ├── _buffers_of_type!(pool, T)
 #   └── _new_buffer(T)                                 only when the list is too short
+#
+#   _float_scratch!(pool, T) / _image_scratch!(pool, T) per step accepting them
+#   └── _new_float_buffer(T) / _new_buffer(T)          first request for type T only
 
 """
     BufferPool(run_types)
@@ -37,7 +48,9 @@ The second form takes the types of one graph, for one-off evaluations.
 """
 struct BufferPool
     non_bits_types::Vector{DataType}     # run types that are not bits types
-    buffers::Dict{DataType,Vector{Any}}  # sized type => its buffers, in hand-out order
+    buffers::Dict{DataType,Vector{Any}}  # sized type => its output buffers, in hand-out order
+    float_scratch::Dict{DataType,Any}    # sized type => two Array{Float32} of its size
+    image_scratch::Dict{DataType,Any}    # sized type => two images of that type
 end
 
 function BufferPool(run_types)
@@ -52,7 +65,7 @@ function BufferPool(run_types)
             buffers[T] = Any[]
         end
     end
-    return BufferPool(non_bits_types, buffers)
+    return BufferPool(non_bits_types, buffers, Dict{DataType,Any}(), Dict{DataType,Any}())
 end
 
 BufferPool(graph::PopulationSequentialProgram) = BufferPool(_value_types(graph))
@@ -66,6 +79,16 @@ is not part of their type. Values of such types are not pooled: their functions
 are called without `out` and allocate as usual.
 """
 _has_static_size(::Type) = false
+
+"""
+    _new_float_buffer(T) -> Array{Float32}
+
+An uninitialised Float32 array of the size of the sized type `T` (methods in
+image_utils.jl).
+"""
+function _new_float_buffer(T::Type)
+    throw(ArgumentError("no buffer can be allocated for $T: its size is not part of its type"))
+end
 
 """
     _new_buffer(T) -> T
@@ -103,5 +126,29 @@ end
 function _buffers_of_type!(pool::BufferPool, T::DataType)
     return get!(pool.buffers, T) do
         Any[]
+    end
+end
+
+"""
+    _float_scratch!(pool, T) -> (Array{Float32}, Array{Float32})
+
+The two Float32 working arrays of the size of `T`, shared by all the steps of the
+pool's task. Allocated on the first request for `T`, then kept for the run.
+"""
+function _float_scratch!(pool::BufferPool, T::DataType)
+    return get!(pool.float_scratch, T) do
+        (_new_float_buffer(T), _new_float_buffer(T))
+    end
+end
+
+"""
+    _image_scratch!(pool, T) -> (T, T)
+
+The two working images of type `T`, shared by all the steps of the pool's task.
+Allocated on the first request for `T`, then kept for the run.
+"""
+function _image_scratch!(pool::BufferPool, T::DataType)
+    return get!(pool.image_scratch, T) do
+        (_new_buffer(T), _new_buffer(T))
     end
 end

@@ -225,6 +225,8 @@ module UTCGP
 
     # IMAGE UTILS
     include("libraries/image/image_utils.jl")
+    include("libraries/image/image_buffers.jl")
+    include("libraries/image/pooling_common.jl")
     include("libraries/image/image_pool.jl")
     include("libraries/image/image_pooler.jl")
 

@@ -7,9 +7,9 @@ Fixed, training-free spatial feature transforms for typed RGB images.
 """
 module image3D_spatial_rgb
 
-using ..UTCGP: @image_out
+using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 
-using ImageFiltering: Kernel, centered, imfilter, reflect
+using ImageFiltering: Kernel, centered, imfilter!, reflect
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     IntensityPixel,
@@ -49,6 +49,45 @@ end
     return isfinite(converted) ? round(Int, clamp(converted, 1.0, 5.0)) : 3
 end
 
+# ---------------------------------------------------------------------------
+# How an operator runs
+#
+# Call tree of e.g. `gaussian_blur_rgb(rgb, σ; out)`:
+#
+#   output_pixels(out, image)                      where to write: out.img or a new array
+#   _spatial_into!(pixels, image, kernel!, parameters...)
+#   ├── pixel_values!(source, image.img)           pixels → Float64 (task scratch)
+#   ├── kernel!(result, source, parameters...)     e.g. _gaussian_blur!: channel by channel
+#   │   └── _filter_plane!(…)                      ImageFiltering's imfilter!, reflected border
+#   └── _store_clamped!(pixels, result)            clamp to [0, 1], cast
+#   image_result(out, pixels, size_type)
+#
+# Kernels write `result` (h × w × 3, task scratch) and never modify `source`;
+# per-channel working planes come from `scratch`. The arithmetic is the
+# original Float64 arithmetic, so results are unchanged.
+# ---------------------------------------------------------------------------
+
+"Channel `c` of an `h × w × 3` array as a matrix (a contiguous view)."
+@inline _channel(values::Array{Float64,3}, c::Int) = view(values, :, :, c)
+
+"A Float64 working plane of size `(h, w)` from task scratch, under `key`."
+_plane(key::Symbol, values::Array{Float64,3}) = scratch(key, Float64, size(values, 1), size(values, 2))
+
+"""
+    _filter_plane!(destination, plane, kernel) -> destination
+
+Convolve one channel with `kernel`, reflected border, into `destination`.
+"""
+function _filter_plane!(destination, plane, kernel)
+    # TODO speed: imfilter! pads the plane into a new array on every call; a
+    # padded working array kept across calls would remove that allocation.
+    return imfilter!(destination, plane, kernel, "reflect")
+end
+
+"""
+Divide by the maximum, so the strongest response is `1`; all `0` when the
+maximum is not finite or below `1e-12`. Example: `[0, 2, 4]` → `[0, 0.5, 1]`.
+"""
 function _normalize_energy!(values::AbstractMatrix{Float64})
     maximum_value = maximum(values)
     if !isfinite(maximum_value) || maximum_value <= 1.0e-12
@@ -59,108 +98,135 @@ function _normalize_energy!(values::AbstractMatrix{Float64})
     return values
 end
 
-function _filter_channels(source::Array{Float64,3}, kernel)
-    output = similar(source)
-    for channel in 1:3
-        output[:, :, channel] .= imfilter(
-            @view(source[:, :, channel]), kernel, "reflect",
-        )
+"Each channel of `source` convolved with `kernel`, into `result`."
+function _filter_channels!(result, source, kernel)
+    for c in 1:3
+        _filter_plane!(_channel(result, c), _channel(source, c), kernel)
     end
-    return output
+    return result
 end
 
-function _sobel_magnitude(source::Array{Float64,3})
-    output = similar(source)
-    for channel in 1:3
-        plane = @view source[:, :, channel]
-        dx = imfilter(plane, _RGB_SOBEL_X, "reflect")
-        dy = imfilter(plane, _RGB_SOBEL_Y, "reflect")
-        magnitude = sqrt.(dx .^ 2 .+ dy .^ 2)
+"""
+Per channel, the Sobel gradient magnitude `sqrt(dx² + dy²)`, divided by its maximum.
+
+Example: a vertical step edge gives `1` along the edge, `0` on flat areas.
+"""
+function _sobel_magnitude!(result, source)
+    dx = _plane(:rgb_dx, source)
+    dy = _plane(:rgb_dy, source)
+    for c in 1:3
+        _filter_plane!(dx, _channel(source, c), _RGB_SOBEL_X)
+        _filter_plane!(dy, _channel(source, c), _RGB_SOBEL_Y)
+        magnitude = _channel(result, c)
+        magnitude .= sqrt.(dx .^ 2 .+ dy .^ 2)
         _normalize_energy!(magnitude)
-        output[:, :, channel] .= magnitude
     end
-    return output
+    return result
 end
 
-function _laplacian_magnitude(source::Array{Float64,3})
-    output = similar(source)
-    for channel in 1:3
-        response = abs.(imfilter(
-            @view(source[:, :, channel]), _RGB_LAPLACIAN, "reflect",
-        ))
+"Per channel, the absolute Laplacian response, divided by its maximum."
+function _laplacian_magnitude!(result, source)
+    for c in 1:3
+        response = _filter_plane!(_channel(result, c), _channel(source, c), _RGB_LAPLACIAN)
+        response .= abs.(response)
         _normalize_energy!(response)
-        output[:, :, channel] .= response
     end
-    return output
+    return result
 end
 
-function _gaussian_blur(source::Array{Float64,3}, sigma_input::Real)
+"Gaussian blur of each channel, `σ` clamped to `[0.3, 4]` (NaN → 1)."
+function _gaussian_blur!(result, source, sigma_input::Real)
     sigma = _finite_clamp(sigma_input, 0.3, 4.0, 1.0)
-    return _filter_channels(source, Kernel.gaussian(sigma))
+    return _filter_channels!(result, source, Kernel.gaussian(sigma))
 end
 
-function _difference_of_gaussians(
-        source::Array{Float64,3},
-        sigma1_input::Real,
-        sigma2_input::Real,
-    )
+"""
+Per channel, `|G(σ_small) − G(σ_large)|` divided by its maximum; σ1 and σ2
+are clamped to `[0.3, 4]` (defaults 0.8 and 1.6) and sorted.
+"""
+function _difference_of_gaussians!(result, source, sigma1_input::Real, sigma2_input::Real)
     sigma1 = _finite_clamp(sigma1_input, 0.3, 4.0, 0.8)
     sigma2 = _finite_clamp(sigma2_input, 0.3, 4.0, 1.6)
     small_sigma, large_sigma = minmax(sigma1, sigma2)
-    small = _filter_channels(source, Kernel.gaussian(small_sigma))
-    large = _filter_channels(source, Kernel.gaussian(large_sigma))
-    output = abs.(small .- large)
-    for channel in 1:3
-        _normalize_energy!(@view(output[:, :, channel]))
+    small = _filter_channels!(result, source, Kernel.gaussian(small_sigma))
+    large = _filter_channels!(scratch(:rgb_large, Float64, size(source)...), source, Kernel.gaussian(large_sigma))
+    small .= abs.(small .- large)
+    for c in 1:3
+        _normalize_energy!(_channel(result, c))
     end
-    return output
+    return result
 end
 
-function _unsharp_mask(
-        source::Array{Float64,3},
-        sigma_input::Real,
-        amount_input::Real,
-    )
+"""
+Unsharp masking `v + amount · (v − G(σ))`, σ clamped to `[0.3, 4]` (NaN → 1)
+and amount to `[0, 3]` (NaN → 1).
+"""
+function _unsharp_mask!(result, source, sigma_input::Real, amount_input::Real)
     sigma = _finite_clamp(sigma_input, 0.3, 4.0, 1.0)
     amount = _finite_clamp(amount_input, 0.0, 3.0, 1.0)
-    blurred = _filter_channels(source, Kernel.gaussian(sigma))
-    return source .+ amount .* (source .- blurred)
+    blurred = _filter_channels!(result, source, Kernel.gaussian(sigma))
+    blurred .= source .+ amount .* (source .- blurred)
+    return result
 end
 
-function _local_moments(plane::AbstractMatrix{Float64}, radius::Int)
+"""
+    _local_moments!(local_mean, local_variance, plane, radius)
+
+Mean and variance of `plane` over the `(2r+1)²` window around each pixel
+(reflected border); variances at or below `1e-12` are set to `0`.
+"""
+function _local_moments!(local_mean, local_variance, plane, radius::Int)
     width = 2radius + 1
     box = centered(fill(1.0 / width^2, width, width))
-    local_mean = imfilter(plane, box, "reflect")
-    local_square_mean = imfilter(plane .^ 2, box, "reflect")
-    local_variance = max.(local_square_mean .- local_mean .^ 2, 0.0)
-    local_variance[local_variance .<= 1.0e-12] .= 0.0
+    _filter_plane!(local_mean, plane, box)
+    squares = _plane(:rgb_squares, local_mean)
+    squares .= plane .^ 2
+    _filter_plane!(local_variance, squares, box)          # local mean of the squares, for now
+    local_variance .= max.(local_variance .- local_mean .^ 2, 0.0)
+    local_variance .= ifelse.(local_variance .<= 1.0e-12, 0.0, local_variance)
     return local_mean, local_variance
 end
 
-function _local_contrast_normalize(source::Array{Float64,3}, radius_input::Real)
+"A Float64 working plane of the size of the matrix `like`."
+_plane(key::Symbol, like::AbstractMatrix) = scratch(key, Float64, size(like)...)
+
+"""
+Local standardisation per channel: `0.5 + 0.2 · (v − mean) / sqrt(variance + 1e-6)`
+over a `(2r+1)²` window, `r` rounded and clamped to `[1, 5]` (NaN → 3).
+"""
+function _local_contrast_normalize!(result, source, radius_input::Real)
     radius = _radius(radius_input)
-    output = similar(source)
-    for channel in 1:3
-        plane = @view source[:, :, channel]
-        local_mean, local_variance = _local_moments(plane, radius)
-        standardized = (plane .- local_mean) ./ sqrt.(local_variance .+ 1.0e-6)
-        output[:, :, channel] .= 0.5 .+ 0.2 .* standardized
+    local_mean = _plane(:rgb_mean, source)
+    local_variance = _plane(:rgb_variance, source)
+    for c in 1:3
+        plane = _channel(source, c)
+        _local_moments!(local_mean, local_variance, plane, radius)
+        _channel(result, c) .= 0.5 .+ 0.2 .* ((plane .- local_mean) ./ sqrt.(local_variance .+ 1.0e-6))
     end
-    return output
+    return result
 end
 
-function _local_standard_deviation(source::Array{Float64,3}, radius_input::Real)
+"Per channel, the local standard deviation over a `(2r+1)²` window, divided by its maximum."
+function _local_standard_deviation!(result, source, radius_input::Real)
     radius = _radius(radius_input)
-    output = similar(source)
-    for channel in 1:3
-        _, local_variance = _local_moments(@view(source[:, :, channel]), radius)
-        energy = sqrt.(local_variance)
+    local_mean = _plane(:rgb_mean, source)
+    local_variance = _plane(:rgb_variance, source)
+    for c in 1:3
+        _local_moments!(local_mean, local_variance, _channel(source, c), radius)
+        energy = _channel(result, c)
+        energy .= sqrt.(local_variance)
         _normalize_energy!(energy)
-        output[:, :, channel] .= energy
     end
-    return output
+    return result
 end
 
+"""
+    _gabor_kernels(orientation, wavelength) -> (real, imaginary)
+
+Zero-mean Gabor kernel pair (cosine and sine phase) for an orientation
+(radians, wrapped modulo π; NaN → 0) and a wavelength clamped to `[2, 8]`
+pixels (NaN → 4), with σ = wavelength / 2, jointly normalised to unit energy.
+"""
 function _gabor_kernels(orientation_input::Real, wavelength_input::Real)
     raw_orientation = Float64(orientation_input)
     orientation = isfinite(raw_orientation) ? mod(raw_orientation, π) : 0.0
@@ -189,92 +255,76 @@ function _gabor_kernels(orientation_input::Real, wavelength_input::Real)
     return centered(real_kernel), centered(imaginary_kernel)
 end
 
-function _gabor_energy(
-        source::Array{Float64,3},
-        orientation_input::Real,
-        wavelength_input::Real,
-    )
+"Per channel, the Gabor energy `sqrt(real² + imaginary²)`, divided by its maximum."
+function _gabor_energy!(result, source, orientation_input::Real, wavelength_input::Real)
     real_kernel, imaginary_kernel = _gabor_kernels(orientation_input, wavelength_input)
-    output = similar(source)
-    for channel in 1:3
-        plane = @view source[:, :, channel]
-        real_response = imfilter(plane, real_kernel, "reflect")
-        imaginary_response = imfilter(plane, imaginary_kernel, "reflect")
-        energy = sqrt.(real_response .^ 2 .+ imaginary_response .^ 2)
+    real_response = _plane(:rgb_dx, source)
+    imaginary_response = _plane(:rgb_dy, source)
+    for c in 1:3
+        _filter_plane!(real_response, _channel(source, c), real_kernel)
+        _filter_plane!(imaginary_response, _channel(source, c), imaginary_kernel)
+        energy = _channel(result, c)
+        energy .= sqrt.(real_response .^ 2 .+ imaginary_response .^ 2)
         _normalize_energy!(energy)
-        output[:, :, channel] .= energy
     end
-    return output
+    return result
 end
 
+"""
+    _spatial_into!(pixels, image, kernel!, parameters...) -> pixels
+
+Run `kernel!(result, source, parameters...)` on the image's values and store
+the result, clamped to `[0, 1]`, into `pixels`.
+"""
+function _spatial_into!(pixels, image, kernel!::K, parameters::Vararg{Any,N}) where {K,N}
+    dims = size(image.img)
+    source = pixel_values!(scratch(:rgb_source, Float64, dims...), image.img)
+    result = scratch(:rgb_result, Float64, dims...)
+    kernel!(result, source, parameters...)
+    return _store_clamped!(pixels, result)
+end
+
+"`pixels .= P.(T.(clamp.(result, 0, 1)))`: one broadcast into the output."
+function _store_clamped!(pixels::AbstractArray{IntensityPixel{T}}, result) where {T}
+    pixels .= IntensityPixel{T}.(T.(clamp.(result, 0.0, 1.0)))
+    return pixels
+end
+
+"The kernel of each operation and how many parameters it takes."
+const _SPATIAL_KERNELS = Dict(
+    :sobel => (_sobel_magnitude!, 0),
+    :laplacian => (_laplacian_magnitude!, 0),
+    :gaussian => (_gaussian_blur!, 1),
+    :local_contrast => (_local_contrast_normalize!, 1),
+    :local_std => (_local_standard_deviation!, 1),
+    :dog => (_difference_of_gaussians!, 2),
+    :unsharp => (_unsharp_mask!, 2),
+    :gabor => (_gabor_energy!, 2),
+)
+
+"""
+    _spatial_factory(I, function_name_prefix, operation) -> Function
+
+Define the operator for RGB images of type `I`: `op(rgb[, p1[, p2]]; out)`
+with as many numbers as the operation's kernel takes (see `_SPATIAL_KERNELS`).
+"""
 function _spatial_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
-    IT = _get_image_type(I)
-    PT = _get_image_pixel_type(I)
+    _validate_factory_type(_get_image_type(I))
     S = _get_image_tuple_size(I)
-    _validate_factory_type(IT)
     function_name = Symbol(function_name_prefix, :_, Symbol(I))
-    call = if operation === :sobel
-        :(_sobel_magnitude(source))
-    elseif operation === :laplacian
-        :(_laplacian_magnitude(source))
-    elseif operation === :gaussian
-        :(_gaussian_blur(source, parameter1))
-    elseif operation === :dog
-        :(_difference_of_gaussians(source, parameter1, parameter2))
-    elseif operation === :unsharp
-        :(_unsharp_mask(source, parameter1, parameter2))
-    elseif operation === :local_contrast
-        :(_local_contrast_normalize(source, parameter1))
-    elseif operation === :local_std
-        :(_local_standard_deviation(source, parameter1))
-    elseif operation === :gabor
-        :(_gabor_energy(source, parameter1, parameter2))
-    else
-        throw(ArgumentError("Unsupported spatial RGB operation: $operation"))
+    haskey(_SPATIAL_KERNELS, operation) || throw(ArgumentError("Unsupported spatial RGB operation: $operation"))
+    kernel!, parameter_count = _SPATIAL_KERNELS[operation]
+    parameters = [Symbol(:parameter, k) for k in 1:parameter_count]
+    signature = [:(image::CONCT); [:($p::Real) for p in parameters]; :(args::Vararg{Any})]
+    return @eval function $function_name($(signature...); out = nothing) where {CONCT<:$I}
+        pixels = output_pixels(out, image)
+        _spatial_into!(pixels, image, $kernel!, $(parameters...))
+        return image_result(out, pixels, $S)
     end
-
-    if operation in (:sobel, :laplacian)
-        # out: copy (the kernel currently allocates its result).
-        fn = @eval @image_out function $function_name(
-                image::CONCT,
-                args::Vararg{Any},
-            ) where {CONCT<:$I}
-            source = Float64.(reinterpret(image.img))
-            output = $call
-            clamped = clamp.(output, 0.0, 1.0)
-            return SImageND($PT.($IT.(clamped)), $S)
-        end
-    elseif operation in (:gaussian, :local_contrast, :local_std)
-        # out: copy (the kernel currently allocates its result).
-        fn = @eval @image_out function $function_name(
-                image::CONCT,
-                parameter1::Real,
-                args::Vararg{Any},
-            ) where {CONCT<:$I}
-            source = Float64.(reinterpret(image.img))
-            output = $call
-            clamped = clamp.(output, 0.0, 1.0)
-            return SImageND($PT.($IT.(clamped)), $S)
-        end
-    else
-        # out: copy (the kernel currently allocates its result).
-        fn = @eval @image_out function $function_name(
-                image::CONCT,
-                parameter1::Real,
-                parameter2::Real,
-                args::Vararg{Any},
-            ) where {CONCT<:$I}
-            source = Float64.(reinterpret(image.img))
-            output = $call
-            clamped = clamp.(output, 0.0, 1.0)
-            return SImageND($PT.($IT.(clamped)), $S)
-        end
-    end
-    return fn
 end
 
 """Specialize `sobel_magnitude_rgb(rgb) -> I`, the normalized channelwise Sobel gradient magnitude."""

@@ -10,7 +10,12 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_segmentation
 
-using ..UTCGP: @image_out
+# Call tree: fastscanning factory → ImageSegmentation.fast_scanning! → output.
+# Watershed factory → _watershed_split → feature/distance transforms,
+# component labels, watershed flooding → output.
+
+
+using ..UTCGP: @image_out, scratch, output_pixels, image_result
 
 using ImageSegmentation
 using ImageMorphology
@@ -156,8 +161,10 @@ end
 """
     fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage}
 
-TODO TEST
+Uses the library scan with a reused label matrix and writes directly to `out`.
+For example, a constant 2 × 2 image has label 1 at every pixel.
 """
+# TODO speed: the library still allocates region dictionaries and disjoint sets.
 function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
@@ -166,18 +173,20 @@ function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Seg
     FUNCTION_NAME = Symbol(:fastscanning_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
 
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+    @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         th = isnan(th) ? 0.1 : th
         th = clamp(th, eps(Float64), 1.)
-        segments = fast_scanning(reinterpret(img.img), th)
+        values = reinterpret(img.img)
+        labels = scratch(:segmentation_scan_labels, Int, size(values)...)
+        fill!(labels, -1)
+        segments = ImageSegmentation.fast_scanning!(labels, values, th)
         seg = labels_map(segments)
-        reinterpreted = convert.($T, seg)
-        return SImageND($PT.(reinterpreted), $S)
+        pixels = output_pixels(out, img, $PT)
+        pixels .= $PT.(convert.($T, seg))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
-        $FUNCTION_NAME(img, 0.1)
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
+        return $FUNCTION_NAME(img, 0.1; out)
     end
     return getfield(@__MODULE__, FUNCTION_NAME)
 end
@@ -194,22 +203,31 @@ whose centres are 14 pixels apart touch through a neck of depth ≈ 5.6, i.e.
 Background pixels and pixels outside `restrict` are `0`.
 """
 function _watershed_split(fg::AbstractMatrix{Bool}, restrict::AbstractMatrix{Bool}, h::Float64)
-    objects = fg .& restrict
+    objects = scratch(:segmentation_objects, Bool, size(fg)...)
+    objects .= fg .& restrict
     any(objects) || return zeros(Int, size(fg))
+    # TODO speed: feature/distance transforms and watershed allocate internally;
+    # retain the library kernels to preserve distances and flooding tie order.
     depth = distance_transform(feature_transform(.!objects))   # 0 on background
-    components = label_components(objects)
+    components = scratch(:segmentation_components, Int, size(fg)...)
+    label_components!(components, objects)
     peak = zeros(Float64, maximum(components))
     @inbounds for i in eachindex(components)
         c = components[i]
         c > 0 && (peak[c] = max(peak[c], depth[i]))
     end
-    seeds = falses(size(fg))
+    seeds = scratch(:segmentation_seeds, Bool, size(fg)...)
     @inbounds for i in eachindex(components)
         c = components[i]
         seeds[i] = c > 0 && depth[i] >= h * peak[c]
     end
-    labels = labels_map(watershed(-depth, label_components(seeds); mask = objects))
-    return labels .* objects
+    flood_depth = scratch(:segmentation_flood_depth, Float64, size(depth)...)
+    flood_depth .= .-depth
+    markers = scratch(:segmentation_markers, Int, size(fg)...)
+    label_components!(markers, seeds)
+    labels = labels_map(watershed(flood_depth, markers; mask = objects))
+    labels .*= objects
+    return labels
 end
 
 "Seed level `h` of `watershed_image2D`: clamped to `[0, 1]`; NaN/Inf → 0.7."
@@ -223,7 +241,7 @@ pixels) of `mask` into one label each, cutting touching objects at their
 narrowest part. `h ∈ [0, 1]` (default `0.7`) is the seed level as a fraction of
 each object's maximal depth: `0` gives one label per connected object, higher
 values split more. `restrict`, a second mask, limits the result to its `true`
-pixels. Background is `0`.
+pixels. Background is `0`. For example, an isolated true pixel gets label 1.
 """
 function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
@@ -232,22 +250,25 @@ function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Segmen
     FUNCTION_NAME = Symbol(:watershed_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
 
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, restrict::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+    @eval function $FUNCTION_NAME(img::CONCT, restrict::CONCT, th::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
         labels = _watershed_split(reinterpret(img.img), reinterpret(restrict.img), _watershed_level(th))
-        return SImageND($PT.(convert.($IT, labels)), $S)
+        pixels = output_pixels(out, img, $PT)
+        pixels .= $PT.(convert.($IT, labels))
+        return image_result(out, pixels, $S)
     end
 
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+    @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
         fg = reinterpret(img.img)
-        labels = _watershed_split(fg, trues(size(fg)), _watershed_level(th))
-        return SImageND($PT.(convert.($IT, labels)), $S)
+        restrict = scratch(:segmentation_restrict, Bool, size(fg)...)
+        fill!(restrict, true)
+        labels = _watershed_split(fg, restrict, _watershed_level(th))
+        pixels = output_pixels(out, img, $PT)
+        pixels .= $PT.(convert.($IT, labels))
+        return image_result(out, pixels, $S)
     end
 
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
-        $FUNCTION_NAME(img, 0.7)
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+        return $FUNCTION_NAME(img, 0.7; out)
     end
 
     return getfield(@__MODULE__, FUNCTION_NAME)

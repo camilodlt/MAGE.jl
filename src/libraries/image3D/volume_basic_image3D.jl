@@ -34,7 +34,7 @@ to_intensity(mask)            # set voxels → 1.0, the others → 0.0 (mask: a 
 """
 module image3D_volume_basic
 
-using ..UTCGP: @image_out
+using ..UTCGP: @image_out, image_result
 
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -159,13 +159,23 @@ function vol_from_mask_image3D_factory(::Type{I}) where {S1,S2,S3,P,I<:SizedImag
     pixel_type <: IntensityPixel || throw(ArgumentError("vol_from_mask returns an intensity volume, got $I"))
     one_voxel, zero_voxel = _one_voxel(pixel_type), _zero_voxel(pixel_type)
     # The mask must have the output's size ($size_type); each voxel maps set → 1, unset → 0.
-    return @eval @image_out function $name(mask::Mask, args::Vararg{Any}) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
-        if out !== nothing
-            out.img .= ifelse.(getproperty.(mask.img,:pixel),$one_voxel,$zero_voxel)
-            return out
-        end
-        return SImageND(map(v -> v.pixel ? $one_voxel : $zero_voxel, mask.img), $size_type)
+    return @eval function $name(mask::Mask, args::Vararg{Any}; out = nothing) where {MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
+        pixels = output_pixels_of(out, $pixel_type, mask)
+        _mask_to_intensity!(pixels, mask.img, $one_voxel, $zero_voxel)
+        return image_result(out, pixels, $size_type)
     end
+end
+
+"Where to write: `out.img`, or a new array of `pixel_type` of the mask's size."
+output_pixels_of(::Nothing, pixel_type, mask) = similar(mask.img, pixel_type)
+output_pixels_of(out, pixel_type, mask) = out.img
+
+"Set voxels → `one`, unset → `zero` (a plain loop, as the original `map`: it vectorises)."
+function _mask_to_intensity!(destination, mask, one, zero)
+    @inbounds for index in eachindex(destination, mask)
+        destination[index] = mask[index].pixel ? one : zero
+    end
+    return destination
 end
 
 # ---------------------------------------------------------------------------

@@ -7,16 +7,31 @@ Gradient orientation maps computed from Sobel derivatives.
 
 The exhaustive, always-current list of operators in each bundle is on the
 [Bundle Catalogue](@ref) page.
+
+# Call tree
+
+Every operator, e.g. `orientation_select(img, θ, bw; out)`:
+
+    output_pixels(out, img)                       where to write: out.img or a new array
+    _sobel_gradients(img) -> (gx, gy)             Sobel derivatives in task scratch
+    ├── pixel_values!(values, img.img)            pixels → Float64
+    └── _sobel_xy!(gx, gy, values)                (orientation_common.jl)
+    _magnitude! / _select_band!                   per-pixel values, written over gx
+    _store_rescaled! / _store_orientation!        min–max to [0, 1] / angle over π, cast
+    image_result(out, pixels, size_type)
+
+All arithmetic is in Float64, as before (Float32 noise would defeat the
+`_FLAT` threshold that gives flat pixels orientation 0).
 """
 module image2D_orientation
 
-using ..UTCGP: @image_out
-
+using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     SizedImage2D, SImageND, _get_image_type, _get_image_pixel_type, _get_image_tuple_size,
     _validate_factory_type
 using ..UTCGP: image2D_orientation_common
+using ..UTCGP.image2D_orientation_common: _sobel_xy!
 
 fallback(args...) = return nothing
 """
@@ -54,61 +69,116 @@ _theta_from_number(theta::Number) = (t = Float64(theta); isfinite(t) ? mod(t, 1.
 "Half-width of the selected band in radians: `clamp(abs(bw), 0.01, 1) · π/2`; NaN/Inf → 0.2."
 _bandwidth_from_number(bw::Number) = (b = Float64(bw); clamp(isfinite(b) ? abs(b) : 0.2, 0.01, 1.0) * (π / 2))
 
+"""
+    _sobel_gradients(img) -> (gx, gy)
+
+The Sobel derivatives of the image along x and y, in task scratch (valid until
+the next call in the same task).
+"""
+function _sobel_gradients(img::SImageND)
+    dims = size(img.img)
+    values = pixel_values!(scratch(:orientation_values, Float64, dims...), img.img)
+    gx = scratch(:orientation_gx, Float64, dims...)
+    gy = scratch(:orientation_gy, Float64, dims...)
+    return _sobel_xy!(gx, gy, values)
+end
+
+"Overwrite `gx` with the gradient magnitude `sqrt(gx² + gy²)`."
+function _magnitude!(gx, gy)
+    @inbounds for i in eachindex(gx, gy)
+        gx[i] = sqrt(gx[i]^2 + gy[i]^2)
+    end
+    return gx
+end
+
+"""
+    _select_band!(gx, gy, theta, bandwidth) -> gx
+
+Overwrite `gx` with the gradient magnitude where the gradient orientation
+(in `[0, π)`) is within `bandwidth` of `theta` (angles wrap around π), `0`
+elsewhere.
+
+Example: `theta = 0`, `bandwidth = π/10`: a pixel with orientation `0.95π` is
+`0.05π` away (through the wrap) and kept; one at `π/2` is dropped.
+"""
+function _select_band!(gx, gy, theta::Float64, bandwidth::Float64)
+    @inbounds for i in eachindex(gx, gy)
+        magnitude = sqrt(gx[i]^2 + gy[i]^2)
+        orientation = mod(atan(gy[i], gx[i]) + π, π)
+        gap = abs(orientation - theta)
+        distance = min(gap, π - gap)           # angular distance modulo π
+        gx[i] = ifelse(distance <= bandwidth, magnitude, 0.0)
+    end
+    return gx
+end
+
+"""
+    _store_rescaled!(pixels, values, T) -> pixels
+
+Write `values` rescaled min to max into `[0, 1]` (all `0` when constant) as
+pixels of storage type `T`. Example: `[1, 2, 3]` → `[0, 0.5, 1]`.
+"""
+function _store_rescaled!(pixels::AbstractArray{P}, values, ::Type{T}) where {P,T}
+    lo, hi = extrema(values)
+    if hi == lo
+        return fill!(pixels, P(T(0.0)))
+    end
+    pixels .= P.(T.((values .- lo) ./ (hi - lo)))
+    return pixels
+end
+
+"""
+    _store_orientation!(pixels, gx, gy, T) -> pixels
+
+Write the gradient orientation over `π` (in `[0, 1)`) as pixels of storage
+type `T`. Example: `gx = 0, gy = 1` (gradient straight down) → `0.5`.
+"""
+function _store_orientation!(pixels::AbstractArray{P}, gx, gy, ::Type{T}) where {P,T}
+    pixels .= P.(T.(mod.(atan.(gy, gx) .+ π, π) ./ π))
+    return pixels
+end
+
 function grad_magnitude_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
-    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:grad_magnitude_image2D_, Symbol(I))
-
-    # out: copy (the kernel currently allocates its result).
-    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        mag, _, _ = image2D_orientation_common._grad_magnitude_matrix(img)
-        out = image2D_orientation_common._normalize01(mag)
-        return SImageND($PT.($IT.(out)), $S)
+    return @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
+        pixels = output_pixels(out, img)
+        gx, gy = _sobel_gradients(img)
+        _store_rescaled!(pixels, _magnitude!(gx, gy), $IT)
+        return image_result(out, pixels, $S)
     end
-    return f
 end
 
 function grad_orientation_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
-    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:grad_orientation_image2D_, Symbol(I))
-
-    # out: copy (the kernel currently allocates its result).
-    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        theta, _, _ = image2D_orientation_common._gradient_orientation_matrix(img)
-        out = theta ./ π
-        return SImageND($PT.($IT.(out)), $S)
+    return @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
+        pixels = output_pixels(out, img)
+        gx, gy = _sobel_gradients(img)
+        _store_orientation!(pixels, gx, gy, $IT)
+        return image_result(out, pixels, $S)
     end
-    return f
 end
 
 function orientation_select_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
-    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
+    IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:orientation_select_image2D_, Symbol(I))
-
-    # out: copy (the kernel currently allocates its result).
-    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, theta_::Number, bw_::Number, args::Vararg{Any}) where {CONCT<:$I}
-        mag, _, _ = image2D_orientation_common._grad_magnitude_matrix(img)
-        theta_map, _, _ = image2D_orientation_common._gradient_orientation_matrix(img)
-        theta = _theta_from_number(theta_)
-        bw = _bandwidth_from_number(bw_)
-        dist = image2D_orientation_common._angle_distance(theta_map, theta)
-        out = ifelse.(dist .<= bw, mag, 0.0)
-        out = image2D_orientation_common._normalize01(out)
-        return SImageND($PT.($IT.(out)), $S)
+    f = @eval function $FUNCTION_NAME(img::CONCT, theta::Number, bandwidth::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
+        pixels = output_pixels(out, img)
+        gx, gy = _sobel_gradients(img)
+        _select_band!(gx, gy, _theta_from_number(theta), _bandwidth_from_number(bandwidth))
+        _store_rescaled!(pixels, gx, $IT)
+        return image_result(out, pixels, $S)
     end
-
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, theta_::Number, args::Vararg{Any}) where {CONCT<:$I}
-        return $FUNCTION_NAME(img, theta_, 0.2, args...)
+    @eval function $FUNCTION_NAME(img::CONCT, theta::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
+        return $FUNCTION_NAME(img, theta, 0.2; out)
     end
-
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:$I}
-        return $FUNCTION_NAME(img, 0.0, 0.2, args...)
+    @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
+        return $FUNCTION_NAME(img, 0.0, 0.2; out)
     end
-
     return f
 end
 

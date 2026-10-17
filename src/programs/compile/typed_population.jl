@@ -99,7 +99,11 @@ they remain valid after the evaluation.
 fresh pool. `individual_times[individual, sample]`, when given, receives the
 time of the steps used by that individual (a step shared by several individuals
 is timed once and counted for each). `check = true` also runs the generic
-interpreter and throws if any output differs.
+interpreter and throws if any output differs. On failure it replays the sample
+prefix and reports the first differing step on the failing individual’s path,
+including input equality and isolated calls with and without working buffers.
+Replay cannot recover external mutable state or another task’s random stream;
+if the failure does not recur, the diagnosis says so explicitly.
 """
 function evaluate_population_into!(outputs::Tuple, graph::PopulationSequentialProgram,
         samples::AbstractVector{<:Tuple}; evaluator = nothing, individual_times = nothing, check::Bool = false)
@@ -420,6 +424,14 @@ end
 # check = true: comparison with the generic interpreter
 # ---------------------------------------------------------------------------
 
+"""
+    _assert_matches_generic(outputs, graph, samples)
+
+Compare final outputs exactly and diagnose only a failed check. For example,
+`0.0` versus `1.0` raises an assertion naming the individual/output/sample and
+replays its path to identify the first differing step. Replay errors are kept
+in the diagnosis without replacing the original mismatch coordinates.
+"""
 function _assert_matches_generic(outputs::Tuple, graph::PopulationSequentialProgram, samples)
     workspace = PopulationSequentialWorkspace(graph)
     for (sample_index, sample) in enumerate(samples)
@@ -427,11 +439,123 @@ function _assert_matches_generic(outputs::Tuple, graph::PopulationSequentialProg
         for individual in eachindex(expected), position in eachindex(outputs)
             typed_value = outputs[position][individual, sample_index]
             if !_identical(typed_value, expected[individual][position])
-                throw(AssertionError("typed and generic evaluation differ: individual $individual, output $position, sample $sample_index"))
+                diagnosis = try
+                    _mismatch_diagnosis(graph, samples, sample_index, individual)
+                catch error
+                    "MISMATCH DIAGNOSIS\nReplay failed: $(sprint(showerror, error))"
+                end
+                throw(AssertionError("typed and generic evaluation differ: individual $individual, output $position, sample $sample_index\n$diagnosis"))
             end
         end
     end
     return nothing
+end
+
+# Failure-only call tree:
+#   _mismatch_diagnosis → _diagnostic_trace → _run_step!
+#                       → _diagnostic_step_report → _diagnostic_call
+"""
+    _diagnostic_call(step, inputs, keywords) -> owned result or exception text
+
+Repeat a single call on independent inputs/buffers, exposing exceptions instead
+of silently substituting the fallback. For example an identity call on `(2.0,)`
+returns `2.0`. Copies prevent a later probe from overwriting this result.
+"""
+function _diagnostic_call(step, inputs, keywords)
+    try
+        return _owned(_apply_caster(step.caster, step.fn(deepcopy(inputs)...; deepcopy(keywords)...)))
+    catch error
+        return "threw $(sprint(showerror, error))"
+    end
+end
+
+"""
+    _mismatch_diagnosis(graph, samples, sample_index, individual) -> String
+
+Replay the typed sample prefix, then interpret the failing sample generically,
+snapshotting typed values before buffers can be reused. Only steps on
+`individual`'s path are compared. For example a faulty threshold whose `out`
+path inverts its pixels reports step 1 and `all inputs identical: true`.
+This runs only after a failed check; a failure dependent on external state may
+not recur, which is reported rather than attributed to an unrelated step.
+"""
+function _mismatch_diagnosis(graph, samples, sample_index, individual)
+    evaluator, typed_values, typed_inputs = _diagnostic_trace(graph, samples, sample_index)
+    values = Vector{Any}(undef, length(graph.steps))
+    sample = samples[sample_index]
+    path = Set(graph.individual_step_ids[individual])
+    for (id, step) in enumerate(graph.steps)
+        inputs = step isa PopulationSequentialCallStep ?
+            Tuple(_read_population_ref(ref, sample, values) for ref in step.inputs) : ()
+        values[id] = _interpret_population_step(step, sample, values)
+        if id in path && !_identical(typed_values[id], values[id])
+            return _diagnostic_step_report(id, step, evaluator.steps[id], inputs,
+                typed_inputs[id], values[id], typed_values[id])
+        end
+    end
+    return "MISMATCH DIAGNOSIS\nDifference did not recur during replay; inspect external mutable state, RNG and scheduling."
+end
+
+"""
+    _diagnostic_trace(graph, samples, sample_index)
+
+Replay typed calls and return owned step values and inputs for one sample.
+For two threshold samples, sample 2 sees scratch left by sample 1.
+"""
+function _diagnostic_trace(graph, samples, sample_index)
+    evaluator = TypedEvaluator(graph; engine = :per_sample)
+    typed_values = Vector{Any}(undef, length(graph.steps))
+    typed_inputs = Any[() for _ in graph.steps]
+    # Replay earlier samples too: working buffers deliberately retain their data.
+    for index in 1:sample_index
+        sample = samples[index]
+        _fill_inputs!(evaluator.input_slots, sample)
+        for (id, step) in enumerate(evaluator.steps)
+            if index == sample_index && step isa PerSampleCall
+                typed_inputs[id] = deepcopy(_input_values(step.inputs))
+            end
+            _run_step!(evaluator, step, samples)
+            if index == sample_index
+                typed_values[id] = _owned(step.result.value)
+            end
+        end
+    end
+    return evaluator, typed_values, typed_inputs
+end
+
+"""
+    _diagnostic_step_report(id, step, call, inputs, typed_inputs, generic_value, typed_value)
+
+Describe a differing step and probe its call conventions. A broken `out` method
+reports `plain vs out identical: false` even when both input tuples agree.
+"""
+function _diagnostic_step_report(id, step, call, inputs, typed_inputs, generic_value, typed_value)
+    io = IOBuffer()
+    println(io, "MISMATCH DIAGNOSIS")
+    println(io, "first differing step: ", id)
+    if step isa PopulationSequentialCallStep
+        println(io, "function: ", step.fn.name)
+        println(io, "input types: ", map(typeof, inputs))
+        println(io, "scalar inputs (generic): ", map(x -> isbits(x) ? repr(x) : "<non-bits>", inputs))
+        println(io, "scalar inputs (typed): ", map(x -> isbits(x) ? repr(x) : "<non-bits>", typed_inputs))
+        println(io, "all inputs identical: ", all(_identical(a, b) for (a, b) in zip(typed_inputs, inputs)))
+        plain = _diagnostic_call(call, inputs, NamedTuple())
+        out_only = _diagnostic_call(call, inputs, call.buffer === nothing ? NamedTuple() : (out = call.buffer,))
+        buffered = _diagnostic_call(call, inputs, call.keywords)
+        println(io, "keywords: ", keys(call.keywords))
+        println(io, "plain repeat identical: ", _identical(plain, _diagnostic_call(call, inputs, NamedTuple())))
+        println(io, "plain vs out identical: ", _identical(plain, out_only))
+        println(io, "plain vs out + scratch identical: ", _identical(plain, buffered))
+        println(io, "plain reproduces generic: ", _identical(plain, generic_value))
+        println(io, "out + scratch reproduces typed: ", _identical(buffered, typed_value))
+        println(io, "generic value: ", isbits(generic_value) ? repr(generic_value) : typeof(generic_value))
+        println(io, "typed value: ", isbits(typed_value) ? repr(typed_value) : typeof(typed_value))
+        println(io, "plain call: ", plain isa AbstractString ? plain : typeof(plain))
+        println(io, "buffered call: ", buffered isa AbstractString ? buffered : typeof(buffered))
+    else
+        println(io, "constant step")
+    end
+    return String(take!(io))
 end
 
 """Exact equality: `===` for numbers (NaN and signed zeros included); pixelwise for images (image_utils.jl)."""

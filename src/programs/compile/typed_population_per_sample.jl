@@ -17,16 +17,20 @@
 #
 # Sized outputs (images) are written into buffers taken from the task's
 # `BufferPool` and passed to the function as `out`, so evaluation allocates no
-# output images.
+# output images. A function may also accept working arrays of the size of `out`
+# (`float_scratch`, `image_scratch`, see libraries/image/image_buffers.jl); the
+# pool's set for that image type is then passed too. Each step stores the keyword
+# arguments its function accepts, once, when the evaluator is built.
 #
 # Call tree:
 #   _build_per_sample_evaluator(graph, pool)                  from TypedEvaluator
 #   ├── ValueSlot{T}() for every input and step
 #   ├── per step: _build_per_sample_step(graph, step, step_index, slots, pool, next_buffer_index)
 #   │   ├── _prove_step / _prove_constant                     typed_population.jl
-#   │   └── _output_buffer(fn, step, step_index, pool, next_buffer_index)
-#   │       ├── _check_out_keyword(fn, step, step_index)
-#   │       └── _take_buffer!(pool, next_buffer_index, T)    typed_population_buffers.jl
+#   │   ├── _output_buffer(fn, step, step_index, pool, next_buffer_index)
+#   │   │   ├── _check_out_keyword(fn, step, step_index)
+#   │   │   └── _take_buffer!(pool, next_buffer_index, T)    typed_population_buffers.jl
+#   │   └── _step_keywords(fn, step, buffer, pool)            out, float_scratch, image_scratch
 #   └── _per_sample_output_slots(graph, slots)
 #
 #   _evaluate_samples!(evaluator::PerSampleEvaluator, samples, outputs, step_values, individual_times)
@@ -35,7 +39,7 @@
 #       ├── per step:
 #       │   ├── _run_step_timed! → _run_step!(evaluator, step, samples)
 #       │   │   └── _store!(step.result, _call_step(step))
-#       │   │       └── _call_function(fn, inputs, buffer)   fn(values...; out = buffer)
+#       │   │       └── fn(_input_values(inputs)...; step.keywords...)
 #       │   └── _record_step_value!(step_values, step_index, sample_index, value)
 #       ├── _record_sample_outputs!(outputs, evaluator, sample_index)
 #       └── _record_individual_times!(individual_times, ...)
@@ -63,6 +67,7 @@ struct PerSampleCall
     inputs::Vector{ValueSlot}    # slots of the step's arguments (inputs or earlier steps)
     result::ValueSlot            # this step's slot
     buffer::Any                  # preallocated `out`, or nothing
+    keywords::NamedTuple         # what the call passes: out and the working arrays it accepts
 end
 
 struct PerSampleConstant
@@ -103,8 +108,9 @@ end
 function _build_per_sample_step(graph, step::PopulationSequentialCallStep, step_index, slots, pool, next_buffer_index)
     fn = _prove_step(graph, step, step_index)
     buffer = _output_buffer(fn, step, step_index, pool, next_buffer_index)
+    keywords = _step_keywords(fn, step, buffer, pool)
     inputs = ValueSlot[_slot(ref, slots) for ref in step.inputs]
-    return PerSampleCall(fn, step.fn.caster, step.fn.fallback, inputs, slots.steps[step_index], buffer)
+    return PerSampleCall(fn, step.fn.caster, step.fn.fallback, inputs, slots.steps[step_index], buffer, keywords)
 end
 
 function _build_per_sample_step(graph, step::PopulationSequentialConstantStep, step_index, slots, pool, next_buffer_index)
@@ -136,6 +142,29 @@ function _check_out_keyword(fn, step::PopulationSequentialCallStep, step_index)
         throw(TypedEvaluationError("step $step_index: $(_step_signature(step)) returns the sized image $(step.return_type) but has no `out` keyword"))
     end
     return nothing
+end
+
+"""
+    _step_keywords(fn, step, buffer, pool) -> NamedTuple
+
+The keyword arguments of the step's calls: none without an `out` buffer;
+otherwise `out`, plus `float_scratch` and `image_scratch` (the pool's working
+arrays for the output type) when the function accepts them.
+"""
+function _step_keywords(fn, step::PopulationSequentialCallStep, buffer, pool::BufferPool)
+    if buffer === nothing
+        return NamedTuple()
+    end
+    T = step.return_type
+    input_types = Tuple{(ref.type for ref in step.inputs)...}
+    keywords = (out = buffer,)
+    if hasmethod(fn, input_types, (:float_scratch,))
+        keywords = merge(keywords, (float_scratch = _float_scratch!(pool, T),))
+    end
+    if hasmethod(fn, input_types, (:image_scratch,))
+        keywords = merge(keywords, (image_scratch = _image_scratch!(pool, T),))
+    end
+    return keywords
 end
 
 """For each output position, the slot holding every individual's output there."""
@@ -177,15 +206,12 @@ _samples_per_run(evaluator::PerSampleEvaluator) = 1
 """The step's function through its caster, or its fallback if either throws (as `safe_call`)."""
 function _call_step(step::PerSampleCall)
     value = try
-        _apply_caster(step.caster, _call_function(step.fn, step.inputs, step.buffer))
+        _apply_caster(step.caster, step.fn(_input_values(step.inputs)...; step.keywords...))
     catch
         step.fallback()
     end
     return value
 end
-
-_call_function(fn, inputs::Vector{ValueSlot}, ::Nothing) = fn(_input_values(inputs)...)
-_call_function(fn, inputs::Vector{ValueSlot}, buffer) = fn(_input_values(inputs)...; out = buffer)
 
 _input_values(inputs::Vector{ValueSlot}) = Tuple(slot.value for slot in inputs)
 

@@ -103,41 +103,9 @@ The numeric value of a pixel (`IntensityPixel`, `BinaryPixel` → 0/1, …) as a
 # 2. Scratch buffers
 # ---------------------------------------------------------------------------
 
-"Key under which each task stores its pool of scratch buffers."
-const _SCRATCH_POOL_KEY = :utcgp_image_scratch
-
-"""
-    scratch(key, T, dims...) -> Array{T}
-
-A working array reused across calls by the current task, so hot operators do
-not allocate (and zero, and later garbage-collect) large temporaries on every
-call.
-
-- Each task has its own pool, so this is thread-safe.
-- The contents are unspecified on return: callers overwrite or `fill!` it.
-- The array is overwritten by the next request for the same `key` in the same
-  task: use it only for temporaries that do not outlive the operator, never
-  for returned images.
-- `scratch(key, T, 0)` is a *growable* vector returned at whatever length it
-  currently has; callers `empty!` or `resize!` it.
-
-Example: `labels = scratch(:labels, Int32, 28, 28)` returns the same
-`28 × 28` matrix on every call from this task; a call with another size
-replaces it with a new one.
-"""
-function scratch(key::Symbol, ::Type{T}, dims::Vararg{Int,N}) where {T,N}
-    # This task's pool: (key, element type, dimensions) → array. Created on first use.
-    pool = get!(Dict{Tuple{Symbol,DataType,Int},Any}, task_local_storage(), _SCRATCH_POOL_KEY)::Dict{Tuple{Symbol,DataType,Int},Any}
-    slot = (key, T, N)
-    buffer = get(pool, slot, nothing)
-    growable = N == 1 && dims[1] == 0                # a growable vector keeps whatever length it has
-    # New buffer when there is none yet, or when a fixed-size request changed size.
-    if buffer === nothing || (!growable && size(buffer::Array{T,N}) != dims)
-        buffer = Array{T,N}(undef, dims...)
-        pool[slot] = buffer
-    end
-    return buffer::Array{T,N}
-end
+# `scratch` lives in libraries/image/image_buffers.jl, so that libraries loaded
+# before this file can use it too; it is re-imported here for existing users.
+using ..UTCGP: scratch
 
 # ---------------------------------------------------------------------------
 # 3. Distance transforms

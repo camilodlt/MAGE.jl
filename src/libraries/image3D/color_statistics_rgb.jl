@@ -45,7 +45,11 @@ bundle_image2DIntensity_color_statistics_rgb_factory = FunctionBundle(fallback)
 
 @inline function _rgb_value(r::Float64, g::Float64, b::Float64, ::Val{:luminance})
     # Rec. 709 coefficients, applied directly to the stored (normally sRGB) channels.
-    return muladd(0.2126, r, muladd(0.7152, g, 0.0722b))
+    # Explicit fused multiply-adds: `muladd` let the compiler choose fused or not
+    # depending on the surrounding loop, so the same pixel could round to different
+    # bytes in different code paths (e.g. RGB bytes 110, 123, 2 → 112 or 111). The
+    # fully fused form is what the original computed; `fma` makes it the only one.
+    return fma(0.2126, r, fma(0.7152, g, 0.0722b))
 end
 
 @inline function _rgb_value(r::Float64, g::Float64, ::Float64, ::Val{:red_green})

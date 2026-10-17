@@ -9,7 +9,11 @@ The exhaustive operator list is on the [Bundle Catalogue](@ref) page.
 """
 module image2D_foreground_extraction_discrete
 
-using ..UTCGP: @image_out
+# Call tree: factories → seeded cuts → appearance costs + graph construction
+# → _maximum_flow! (_global_relabel!, _recount_heights!) → _source_partition.
+# Scratch slots are task-local; separate slots keep simultaneously live arrays distinct.
+
+using ..UTCGP: scratch, output_pixels, image_result
 
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
 using ImageFiltering: Kernel, imfilter
@@ -200,6 +204,10 @@ end
     return clamp(floor(Int, clamp(value, 0.0, 1.0) * bin_count) + 1, 1, bin_count)
 end
 
+"""
+Compute the same 32-bin log costs in task-local matrices.
+For example, equal foreground/background histograms give equal costs.
+"""
 function _appearance_costs(
         values::AbstractMatrix{<:Real},
         foreground::BitMatrix,
@@ -216,8 +224,8 @@ function _appearance_costs(
     foreground_counts ./= sum(foreground_counts)
     background_counts ./= sum(background_counts)
 
-    foreground_cost = Matrix{Float64}(undef, size(values))
-    background_cost = Matrix{Float64}(undef, size(values))
+    foreground_cost = scratch(:discrete_foreground_cost, Float64, size(values)...)
+    background_cost = scratch(:discrete_background_cost, Float64, size(values)...)
     @inbounds for index in eachindex(values)
         bin = _histogram_bin(Float64(values[index]), bin_count)
         foreground_cost[index] = -log(foreground_counts[bin])
@@ -242,9 +250,16 @@ function _selected_values(
     return samples
 end
 
+"""
+Fit the original deterministic mixture, reusing only the sorted sample workspace.
+For example, [0.5] produces one component with mean 0.5.
+"""
 function _fit_grabcut_gmm(samples::Vector{Float64})
     isempty(samples) && return ([1.0], [0.5], [1.0])
-    sorted_samples = sort(copy(samples))
+    sorted_samples = scratch(:discrete_gmm_sorted_samples, Float64, 0)
+    resize!(sorted_samples, length(samples))
+    copyto!(sorted_samples, samples)
+    sort!(sorted_samples)
     sample_count = length(sorted_samples)
     component_count = min(_GRABCUT_COMPONENT_COUNT, sample_count)
     means = Vector{Float64}(undef, component_count)
@@ -396,6 +411,10 @@ function _gmm_cost(
     return _prepared_gmm_cost(value, prepared_model...)
 end
 
+"""
+Fit both appearance models and fill task-local cost matrices.
+For example, identical selected intensities give equal foreground/background costs.
+"""
 function _grabcut_appearance_costs(
         values::AbstractMatrix{<:Real},
         foreground_labels::BitMatrix,
@@ -408,8 +427,8 @@ function _grabcut_appearance_costs(
     background_model = _prepare_grabcut_gmm(
         _fit_grabcut_gmm(background_samples)...,
     )
-    foreground_cost = Matrix{Float64}(undef, size(values))
-    background_cost = Matrix{Float64}(undef, size(values))
+    foreground_cost = scratch(:discrete_foreground_cost, Float64, size(values)...)
+    background_cost = scratch(:discrete_background_cost, Float64, size(values)...)
     @inbounds for index in eachindex(values)
         value = Float64(values[index])
         foreground_cost[index] =
@@ -439,12 +458,26 @@ mutable struct _FlowNetwork
     capacity::Vector{Int64}   # changed from Vector{Float64} to Vector{Int64} because integer capacities make push-relabel terminate
 end
 
+"""
+    _FlowNetwork(vertex_count, edge_capacity)
+
+Reuse task-local edge arrays, clearing all heads and logical edge lengths.
+Insertion order is unchanged: e.g. adding 1 → 2 still gives edge pair (1, 2).
+The network is working storage and must not escape a cut.
+"""
 function _FlowNetwork(vertex_count::Int, edge_capacity::Int)
-    network = _FlowNetwork(fill(0, vertex_count), Int[], Int[], Int64[])   # changed from Float64[] to Int64[] because capacities are now integers
-    sizehint!(network.destination, edge_capacity)
-    sizehint!(network.next_edge, edge_capacity)
-    sizehint!(network.capacity, edge_capacity)
-    return network
+    head = scratch(:discrete_flow_head, Int, vertex_count)
+    fill!(head, 0)
+    destination = scratch(:discrete_flow_destination, Int, 0)
+    next_edge = scratch(:discrete_flow_next, Int, 0)
+    capacity = scratch(:discrete_flow_capacity, Int64, 0)
+    empty!(destination)
+    empty!(next_edge)
+    empty!(capacity)
+    sizehint!(destination, edge_capacity)
+    sizehint!(next_edge, edge_capacity)
+    sizehint!(capacity, edge_capacity)
+    return _FlowNetwork(head, destination, next_edge, capacity)
 end
 
 function _add_directed_edge!(
@@ -485,6 +518,10 @@ end
 
 @inline _reverse_edge(edge::Int) = isodd(edge) ? edge + 1 : edge - 1
 
+"""
+Fill reverse-residual distances in the existing BFS order.
+For example, the sink always has height zero.
+"""
 function _global_relabel!(
         network::_FlowNetwork,
         source::Int,
@@ -499,7 +536,7 @@ function _global_relabel!(
     queue_start = 1
     queue_end = 1
     queue[1] = sink
-    while queue_start <= queue_end
+    @inbounds while queue_start <= queue_end
         vertex = queue[queue_start]
         queue_start += 1
         edge = network.head[vertex]
@@ -533,24 +570,34 @@ end
 # throws so the caller falls back like for any other failing library call.
 const _MAX_FLOW_WORK_PER_VERTEX_SQUARED = 100
 
+"""
+Run the original FIFO push-relabel schedule with reused task-local working arrays.
+For example, a single edge of capacity 1 transports its scaled integer capacity.
+The operation counter and all relabel/stopping rules are unchanged.
+"""
 function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
     vertex_count = length(network.head)
-    height = zeros(Int, vertex_count)
-    excess = zeros(Int64, vertex_count)   # changed from zeros(Float64, ...) to zeros(Int64, ...) because flow is now exact integer arithmetic
+    height = scratch(:discrete_flow_height, Int, vertex_count)
+    fill!(height, 0)
+    excess = scratch(:discrete_flow_excess, Int64, vertex_count)
+    fill!(excess, 0)   # changed from zeros(Float64, ...) to zeros(Int64, ...) because flow is now exact integer arithmetic
     work = 0   # added: push/relabel operation counter for the work budget
     work_limit = _MAX_FLOW_WORK_PER_VERTEX_SQUARED * vertex_count^2   # added: budget after which the solve gives up
-    current_edge = copy(network.head)
-    active = falses(vertex_count)
-    height_count = zeros(Int, 2vertex_count + 3)
-    queue = Vector{Int}(undef, vertex_count)
-    relabel_queue = similar(queue)
+    current_edge = scratch(:discrete_flow_current, Int, vertex_count)
+    copyto!(current_edge, network.head)
+    active = scratch(:discrete_flow_active, Bool, vertex_count)
+    fill!(active, false)
+    height_count = scratch(:discrete_flow_height_count, Int, 2vertex_count + 3)
+    fill!(height_count, 0)
+    queue = scratch(:discrete_flow_queue, Int, vertex_count)
+    relabel_queue = scratch(:discrete_flow_relabel_queue, Int, vertex_count)
     queue_head = 1
     queue_tail = 0
     queue_count = 0
 
     height[source] = vertex_count
     edge = network.head[source]
-    while edge != 0
+    @inbounds while edge != 0
         flow = network.capacity[edge]
         if flow > 0   # changed from > 1.0e-12 to > 0 because capacities are exact integers
             destination = network.destination[edge]
@@ -571,7 +618,7 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
     _recount_heights!(height_count, height)
     copyto!(current_edge, network.head)
     discharge_count = 0
-    while queue_count > 0
+    @inbounds while queue_count > 0
         vertex = queue[queue_head]
         queue_head = queue_head == vertex_count ? 1 : queue_head + 1
         queue_count -= 1
@@ -651,14 +698,18 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
     return excess[sink]
 end
 
+"""
+Return a fresh reachable-vertex mask using a reused BFS queue.
+For example, an isolated source is the only true entry.
+"""
 function _source_partition(network::_FlowNetwork, source::Int)
     reached = falses(length(network.head))
-    queue = Vector{Int}(undef, length(network.head))
+    queue = scratch(:discrete_partition_queue, Int, length(network.head))
     reached[source] = true
     queue_start = 1
     queue_end = 1
     queue[1] = source
-    while queue_start <= queue_end
+    @inbounds while queue_start <= queue_end
         vertex = queue[queue_start]
         queue_start += 1
         edge = network.head[vertex]
@@ -957,6 +1008,8 @@ cut, using the seeds' intensity histograms and smoothness `5`. `band` is rounded
 should cover the mask's error. An object thinner than the band keeps its
 middle as a seed. An empty mask gives an empty result.
 
+Example: a flat saliency image yields an all-false foreground.
+
 Every overload has at most three MAGE inputs, accepts and ignores trailing
 framework `args...`, and returns exactly the dimensions and `BinaryPixel`
 storage type fixed by specialization `I`.
@@ -970,12 +1023,11 @@ function boykov_jolly_foreground_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:boykov_jolly_foreground_image2D_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             smoothness_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
@@ -991,27 +1043,27 @@ function boykov_jolly_foreground_image2D_factory(
             smoothness,
             0.9,
         )
-        return SImageND($PT.($IT.(mask)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(mask))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
             SAT,
             SALIENCY<:SizedImage{$S,IntensityPixel{SAT}},
         }
-        return $function_name(image, saliency, 5.0, args...)
+        return $function_name(image, saliency, 5.0, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             smoothness_input::Real,
             foreground_quantile_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         smoothness_value = Float64(smoothness_input)
         quantile_value = Float64(foreground_quantile_input)
@@ -1026,44 +1078,44 @@ function boykov_jolly_foreground_image2D_factory(
             smoothness,
             foreground_quantile,
         )
-        return SImageND($PT.($IT.(mask)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(mask))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             smoothness::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(image, smoothness, 0.9, args...)
+        return $function_name(image, smoothness, 0.9, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(image, 5.0, 0.9, args...)
+        return $function_name(image, 5.0, 0.9, args...; out)
     end
     # Seeds from a rough mask (e.g. a threshold) and an uncertainty band.
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
         values = reinterpret(image.img)
         result = _mask_seeded(Bool.(reinterpret(mask.img)), _seed_band(band)) do foreground_seed, background_seed
             _boykov_jolly_seeded_cut(values, foreground_seed, background_seed, 5.0, nothing)
         end
-        return SImageND($PT.($IT.(result)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(result))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
-        return $function_name(image, mask, 4.0, args...)
+        return $function_name(image, mask, 4.0, args...; out)
     end
     return fn
 end
@@ -1107,6 +1159,8 @@ GrabCut iterations (2, smoothness `5`), starting from the mask itself. `band` is
 should cover the mask's error. An object thinner than the band keeps its
 middle as a seed. An empty mask gives an empty result.
 
+Example: a flat saliency image yields an all-false foreground.
+
 Every overload accepts and ignores trailing framework `args...` and returns
 exactly the dimensions and `BinaryPixel` storage type fixed by specialization
 `I`.
@@ -1120,12 +1174,11 @@ function grabcut_foreground_image2D_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:grabcut_foreground_image2D_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
             iterations_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
@@ -1142,27 +1195,27 @@ function grabcut_foreground_image2D_factory(
             5.0,
             0.9,
         )
-        return SImageND($PT.($IT.(mask)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(mask))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             saliency::SALIENCY,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             ST,
             SOURCE<:SizedImage{$S,IntensityPixel{ST}},
             SAT,
             SALIENCY<:SizedImage{$S,IntensityPixel{SAT}},
         }
-        return $function_name(image, saliency, 2.0, args...)
+        return $function_name(image, saliency, 2.0, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             iterations_input::Real,
             smoothness_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
         iterations_value = Float64(iterations_input)
         smoothness_value = Float64(smoothness_input)
@@ -1178,45 +1231,45 @@ function grabcut_foreground_image2D_factory(
             smoothness,
             0.9,
         )
-        return SImageND($PT.($IT.(mask)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(mask))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             iterations::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(image, iterations, 5.0, args...)
+        return $function_name(image, iterations, 5.0, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(image, 2.0, 5.0, args...)
+        return $function_name(image, 2.0, 5.0, args...; out)
     end
     # Seeds from a rough mask and an uncertainty band; the mask is also the initial guess.
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
             band::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
         values = reinterpret(image.img)
         guess = BitMatrix(Bool.(reinterpret(mask.img)))
         result = _mask_seeded(guess, _seed_band(band)) do foreground_seed, background_seed
             _grabcut_seeded(values, foreground_seed, background_seed, guess, 2, 5.0)
         end
-        return SImageND($PT.($IT.(result)), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.($IT.(result))
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::SOURCE,
             mask::MASK,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
-        return $function_name(image, mask, 4.0, args...)
+        return $function_name(image, mask, 4.0, args...; out)
     end
     return fn
 end

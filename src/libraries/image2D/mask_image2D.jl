@@ -13,9 +13,10 @@ Exports :
 
 module experimental_image2D_mask
 
-using ..UTCGP: @image_out
+using ..UTCGP: output_pixels, image_result
 
 using ..UTCGP: FunctionBundle, append_method!
+using ..image2D_basic: storage_boundary
 import UTCGP:
     CONSTRAINED,
     MIN_INT,
@@ -25,8 +26,9 @@ import UTCGP:
     _positive_params,
     _ceil_positive_params
 using ImageCore: N0f8, Normed, clamp01nan!
+using FixedPointNumbers: rawtype
 using ..UTCGP:
-    SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type
+    IntensityPixel, SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type
 
 fallback(args...) = return nothing
 experimental_bundle_image2D_mask_factory = FunctionBundle(fallback)
@@ -41,26 +43,57 @@ experimental_bundle_image2D_maskregion_relative_factory = FunctionBundle(fallbac
 
 
 """
+# Find the storage interval with binary search once per call. Comparing the
+# old floating conversion at the boundary preserves its threshold rounding.
+function mask_threshold!(destination, source, mask::AbstractArray{P}, threshold, compare::F) where {T<:Normed,P<:IntensityPixel{T},F}
+    isnan(threshold) && return fill!(destination, zero(eltype(destination)))
+    raw_mask = reinterpret(rawtype(T), mask)
+    lower = storage_boundary(T, threshold, float, false)
+    upper = storage_boundary(T, threshold, float, true)
+    @inbounds for index in eachindex(destination, source, raw_mask)
+        value = UInt128(raw_mask[index])
+        if compare === (>)
+            selected = value >= upper
+        elseif compare === (<)
+            selected = value < lower
+        else
+            selected = lower <= value < upper
+        end
+        destination[index] = selected ? source[index] : zero(eltype(destination))
+    end
+    return destination
+end
+
+function mask_threshold!(destination, source, mask, threshold, compare::F) where {F}
+    storage = reinterpret(fieldtype(eltype(mask), 1), mask)
+    for index in eachindex(destination, source, storage)
+        if compare(storage[index], threshold)
+            destination[index] = source[index]
+        else
+            destination[index] = zero(eltype(destination))
+        end
+    end
+    return destination
+end
+
 function maskgt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:maskgt_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
-        m = float(mask.img) .> t_f # boolean mask
-        img_r = img.img .* m
-        return SImageND($TT.(img_r), $(_get_image_tuple_size(I)))
+        pixels = output_pixels(out, img)
+        mask_threshold!(pixels, img.img, mask.img, t_f, >)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
 
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         t_f = 0.5
-        m = float(mask.img) .> t_f # boolean mask
-        img_r = img.img .* m
-        return SImageND($TT.(img_r), $(_get_image_tuple_size(I)))
+        pixels = output_pixels(out, img)
+        mask_threshold!(pixels, img.img, mask.img, t_f, >)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return getfield(@__MODULE__, FUNCTION_NAME)
 end
@@ -70,21 +103,19 @@ function maskeqt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:maskeqt_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
-        m = float(mask.img) .== t_f # boolean mask
-        img_r = img.img .* m
-        return SImageND($TT.(img_r), $(_get_image_tuple_size(I)))
+        pixels = output_pixels(out, img)
+        mask_threshold!(pixels, img.img, mask.img, t_f, ==)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
 
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         t_f = 0.5
-        m = float(mask.img) .== t_f # boolean mask
-        img_r = img.img .* m
-        return SImageND($TT.(img_r), $(_get_image_tuple_size(I)))
+        pixels = output_pixels(out, img)
+        mask_threshold!(pixels, img.img, mask.img, t_f, ==)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return getfield(@__MODULE__, FUNCTION_NAME)
 end
@@ -94,21 +125,19 @@ function masklt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:masklt_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}) where {CONCT<:$I}
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
-        m = float(mask.img) .< t_f # boolean mask
-        img_r = img.img .* m
-        return SImageND($TT.(img_r), $(_get_image_tuple_size(I)))
+        pixels = output_pixels(out, img)
+        mask_threshold!(pixels, img.img, mask.img, t_f, <)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
 
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}) where {CONCT<:$I}
+    @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         t_f = 0.5
-        m = float(mask.img) .< t_f # boolean mask
-        img_r = img.img .* m
-        return SImageND($TT.(img_r), $(_get_image_tuple_size(I)))
+        pixels = output_pixels(out, img)
+        mask_threshold!(pixels, img.img, mask.img, t_f, <)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return getfield(@__MODULE__, FUNCTION_NAME)
 end
@@ -116,14 +145,35 @@ end
 #####################
 # MASK REGION       #
 #####################
+# Write every pixel once; equal bounds deliberately leave the source unchanged.
+function _mask_band!(destination, source, axis::Int, lower, upper, outside::Bool)
+    empty_band = lower == upper
+    zero_pixel = eltype(destination)(0)
+    @inbounds for column in axes(source, 2), row in axes(source, 1)
+        position = axis == 1 ? row : column
+        masked = outside ? (position < lower || position > upper) : (lower < position < upper)
+        destination[row, column] = !empty_band && masked ? zero_pixel : source[row, column]
+    end
+    return destination
+end
+
+function _mask_cross!(destination, source, row_lower, row_upper, column_lower, column_upper)
+    zero_pixel = eltype(destination)(0)
+    @inbounds for column in axes(source, 2), row in axes(source, 1)
+        masked = row_lower < row < row_upper || column_lower < column < column_upper
+        destination[row, column] = masked ? zero_pixel : source[row, column]
+    end
+    return destination
+end
+
 function notmaskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -132,14 +182,11 @@ function notmaskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
         to_ = clamp(to_, 0, h) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:h
-            if i < from_ || i > to_
-                img.img[:, i] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 2, from_, to_, true)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -147,11 +194,11 @@ end
 function notmaskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -160,14 +207,11 @@ function notmaskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
         to_ = clamp(to_, 0, w) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:w
-            if i < from_ || i > to_
-                img.img[i, :] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 1, from_, to_, true)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -175,11 +219,11 @@ end
 function maskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -188,14 +232,11 @@ function maskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
         to_ = clamp(to_, 0, h) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:h
-            if i > from_ && i < to_
-                img.img[:, i] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 2, from_, to_, false)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -203,11 +244,11 @@ end
 function maskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -216,14 +257,11 @@ function maskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
         to_ = clamp(to_, 0, w) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:w
-            if i > from_ && i < to_
-                img.img[i, :] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 1, from_, to_, false)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -234,11 +272,11 @@ end
 function notmaskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -251,14 +289,11 @@ function notmaskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImag
         to_ = clamp(to_, 0, h) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:h
-            if i < from_ || i > to_
-                img.img[:, i] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 2, from_, to_, true)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -266,11 +301,11 @@ end
 function notmaskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -283,14 +318,11 @@ function notmaskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImag
         to_ = clamp(to_, 0, w) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:w
-            if i < from_ || i > to_
-                img.img[i, :] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 1, from_, to_, true)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -298,11 +330,11 @@ end
 function maskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -315,14 +347,11 @@ function maskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
         to_ = clamp(to_, 0, h) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:h
-            if i > from_ && i < to_
-                img.img[:, i] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 2, from_, to_, false)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -330,11 +359,11 @@ end
 function maskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out (
-        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}) where {CONCT<:$I}
+
+    m1 = @eval (
+        (img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
     ) -> begin
-        img = deepcopy(img_)
+        pixels = output_pixels(out, img_)
         from_ = round(Int, from)
         to_ = round(Int, to)
         S = _get_image_tuple_size(CONCT)
@@ -347,14 +376,11 @@ function maskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
         to_ = clamp(to_, 0, w) # from 0 to all cols 
         from_ = clamp(from_, 0, to_) # from 0 to to_
         if to_ == from_
-            return img
+            copyto!(pixels, img_.img)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
-        for i = 1:w
-            if i > from_ && i < to_
-                img.img[i, :] .= $TT(0)
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+        _mask_band!(pixels, img_.img, 1, from_, to_, false)
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end
@@ -365,10 +391,10 @@ end
 function notmaskaround_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out ((img_::CONCT, x::Number, y::Number, args::Vararg{Any}) where {CONCT<:$I}) ->
+
+    m1 = @eval ((img_::CONCT, x::Number, y::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}) ->
         begin
-            img = deepcopy(img_)
+            pixels = output_pixels(out, img_)
             range = 0.25
             S = _get_image_tuple_size(CONCT)
             w = S.parameters[1]
@@ -382,49 +408,40 @@ function notmaskaround_relative_image2D_factory(i::Type{I}) where {I<:SizedImage
             x_to_ = clamp(round(Int, x_ + x_range), x_from_, w)
             y_from_ = clamp(round(Int, y_ - y_range), 0, h)
             y_to_ = clamp(round(Int, y_ + y_range), y_from_, h)
-            # mask along x
-            if x_to_ > x_from_
-                for i = 1:w
-                    if i > x_from_ && i < x_to_
-                        img.img[i, :] .= $TT(0)
-                    end
-                end
-            end
-            # mask along y
-            if y_to_ > y_from_
-                for i = 1:h
-                    if i > y_from_ && i < y_to_
-                        img.img[:, i] .= $TT(0)
-                    end
-                end
-            end
-            return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+            _mask_cross!(pixels, img_.img, x_from_, x_to_, y_from_, y_to_)
+            return image_result(out, pixels, $(_get_image_tuple_size(I)))
         end
     return m1
 end
 
 # returns the binarized image: white where the color is the requested one, black elsewhere
+function color_mask!(destination, source::AbstractArray{IntensityPixel{T}}, color) where {T<:Normed}
+    raw = reinterpret(rawtype(T), source)
+    lower = storage_boundary(T, color - 1.0 / 255.0, Float64, true)
+    upper = storage_boundary(T, color + 1.0 / 255.0, Float64, false)
+    @inbounds for index in eachindex(destination, raw)
+        value = UInt128(raw[index])
+        destination[index] = eltype(destination)(lower <= value < upper)
+    end
+    return destination
+end
+
+function color_mask!(destination, source, color)
+    lower = color - 1.0 / 255.0
+    upper = color + 1.0 / 255.0
+    for index in eachindex(destination, source)
+        destination[index] = eltype(destination)(lower < source[index] < upper)
+    end
+    return destination
+end
+
 function notmaskbycolor_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out ((img_::CONCT, color::Number, args::Vararg{Any}) where {CONCT<:$I}) -> begin
-        img = deepcopy(img_)
-        S = _get_image_tuple_size(CONCT)
-        w = S.parameters[1]
-        h = S.parameters[2]
-        color_ = clamp(color, 0.0, 1.0)
-        threshold = 1.0 / 255.0
-        for i = 1:w
-            for j = 1:h
-                if img.img[i, j] > (color_ - threshold) && img.img[i, j] < (color_ + threshold)
-                    img.img[i, j] = $TT(1)
-                else
-                    img.img[i, j] = $TT(0)
-                end
-            end
-        end
-        return SImageND(copy(img.img), $(_get_image_tuple_size(I)))
+    m1 = @eval ((img_::CONCT, color::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}) -> begin
+        pixels = output_pixels(out, img_)
+        color_mask!(pixels, img_.img, clamp(color, 0.0, 1.0))
+        return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
     return m1
 end

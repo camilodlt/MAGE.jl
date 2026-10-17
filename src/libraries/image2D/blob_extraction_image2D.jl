@@ -11,10 +11,10 @@ to specialize a factory always determines the output dimensions and pixel type.
 """
 module image2D_blob_extraction
 
-using ..UTCGP: @image_out
+using ..UTCGP: scratch, output_pixels, image_result
 
-using ImageMorphology: label_components, strel_box
-using Statistics: median!
+using ImageMorphology: label_components!, strel_box
+using ..image_pooling_common: median_select!
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     BinaryPixel,
@@ -67,23 +67,35 @@ end
 @inline _blob_width(blob::_BlobGeometry) = blob.max_col - blob.min_col + 1
 @inline _blob_height(blob::_BlobGeometry) = blob.max_row - blob.min_row + 1
 
-_blob_labels(mask::AbstractMatrix{Bool}) =
-    label_components(mask, strel_box((3, 3)))
+# Call tree: factory → mask → _blob_labels → _blob_geometries
+# → geometry/area/statistic selector → direct output write.
+# Labeling retains ImageMorphology's exact 8-connected labels.
 
+"""
+Label an 8-connected mask in temporary storage.
+Example: Bool[1 0; 0 1] has a single component labeled 1.
+"""
+_blob_labels(mask::AbstractMatrix{Bool}) =
+    label_components!(scratch(:blob_labels, Int, size(mask)...), mask, strel_box((3, 3)))
+
+"""
+Measure labels and order components by their first row-major pixel.
+Example: labels [1 0; 0 1] give one component of area 2 and width/height 2.
+"""
 function _blob_geometries(labels::AbstractMatrix{<:Integer})
     isempty(labels) && return _BlobGeometry[]
     number_of_labels = maximum(labels)
     number_of_labels == 0 && return _BlobGeometry[]
 
-    areas = zeros(Int, number_of_labels)
-    min_rows = fill(typemax(Int), number_of_labels)
-    max_rows = zeros(Int, number_of_labels)
-    min_cols = fill(typemax(Int), number_of_labels)
-    max_cols = zeros(Int, number_of_labels)
-    first_pixels = fill(typemax(Int), number_of_labels)
+    areas = fill!(scratch(:blob_areas, Int, number_of_labels), 0)
+    min_rows = fill!(scratch(:blob_min_rows, Int, number_of_labels), typemax(Int))
+    max_rows = fill!(scratch(:blob_max_rows, Int, number_of_labels), 0)
+    min_cols = fill!(scratch(:blob_min_cols, Int, number_of_labels), typemax(Int))
+    max_cols = fill!(scratch(:blob_max_cols, Int, number_of_labels), 0)
+    first_pixels = fill!(scratch(:blob_first_pixels, Int, number_of_labels), typemax(Int))
     width = size(labels, 2)
 
-    @inbounds for row in axes(labels, 1), col in axes(labels, 2)
+    @inbounds for col in axes(labels, 2), row in axes(labels, 1)
         label = Int(labels[row, col])
         label == 0 && continue
         areas[label] += 1
@@ -94,7 +106,7 @@ function _blob_geometries(labels::AbstractMatrix{<:Integer})
         first_pixels[label] = min(first_pixels[label], (row - 1) * width + col)
     end
 
-    blobs = _BlobGeometry[]
+    blobs = empty!(scratch(:blob_geometries, _BlobGeometry, 0))
     sizehint!(blobs, number_of_labels)
     for label in 1:number_of_labels
         areas[label] == 0 && continue
@@ -108,7 +120,7 @@ function _blob_geometries(labels::AbstractMatrix{<:Integer})
             first_pixels[label],
         ))
     end
-    sort!(blobs; by = blob -> blob.first_row_major)
+    sort!(blobs; by = blob -> blob.first_row_major, alg = QuickSort)
     return blobs
 end
 
@@ -124,9 +136,24 @@ function _pixel_count(value::Real, number_of_pixels::Int; default::Int = 1)
     return round(Int, bounded)
 end
 
-_saliency_mask(saliency::SizedImage, threshold::Float64) =
-    Float64.(reinterpret(saliency.img)) .>= threshold
-_binary_mask(mask::SizedImage) = Bool.(reinterpret(mask.img))
+"""
+Threshold saliency into temporary Boolean storage using the original Float64 conversion.
+Example: values [0.2, 0.8] at threshold 0.5 give [false, true].
+"""
+function _saliency_mask(saliency::SizedImage, threshold::Float64)
+    mask = scratch(:blob_input_mask, Bool, size(saliency.img)...)
+    mask .= Float64.(reinterpret(saliency.img)) .>= threshold
+    return mask
+end
+
+"""
+Copy a binary image into temporary Boolean storage; [0, 1] gives [false, true].
+"""
+function _binary_mask(image::SizedImage)
+    mask = scratch(:blob_input_mask, Bool, size(image.img)...)
+    mask .= Bool.(reinterpret(image.img))
+    return mask
+end
 
 function _geometry_value(blob::_BlobGeometry, selector::Symbol)
     selector === :largest && return blob.area
@@ -138,10 +165,15 @@ function _geometry_value(blob::_BlobGeometry, selector::Symbol)
     throw(ArgumentError("unknown blob geometry selector: $selector"))
 end
 
+"""
+Select geometry using the original row-major tie order.
+Example: areas 2 and 3 with :largest select the area-3 component.
+"""
 function _select_geometry(mask::AbstractMatrix{Bool}, selector::Symbol, minimum_area::Int)
     labels = _blob_labels(mask)
-    blobs = filter(blob -> blob.area >= minimum_area, _blob_geometries(labels))
-    isempty(blobs) && return falses(size(mask))
+    blobs = filter!(blob -> blob.area >= minimum_area, _blob_geometries(labels))
+    selected_mask = scratch(:blob_selected_mask, Bool, size(mask)...)
+    isempty(blobs) && return fill!(selected_mask, false)
 
     choose_maximum = selector in (:largest, :longest_horizontally, :longest_vertically)
     selected = first(blobs)
@@ -154,15 +186,23 @@ function _select_geometry(mask::AbstractMatrix{Bool}, selector::Symbol, minimum_
             selected_value = value
         end
     end
-    return labels .== selected.label
+    selected_mask .= labels .== selected.label
+    return selected_mask
 end
 
+"""
+Keep components within inclusive area bounds in a temporary mask.
+Example: two components of areas 1 and 3 with bounds (2, 4) keep only area 3.
+"""
 function _select_area_between(mask::AbstractMatrix{Bool}, minimum_area::Int, maximum_area::Int)
     labels = _blob_labels(mask)
-    selected = falses(size(mask))
+    selected = scratch(:blob_selected_mask, Bool, size(mask)...)
+    allowed = fill!(scratch(:blob_allowed_labels, Bool, length(labels) + 1), false)
     for blob in _blob_geometries(labels)
-        minimum_area <= blob.area <= maximum_area || continue
-        selected .|= labels .== blob.label
+        allowed[blob.label + 1] = minimum_area <= blob.area <= maximum_area
+    end
+    @inbounds for index in eachindex(selected, labels)
+        selected[index] = allowed[labels[index] + 1]
     end
     return selected
 end
@@ -172,26 +212,41 @@ end
     return isfinite(converted) ? converted : 0.0
 end
 
+"""
+Compute component statistics with reusable accumulators, in original pixel order.
+Example: values [1, 3] in one label have mean 2 and population std 1.
+Median samples retain the same values and use the shared exact median selector.
+"""
 function _component_statistics(values, labels, blobs, statistic::Symbol)
     number_of_labels = maximum(labels)
-    counts = zeros(Int, number_of_labels)
+    counts = fill!(scratch(:blob_stat_counts, Int, number_of_labels), 0)
+    result = scratch(:blob_stat_result, Float64, number_of_labels)
 
     if statistic === :median
-        samples = [Float64[] for _ in 1:number_of_labels]
+        offsets = scratch(:blob_sample_offsets, Int, number_of_labels)
+        next_sample = 1
         for blob in blobs
-            sizehint!(samples[blob.label], blob.area)
+            offsets[blob.label] = next_sample
+            next_sample += blob.area
         end
+        samples = scratch(:blob_median_samples, Float64, length(labels))
         @inbounds for index in eachindex(values, labels)
             label = Int(labels[index])
             label == 0 && continue
-            push!(samples[label], _finite_value(values[index]))
+            samples[offsets[label] + counts[label]] = _finite_value(values[index])
+            counts[label] += 1
         end
-        return [isempty(sample) ? 0.0 : median!(sample) for sample in samples]
+        @inbounds for label in 1:number_of_labels
+            count = counts[label]
+            result[label] = count == 0 ? 0.0 :
+                median_select!(view(samples, offsets[label]:(offsets[label] + count - 1)))
+        end
+        return result
     end
 
     if statistic === :maximum || statistic === :minimum
         initial = statistic === :maximum ? -Inf : Inf
-        result = fill(initial, number_of_labels)
+        fill!(result, initial)
         @inbounds for index in eachindex(values, labels)
             label = Int(labels[index])
             label == 0 && continue
@@ -205,8 +260,8 @@ function _component_statistics(values, labels, blobs, statistic::Symbol)
 
     statistic in (:mean, :std) ||
         throw(ArgumentError("unknown blob statistic: $statistic"))
-    sums = zeros(Float64, number_of_labels)
-    sum_squares = statistic === :std ? zeros(Float64, number_of_labels) : Float64[]
+    sums = fill!(scratch(:blob_stat_sums, Float64, number_of_labels), 0.0)
+    sum_squares = fill!(scratch(:blob_stat_squares, Float64, number_of_labels), 0.0)
     @inbounds for index in eachindex(values, labels)
         label = Int(labels[index])
         label == 0 && continue
@@ -215,15 +270,21 @@ function _component_statistics(values, labels, blobs, statistic::Symbol)
         sums[label] += value
         statistic === :std && (sum_squares[label] += value * value)
     end
-    means = sums ./ max.(counts, 1)
-    statistic === :mean && return means
-    return sqrt.(max.(sum_squares ./ max.(counts, 1) .- means .^ 2, 0.0))
+    result .= sums ./ max.(counts, 1)
+    statistic === :mean && return result
+    result .= sqrt.(max.(sum_squares ./ max.(counts, 1) .- result .^ 2, 0.0))
+    return result
 end
 
+"""
+Select a statistic using the original row-major tie order.
+Example: component means 0.2 and 0.8 with :maximum select the second.
+"""
 function _select_statistic(image_values, mask, statistic::Symbol, direction::Symbol)
     labels = _blob_labels(mask)
     blobs = _blob_geometries(labels)
-    isempty(blobs) && return falses(size(mask))
+    selected_mask = scratch(:blob_selected_mask, Bool, size(mask)...)
+    isempty(blobs) && return fill!(selected_mask, false)
 
     statistic_values = _component_statistics(image_values, labels, blobs, statistic)
     selected = first(blobs)
@@ -236,19 +297,27 @@ function _select_statistic(image_values, mask, statistic::Symbol, direction::Sym
             selected_value = value
         end
     end
-    return labels .== selected.label
+    selected_mask .= labels .== selected.label
+    return selected_mask
 end
 
-function _masked_values(image::SizedImage, mask::AbstractMatrix{Bool})
-    source = reinterpret(image.img)
-    result = similar(source)
-    zero_value = zero(eltype(source))
-    @inbounds for index in eachindex(source, mask)
-        result[index] = mask[index] ? source[index] : zero_value
+"""
+Write source pixels where selected and zero elsewhere, including when out aliases image.
+Example: source [0.2, 0.8] and mask [false, true] give [0.0, 0.8].
+"""
+function _write_masked_pixels!(pixels, image::SizedImage, mask::AbstractMatrix{Bool})
+    source = image.img
+    zero_value = zero(eltype(reinterpret(source)))
+    @inbounds for index in eachindex(source, mask, pixels)
+        pixels[index] = mask[index] ? source[index] : eltype(pixels)(zero_value)
     end
-    return result
+    return pixels
 end
 
+"""
+Create a selector whose methods write directly into optional caller output storage.
+Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
+"""
 function _binary_geometry_factory(
         ::Type{I},
         selector::Symbol,
@@ -259,12 +328,11 @@ function _binary_geometry_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, selector, :_binary_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             saliency::CONCT,
             threshold_input::Real,
             minimum_area_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
         threshold = _threshold_value(threshold_input)
         minimum_area = _pixel_count(minimum_area_input, length(saliency))
@@ -273,28 +341,27 @@ function _binary_geometry_factory(
             $(QuoteNode(selector)),
             minimum_area,
         )
-        return SImageND($PT.(selected), $S)
+        pixels = output_pixels(out, saliency, $PT)
+        pixels .= $PT.(selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             saliency::CONCT,
             threshold::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(saliency, threshold, 1, args...)
+        return $function_name(saliency, threshold, 1, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             saliency::CONCT,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(saliency, 0.5, 1, args...)
+        return $function_name(saliency, 0.5, 1, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             mask::CONCT,
             minimum_area_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {BT,CONCT<:SizedImage{$S,BinaryPixel{BT}}}
         minimum_area = _pixel_count(minimum_area_input, length(mask))
         selected = _select_geometry(
@@ -302,18 +369,23 @@ function _binary_geometry_factory(
             $(QuoteNode(selector)),
             minimum_area,
         )
-        return SImageND($PT.(selected), $S)
+        pixels = output_pixels(out, mask, $PT)
+        pixels .= $PT.(selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             mask::CONCT,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {BT,CONCT<:SizedImage{$S,BinaryPixel{BT}}}
-        return $function_name(mask, 1, args...)
+        return $function_name(mask, 1, args...; out)
     end
     return fn
 end
 
+"""
+Create a selector whose methods write directly into optional caller output storage.
+Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
+"""
 function _intensity_geometry_factory(
         ::Type{I},
         selector::Symbol,
@@ -324,34 +396,33 @@ function _intensity_geometry_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, selector, :_intensity_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::CONCT,
             saliency::SAL,
             threshold_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,ST,SAL<:SizedImage{$S,IntensityPixel{ST}}}
         selected = _select_geometry(
             _saliency_mask(saliency, _threshold_value(threshold_input)),
             $(QuoteNode(selector)),
             1,
         )
-        return SImageND($PT.($IT.(_masked_values(image, selected))), $S)
+        pixels = output_pixels(out, image, $PT)
+        _write_masked_pixels!(pixels, image, selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::CONCT,
             saliency::SAL,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,ST,SAL<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(image, saliency, 0.5, args...)
+        return $function_name(image, saliency, 0.5, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::CONCT,
             mask::MASK,
             minimum_area_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,BT,MASK<:SizedImage{$S,BinaryPixel{BT}}}
         minimum_area = _pixel_count(minimum_area_input, length(mask))
         selected = _select_geometry(
@@ -359,19 +430,24 @@ function _intensity_geometry_factory(
             $(QuoteNode(selector)),
             minimum_area,
         )
-        return SImageND($PT.($IT.(_masked_values(image, selected))), $S)
+        pixels = output_pixels(out, image, $PT)
+        _write_masked_pixels!(pixels, image, selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::CONCT,
             mask::MASK,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,BT,MASK<:SizedImage{$S,BinaryPixel{BT}}}
-        return $function_name(image, mask, 1, args...)
+        return $function_name(image, mask, 1, args...; out)
     end
     return fn
 end
 
+"""
+Create a selector whose methods write directly into optional caller output storage.
+Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
+"""
 function _binary_area_between_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,BinaryPixel{T}}}
@@ -381,12 +457,11 @@ function _binary_area_between_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_size_between_binary_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             saliency::CONCT,
             first_area_input::Real,
             second_area_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
         first_area = _pixel_count(first_area_input, length(saliency))
         second_area = _pixel_count(second_area_input, length(saliency))
@@ -396,38 +471,45 @@ function _binary_area_between_factory(
             minimum_area,
             maximum_area,
         )
-        return SImageND($PT.(selected), $S)
+        pixels = output_pixels(out, saliency, $PT)
+        pixels .= $PT.(selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             saliency::CONCT,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {ST,CONCT<:SizedImage{$S,IntensityPixel{ST}}}
-        return $function_name(saliency, 1, length(saliency), args...)
+        return $function_name(saliency, 1, length(saliency), args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             mask::CONCT,
             first_area_input::Real,
             second_area_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {BT,CONCT<:SizedImage{$S,BinaryPixel{BT}}}
         first_area = _pixel_count(first_area_input, length(mask))
         second_area = _pixel_count(second_area_input, length(mask))
         minimum_area, maximum_area = minmax(first_area, second_area)
         selected = _select_area_between(_binary_mask(mask), minimum_area, maximum_area)
-        return SImageND($PT.(selected), $S)
+        pixels = output_pixels(out, mask, $PT)
+        pixels .= $PT.(selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             mask::CONCT,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {BT,CONCT<:SizedImage{$S,BinaryPixel{BT}}}
-        return $function_name(mask, 1, length(mask), args...)
+        return $function_name(mask, 1, length(mask), args...; out)
     end
     return fn
 end
 
+"""
+Create a selector whose methods write directly into optional caller output storage.
+Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
+"""
+# TODO speed: ImageMorphology still allocates its internal union-find storage;
+# retain the library kernel to preserve its labeling behavior.
 function _binary_statistic_factory(
         ::Type{I},
         statistic::Symbol,
@@ -439,58 +521,63 @@ function _binary_statistic_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, direction, :_, statistic, :_binary_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::IMG,
             saliency::SAL,
             threshold_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             IST,SST,
             IMG<:SizedImage{$S,IntensityPixel{IST}},
             SAL<:SizedImage{$S,IntensityPixel{SST}},
         }
         selected = _select_statistic(
-            Float64.(reinterpret(image.img)),
+            reinterpret(image.img),
             _saliency_mask(saliency, _threshold_value(threshold_input)),
             $(QuoteNode(statistic)),
             $(QuoteNode(direction)),
         )
-        return SImageND($PT.(selected), $S)
+        pixels = output_pixels(out, saliency, $PT)
+        pixels .= $PT.(selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::IMG,
             saliency::SAL,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             IST,SST,
             IMG<:SizedImage{$S,IntensityPixel{IST}},
             SAL<:SizedImage{$S,IntensityPixel{SST}},
         }
-        return $function_name(image, saliency, 0.5, args...)
+        return $function_name(image, saliency, 0.5, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::IMG,
             mask::MASK,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {
             IST,BT,
             IMG<:SizedImage{$S,IntensityPixel{IST}},
             MASK<:SizedImage{$S,BinaryPixel{BT}},
         }
         selected = _select_statistic(
-            Float64.(reinterpret(image.img)),
+            reinterpret(image.img),
             _binary_mask(mask),
             $(QuoteNode(statistic)),
             $(QuoteNode(direction)),
         )
-        return SImageND($PT.(selected), $S)
+        pixels = output_pixels(out, image, $PT)
+        pixels .= $PT.(selected)
+        return image_result(out, pixels, $S)
     end
     return fn
 end
 
+"""
+Create a selector whose methods write directly into optional caller output storage.
+Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
+"""
 function _intensity_statistic_factory(
         ::Type{I},
         statistic::Symbol,
@@ -502,42 +589,43 @@ function _intensity_statistic_factory(
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, direction, :_, statistic, :_intensity_, Symbol(I))
 
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             image::CONCT,
             saliency::SAL,
             threshold_input::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,SST,SAL<:SizedImage{$S,IntensityPixel{SST}}}
         selected = _select_statistic(
-            Float64.(reinterpret(image.img)),
+            reinterpret(image.img),
             _saliency_mask(saliency, _threshold_value(threshold_input)),
             $(QuoteNode(statistic)),
             $(QuoteNode(direction)),
         )
-        return SImageND($PT.($IT.(_masked_values(image, selected))), $S)
+        pixels = output_pixels(out, image, $PT)
+        _write_masked_pixels!(pixels, image, selected)
+        return image_result(out, pixels, $S)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::CONCT,
             saliency::SAL,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,SST,SAL<:SizedImage{$S,IntensityPixel{SST}}}
-        return $function_name(image, saliency, 0.5, args...)
+        return $function_name(image, saliency, 0.5, args...; out)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             image::CONCT,
             mask::MASK,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing,
         ) where {CONCT<:$I,BT,MASK<:SizedImage{$S,BinaryPixel{BT}}}
         selected = _select_statistic(
-            Float64.(reinterpret(image.img)),
+            reinterpret(image.img),
             _binary_mask(mask),
             $(QuoteNode(statistic)),
             $(QuoteNode(direction)),
         )
-        return SImageND($PT.($IT.(_masked_values(image, selected))), $S)
+        pixels = output_pixels(out, image, $PT)
+        _write_masked_pixels!(pixels, image, selected)
+        return image_result(out, pixels, $S)
     end
     return fn
 end

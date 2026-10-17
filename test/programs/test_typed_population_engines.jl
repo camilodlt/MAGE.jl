@@ -300,3 +300,117 @@ end
         @test allunique(objectid.(first_buffers))   # no two pools share a buffer
     end
 end
+
+# ---------------------------------------------------------------------------
+# Working arrays: float_scratch / image_scratch from the pool, else task storage
+# ---------------------------------------------------------------------------
+
+const SCRATCH_SEEN = (float = Any[], image = Any[])
+
+"""Threshold through a Float32 working array and a working image (both overwritten)."""
+function engine_threshold_with_scratch(img::SImageND{S}; out = nothing, float_scratch = nothing,
+        image_scratch = nothing) where {S}
+    values = UTCGP.float_buffer(float_scratch, 1, img, :engine_threshold)
+    work = UTCGP.image_buffer(image_scratch, 1, FALSE16, :engine_threshold)
+    push!(SCRATCH_SEEN.float, values)
+    push!(SCRATCH_SEEN.image, work)
+    values .= Float32.(img.img)
+    work.img .= BinaryPixel.(values .>= 0.5f0)
+    if out === nothing
+        return SImageND(copy(work.img), S)
+    end
+    out.img .= work.img
+    return out
+end
+
+@testset "Working arrays come from the pool, shared by steps and kept across generations" begin
+    graph = engine_graph([I16, I16], [
+            (engine_threshold_with_scratch, [input_ref(1, I16)], B16, () -> FALSE16),
+            (engine_threshold_with_scratch, [input_ref(2, I16)], B16, () -> FALSE16),
+            (engine_mean, [step_ref(1, B16)], Float64, () -> 0.0),
+            (engine_mean, [step_ref(2, B16)], Float64, () -> 0.0)],
+        [([step_ref(3, Float64)], [1, 3]), ([step_ref(4, Float64)], [2, 4])])
+    samples = [(intensity(0.2, 16), intensity(0.9, 16)), (intensity(0.7, 16), intensity(0.1, 16))]
+    pool = BufferPool([I16, B16, Float64])
+    evaluator = TypedEvaluator(graph, pool)
+    @test keys(evaluator.steps[1].keywords) == (:out, :float_scratch, :image_scratch)
+    @test evaluator.steps[1].keywords.float_scratch === evaluator.steps[2].keywords.float_scratch
+    @test evaluator.steps[1].keywords.image_scratch[1] isa B16
+    @test size(evaluator.steps[1].keywords.float_scratch[1]) == (16, 16)
+    empty!(SCRATCH_SEEN.float); empty!(SCRATCH_SEEN.image)
+    outputs = zeros(2, 2)
+    evaluate_population_into!(outputs, graph, samples; evaluator, check = true)
+    @test outputs == [0.0 1.0; 1.0 0.0]
+    pooled = pool.float_scratch[B16][1]
+    @test SCRATCH_SEEN.float[1] === pooled            # the typed engine passes the pool's array
+    next_generation = TypedEvaluator(graph, pool)
+    @test next_generation.steps[1].keywords.float_scratch[1] === pooled
+    # Without keywords (generic interpreter, direct calls): the task's storage, same result.
+    direct = engine_threshold_with_scratch(intensity(0.9, 16))
+    @test SCRATCH_SEEN.float[end] !== pooled
+    @test direct.img == binary(trues(16, 16)).img
+end
+
+@testset "scratch keeps one array per size" begin
+    a224 = UTCGP.scratch(:engine_test, Float64, 224, 224)
+    a112 = UTCGP.scratch(:engine_test, Float64, 112, 112)
+    @test UTCGP.scratch(:engine_test, Float64, 224, 224) === a224
+    @test UTCGP.scratch(:engine_test, Float64, 112, 112) === a112
+    @test UTCGP.scratch(:engine_test, Float32, 224, 224) !== a224   # another element type, another array
+    growable = UTCGP.scratch(:engine_growable, Int, 0)
+    push!(growable, 1, 2, 3)
+    @test UTCGP.scratch(:engine_growable, Int, 0) === growable && length(growable) == 3
+end
+
+"""Deliberately faulty out path: plain threshold is correct, buffered pixels invert."""
+function engine_faulty_threshold(img::SImageND{S}; out = nothing) where {S}
+    result = engine_threshold(img; out)
+    if out !== nothing
+        result.img .= BinaryPixel.(Float64.(result.img) .< 0.5)
+    end
+    return result
+end
+
+@testset "Checked evaluation localises a faulty image call" begin
+    graph = engine_graph([I16], [
+            (engine_faulty_threshold, [input_ref(1, I16)], B16, () -> FALSE16),
+            (engine_mean, [step_ref(1, B16)], Float64, () -> 0.0)],
+        [([step_ref(2, Float64)], [1, 2])])
+    error = try
+        evaluate_population_into!(zeros(1, 1), graph, [(intensity(0.2, 16),)]; check=true)
+        nothing
+    catch caught
+        caught
+    end
+    @test error isa AssertionError
+    message = sprint(showerror, error)
+    for text in ("MISMATCH DIAGNOSIS", "first differing step: 1", "function: engine_faulty_threshold",
+            "input types:", "all inputs identical: true", "plain vs out identical: false",
+            "plain vs out + scratch identical: false", "plain reproduces generic: true",
+            "out + scratch reproduces typed: true")
+        @test occursin(text, message)
+    end
+end
+
+const ENGINE_LUMINANCE = UTCGP.image3D_color_statistics_rgb.rgb_luminance_image2D_factory(I16)
+const ENGINE_LUMINANCE_FALLBACK = intensity(0.0, 16)
+
+@testset "RGB luminance preserves the generic Float64 rounding boundary" begin
+    P = IntensityPixel{N0f8}
+    pixels = Array{P}(undef, 16, 16, 3)
+    for (channel, byte) in enumerate((110, 123, 2))
+        pixels[:, :, channel] .= P(reinterpret(N0f8, UInt8(byte)))
+    end
+    rgb = SImageND(pixels)
+    plain = ENGINE_LUMINANCE(rgb)
+    out = intensity(0.9, 16)
+    @test ENGINE_LUMINANCE(rgb; out) === out
+    @test UTCGP._identical(plain, out)
+    @test all(pixel -> pixel.pixel === reinterpret(N0f8, UInt8(112)), out.img)
+    T = typeof(rgb)
+    graph = engine_graph([T], [
+            (ENGINE_LUMINANCE, [input_ref(1, T)], I16, () -> ENGINE_LUMINANCE_FALLBACK),
+            (engine_mean, [step_ref(1, I16)], Float64, () -> 0.0)],
+        [([step_ref(2, Float64)], [1, 2])])
+    evaluate_population_into!(zeros(1, 2), graph, [(rgb,), (rgb,)]; check=true)
+end

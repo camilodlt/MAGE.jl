@@ -51,7 +51,7 @@ glimpse(img, 0.75, 0.2)   # a 10 × 10 window around column 30, row 9, resized t
 """
 module image2D_zoom
 
-using ..UTCGP: @image_out
+using ..UTCGP: output_pixels, image_result
 
 using ImageCore: Normed
 using ..UTCGP: FunctionBundle, append_method!
@@ -182,7 +182,10 @@ Example for `N0f8`: `0.5 → 128/255` (raw `0.5 · 255 + 0.5 = 128`),
     T(clamp(v, Float64(typemin(T)), Float64(typemax(T))))
 @inline function to_storage(::Type{Normed{U,f}}, v::Float64) where {U,f}
     scale = Float64((one(UInt64) << f) - one(UInt64))         # raw value of 1.0, e.g. 255
-    raw = clamp(muladd(v, scale, 0.5), 0.0, Float64(typemax(U)))   # v · scale + 0.5, then truncation = rounding
+    # v · scale + 0.5, then truncation = rounding. An explicit fused multiply-add:
+    # `muladd` lets the compiler fuse or not depending on the surrounding loop, which
+    # can round a value exactly halfway between two levels differently in two code paths.
+    raw = clamp(fma(v, scale, 0.5), 0.0, Float64(typemax(U)))
     return reinterpret(Normed{U,f}, unsafe_trunc(U, raw))            # use the integer as the raw storage
 end
 
@@ -212,17 +215,22 @@ end
 @inline (keep::KeepForeground)(r::Int, c::Int) = @inbounds keep.is_foreground(keep.mask[r, c])
 
 # ---------------------------------------------------------------------------
+# Call tree: factory → _zoom_foreground! / _zoom_object! / _zoom_point! /
+# _zoom_band! → _resample! → _resample_nearest! / _resample_bilinear!;
+# recenter factories → _translate!.
+#
 # Resampling a window back to full size
 # ---------------------------------------------------------------------------
 
 """
 Nearest-neighbour resize of the window `src[r0:r1, c0:c1]` to `size(src)`.
 Output pixel `i` reads the source pixel whose cell contains its centre.
-Pixels rejected by `keep(r, c)` become zero.
+Pixels rejected by `keep(r, c)` become zero. Repeated source columns reuse
+the preceding output column; e.g. columns `2:3` resized to four become `2,2,3,3`.
 
 Example: rows `5:6` stretched to 4 output rows → rows `5, 5, 6, 6`.
 """
-function _resample_nearest(src::AbstractMatrix{P}, r0::Int, r1::Int, c0::Int, c1::Int, keep::K) where {P,K}
+function _resample_nearest!(destination::AbstractMatrix{P}, src::AbstractMatrix{P}, r0::Int, r1::Int, c0::Int, c1::Int, keep::K) where {P,K}
     h, w = size(src)
     crop_h = r1 - r0 + 1
     crop_w = c1 - c0 + 1
@@ -231,16 +239,30 @@ function _resample_nearest(src::AbstractMatrix{P}, r0::Int, r1::Int, c0::Int, c1
         # Output centre i − 0.5 scaled by crop_h / h, in integer arithmetic.
         rows[i] = r0 + ((2i - 1) * crop_h) ÷ (2h)
     end
-    out = similar(src)
-    zero = zero_pixel(P)
+    blank = zero_pixel(P)
+    previous_column = 0
     @inbounds for j in 1:w
-        c = c0 + ((2j - 1) * crop_w) ÷ (2w)          # source column of output column j
-        for i in 1:h
-            r = rows[i]
-            out[i, j] = keep(r, c) ? src[r, c] : zero
+        c = c0 + ((2j - 1) * crop_w) ÷ (2w)
+        offset = (j - 1) * h
+        if c == previous_column
+            # Upsampling repeats whole columns, including the keep predicate.
+            # Copying the finished column avoids repeating the indirect row reads.
+            copyto!(destination, offset + 1, destination, offset - h + 1, h)
+        elseif keep isa KeepEveryPixel && crop_h == h
+            # An uncropped row axis is already contiguous and needs no gather.
+            copyto!(destination, offset + 1, src, (c - 1) * h + 1, h)
+        else
+            column = view(src, :, c)
+            for i in 1:h
+                r = rows[i]
+                # Both values are valid here. Eager selection avoids an
+                # unpredictable branch for noisy foreground masks.
+                destination[offset + i] = ifelse(keep(r, c), column[r], blank)
+            end
         end
+        previous_column = c
     end
-    return out
+    return destination
 end
 
 """
@@ -272,8 +294,10 @@ pixels), in two separable passes:
 
 This is the same arithmetic as interpolating each output pixel from its four
 neighbours, horizontally first. Pixels rejected by `keep(r, c)` count as zero.
+For example, equal neighbours `0.25, 0.25` interpolate to `0.25` at any weight.
 """
-function _resample_bilinear(
+function _resample_bilinear!(
+        destination::AbstractMatrix{IntensityPixel{T}},
         src::AbstractMatrix{IntensityPixel{T}},
         r0::Int, r1::Int, c0::Int, c1::Int,
         keep::K,
@@ -285,11 +309,14 @@ function _resample_bilinear(
     horizontal = scratch(:zoom_horizontal, Float64, window_rows, w)
     @inbounds for j in 1:w
         col_left, col_right, weight_x = _source_coordinate(j, w, c0, c1)
+        left_column = view(src, :, col_left)
+        right_column = view(src, :, col_right)
+        offset = (j - 1) * window_rows
         @simd for k in 1:window_rows
-            r = r0 + k - 1                           # source row of window row k
-            left = keep(r, col_left) ? Float64(src[r, col_left].pixel) : 0.0
-            right = keep(r, col_right) ? Float64(src[r, col_right].pixel) : 0.0
-            horizontal[k, j] = left + weight_x * (right - left)
+            r = r0 + k - 1
+            left = keep(r, col_left) ? Float64(left_column[r].pixel) : 0.0
+            right = keep(r, col_right) ? Float64(right_column[r].pixel) : 0.0
+            horizontal[offset + k] = left + weight_x * (right - left)
         end
     end
 
@@ -301,22 +328,25 @@ function _resample_bilinear(
         top, bottom, weight_y = _source_coordinate(i, h, r0, r1)
         row_top[i], row_bottom[i], row_weight[i] = top - r0 + 1, bottom - r0 + 1, weight_y
     end
-    out = similar(src)
     @inbounds for j in 1:w
-        for i in 1:h
-            top = horizontal[row_top[i], j]
-            bottom = horizontal[row_bottom[i], j]
-            out[i, j] = IntensityPixel{T}(to_storage(T, top + row_weight[i] * (bottom - top)))
+        column = view(horizontal, :, j)
+        offset = (j - 1) * h
+        # Column views keep the stride out of the indirect row loads; the
+        # independent output pixels can vectorise without reordering arithmetic.
+        @simd for i in 1:h
+            top = column[row_top[i]]
+            bottom = column[row_bottom[i]]
+            destination[offset + i] = IntensityPixel{T}(to_storage(T, top + row_weight[i] * (bottom - top)))
         end
     end
-    return out
+    return destination
 end
 
-"Resize a window back to full size: bilinear for intensity images, nearest neighbour otherwise."
-@inline _resample(src::AbstractMatrix{<:IntensityPixel}, r0, r1, c0, c1, keep) =
-    _resample_bilinear(src, r0, r1, c0, c1, keep)
-@inline _resample(src::AbstractMatrix, r0, r1, c0, c1, keep) =
-    _resample_nearest(src, r0, r1, c0, c1, keep)
+"Resize a window back to full size into `destination`: bilinear for intensity images, nearest neighbour otherwise."
+@inline _resample!(destination, src::AbstractMatrix{<:IntensityPixel}, r0, r1, c0, c1, keep) =
+    _resample_bilinear!(destination, src, r0, r1, c0, c1, keep)
+@inline _resample!(destination, src::AbstractMatrix, r0, r1, c0, c1, keep) =
+    _resample_nearest!(destination, src, r0, r1, c0, c1, keep)
 
 """
 Translate `src` without rescaling so the pixel position `(row, col)` lands on the image centre; the uncovered border is zero.
@@ -324,21 +354,35 @@ Translate `src` without rescaling so the pixel position `(row, col)` lands on th
 Example: a 40-row image with the object at row 10.5 (centre 20.5): shift by
 `−10` rows, so output row `i` shows input row `i − 10`.
 """
-function _translate(src::AbstractMatrix{P}, row::Float64, col::Float64) where {P}
+function _translate!(destination::AbstractMatrix{P}, src::AbstractMatrix{P}, row::Float64, col::Float64) where {P}
     h, w = size(src)
     # Offset from the image centre to the point (ties rounded up, so results do not flip with parity).
     shift_r = round(Int, row - (h + 1) / 2, RoundNearestTiesUp)
     shift_c = round(Int, col - (w + 1) / 2, RoundNearestTiesUp)
-    out = similar(src)
-    zero = zero_pixel(P)
+    blank = zero_pixel(P)
+    first_row = max(1, 1 - shift_r)
+    last_row = min(h, h - shift_r)
     @inbounds for j in 1:w
         c = j + shift_c
-        for i in 1:h
-            r = i + shift_r                          # source row
-            out[i, j] = (1 <= r <= h && 1 <= c <= w) ? src[r, c] : zero
+        offset = (j - 1) * h
+        if 1 <= c <= w && first_row <= last_row
+            # The interior is one contiguous run; only the exposed border needs
+            # filling. This removes bounds predicates from every copied pixel.
+            for i in 1:(first_row - 1)
+                destination[offset + i] = blank
+            end
+            copyto!(destination, offset + first_row, src,
+                (c - 1) * h + first_row + shift_r, last_row - first_row + 1)
+            for i in (last_row + 1):h
+                destination[offset + i] = blank
+            end
+        else
+            for i in 1:h
+                destination[offset + i] = blank
+            end
         end
     end
-    return out
+    return destination
 end
 
 # ---------------------------------------------------------------------------
@@ -423,36 +467,45 @@ function _foreground_centroid(mask::AbstractMatrix, is_foreground::P) where {P}
     return n, sum_r / max(n, 1), sum_c / max(n, 1)  # max(n, 1): no division by 0 when empty
 end
 
-"Kernel of the whole-foreground zooms: apply `mode` to the foreground of `mask`; returns a pixel matrix."
-function _zoom_foreground(src::AbstractMatrix, mask::AbstractMatrix, is_foreground, mode::ZoomMode, margin::Float64)
+"Kernel of the whole-foreground zooms: apply `mode` to the foreground of `mask`, writing into `destination`."
+function _zoom_foreground!(destination::AbstractMatrix, src::AbstractMatrix, mask::AbstractMatrix, is_foreground, mode::ZoomMode, margin::Float64)
     if mode isa RecenterMode
         n, row, col = _foreground_centroid(mask, is_foreground)
-        return n == 0 ? src : _translate(src, row, col)
+        if n == 0
+            return copyto!(destination, src)          # empty mask: image unchanged
+        end
+        return _translate!(destination, src, row, col)
     end
     box = _foreground_box(mask, is_foreground)
-    box === nothing && return src                     # empty mask: image unchanged
+    if box === nothing
+        return copyto!(destination, src)              # empty mask: image unchanged
+    end
     h, w = size(src)
     r0, r1, c0, c1 = _expand_box(box..., h, w, margin, mode isa CropAspect)   # box... = r0, r1, c0, c1
     # Isolating crops blank everything that is not foreground.
     keep = mode isa CropIsolate ? KeepForeground(mask, is_foreground) : KeepEveryPixel()
-    return _resample(src, r0, r1, c0, c1, keep)
+    return _resample!(destination, src, r0, r1, c0, c1, keep)
 end
 
 """
 Kernel of the selector zooms: label the objects of `mask`, pick one with
-`select(table, src) -> id`, apply `mode` to it; returns a pixel matrix.
+`select(table, src) -> id`, apply `mode` to it, writing into `destination`.
 """
-function _zoom_object(src::AbstractMatrix, mask::AbstractMatrix, is_foreground, select::F, mode::ZoomMode, margin::Float64) where {F}
+function _zoom_object!(destination::AbstractMatrix, src::AbstractMatrix, mask::AbstractMatrix, is_foreground, select::F, mode::ZoomMode, margin::Float64) where {F}
     t = object_table(mask, is_foreground)            # label the objects of the mask
     id = select(t, src)                              # e.g. the largest one; 0 when there is none
-    id == 0 && return src                             # no object: image unchanged
-    mode isa RecenterMode && return _translate(src, centroid_row(t, id), centroid_col(t, id))
+    if id == 0
+        return copyto!(destination, src)              # no object: image unchanged
+    end
+    if mode isa RecenterMode
+        return _translate!(destination, src, centroid_row(t, id), centroid_col(t, id))
+    end
     h, w = size(src)
     # The chosen object's bounding box, grown by the margin.
     r0, r1, c0, c1 = _expand_box(t.min_r[id], t.max_r[id], t.min_c[id], t.max_c[id],
         h, w, margin, mode isa CropAspect)
     keep = mode isa CropIsolate ? KeepObject(t.labels, Int32(id)) : KeepEveryPixel()
-    return _resample(src, r0, r1, c0, c1, keep)
+    return _resample!(destination, src, r0, r1, c0, c1, keep)
 end
 
 """
@@ -474,22 +527,24 @@ function _point_window(h::Int, w::Int, x::Float64, y::Float64, fraction::Float64
     return r0, r1, c0, c1
 end
 
-"Kernel of the glimpses: crop the window of `fraction` around `(x, y)` and resize it back."
-function _zoom_point(src::AbstractMatrix, x::Float64, y::Float64, fraction::Float64)
+"Kernel of the glimpses: crop the window of `fraction` around `(x, y)` and resize it back into `destination`."
+function _zoom_point!(destination::AbstractMatrix, src::AbstractMatrix, x::Float64, y::Float64, fraction::Float64)
     h, w = size(src)
-    return _resample(src, _point_window(h, w, x, y, fraction)..., KeepEveryPixel())
+    return _resample!(destination, src, _point_window(h, w, x, y, fraction)..., KeepEveryPixel())
 end
 
 "Kernel of `zoom_rows` / `zoom_cols`: keep the band between normalised positions `a` and `b` along `axis` (1 = rows, 2 = columns) and stretch it."
-function _zoom_band(src::AbstractMatrix, axis::Int, a::Float64, b::Float64)
+function _zoom_band!(destination::AbstractMatrix, src::AbstractMatrix, axis::Int, a::Float64, b::Float64)
     h, w = size(src)
     lo, hi = minmax(a, b)                            # the two positions in any order
     n = axis == 1 ? h : w                            # length of the axis
     i0 = clamp(round(Int, unit_to_position(lo, n)), 1, n)     # first row/column of the band
     i1 = clamp(round(Int, unit_to_position(hi, n)), i0, n)    # last (at least i0)
     # Rows: crop rows i0:i1, all columns. Columns: all rows, columns i0:i1.
-    return axis == 1 ? _resample(src, i0, i1, 1, w, KeepEveryPixel()) :
-           _resample(src, 1, h, i0, i1, KeepEveryPixel())
+    if axis == 1
+        return _resample!(destination, src, i0, i1, 1, w, KeepEveryPixel())
+    end
+    return _resample!(destination, src, 1, h, i0, i1, KeepEveryPixel())
 end
 
 # ---------------------------------------------------------------------------
@@ -517,74 +572,80 @@ function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K
     function_name = Symbol(operator, :_, Symbol(I))
 
     # (src, binary mask, margin) and (src, binary mask)
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(
+    fn = @eval function $function_name(
             src::Source,
             mask::Mask,
             margin::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing
         ) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
-        return SImageND($kernel(src.img, mask.img, IsSet(), clamp_unit(margin, $_DEFAULT_MARGIN)), $size_type)
+        pixels = output_pixels(out, src)
+        $kernel(pixels, src.img, mask.img, IsSet(), clamp_unit(margin, $_DEFAULT_MARGIN))
+        return image_result(out, pixels, $size_type)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             src::Source,
             mask::Mask,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing
         ) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
-        return SImageND($kernel(src.img, mask.img, IsSet(), $_DEFAULT_MARGIN), $size_type)
+        pixels = output_pixels(out, src)
+        $kernel(pixels, src.img, mask.img, IsSet(), $_DEFAULT_MARGIN)
+        return image_result(out, pixels, $size_type)
     end
     # (src, intensity saliency map, margin) and (src, saliency): threshold 0.5
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             src::Source,
             saliency::Saliency,
             margin::Real,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing
         ) where {Source<:$I,SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
-        return SImageND($kernel(src.img, saliency.img, AtLeast(0.5), clamp_unit(margin, $_DEFAULT_MARGIN)), $size_type)
+        pixels = output_pixels(out, src)
+        $kernel(pixels, src.img, saliency.img, AtLeast(0.5), clamp_unit(margin, $_DEFAULT_MARGIN))
+        return image_result(out, pixels, $size_type)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(
+    @eval function $function_name(
             src::Source,
             saliency::Saliency,
-            args::Vararg{Any},
+            args::Vararg{Any}; out = nothing
         ) where {Source<:$I,SaliencyStorage,Saliency<:SizedImage{$size_type,IntensityPixel{SaliencyStorage}}}
-        return SImageND($kernel(src.img, saliency.img, AtLeast(0.5), $_DEFAULT_MARGIN), $size_type)
+        pixels = output_pixels(out, src)
+        $kernel(pixels, src.img, saliency.img, AtLeast(0.5), $_DEFAULT_MARGIN)
+        return image_result(out, pixels, $size_type)
     end
 
     if pixel_type <: BinaryPixel
         # (mask) and (mask, margin): a mask zooms on its own foreground.
-        # out: copy (the kernel currently allocates its result).
-        @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
-            return SImageND($kernel(src.img, src.img, IsSet(), $_DEFAULT_MARGIN), $size_type)
+        @eval function $function_name(src::Source, args::Vararg{Any}; out = nothing) where {Source<:$I}
+            pixels = output_pixels(out, src)
+            $kernel(pixels, src.img, src.img, IsSet(), $_DEFAULT_MARGIN)
+            return image_result(out, pixels, $size_type)
         end
-        # out: copy (the kernel currently allocates its result).
-        @eval @image_out function $function_name(src::Source, margin::Real, args::Vararg{Any}) where {Source<:$I}
-            return SImageND($kernel(src.img, src.img, IsSet(), clamp_unit(margin, $_DEFAULT_MARGIN)), $size_type)
+        @eval function $function_name(src::Source, margin::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
+            pixels = output_pixels(out, src)
+            $kernel(pixels, src.img, src.img, IsSet(), clamp_unit(margin, $_DEFAULT_MARGIN))
+            return image_result(out, pixels, $size_type)
         end
     elseif pixel_type <: IntensityPixel
         # (img), (img, threshold) and (img, threshold, margin): an intensity
         # image is thresholded to find its own foreground.
-        # out: copy (the kernel currently allocates its result).
-        @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
-            return SImageND($kernel(src.img, src.img, AtLeast(0.5), $_DEFAULT_MARGIN), $size_type)
+        @eval function $function_name(src::Source, args::Vararg{Any}; out = nothing) where {Source<:$I}
+            pixels = output_pixels(out, src)
+            $kernel(pixels, src.img, src.img, AtLeast(0.5), $_DEFAULT_MARGIN)
+            return image_result(out, pixels, $size_type)
         end
-        # out: copy (the kernel currently allocates its result).
-        @eval @image_out function $function_name(src::Source, threshold::Real, args::Vararg{Any}) where {Source<:$I}
-            return SImageND($kernel(src.img, src.img, AtLeast(clamp_unit(threshold)), $_DEFAULT_MARGIN), $size_type)
+        @eval function $function_name(src::Source, threshold::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
+            pixels = output_pixels(out, src)
+            $kernel(pixels, src.img, src.img, AtLeast(clamp_unit(threshold)), $_DEFAULT_MARGIN)
+            return image_result(out, pixels, $size_type)
         end
-        # out: copy (the kernel currently allocates its result).
-        @eval @image_out function $function_name(
+        @eval function $function_name(
                 src::Source,
                 threshold::Real,
                 margin::Real,
-                args::Vararg{Any},
-            ) where {Source<:$I}
-            return SImageND(
-                $kernel(src.img, src.img, AtLeast(clamp_unit(threshold)), clamp_unit(margin, $_DEFAULT_MARGIN)),
-                $size_type,
-            )
+                args::Vararg{Any}; out = nothing
+        ) where {Source<:$I}
+            pixels = output_pixels(out, src)
+            $kernel(pixels, src.img, src.img, AtLeast(clamp_unit(threshold)), clamp_unit(margin, $_DEFAULT_MARGIN))
+            return image_result(out, pixels, $size_type)
         end
     end
     return fn
@@ -603,20 +664,23 @@ function _point_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, Symbol(I))
     # (src, x, y): the point given by two coordinates.
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(src::Source, x::Real, y::Real, args::Vararg{Any}) where {Source<:$I}
-        return SImageND($kernel(src.img, clamp_unit(x), clamp_unit(y)), $size_type)
+    fn = @eval function $function_name(src::Source, x::Real, y::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
+        pixels = output_pixels(out, src)
+        $kernel(pixels, src.img, clamp_unit(x), clamp_unit(y))
+        return image_result(out, pixels, $size_type)
     end
     # (src, s): a point on the diagonal, x = y = s.
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(src::Source, s::Real, args::Vararg{Any}) where {Source<:$I}
+    @eval function $function_name(src::Source, s::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         u = clamp_unit(s)
-        return SImageND($kernel(src.img, u, u), $size_type)
+        pixels = output_pixels(out, src)
+        $kernel(pixels, src.img, u, u)
+        return image_result(out, pixels, $size_type)
     end
     # (src): the image centre.
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
-        return SImageND($kernel(src.img, 0.5, 0.5), $size_type)
+    @eval function $function_name(src::Source, args::Vararg{Any}; out = nothing) where {Source<:$I}
+        pixels = output_pixels(out, src)
+        $kernel(pixels, src.img, 0.5, 0.5)
+        return image_result(out, pixels, $size_type)
     end
     return fn
 end
@@ -667,14 +731,15 @@ end
 _mask_builder(operator::Symbol, kernel) = I -> _mask_driven_factory(I, operator, kernel)
 _point_builder(operator::Symbol, kernel) = I -> _point_driven_factory(I, operator, kernel)
 _foreground_kernel(mode::ZoomMode) =
-    (src, mask, fg, margin) -> _zoom_foreground(src, mask, fg, mode, margin)
+    (destination, src, mask, fg, margin) -> _zoom_foreground!(destination, src, mask, fg, mode, margin)
 _object_kernel(select, mode::ZoomMode) =
-    (src, mask, fg, margin) -> _zoom_object(src, mask, fg, select, mode, margin)
+    (destination, src, mask, fg, margin) -> _zoom_object!(destination, src, mask, fg, select, mode, margin)
 _fixed_select(select_fn) = (t, src) -> select_fn(t)
 _mean_select(direction::Float64) = (t, src) -> select_by_mean(t, src, direction)
-_glimpse_kernel(fraction::Float64) = (src, x, y) -> _zoom_point(src, x, y, fraction)
-# Kernel signatures: mask-driven (src_pixels, mask_pixels, is_foreground, margin) -> pixels;
-# selectors (table, src_pixels) -> object id; point-driven (src_pixels, x, y) -> pixels.
+_glimpse_kernel(fraction::Float64) = (destination, src, x, y) -> _zoom_point!(destination, src, x, y, fraction)
+# Kernel signatures: mask-driven (destination, src_pixels, mask_pixels, is_foreground, margin);
+# selectors (table, src_pixels) -> object id; point-driven (destination, src_pixels, x, y).
+# Kernels write the output pixels into `destination`.
 
 for (prefix, mode, verb, tail) in _MODES
     # Whole foreground: zoom_crop_bbox, zoom_crop_aspect, …
@@ -737,7 +802,7 @@ end
 
 _define_factory!(:zoom_recenter_point_image2D_factory, :zoom_recenter_point,
     I -> _point_driven_factory(I, :zoom_recenter_point,
-        (src, x, y) -> _translate(src, unit_to_position(y, size(src, 1)), unit_to_position(x, size(src, 2)))),
+        (destination, src, x, y) -> _translate!(destination, src, unit_to_position(y, size(src, 1)), unit_to_position(x, size(src, 2)))),
     _ALL_KINDS,
     "Translates the image so a point lands on the centre.",
     """
@@ -755,13 +820,15 @@ function _center_factory(::Type{I}) where {I}
     _validate_factory_type(storage_type)
     function_name = Symbol(:zoom_center_, Symbol(I))
     # (img, z): never smaller than 5% of each side.
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(src::Source, z::Real, args::Vararg{Any}) where {Source<:$I}
-        return SImageND(_zoom_point(src.img, 0.5, 0.5, max(clamp_unit(z), 0.05)), $size_type)
+    fn = @eval function $function_name(src::Source, z::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
+        pixels = output_pixels(out, src)
+        _zoom_point!(pixels, src.img, 0.5, 0.5, max(clamp_unit(z), 0.05))
+        return image_result(out, pixels, $size_type)
     end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(src::Source, args::Vararg{Any}) where {Source<:$I}
-        return SImageND(_zoom_point(src.img, 0.5, 0.5, 0.5), $size_type)
+    @eval function $function_name(src::Source, args::Vararg{Any}; out = nothing) where {Source<:$I}
+        pixels = output_pixels(out, src)
+        _zoom_point!(pixels, src.img, 0.5, 0.5, 0.5)
+        return image_result(out, pixels, $size_type)
     end
     return fn
 end
@@ -781,15 +848,17 @@ function _band_factory(::Type{I}, operator::Symbol, axis::Int) where {I}
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, Symbol(I))
     # (img, a, b): the band between a and b.
-    # out: copy (the kernel currently allocates its result).
-    fn = @eval @image_out function $function_name(src::Source, a::Real, b::Real, args::Vararg{Any}) where {Source<:$I}
-        return SImageND(_zoom_band(src.img, $axis, clamp_unit(a), clamp_unit(b)), $size_type)
+    fn = @eval function $function_name(src::Source, a::Real, b::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
+        pixels = output_pixels(out, src)
+        _zoom_band!(pixels, src.img, $axis, clamp_unit(a), clamp_unit(b))
+        return image_result(out, pixels, $size_type)
     end
     # (img, a): a band from a − 0.125 to a + 0.125 (25% of the image), clipped.
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $function_name(src::Source, a::Real, args::Vararg{Any}) where {Source<:$I}
+    @eval function $function_name(src::Source, a::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         u = clamp_unit(a)
-        return SImageND(_zoom_band(src.img, $axis, max(u - 0.125, 0.0), min(u + 0.125, 1.0)), $size_type)
+        pixels = output_pixels(out, src)
+        _zoom_band!(pixels, src.img, $axis, max(u - 0.125, 0.0), min(u + 0.125, 1.0))
+        return image_result(out, pixels, $size_type)
     end
     return fn
 end

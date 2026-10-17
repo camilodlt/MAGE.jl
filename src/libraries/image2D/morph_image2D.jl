@@ -12,9 +12,10 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_morph
 
-using ..UTCGP: @image_out
+using ..UTCGP: scratch, image_result
 
 using ImageMorphology
+using FixedPointNumbers: rawtype
 using ..UTCGP: image2D_basic
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
@@ -114,20 +115,96 @@ function _morph_output(::Type{IT}, ::Type{PT}, ::Type{S}, res) where {IT, PT, S}
     return SImageND(PT.(cast(IT, res)), S)
 end
 
-# Reinterpret storage without copying pixel arrays. Compound morphology needs
-# one scratch array, but the result is written directly into the owned output.
-function _morph_into!(out,img,op!,se)
-    T = _get_image_type(out)
-    destination = reinterpret(T,out.img)
-    source = reinterpret(T,img.img)
-    if op! === erode! || op! === dilate!
-        se === nothing ? op!(destination,source) : op!(destination,source,se)
-    else
-        scratch = similar(source)
-        se === nothing ? op!(destination,source,scratch) : op!(destination,source,se,scratch)
+# Reinterpret storage without copying pixel arrays. Compound morphology reuses
+# task scratch; mixed storage keeps source arithmetic before the final cast.
+
+"""
+    _morph_extremum!(destination, source, take, radius, diamond)
+
+Erosion (`take = min`) or dilation (`take = max`) of `source` into `destination`,
+with ImageMorphology's optimised in-place filters (much faster than a direct
+neighbourhood loop; their small internal allocations are acceptable).
+`diamond = true`: diamond of the given radius (`strel_diamond`, as `erode(img, se)`);
+`diamond = false`: ImageMorphology's default element (as `erode(img)`).
+"""
+# TODO speed: erosion/dilation by a diamond of radius r cost O(r^2) per pixel.
+# A diamond is the composition of r 3x3-cross erosions (or decomposes into
+# line elements), and a box is separable; with van Herk-Gil-Werman sliding
+# max/min per line, each costs O(1) per pixel whatever r. Worth it only if
+# profiling shows morphology dominating: ImageMorphology's kernels are already fast.
+function _morph_extremum!(destination, source, take::F, radius::Int, diamond::Bool) where {F}
+    if diamond
+        element = strel_diamond((2radius + 1, 2radius + 1))
+        if take === min
+            return erode!(destination, source, element)
+        end
+        return dilate!(destination, source, element)
     end
-    clamp01nan!(destination)
-    return out
+    if take === min
+        return erode!(destination, source)
+    end
+    return dilate!(destination, source)
+end
+
+function _morph_into!(destination, img, op!, se)
+    input_storage = _get_image_type(img)
+    output_storage = _get_image_type(destination)
+    source = reinterpret(input_storage, img.img)
+    hat = op! === tophat! || op! === bothat!
+    # Hat operators subtract in the floating type used by ImageMorphology,
+    # then cast, so fixed-point subtraction cannot change their rounding.
+    result_storage = hat ? ImageMorphology.maybe_floattype(input_storage) : input_storage
+    if result_storage === output_storage
+        result = reinterpret(output_storage, destination.img)
+    else
+        result = scratch(:morph_result, result_storage, size(source)...)
+    end
+    diamond = se != 0
+    radius = diamond ? se : 1
+    if op! === erode!
+        _morph_extremum!(result, source, min, radius, diamond)
+    elseif op! === dilate!
+        _morph_extremum!(result, source, max, radius, diamond)
+    else
+        temporary = scratch(:morph_compound, input_storage, size(source)...)
+        if op! === opening! || op! === tophat!
+            _morph_extremum!(temporary, source, min, radius, diamond)
+            _morph_extremum!(result, temporary, max, radius, diamond)
+        else
+            _morph_extremum!(temporary, source, max, radius, diamond)
+            _morph_extremum!(result, temporary, min, radius, diamond)
+        end
+        if op! === tophat!
+            @inbounds for index in eachindex(result, source)
+                result[index] = source[index] - result[index]
+            end
+        elseif op! === bothat!
+            @inbounds for index in eachindex(result, source)
+                result[index] = result[index] - source[index]
+            end
+        end
+    end
+    clamp01nan!(result)
+    if result_storage !== output_storage
+        _morph_cast!(destination.img, result, output_storage)
+    end
+    return destination
+end
+
+function _morph_cast!(destination, result, ::Type{T}) where {T}
+    P = eltype(destination)
+    for index in eachindex(destination, result)
+        destination[index] = P(T(result[index]))
+    end
+    return destination
+end
+
+function _morph_cast!(destination, result, ::Type{Bool})
+    P = eltype(destination)
+    for index in eachindex(destination, result)
+        destination[index] = P(Bool(round(Int, clamp01nan(result[index]))))
+    end
+    return destination
 end
 
 """
@@ -143,28 +220,97 @@ methods
 built once per output type and reused on later calls.
 """
 function _morph_factory(::Type{I}, SIZE, name::Symbol, op_with_se, op_default) where {I<:SizedImage}
+    inplace = if op_with_se === erode
+        erode!
+    elseif op_with_se === dilate
+        dilate!
+    elseif op_with_se === opening
+        opening!
+    elseif op_with_se === closing
+        closing!
+    elseif op_with_se === tophat
+        tophat!
+    elseif op_with_se === bothat
+        bothat!
+    else
+        throw(ArgumentError("Unsupported morphology operation: $name"))
+    end
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    FUNCTION_NAME = Symbol(name, :_, Symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
-    inplace = op_with_se === erode ? erode! : op_with_se === dilate ? dilate! :
-        op_with_se === opening ? opening! : op_with_se === closing ? closing! :
-        op_with_se === tophat ? tophat! : op_with_se === bothat ? bothat! : nothing
-    # out: copy only for mixed storage types or operators without a ! kernel.
-    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
-        if out !== nothing && $inplace !== nothing && _get_image_type(img) === $IT
-            return _morph_into!(out,img,$inplace,_morph_diamond(k_n))
-        end
-        return _morph_output($IT, $PT, $S, $op_with_se(reinterpret(img.img), _morph_diamond(k_n)))
+    function_name = Symbol(name, :_, Symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    fn = @eval function $function_name(img::Source, k::Number, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
+        pixels = out === nothing ? similar(img.img, $PT) : out.img
+        destination = image_result(out, pixels, $S)
+        return _morph_into!(destination, img, $inplace, _morph_kernel_size(k) ÷ 2)
     end
-    # out: copy only for mixed storage types or operators without a ! kernel.
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
-        if out !== nothing && $inplace !== nothing && _get_image_type(img) === $IT
-            return _morph_into!(out,img,$inplace,nothing)
-        end
-        return _morph_output($IT, $PT, $S, $op_default(reinterpret(img.img)))
+    @eval function $function_name(img::Source, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
+        pixels = out === nothing ? similar(img.img, $PT) : out.img
+        destination = image_result(out, pixels, $S)
+        return _morph_into!(destination, img, $inplace, 0)
     end
-    return f
+    return fn
+end
+
+function morph_difference!(destination, img, radius::Int, operation::Symbol, mode::Symbol)
+    source = reinterpret(fieldtype(eltype(img.img), 1), img.img)
+    T = eltype(source)
+    F = ImageMorphology.maybe_floattype(T)
+    upper = scratch(:morph_difference_upper, F, size(source)...)
+    lower = scratch(:morph_difference_lower, F, size(source)...)
+    diamond = radius != 0
+    actual_radius = diamond ? radius : 1
+    _morph_extremum!(upper, source, max, actual_radius, diamond)
+    _morph_extremum!(lower, source, min, actual_radius, diamond)
+    @inbounds for index in eachindex(source, upper, lower)
+        if operation === :laplace
+            upper[index] = upper[index] + lower[index] - 2source[index]
+        elseif mode === :internal
+            upper[index] = source[index] - lower[index]
+        elseif mode === :external
+            upper[index] = upper[index] - source[index]
+        else
+            upper[index] = upper[index] - lower[index]
+        end
+    end
+    if operation === :laplace
+        image2D_basic._sanitize_img!(upper)
+        low, high = extrema(upper)
+        if high - low <= 1e-9 * max(1.0, abs(low), abs(high))
+            fill!(upper, zero(F))
+        else
+            @inbounds for index in eachindex(upper)
+                upper[index] = (upper[index] - low) / (high - low)
+            end
+        end
+    end
+    clamp01nan!(upper)
+    _morph_cast!(destination, upper, fieldtype(eltype(destination), 1))
+    return destination
+end
+
+function _morph_difference_factory(::Type{I}, SIZE, name::Symbol, operation::Symbol) where {I<:SizedImage}
+    PT, S = _get_image_pixel_type(I), _get_image_tuple_size(I)
+    function_name = Symbol(name, :_, Symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    fn = @eval function $function_name(img::Source, k::Number, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
+        pixels = out === nothing ? similar(img.img, $PT) : out.img
+        morph_difference!(pixels, img, _morph_kernel_size(k) ÷ 2, $(QuoteNode(operation)), :beucher)
+        return image_result(out, pixels, $S)
+    end
+    @eval function $function_name(img::Source, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
+        pixels = out === nothing ? similar(img.img, $PT) : out.img
+        morph_difference!(pixels, img, 0, $(QuoteNode(operation)), :beucher)
+        return image_result(out, pixels, $S)
+    end
+    if operation === :gradient
+        @eval function $function_name(img::Source, k::Number, mode::Number, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
+            pixels = out === nothing ? similar(img.img, $PT) : out.img
+            morph_difference!(pixels, img, _morph_kernel_size(k) ÷ 2, $(QuoteNode(operation)), _morph_gradient_mode(mode))
+            return image_result(out, pixels, $S)
+        end
+    end
+    return fn
 end
 
 # ################### #
@@ -227,9 +373,7 @@ bothat_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixe
 rescaled to `[0, 1]`.
 """
 morpholaplace_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel, IntensityPixel}}} where SIZE =
-    _morph_factory(I, SIZE, :morpholaplace_2D,
-        (values, se) -> image2D_basic._normalize_img(mlaplacian(values, se)),
-        values -> image2D_basic._normalize_img(mlaplacian(values)))
+    _morph_difference_factory(I, SIZE, :morpholaplace_2D, :laplace)
 
 "Mode of `morphogradient_2D` from a number: `< 0` Beucher, `0` internal, `> 0` (or NaN) external."
 _morph_gradient_mode(mode_int::Number) = mode_int < 0 ? :beucher : mode_int == 0 ? :internal : :external
@@ -242,24 +386,7 @@ side `k`. `mode < 0` Beucher (dilation − erosion, the default without `mode`),
 `0` internal (img − erosion), `> 0` external (dilation − img).
 """
 function morphogradient_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel, IntensityPixel}}} where SIZE
-    IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
-    _validate_factory_type(IT)
-    FUNCTION_NAME = Symbol(:morphogradient_2D_, Symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
-    # out: copy (the kernel currently allocates its result).
-    f = @eval @image_out function $FUNCTION_NAME(img::CONCT, k_n::Number, mode_int::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
-        res = mgradient(reinterpret(img.img), _morph_diamond(k_n); mode = _morph_gradient_mode(mode_int))
-        return _morph_output($IT, $PT, $S, res)
-    end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, k_n::Number, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
-        return _morph_output($IT, $PT, $S, mgradient(reinterpret(img.img), _morph_diamond(k_n); mode = :beucher))
-    end
-    # out: copy (the kernel currently allocates its result).
-    @eval @image_out function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}) where {CONCT<:SizedImage{$SIZE, <:Union{BinaryPixel, IntensityPixel}}}
-        return _morph_output($IT, $PT, $S, mgradient(reinterpret(img.img); mode = :beucher))
-    end
-    return f
+    return _morph_difference_factory(I, SIZE, :morphogradient_2D, :gradient)
 end
 
 

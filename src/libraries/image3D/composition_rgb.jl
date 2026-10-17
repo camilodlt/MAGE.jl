@@ -7,7 +7,7 @@ Cross-chromosome composition of typed 2D intensity images and RGB images.
 """
 module image3D_rgb_composition
 
-using ..UTCGP: @image_out
+using ..UTCGP: image_result
 
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -43,82 +43,78 @@ bundle_image3DIntensity_rgb_composition_factory = FunctionBundle(fallback)
 
 @inline _finite01(value::Real) = isfinite(value) ? clamp(Float64(value), 0.0, 1.0) : 0.0
 
-function _plane_values(image::SImageND)
-    source = reinterpret(image.img)
-    output = Matrix{Float64}(undef, size(source))
-    @inbounds for index in eachindex(source)
-        output[index] = _finite01(source[index])
+@inline function store_rgb!(destination, index, value)
+    P = eltype(destination)
+    T = fieldtype(P, 1)
+    destination[index] = P(T(value))
+end
+
+function compose_rgb!(destination, red, green, blue)
+    planes = (reinterpret(fieldtype(eltype(red.img), 1), red.img), reinterpret(fieldtype(eltype(green.img), 1), green.img), reinterpret(fieldtype(eltype(blue.img), 1), blue.img))
+    @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
+        store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(planes[channel][row, col]))
     end
-    return output
+    return destination
 end
 
-function _rgb_values(image::SImageND)
-    source = reinterpret(image.img)
-    output = Array{Float64}(undef, size(source))
-    @inbounds for index in eachindex(source)
-        output[index] = _finite01(source[index])
+function gray_to_rgb!(destination, gray)
+    source = reinterpret(fieldtype(eltype(gray.img), 1), gray.img)
+    @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
+        store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(source[row, col]))
     end
-    return output
+    return destination
 end
 
-function _compose_rgb_values(red::SImageND, green::SImageND, blue::SImageND)
-    output = Array{Float64}(undef, size(red, 1), size(red, 2), 3)
-    output[:, :, 1] .= _plane_values(red)
-    output[:, :, 2] .= _plane_values(green)
-    output[:, :, 3] .= _plane_values(blue)
-    return output
-end
-
-function _gray_to_rgb_values(gray::SImageND)
-    plane = _plane_values(gray)
-    return cat(plane, plane, plane; dims = 3)
-end
-
-function _replace_channel_values(rgb::SImageND, plane::SImageND, channel::Int)
-    output = _rgb_values(rgb)
-    output[:, :, channel] .= _plane_values(plane)
-    return output
-end
-
-function _multiply_rgb_intensity_values(rgb::SImageND, mask::SImageND)
-    source = _rgb_values(rgb)
-    weights = _plane_values(mask)
-    @inbounds for channel in 1:3
-        source[:, :, channel] .*= weights
+function replace_channel!(destination, rgb, plane, selected_channel)
+    source = reinterpret(fieldtype(eltype(rgb.img), 1), rgb.img)
+    replacement = reinterpret(fieldtype(eltype(plane.img), 1), plane.img)
+    @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
+        value = source[row, col, channel]
+        if channel == selected_channel
+            value = replacement[row, col]
+        end
+        store_rgb!(destination, CartesianIndex(row, col, channel), _finite01(value))
     end
-    return source
+    return destination
 end
 
-function _alpha_blend_rgb_values(
-        foreground::SImageND,
-        background::SImageND,
-        alpha::SImageND,
-    )
-    foreground_values = _rgb_values(foreground)
-    background_values = _rgb_values(background)
-    weights = _plane_values(alpha)
-    output = similar(foreground_values)
-    @inbounds for channel in 1:3
-        output[:, :, channel] .= weights .* foreground_values[:, :, channel] .+
-            (1.0 .- weights) .* background_values[:, :, channel]
+function multiply_rgb_intensity!(destination, rgb, mask)
+    source = reinterpret(fieldtype(eltype(rgb.img), 1), rgb.img)
+    weights = reinterpret(fieldtype(eltype(mask.img), 1), mask.img)
+    @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
+        value = _finite01(source[row, col, channel]) * _finite01(weights[row, col])
+        store_rgb!(destination, CartesianIndex(row, col, channel), value)
     end
-    return output
+    return destination
 end
 
-function _set_luminance_rgb_values(rgb::SImageND, luminance::SImageND)
-    source = _rgb_values(rgb)
-    target = _plane_values(luminance)
-    output = similar(source)
-    @inbounds for col in axes(source, 2), row in axes(source, 1)
-        current = 0.2126 * source[row, col, 1] +
-            0.7152 * source[row, col, 2] +
-            0.0722 * source[row, col, 3]
-        difference = target[row, col] - current
-        output[row, col, 1] = clamp(source[row, col, 1] + difference, 0.0, 1.0)
-        output[row, col, 2] = clamp(source[row, col, 2] + difference, 0.0, 1.0)
-        output[row, col, 3] = clamp(source[row, col, 3] + difference, 0.0, 1.0)
+function alpha_blend_rgb!(destination, foreground, background, alpha)
+    front = reinterpret(fieldtype(eltype(foreground.img), 1), foreground.img)
+    back = reinterpret(fieldtype(eltype(background.img), 1), background.img)
+    weights = reinterpret(fieldtype(eltype(alpha.img), 1), alpha.img)
+    @inbounds for channel in 1:3, col in axes(destination, 2), row in axes(destination, 1)
+        weight = _finite01(weights[row, col])
+        value = weight * _finite01(front[row, col, channel]) +
+            (1.0 - weight) * _finite01(back[row, col, channel])
+        store_rgb!(destination, CartesianIndex(row, col, channel), value)
     end
-    return output
+    return destination
+end
+
+function set_luminance_rgb!(destination, rgb, luminance)
+    source = reinterpret(fieldtype(eltype(rgb.img), 1), rgb.img)
+    target = reinterpret(fieldtype(eltype(luminance.img), 1), luminance.img)
+    @inbounds for col in axes(destination, 2), row in axes(destination, 1)
+        red = _finite01(source[row, col, 1])
+        green = _finite01(source[row, col, 2])
+        blue = _finite01(source[row, col, 3])
+        current = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+        difference = _finite01(target[row, col]) - current
+        for (channel, value) in enumerate((red, green, blue))
+            store_rgb!(destination, CartesianIndex(row, col, channel), clamp(value + difference, 0.0, 1.0))
+        end
+    end
+    return destination
 end
 
 function _rgb_composition_factory(
@@ -133,53 +129,53 @@ function _rgb_composition_factory(
     function_name = Symbol(operator_name, :_, Symbol(I))
 
     if operation === :compose
-        # out: copy (the kernel currently allocates its result).
-        fn = @eval @image_out function $function_name(
+        fn = @eval function $function_name(
                 red::SImageND{Tuple{$S1,$S2},IntensityPixel{RT},2,RC},
                 green::SImageND{Tuple{$S1,$S2},IntensityPixel{GT},2,GC},
                 blue::SImageND{Tuple{$S1,$S2},IntensityPixel{BT},2,BC},
-                args::Vararg{Any},
+                args::Vararg{Any}; out = nothing,
             ) where {RT,RC,GT,GC,BT,BC}
-            output = _compose_rgb_values(red, green, blue)
-            return SImageND($PT.($IT.(output)), $S)
+            pixels = out === nothing ? Array{$PT}(undef, $S1, $S2, 3) : out.img
+            compose_rgb!(pixels, red, green, blue)
+            return image_result(out, pixels, $S)
         end
     elseif operation === :gray
-        # out: copy (the kernel currently allocates its result).
-        fn = @eval @image_out function $function_name(
+        fn = @eval function $function_name(
                 gray::SImageND{Tuple{$S1,$S2},IntensityPixel{MT},2,MC},
-                args::Vararg{Any},
+                args::Vararg{Any}; out = nothing,
             ) where {MT,MC}
-            output = _gray_to_rgb_values(gray)
-            return SImageND($PT.($IT.(output)), $S)
+            pixels = out === nothing ? Array{$PT}(undef, $S1, $S2, 3) : out.img
+            gray_to_rgb!(pixels, gray)
+            return image_result(out, pixels, $S)
         end
     elseif operation in (:replace_red, :replace_green, :replace_blue, :multiply, :luminance)
         channel = operation === :replace_red ? 1 : operation === :replace_green ? 2 : 3
         calculation = if operation in (:replace_red, :replace_green, :replace_blue)
-            :(_replace_channel_values(rgb, plane, $channel))
+            :(replace_channel!(pixels, rgb, plane, $channel))
         elseif operation === :multiply
-            :(_multiply_rgb_intensity_values(rgb, plane))
+            :(multiply_rgb_intensity!(pixels, rgb, plane))
         else
-            :(_set_luminance_rgb_values(rgb, plane))
+            :(set_luminance_rgb!(pixels, rgb, plane))
         end
-        # out: copy (the kernel currently allocates its result).
-        fn = @eval @image_out function $function_name(
+        fn = @eval function $function_name(
                 rgb::CONCT,
                 plane::SImageND{Tuple{$S1,$S2},IntensityPixel{MT},2,MC},
-                args::Vararg{Any},
+                args::Vararg{Any}; out = nothing,
             ) where {CONCT<:$I,MT,MC}
-            output = $calculation
-            return SImageND($PT.($IT.(output)), $S)
+            pixels = out === nothing ? Array{$PT}(undef, $S1, $S2, 3) : out.img
+            $calculation
+            return image_result(out, pixels, $S)
         end
     elseif operation === :blend
-        # out: copy (the kernel currently allocates its result).
-        fn = @eval @image_out function $function_name(
+        fn = @eval function $function_name(
                 foreground::CONCT,
                 background::CONCT,
                 alpha::SImageND{Tuple{$S1,$S2},IntensityPixel{MT},2,MC},
-                args::Vararg{Any},
+                args::Vararg{Any}; out = nothing,
             ) where {CONCT<:$I,MT,MC}
-            output = _alpha_blend_rgb_values(foreground, background, alpha)
-            return SImageND($PT.($IT.(output)), $S)
+            pixels = out === nothing ? Array{$PT}(undef, $S1, $S2, 3) : out.img
+            alpha_blend_rgb!(pixels, foreground, background, alpha)
+            return image_result(out, pixels, $S)
         end
     else
         throw(ArgumentError("Unsupported RGB composition operation: $operation"))

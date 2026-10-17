@@ -375,3 +375,7 @@ _has_static_size(::Type{SImageND{S,T,N,A}}) where {S,T,N,A<:Array{T,N}} = true
 function _new_buffer(::Type{SImageND{S,T,N,A}}) where {S,T,N,A<:Array{T,N}}
     return SImageND(A(undef, Tuple(S.parameters)...), S)
 end
+
+function _new_float_buffer(::Type{SImageND{S,T,N,A}}) where {S,T,N,A<:Array{T,N}}
+    return Array{Float32,N}(undef, Tuple(S.parameters)...)
+end

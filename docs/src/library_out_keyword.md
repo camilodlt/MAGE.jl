@@ -15,6 +15,28 @@ and the decoder's `which(fn, argtypes).nargs` calculation unchanged.
 * Outputs owned by an evaluator are distinct from its inputs. Library authors
   need not support overlapping input/output storage unless documented otherwise.
 
+## Working arrays
+
+An image-returning function may also accept, as optional keywords, working
+arrays of the size of `out`, provided by the per-sample evaluator from the
+task's `BufferPool` (kept for the whole run):
+
+* `float_scratch = (a, b)`: two `Array{Float32}` of the image's size;
+* `image_scratch = (a, b)`: two images of the same concrete type as `out`.
+
+Get them with `float_buffer(float_scratch, k, like_image, :key)` and
+`image_buffer(image_scratch, k, like_image, :key)`: these return the caller's
+`k`th array when given, and otherwise (generic interpreter, direct calls, or
+`k > 2`) an array of the task's `scratch` storage, so the function behaves and
+returns the same either way. Working arrays are valid during the call only:
+overwrite them, never return them. Functions returning numbers do not get these
+keywords; they use `scratch(key, T, dims...)` sized from their input images.
+
+Write results with `output_pixels(out, src)` (where to write) and
+`image_result(out, pixels, size_type)` (what to return).
+
+## Example
+
 A direct elementwise implementation looks like:
 
 ```julia

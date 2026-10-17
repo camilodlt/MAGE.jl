@@ -12,7 +12,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_transcendental
 
-using ..UTCGP: @image_out
+using ..UTCGP: @image_out, output_pixels, image_result
 
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
@@ -46,6 +46,49 @@ into a library.
 """
 bundle_image2DIntensity_transcendental_factory = FunctionBundle(fallback)
 
+# The pixel loops are separate functions (barriers): they run several times faster
+# when their working array arrives as an argument than when fetched from scratch in
+# the same function.
+
+"`values[i] = exp(pixel i)`, in the floating type of the original `exp.(float(img))`."
+function exp_values!(values, pixels)
+    values .= exp.(float.(pixels))      # a broadcast, as the original: it vectorises
+    return values
+end
+
+"`values[i] = log(Float32(raw storage value i))`, as the original."
+function log_values!(values, raw)
+    @inbounds for index in eachindex(values, raw)
+        values[index] = log(Float32(raw[index]))
+    end
+    return values
+end
+
+"""
+`destination` = `values` rescaled to `[0, 1]` and stored as pixels of storage `T`,
+exactly as the original `_normalize_img` then `PT.(cast(T, ...))`. Broadcasts,
+not a scalar loop: the conversions to `T` vectorise (much faster).
+"""
+function normalize_transform!(destination, values, ::Type{T}) where {T}
+    image2D_basic._sanitize_img!(values)
+    low, high = extrema(values)
+    if high - low <= 1e-9 * max(1.0, abs(low), abs(high))
+        return fill!(destination, zero(eltype(destination)))
+    end
+    values .= (values .- low) ./ (high - low)
+    clamp01nan!(values)
+    destination .= eltype(destination).(T.(values))
+    return destination
+end
+
+"`destination` = pixels of `clamp01nan(float(image) ^ p)`, as the original `powerof`."
+function power_into!(destination, values, image, p, ::Type{T}) where {T}
+    values .= float(image) .^ p
+    clamp01nan!(values)
+    destination .= eltype(destination).(T.(values))
+    return destination
+end
+
 # ################### #
 # EXP                 #
 # ################### #
@@ -67,12 +110,13 @@ function exp_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPix
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
-        img3 = exp.(float(img1))
-        img3 = image2D_basic._normalize_img(img3)
-        clamp01nan!(img3)
-        return SImageND($PT.(cast($IT, img3)), $S)
+    m1 = @eval function (img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
+        pixels = output_pixels(out, img1)
+        F = typeof(exp(float(img1.img[firstindex(img1.img)])))
+        values = image2D_basic.floating_work_buffer(F, float_scratch, img1, :transcendental_exp)
+        exp_values!(values, img1.img)
+        normalize_transform!(pixels, values, $IT)
+        return image_result(out, pixels, $S)
     end
     return m1
 end
@@ -117,11 +161,14 @@ function log_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPix
     _validate_factory_type(IT)
     TRUE_TYPE = IT.parameters[1]
 
-    # out: copy (the kernel currently allocates its result).
-    m1 = @eval @image_out ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
-        img3 = image2D_basic._normalize_img(log.(convert.(Float32,reinterpret($TRUE_TYPE,reinterpret(img1.img)))))
-        clamp01nan!(img3)
-        return SImageND($PT.(cast($IT, img3)), $S)
+    m1 = @eval function (img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
+        pixels = output_pixels(out, img1)
+        raw = reinterpret($TRUE_TYPE, img1.img)
+        F = typeof(log(Float32(raw[firstindex(img1.img)])))
+        values = image2D_basic.floating_work_buffer(F, float_scratch, img1, :transcendental_log)
+        log_values!(values, raw)
+        normalize_transform!(pixels, values, $IT)
+        return image_result(out, pixels, $S)
     end
     return m1
 end
@@ -147,16 +194,12 @@ function powerof_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intensit
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval @image_out ((img1::CONCT, p::Real, args::Vararg{Any}) where {CONCT <: $I}) -> begin
-        if out !== nothing
-            for i in eachindex(out.img,img1.img)
-                out.img[i] = $PT($IT(clamp01nan(float(img1.img[i]) ^ p)))
-            end
-            return out
-        end
-        img3 = (float(img1)) .^ p
-        clamp01nan!(img3)
-        return SImageND($PT.(cast($IT, img3)), $S)
+    m1 = @eval function (img1::CONCT, p::Real, args::Vararg{Any}; out = nothing) where {CONCT <: $I}
+        pixels = output_pixels(out, img1)
+        F = typeof(float(img1.img[firstindex(img1.img)]) ^ p)   # Float32 ^ p, as the original `float(img) .^ p`
+        values = image2D_basic.floating_work_buffer(F, nothing, img1, :transcendental_power)
+        power_into!(pixels, values, img1, p, $IT)
+        return image_result(out, pixels, $S)
     end
     return m1
 end

@@ -5,11 +5,11 @@ Shared machinery for volume (3D grayscale) libraries.
 
 | Section | Main functions |
 |:--|:--|
-| Values and foreground | `voxel_values`, `voxel_foreground`, `to_pixels` |
+| Values and foreground | `voxel_values`, `voxel_foreground`, `store_pixels!`, `to_pixels` |
 | Connected components | `VolumeTable`, `volume_table`, `centroid`, `covariance3` |
 | Holes | `volume_holes!` |
 | Distance transforms | `volume_distance_map!` (exact), `volume_distance_map_upto!` (bounded) |
-| Separable filters | `box_extremum!`, `cross_extremum!`, `gaussian_kernel`, `separable_convolve!` |
+| Separable filters | `box_extremum!`, `cross_extremum!`, `gaussian_kernel`, `gaussian_weights`, `box_weights`, `separable_convolve!` |
 | Resampling | `resample_box` (trilinear), `resample_box_nearest` |
 
 # Conventions
@@ -95,18 +95,34 @@ function voxel_foreground(key::Symbol, voxels::AbstractArray{P,3}, is_foreground
 end
 
 """
-Pixel array of type `P` from `Float64` values (stored with rounding and clamping) or from a `Bool` mask.
+    store_pixels!(pixels, values) -> pixels
 
-Example for `N0f8` storage: `0.5 → 128/255`, `1.3 → 1.0`, `-0.2 → 0.0`.
+Write `Float64` values (stored with rounding and clamping) or a `Bool` mask
+into an existing pixel array of the same size. Nothing is allocated.
+
+Example for `N0f8` storage: `0.5 → 128/255`, `1.3 → 1.0`, `-0.2 → 0.0`;
+for binary pixels: `true → BinaryPixel(true)`.
 """
-function to_pixels(::Type{IntensityPixel{T}}, values::AbstractArray{Float64,3}) where {T}
-    out = Array{IntensityPixel{T},3}(undef, size(values))
-    @inbounds for i in eachindex(values)
-        out[i] = IntensityPixel{T}(to_storage(T, values[i]))   # to_storage rounds and clamps to T's range
+function store_pixels!(pixels::AbstractArray{IntensityPixel{T},3}, values::AbstractArray{Float64,3}) where {T}
+    @inbounds for i in eachindex(pixels, values)
+        pixels[i] = IntensityPixel{T}(to_storage(T, values[i]))   # to_storage rounds and clamps to T's range
     end
-    return out
+    return pixels
 end
-to_pixels(::Type{BinaryPixel{T}}, fg::AbstractArray{Bool,3}) where {T} = BinaryPixel{T}.(fg)
+function store_pixels!(pixels::AbstractArray{BinaryPixel{T},3}, fg::AbstractArray{Bool,3}) where {T}
+    @inbounds for i in eachindex(pixels, fg)
+        pixels[i] = BinaryPixel{T}(fg[i])
+    end
+    return pixels
+end
+
+"""
+    to_pixels(P, values) -> Array{P,3}
+
+A new pixel array of type `P` from `Float64` values or a `Bool` mask (see
+`store_pixels!`, which writes into an existing array instead).
+"""
+to_pixels(::Type{P}, values::AbstractArray{<:Any,3}) where {P} = store_pixels!(Array{P,3}(undef, size(values)), values)
 
 # ---------------------------------------------------------------------------
 # Connected components (26-connectivity), run based
@@ -149,6 +165,7 @@ Label the 26-connected components of a 3D array (foreground decided by
 `is_foreground`, as in `voxel_foreground`) and gather their statistics.
 
 For a `Bool` array, pass `identity` as `is_foreground`.
+The table borrows task scratch arrays; consume it before the next call.
 """
 function volume_table(voxels::AbstractArray{P,3}, is_foreground) where {P}
     return _volume_table(voxels, fast_foreground_test(voxels, is_foreground))
@@ -230,11 +247,12 @@ function _volume_table(voxels::AbstractArray{P,3}, fg::F) where {P,F}
         remap[k] = remap[root]
     end
     labels = fill!(scratch(:vol_labels, Int32, h, w, d), Int32(0))
-    area = zeros(Int, n)
-    s1 = zeros(n, 3)
-    s2 = zeros(n, 6)
-    lo = fill(typemax(Int), n, 3)               # start high so min() takes the first value
-    hi = zeros(Int, n, 3)
+    # Reuse component statistics as well as labels: geometry only needs this table during the call.
+    area = fill!(scratch(:vol_area, Int, n), 0)
+    s1 = fill!(scratch(:vol_s1, Float64, n, 3), 0.0)
+    s2 = fill!(scratch(:vol_s2, Float64, n, 6), 0.0)
+    lo = fill!(scratch(:vol_lo, Int, n, 3), typemax(Int))               # start high so min() takes the first value
+    hi = fill!(scratch(:vol_hi, Int, n, 3), 0)
     @inbounds for k in 1:runs
         id = remap[k]                            # object of this run
         c = Int(run_col[k])
@@ -701,10 +719,35 @@ Example: `sigma = 1` → `radius = 3`, 7 weights summing to 1, the middle one
 ≈ 0.40.
 """
 function gaussian_kernel(sigma::Float64)
-    radius = max(1, ceil(Int, 3sigma))       # 3σ covers 99.7% of the Gaussian
-    kernel = [exp(-k^2 / (2sigma^2)) for k in -radius:radius]
-    return kernel ./ sum(kernel), radius     # normalised so a constant volume stays constant
+    weights, radius = gaussian_weights(sigma)
+    return copy(weights), radius
 end
+
+"""
+    gaussian_weights(sigma) -> (weights, radius)
+
+As `gaussian_kernel`, but the weights live in per-task scratch (no allocation):
+valid until the next call for a kernel of the same length in the same task.
+"""
+function gaussian_weights(sigma::Float64)
+    radius = max(1, ceil(Int, 3sigma))       # 3σ covers 99.7% of the Gaussian
+    weights = scratch(:gaussian_weights, Float64, 2radius + 1)
+    @inbounds for (i, k) in enumerate(-radius:radius)
+        weights[i] = exp(-k^2 / (2sigma^2))
+    end
+    weights ./= sum(weights)                 # normalised so a constant volume stays constant
+    return weights, radius
+end
+
+"""
+    box_weights(radius) -> weights
+
+The `2 radius + 1` equal weights `1/(2 radius + 1)` of a box mean, in per-task
+scratch (no allocation).
+
+Example: `box_weights(1) == [1/3, 1/3, 1/3]`.
+"""
+box_weights(radius::Int) = fill!(scratch(:box_weights, Float64, 2radius + 1), 1.0 / (2radius + 1))
 
 """
     separable_convolve!(dst, src, kernel, radius) -> dst
@@ -807,7 +850,7 @@ Trilinear resize of `src[lo[1]:hi[1], lo[2]:hi[2], lo[3]:hi[3]]` to
 Each stage interpolates linearly between two neighbours along one axis;
 three stages give trilinear interpolation.
 """
-function resample_box(src::Array{Float64,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int})
+function resample_box!(destination::AbstractArray{IntensityPixel{T},3}, src::Array{Float64,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int}) where {T}
     h, w, d = size(src)
     crop_h = hi[1] - lo[1] + 1               # box size along y
     crop_w = hi[2] - lo[2] + 1               # box size along x
@@ -832,7 +875,6 @@ function resample_box(src::Array{Float64,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int
         end
     end
     # Stage 3, along y: (h, w, d). Row sources are precomputed once, reused for every column.
-    out = Array{Float64,3}(undef, h, w, d)
     rows_a = scratch(:resample_ra, Int, h)    # first source row of output row r (crop coordinates)
     rows_b = scratch(:resample_rb, Int, h)    # second source row
     rows_f = scratch(:resample_rf, Float64, h)   # weight of the second row
@@ -842,28 +884,27 @@ function resample_box(src::Array{Float64,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int
     end
     @inbounds for s in 1:d, c in 1:w, r in 1:h
         x = along_x[rows_a[r], c, s]
-        out[r, c, s] = x + rows_f[r] * (along_x[rows_b[r], c, s] - x)
+        destination[r, c, s] = IntensityPixel{T}(to_storage(T, x + rows_f[r] * (along_x[rows_b[r], c, s] - x)))
     end
-    return out
+    return destination
 end
 
 "Nearest-neighbour resize of the box `lo:hi` of any 3D array (e.g. binary pixels) to the array's full size."
-function resample_box_nearest(src::AbstractArray{T,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int}) where {T}
+function resample_box_nearest!(destination, src::AbstractArray{T,3}, lo::NTuple{3,Int}, hi::NTuple{3,Int}) where {T}
     dims = size(src)
     # Source index of output i when l:u is stretched to n (centre-aligned, integer arithmetic).
     # Example: l:u = 5:6 stretched to n = 4 → outputs 1, 2, 3, 4 read 5, 5, 6, 6.
     source_index(i, n, l, u) = l + ((2i - 1) * (u - l + 1)) ÷ (2n)
-    out = similar(src)
     @inbounds for s in 1:dims[3]
         ss = source_index(s, dims[3], lo[3], hi[3])
         for c in 1:dims[2]
             cc = source_index(c, dims[2], lo[2], hi[2])
             for r in 1:dims[1]
-                out[r, c, s] = src[source_index(r, dims[1], lo[1], hi[1]), cc, ss]
+                destination[r, c, s] = src[source_index(r, dims[1], lo[1], hi[1]), cc, ss]
             end
         end
     end
-    return out
+    return destination
 end
 
 end
