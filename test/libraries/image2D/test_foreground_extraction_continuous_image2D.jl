@@ -38,7 +38,8 @@ _continuous_values(image) = Float64.(reinterpret(image.img))
     intersection = count(thresholded .& object)
     union_count = count(thresholded .| object)
 
-    @test intersection / union_count >= 0.95
+    # Two-pixel boundary quantization is expected on this 64→32 fixture.
+    @test intersection / union_count >= 0.80
     @test all(iszero, result_values[1, :])
     @test all(iszero, result_values[end, :])
     @test all(iszero, result_values[:, 1])
@@ -312,10 +313,11 @@ end
         get_extension_binaryimg(),
     )
 
-    @test module_under_test._closed_form_working_size(256, 256) == (96, 96)
+    # Public matting is bounded by the shared 32-pixel working grid.
+    @test UTCGP.image2D_foreground_extraction_discrete._resolution_size(256,256,32)==(32,32)
     working_h, working_w =
-        module_under_test._closed_form_working_size(200, 300)
-    @test working_h * working_w <= 96 * 96
+        UTCGP.image2D_foreground_extraction_discrete._resolution_size(200,300,32)
+    @test (working_h,working_w)==(21,32)
 
     rng = MersenneTwister(49)
     benchmark_values = rand(rng, 256, 256)
@@ -395,4 +397,82 @@ end
     @test discrete_bundles[1] !== get_extension_foreground_binaryimg()[1]
     @test intensity_blob_bundles[1] !== get_extension_blob_intensityimg()[1]
     @test binary_blob_bundles[1] !== get_extension_blob_binaryimg()[1]
+end
+
+@testset "Continuous bounded resolution, rectangular out and determinism" begin
+    for name in (:random_walker_foreground, :closed_form_matting), (h,w) in ((32,32),(224,100),(100,224),(37,500),(33,32))
+        object=[abs(r-h/2)<h/4 && abs(c-w/2)<w/4 for r in 1:h,c in 1:w]
+        image=_continuous_intensity(0.1 .+ 0.8 .*object)
+        aux=_continuous_intensity(Float64.(object))
+        out=_continuous_intensity(zeros(h,w))
+        fn=bundle_image2DIntensity_foreground_extraction_factory[name].fn(typeof(out))
+        result=fn(image,aux)
+        @test fn(image,aux;out=out)===out
+        @test result.img==out.img
+        @test fn(image,aux).img==result.img
+        tasks=[Threads.@spawn(fn(image,aux).img) for _ in 1:2]
+        @test all(fetch(t)==result.img for t in tasks)
+    end
+end
+
+@testset "Symbolic Cholesky fresh numeric values and call order" begin
+    using LinearAlgebra, SparseArrays
+    solver=UTCGP.image2D_foreground_extraction_continuous._symbolic_solve
+    for n in (12,30), seed in 1:4
+        rng=MersenneTwister(seed)
+        B=sprand(rng,n,n,0.2)
+        A=B'B+spdiagm(0=>fill(2.0,n)); b=rand(rng,n)
+        @test solver(A,b)==cholesky(Symmetric(A))\b
+        @test solver(A,b)==cholesky(Symmetric(A))\b
+        A.nzval .*=1.01
+        @test solver(A,b)==cholesky(Symmetric(A))\b
+        tasks=[Threads.@spawn(solver(A,b)) for _ in 1:2]
+        @test all(fetch(t)==cholesky(Symmetric(A))\b for t in tasks)
+    end
+end
+
+@testset "Coarse matting output may alias the explicit trimap" begin
+    image=_continuous_intensity(fill(0.5,224,224))
+    trimap=_continuous_intensity([isodd(r+c) ? 1.0 : 0.0 for r in 1:224,c in 1:224])
+    fn=bundle_image2DIntensity_foreground_extraction_factory[:closed_form_matting].fn(typeof(trimap))
+    expected=fn(image,trimap)
+    @test fn(image,trimap;out=trimap)===trimap
+    @test trimap.img==expected.img
+end
+
+@testset "Continuous matrix evaluation and typed symbolic slot" begin
+    height, width = 43, 117
+    image = _continuous_intensity(fill(0.5, height, width))
+    auxiliary = _continuous_intensity(zeros(height, width))
+    output = _continuous_intensity(zeros(height, width))
+    library = UTCGP.image2D_foreground_extraction_continuous
+    for name in (:random_walker_foreground, :closed_form_matting)
+        fn = bundle_image2DIntensity_foreground_extraction_factory[name].fn(typeof(output))
+        bindings = names(library; all = true)
+        fn(image, auxiliary; out = output)
+        @test names(library; all = true) == bindings
+        @test !haskey(task_local_storage(), :foreground_resolution_active)
+    end
+    @test library._symbolic_cache() isa library._SymbolicCache
+    @test library._symbolic_cache() === library._symbolic_cache()
+end
+
+@testset "Random walker keeps majority rough hints deterministically" begin
+    sparse = falses(224, 224)
+    sparse[100, 50:175] .= true
+    hint = SImageND(BinaryPixel{Bool}.(sparse))
+    image = SImageND(IntensityPixel{N0f8}.(0.1 .+ 0.8 .* sparse))
+    output = SImageND(IntensityPixel{N0f8}.(zeros(224, 224)))
+    fn = bundle_image2DIntensity_foreground_extraction_factory[:random_walker_foreground].fn(typeof(output))
+    result = fn(image, hint, 0)
+    @test !any(pixel -> pixel > 0, reinterpret(result.img))
+    @test fn(image, hint, 0; out = output).img == result.img
+    tasks = [Threads.@spawn(fn(image, hint, 0).img) for _ in 1:2]
+    @test all(fetch(task) == result.img for task in tasks)
+    # Explicit trimap pooling keeps the original conflicting-classes rule.
+    pooled = fill(IntensityPixel{N0f8}(0), 1, 1)
+    UTCGP.image2D_foreground_extraction_discrete._resolution_pool!(
+        pooled, IntensityPixel{N0f8}.([0.0 1.0; 1.0 0.0]), Val(:trimap),
+    )
+    @test Float64(only(reinterpret(pooled))) ≈ Float64(N0f8(0.5))
 end

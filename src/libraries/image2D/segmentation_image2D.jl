@@ -15,7 +15,8 @@ module image2D_segmentation
 # component labels, watershed flooding → output.
 
 
-using ..UTCGP: @image_out, scratch, output_pixels, image_result
+using ..UTCGP: @image_out, scratch, output_pixels, image_result, pixel_values!
+using ..image2D_foreground_extraction_discrete: _resolution_size, _resolution_pool!
 
 using ImageSegmentation
 using ImageMorphology
@@ -202,32 +203,130 @@ whose centres are 14 pixels apart touch through a neck of depth ≈ 5.6, i.e.
 `0.62` of their depth, so `h = 0.7` gives two labels and `h = 0.5` one.
 Background pixels and pixels outside `restrict` are `0`.
 """
-function _watershed_split(fg::AbstractMatrix{Bool}, restrict::AbstractMatrix{Bool}, h::Float64)
-    objects = scratch(:segmentation_objects, Bool, size(fg)...)
-    objects .= fg .& restrict
-    any(objects) || return zeros(Int, size(fg))
-    # TODO speed: feature/distance transforms and watershed allocate internally;
-    # retain the library kernels to preserve distances and flooding tie order.
+
+function _watershed_split(
+        foreground::AbstractMatrix{Bool}, restriction::AbstractMatrix{Bool},
+        level::Float64, limit::Int = 32,
+    )
+    height, width = size(foreground)
+    height * width <= 1_000_000 || error("watershed input exceeded its work budget")
+    working_height, working_width = _resolution_size(height, width, limit)
+    working_height * working_width <= 50_176 || error("watershed solve exceeded its work budget")
+    if (working_height, working_width) == (height, width)
+        return _watershed_split_full(foreground, restriction, level)
+    end
+    # Pool the intersection so disjoint foreground and restriction cannot merge.
+    objects = scratch(:watershed_full_objects, Bool, height, width)
+    objects .= foreground .& restriction
+    pooled_objects = scratch(:watershed_low_fg, Bool, working_height, working_width)
+    _resolution_pool!(pooled_objects, objects, Val(:any))
+    pooled_restriction = scratch(:watershed_low_restrict, Bool, working_height, working_width)
+    fill!(pooled_restriction, true)
+    pooled_labels = _watershed_split_full(pooled_objects, pooled_restriction, level)
+    labels = scratch(:watershed_lifted_labels, Int, height, width)
+    return _watershed_component_pairs!(labels, objects, pooled_labels)
+end
+
+"""Give each (full component, coarse basin) its own ID; two islands never share one.
+IDs follow first occurrence in column-major order, e.g. two isolated pixels get 1, 2.
+"""
+function _watershed_component_pairs!(labels, objects, basins)
+    height, width = size(objects)
+    working_height, working_width = size(basins)
+    components = scratch(:watershed_full_components, Int, height, width)
+    label_components!(components, objects)
+    # At most one pair per foreground pixel; a half-full table bounds probing.
+    capacity = nextpow(2, max(2, 2count(objects)))
+    keys = scratch(:watershed_pair_keys, UInt64, capacity)
+    values = scratch(:watershed_pair_values, Int, capacity)
+    fill!(keys, 0)
+    next_label = 0
+    @inbounds for column in 1:width, row in 1:height
+        component = components[row, column]
+        if component == 0
+            labels[row, column] = 0
+            continue
+        end
+        basin = basins[cld(row * working_height, height), cld(column * working_width, width)]
+        # Both fields fit 32 bits under the existing million-pixel input budget.
+        key = (UInt64(component) << 32) | UInt64(basin)
+        mixed = (key ⊻ (key >> 33)) * 0xff51afd7ed558ccd
+        mixed = mixed ⊻ (mixed >> 33)
+        slot = Int(mixed & UInt64(capacity - 1)) + 1
+        while keys[slot] != 0 && keys[slot] != key
+            slot = slot == capacity ? 1 : slot + 1
+        end
+        if keys[slot] == 0
+            next_label += 1
+            keys[slot] = key
+            values[slot] = next_label
+        end
+        labels[row, column] = values[slot]
+    end
+    return labels
+end
+
+function _watershed_split_full(foreground::AbstractMatrix{Bool}, restriction::AbstractMatrix{Bool}, level::Float64)
+    objects = scratch(:segmentation_objects, Bool, size(foreground)...)
+    objects .= foreground .& restriction
+    any(objects) || return zeros(Int, size(foreground))
+    # Package kernels determine distances and flooding tie order.
     depth = distance_transform(feature_transform(.!objects))   # 0 on background
-    components = scratch(:segmentation_components, Int, size(fg)...)
+    components = scratch(:segmentation_components, Int, size(foreground)...)
     label_components!(components, objects)
     peak = zeros(Float64, maximum(components))
     @inbounds for i in eachindex(components)
         c = components[i]
         c > 0 && (peak[c] = max(peak[c], depth[i]))
     end
-    seeds = scratch(:segmentation_seeds, Bool, size(fg)...)
+    seeds = scratch(:segmentation_seeds, Bool, size(foreground)...)
     @inbounds for i in eachindex(components)
         c = components[i]
-        seeds[i] = c > 0 && depth[i] >= h * peak[c]
+        seeds[i] = c > 0 && depth[i] >= level * peak[c]
     end
     flood_depth = scratch(:segmentation_flood_depth, Float64, size(depth)...)
     flood_depth .= .-depth
-    markers = scratch(:segmentation_markers, Int, size(fg)...)
+    markers = scratch(:segmentation_markers, Int, size(foreground)...)
     label_components!(markers, seeds)
     labels = labels_map(watershed(flood_depth, markers; mask = objects))
     labels .*= objects
     return labels
+end
+
+"""Write checked watershed labels; e.g. label 256 cannot fit UInt8 storage."""
+function _watershed_result(out, image, labels, ::Type{P}, ::Type{S}) where {P,S}
+    pixels = output_pixels(out, image, P)
+    storage_type = fieldtype(P, 1)
+    maximum(labels; init = 0) <= typemax(storage_type) ||
+        throw(OverflowError("watershed labels exceed output storage"))
+    pixels .= P.(convert.(storage_type, labels))
+    return image_result(out, pixels, S)
+end
+
+"""Unwrap mask values into scratch; e.g. `BinaryPixel(true)` becomes `true`.
+Unlike one-argument `reinterpret`, this does not allocate a full-size BitMatrix.
+"""
+function _watershed_values!(key, pixels)
+    values = scratch(key, Bool, size(pixels)...)
+    return pixel_values!(values, pixels)
+end
+
+"""Split an unrestricted mask; e.g. a single true pixel receives label 1."""
+function _watershed_unrestricted(pixels, level, limit = 32)
+    foreground = _watershed_values!(:watershed_input_foreground, pixels)
+    restriction = scratch(:segmentation_restrict, Bool, size(foreground)...)
+    fill!(restriction, true)
+    return _watershed_split(foreground, restriction, level, limit)
+end
+
+"""Select the working longer axis by sign; `(225, 0)` gives the half-size axis 113.
+NaN takes the cheapest branch, negative infinity selects full, and signed zero
+selects half. Comparisons use the original Real value without rounding it.
+"""
+function _watershed_resolution(longer_axis::Int, resolution::Real)
+    resolution < 0 && return longer_axis
+    resolution == 0 && return cld(longer_axis, 2)
+    return 32
 end
 
 "Seed level `h` of `watershed_image2D`: clamped to `[0, 1]`; NaN/Inf → 0.7."
@@ -236,7 +335,19 @@ _watershed_level(th::Number) = (t = Float64(th); isfinite(t) ? clamp(t, 0.0, 1.0
 """
     watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}}
 
-`watershed_image2D(mask, [restrict], [h])`: splits the objects (`true`
+`watershed_image2D(mask, [restrict], [h])`
+
+`watershed_image2D(mask, h, resolution::Real)` selects its working size by sign:
+negative uses full resolution; zero (including `-0.0`) uses a longer axis of
+`cld(longer_axis, 2)` with aspect preserved; positive or NaN uses a longer axis
+of 32. Integers and floats both work; `-Inf` selects full and `Inf` selects 32.
+No input is enlarged. For example, `(mask, 0.7, 0)` on a 224×100 mask solves
+at 112×50, while `(mask, 0.7, -1)` uses 224×100. A 50,176-pixel solve budget
+throws into the existing fallback when exceeded.
+
+Reduced solves keep full-resolution connected components distinct and number
+(component, coarse basin) pairs in first-occurrence order.
+The default working longer axis is 32. The operator: splits the objects (`true`
 pixels) of `mask` into one label each, cutting touching objects at their
 narrowest part. `h ∈ [0, 1]` (default `0.7`) is the seed level as a fraction of
 each object's maximal depth: `0` gives one label per connected object, higher
@@ -250,21 +361,23 @@ function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Segmen
     FUNCTION_NAME = Symbol(:watershed_image2D, :_, Symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
 
-    @eval function $FUNCTION_NAME(img::CONCT, restrict::CONCT, th::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
-        labels = _watershed_split(reinterpret(img.img), reinterpret(restrict.img), _watershed_level(th))
-        pixels = output_pixels(out, img, $PT)
-        pixels .= $PT.(convert.($IT, labels))
-        return image_result(out, pixels, $S)
+    @eval function $FUNCTION_NAME(img::CONCT, restriction::CONCT, level::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+        foreground = _watershed_values!(:watershed_input_foreground, img.img)
+        restriction_values = _watershed_values!(:watershed_input_restriction, restriction.img)
+        labels = _watershed_split(foreground, restriction_values, _watershed_level(level))
+        return _watershed_result(out, img, labels, $PT, $S)
     end
 
-    @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
-        fg = reinterpret(img.img)
-        restrict = scratch(:segmentation_restrict, Bool, size(fg)...)
-        fill!(restrict, true)
-        labels = _watershed_split(fg, restrict, _watershed_level(th))
-        pixels = output_pixels(out, img, $PT)
-        pixels .= $PT.(convert.($IT, labels))
-        return image_result(out, pixels, $S)
+    # A free third graph input selects resolution without reinterpreting seed level.
+    @eval function $FUNCTION_NAME(img::CONCT, level::Number, resolution::Real, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+        limit = _watershed_resolution(maximum(size(img.img)), resolution)
+        labels = _watershed_unrestricted(img.img, _watershed_level(level), limit)
+        return _watershed_result(out, img, labels, $PT, $S)
+    end
+
+    @eval function $FUNCTION_NAME(img::CONCT, level::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
+        labels = _watershed_unrestricted(img.img, _watershed_level(level))
+        return _watershed_result(out, img, labels, $PT, $S)
     end
 
     @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}

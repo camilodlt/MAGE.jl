@@ -34,7 +34,8 @@ _foreground_bits(image) = Bool.(reinterpret(image.img))
     result_bits = _foreground_bits(result)
     intersection = count(result_bits .& object)
     union_count = count(result_bits .| object)
-    @test intersection / union_count >= 0.95
+    # Two-pixel boundary quantization is expected on this 64→32 fixture.
+    @test intersection / union_count >= 0.80
     @test !any(result_bits[1, :])
     @test !any(result_bits[end, :])
     @test !any(result_bits[:, 1])
@@ -182,7 +183,8 @@ end
     result_bits = _foreground_bits(result)
     intersection = count(result_bits .& object)
     union_count = count(result_bits .| object)
-    @test intersection / union_count >= 0.95
+    # Two-pixel boundary quantization is expected on this 64→32 fixture.
+    @test intersection / union_count >= 0.80
     @test !any(result_bits[1, :])
     @test !any(result_bits[end, :])
     @test !any(result_bits[:, 1])
@@ -267,4 +269,122 @@ end
     )
     @test automatic_elapsed <= 0.5
     @test supplied_elapsed <= 0.5
+end
+
+@testset "Discrete bounded resolution and rectangular determinism" begin
+    for name in (:grabcut_foreground,:boykov_jolly_foreground), (h,w) in ((32,32),(224,100),(100,224),(37,500),(33,32))
+        object=[abs(r-h/2)<h/4 && abs(c-w/2)<w/4 for r in 1:h,c in 1:w]
+        image=SImageND(IntensityPixel{N0f8}.(0.1 .+ 0.8 .*object))
+        aux=SImageND(IntensityPixel{N0f8}.(Float64.(object)))
+        out=SImageND(BinaryPixel{Bool}.(falses(h,w)))
+        fn=bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(out))
+        result=fn(image,aux)
+        @test fn(image,aux;out=out)===out
+        @test result.img==out.img
+        tasks=[Threads.@spawn(fn(image,aux).img) for _ in 1:2]
+        @test all(fetch(t)==result.img for t in tasks)
+    end
+end
+
+@testset "Discrete foreground linear max-flow work budget" begin
+    flow = UTCGP.image2D_foreground_extraction_discrete
+    # Zero/one unary costs with a sparse foreground seed leave excess circulating
+    # under repeated global relabels. Keep the fixture procedural and reproducible.
+    rng = MersenneTwister(1)
+    values = rand(rng, 64, 64)
+    background_cost = Float64.(rand(rng, Bool, 64, 64))
+    foreground = falses(64, 64)
+    background = falses(64, 64)
+    foreground[32, 32] = true
+    background[1, :] .= true
+    cut() = flow._grabcut_graphcut(
+        values, zeros(64, 64), background_cost, foreground, background, 5.0,
+    )
+    # The ordinary evaluator handles this same ErrorException as any failed call.
+    # Check its message too: an unrelated solver error must not pass this test.
+    failure = try
+        cut()
+        nothing
+    catch exception
+        exception
+    end
+    @test failure isa ErrorException
+    @test occursin("exceeded its work budget", sprint(showerror, failure))
+    wrapped = UTCGP.FunctionWrapper(cut, :budget_regression, nothing, flow.fallback)
+    elapsed = @elapsed @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
+    @test elapsed < 3.0
+
+    # With no pairwise cost, every non-background pixel prefers foreground.
+    # This exact normal cut must survive the budget and keep its original pixels.
+    normal = flow._grabcut_graphcut(
+        values, zeros(64, 64), ones(64, 64), foreground, background, 0.0,
+    )
+    @test normal == .!background
+end
+
+@testset "Foreground evaluation does not define coarse methods" begin
+    height, width = 43, 117
+    image = _foreground_intensity(fill(0.5, height, width))
+    auxiliary = _foreground_intensity(zeros(height, width))
+    output = _foreground_binary(falses(height, width))
+    library = UTCGP.image2D_foreground_extraction_discrete
+    for name in (:boykov_jolly_foreground, :grabcut_foreground)
+        fn = bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(output))
+        bindings = names(library; all = true)
+        fn(image, auxiliary; out = output)
+        @test names(library; all = true) == bindings
+        @test !haskey(task_local_storage(), :foreground_resolution_active)
+    end
+end
+
+@testset "Sparse rough-mask evidence survives without component bridges" begin
+    library = UTCGP.image2D_foreground_extraction_discrete
+    # A connected sparse strip occupies 14/49 pixels per coarse box.
+    sparse = falses(224, 224)
+    sparse[100:101, 50:175] .= true
+    hint = SImageND(BinaryPixel{Bool}.(sparse))
+    pooled = fill(BinaryPixel(false), 32, 32)
+    library._resolution_sparse_mask!(pooled, hint.img)
+    @test any(Bool.(reinterpret(pooled)))
+    @test !any(Bool.(reinterpret(library._resolution_pool!(similar(pooled), hint.img, Val(:majority)))))
+    image = SImageND(IntensityPixel{N0f8}.(0.1 .+ 0.8 .* sparse))
+    for name in (:grabcut_foreground, :boykov_jolly_foreground)
+        output = SImageND(BinaryPixel{Bool}.(falses(224, 224)))
+        fn = bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(output))
+        result = fn(image, hint, 0)
+        @test any(Bool.(reinterpret(result.img)))
+        @test fn(image, hint, 0; out = output).img == result.img
+        tasks = [Threads.@spawn(fn(image, hint, 0).img) for _ in 1:2]
+        @test all(fetch(task) == result.img for task in tasks)
+    end
+    # Two coarse neighbor boxes with different provenance cannot form a bridge.
+    separated = falses(14, 14)
+    separated[2, 1:7] .= true
+    separated[4, 8:14] .= true
+    guarded = fill(BinaryPixel(false), 2, 2)
+    library._resolution_sparse_mask!(guarded, BinaryPixel{Bool}.(separated))
+    @test count(Bool.(reinterpret(guarded))) == 1
+    # A box containing two full components is explicitly ambiguous.
+    conflict = falses(7, 7)
+    conflict[1:2, 1:2] .= true
+    conflict[6:7, 6:7] .= true
+    ambiguous = fill(BinaryPixel(false), 1, 1)
+    library._resolution_sparse_mask!(ambiguous, BinaryPixel{Bool}.(conflict))
+    @test !Bool(only(reinterpret(ambiguous)))
+    for value in (false, true)
+        constant = fill(BinaryPixel(value), 14, 14)
+        library._resolution_sparse_mask!(guarded, constant)
+        @test all(pixel -> Bool(pixel) == value, reinterpret(guarded))
+    end
+end
+
+@testset "Cuts select quarter occupancy while matting retains eighth" begin
+    library = UTCGP.image2D_foreground_extraction_discrete
+    thin = falses(224, 224)
+    thin[100, 50:175] .= true
+    source = BinaryPixel{Bool}.(thin)
+    eighth = copy(library._resolution_auxiliary(source, 32, 32, Val(:sparse)))
+    quarter = library._resolution_auxiliary(source, 32, 32, Val(:sparse_quarter))
+    @test any(reinterpret(eighth))
+    @test !any(reinterpret(quarter))
 end

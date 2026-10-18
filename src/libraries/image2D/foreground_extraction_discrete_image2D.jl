@@ -9,15 +9,17 @@ The exhaustive operator list is on the [Bundle Catalogue](@ref) page.
 """
 module image2D_foreground_extraction_discrete
 
-# Call tree: factories → seeded cuts → appearance costs + graph construction
+# Call tree: factories → _foreground_apply! → matrix kernels → seeded cuts
+# → appearance costs + graph construction
 # → _maximum_flow! (_global_relabel!, _recount_heights!) → _source_partition.
 # Scratch slots are task-local; separate slots keep simultaneously live arrays distinct.
 
 using ..UTCGP: scratch, output_pixels, image_result
+include("foreground_resolution.jl")
 
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
 using ImageFiltering: Kernel, imfilter
-using ImageMorphology: distance_transform, feature_transform, label_components
+using ImageMorphology: distance_transform, feature_transform, label_components, label_components!
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
     BinaryPixel,
@@ -36,7 +38,13 @@ fallback(args...) = return nothing
     bundle_image2DBinary_foreground_extraction_factory
 
 Seeded, deterministic foreground segmentation operators whose output is a
-same-size binary image. Factories are specialized with the concrete binary
+same-size binary image. Images above 32 on either axis
+are box pooled to a grid with longer axis 32 and preserved aspect ratio
+(224×100 → 32×14). Cut rough masks use guarded 1/4 occupancy and nearest-neighbor lifting.
+Images at most 32×32 use their input grid. Existing third arguments retain
+their parameter meanings; maximum graph-node arity is three.
+
+Factories are specialized with the concrete binary
 output type before insertion into a MAGE library.
 
 The operators are Boykov-Jolly graph cuts and iterative GrabCut. Both take
@@ -251,7 +259,7 @@ function _selected_values(
 end
 
 """
-Fit the original deterministic mixture, reusing only the sorted sample workspace.
+Fit a deterministic mixture using a reusable sorted-sample workspace.
 For example, [0.5] produces one component with mean 0.5.
 """
 function _fit_grabcut_gmm(samples::Vector{Float64})
@@ -439,10 +447,8 @@ function _grabcut_appearance_costs(
     return foreground_cost, background_cost
 end
 
-# changed from Float64 capacities to Int64 because push-relabel only has a termination
-# guarantee with exact arithmetic: with floats, rounding leaves residual excess that is pushed
-# back and forth forever (observed: one thread at 100% for hours inside _maximum_flow!).
-# Capacities are scaled by _FLOW_CAPACITY_SCALE when edges are added.
+# Exact integer residuals prevent rounding errors from leaving excess circulating.
+# Scale capacities on insertion so the flow loop uses integer arithmetic throughout.
 const _FLOW_CAPACITY_SCALE = 2^20
 
 """Float capacity -> scaled Int64. Non-finite or negative inputs are clamped (NaN -> 0)."""
@@ -455,14 +461,14 @@ mutable struct _FlowNetwork
     head::Vector{Int}
     destination::Vector{Int}
     next_edge::Vector{Int}
-    capacity::Vector{Int64}   # changed from Vector{Float64} to Vector{Int64} because integer capacities make push-relabel terminate
+    capacity::Vector{Int64}
 end
 
 """
     _FlowNetwork(vertex_count, edge_capacity)
 
 Reuse task-local edge arrays, clearing all heads and logical edge lengths.
-Insertion order is unchanged: e.g. adding 1 → 2 still gives edge pair (1, 2).
+Edges retain insertion order: adding 1 → 2 gives edge pair (1, 2).
 The network is working storage and must not escape a cut.
 """
 function _FlowNetwork(vertex_count::Int, edge_capacity::Int)
@@ -488,12 +494,12 @@ function _add_directed_edge!(
     )
     push!(network.destination, sink)
     push!(network.next_edge, network.head[source])
-    push!(network.capacity, _flow_capacity(capacity))   # changed from capacity to _flow_capacity(capacity) because capacities are stored as scaled Int64
+    push!(network.capacity, _flow_capacity(capacity))
     network.head[source] = length(network.capacity)
 
     push!(network.destination, source)
     push!(network.next_edge, network.head[sink])
-    push!(network.capacity, 0)   # changed from 0.0 to 0 because capacities are Int64
+    push!(network.capacity, 0)
     network.head[sink] = length(network.capacity)
     return nothing
 end
@@ -506,12 +512,12 @@ function _add_bidirectional_edge!(
     )
     push!(network.destination, second)
     push!(network.next_edge, network.head[first])
-    push!(network.capacity, _flow_capacity(capacity))   # changed from capacity to _flow_capacity(capacity) because capacities are stored as scaled Int64
+    push!(network.capacity, _flow_capacity(capacity))
     network.head[first] = length(network.capacity)
 
     push!(network.destination, first)
     push!(network.next_edge, network.head[second])
-    push!(network.capacity, _flow_capacity(capacity))   # changed from capacity to _flow_capacity(capacity) because capacities are stored as scaled Int64
+    push!(network.capacity, _flow_capacity(capacity))
     network.head[second] = length(network.capacity)
     return nothing
 end
@@ -544,7 +550,7 @@ function _global_relabel!(
             predecessor = network.destination[edge]
             reverse = _reverse_edge(edge)
             if predecessor != source && height[predecessor] == unreachable &&
-                    network.capacity[reverse] > 0   # changed from > 1.0e-12 to > 0 because capacities are exact integers
+                    network.capacity[reverse] > 0
                 height[predecessor] = height[vertex] + 1
                 queue_end += 1
                 queue[queue_end] = predecessor
@@ -564,25 +570,29 @@ function _recount_heights!(height_count::Vector{Int}, height::Vector{Int})
     return nothing
 end
 
-# Safety net on top of the integer capacities: no input may keep the evaluator busy for
-# ever. Push-relabel with global relabeling needs O(n^2)-ish operations in practice; the
-# budget is far above that (about 1e8 for a 32x32 image, well under a second) and, when hit,
-# throws so the caller falls back like for any other failing library call.
-const _MAX_FLOW_WORK_PER_VERTEX_SQUARED = 100
+# Budget units are inner discharge attempts: pushes, edge advances, and relabels.
+# Every solve uses max(FLOOR, C*n). The floor preserves the historical 32×32
+# allowance; linear growth bounds larger problems without a quadratic runaway.
+# Completed calibration solves need up to ~3,900 attempts/vertex; C=8,192 gives
+# over 2× headroom. At 224² the limit is 411,058,176 attempts, measured at about
+# 3.53 seconds for one saturated flow (GrabCut runs at most two flows per call).
+# Cholesky and package watershed have no loop here; their problem-size caps apply.
+const _MAX_FLOW_WORK_FLOOR = 100 * 1026^2
+const _MAX_FLOW_WORK_PER_VERTEX = 8192
 
 """
-Run the original FIFO push-relabel schedule with reused task-local working arrays.
+Run FIFO push-relabel with reused task-local working arrays.
 For example, a single edge of capacity 1 transports its scaled integer capacity.
-The operation counter and all relabel/stopping rules are unchanged.
+A full sweep refreshes distance labels while gap relabels skip unreachable layers.
 """
 function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
     vertex_count = length(network.head)
     height = scratch(:discrete_flow_height, Int, vertex_count)
     fill!(height, 0)
     excess = scratch(:discrete_flow_excess, Int64, vertex_count)
-    fill!(excess, 0)   # changed from zeros(Float64, ...) to zeros(Int64, ...) because flow is now exact integer arithmetic
-    work = 0   # added: push/relabel operation counter for the work budget
-    work_limit = _MAX_FLOW_WORK_PER_VERTEX_SQUARED * vertex_count^2   # added: budget after which the solve gives up
+    fill!(excess, 0)
+    work = 0
+    work_limit = max(_MAX_FLOW_WORK_FLOOR, _MAX_FLOW_WORK_PER_VERTEX * vertex_count)
     current_edge = scratch(:discrete_flow_current, Int, vertex_count)
     copyto!(current_edge, network.head)
     active = scratch(:discrete_flow_active, Bool, vertex_count)
@@ -599,9 +609,9 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
     edge = network.head[source]
     @inbounds while edge != 0
         flow = network.capacity[edge]
-        if flow > 0   # changed from > 1.0e-12 to > 0 because capacities are exact integers
+        if flow > 0
             destination = network.destination[edge]
-            network.capacity[edge] = 0   # changed from 0.0 to 0 because capacities are Int64
+            network.capacity[edge] = 0
             network.capacity[_reverse_edge(edge)] += flow
             excess[destination] += flow
             if destination != sink && !active[destination]
@@ -624,16 +634,16 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
         queue_count -= 1
         active[vertex] = false
 
-        while excess[vertex] > 0   # changed from > 1.0e-12 to > 0 because excess is an exact integer
-            work += 1   # added: one push or relabel attempt
-            work > work_limit && throw(ErrorException(   # added: give up instead of spinning for ever
+        while excess[vertex] > 0
+            work += 1
+            work > work_limit && throw(ErrorException(
                 "_maximum_flow! exceeded its work budget ($(work_limit) operations); the cut is abandoned"))
             edge = current_edge[vertex]
             if edge == 0
                 minimum_height = typemax(Int)
                 candidate = network.head[vertex]
                 while candidate != 0
-                    if network.capacity[candidate] > 0   # changed from > 1.0e-12 to > 0 because capacities are exact integers
+                    if network.capacity[candidate] > 0
                         minimum_height = min(
                             minimum_height,
                             height[network.destination[candidate]],
@@ -667,7 +677,7 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
             end
 
             destination = network.destination[edge]
-            if network.capacity[edge] > 0 &&   # changed from > 1.0e-12 to > 0 because capacities are exact integers
+            if network.capacity[edge] > 0 &&
                     height[vertex] == height[destination] + 1
                 flow = min(excess[vertex], network.capacity[edge])
                 network.capacity[edge] -= flow
@@ -676,7 +686,7 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
                 previous_excess = excess[destination]
                 excess[destination] += flow
                 if destination != source && destination != sink &&
-                        previous_excess == 0 && !active[destination]   # changed from <= 1.0e-12 to == 0 because excess is an exact integer
+                        previous_excess == 0 && !active[destination]
                     active[destination] = true
                     queue_tail = queue_tail == vertex_count ? 1 : queue_tail + 1
                     queue[queue_tail] = destination
@@ -688,6 +698,7 @@ function _maximum_flow!(network::_FlowNetwork, source::Int, sink::Int)
         end
 
         discharge_count += 1
+        # Refresh sink distances to guide subsequent excess discharge.
         if discharge_count == vertex_count
             _global_relabel!(network, source, sink, height, relabel_queue)
             _recount_heights!(height_count, height)
@@ -715,7 +726,7 @@ function _source_partition(network::_FlowNetwork, source::Int)
         edge = network.head[vertex]
         while edge != 0
             destination = network.destination[edge]
-            if network.capacity[edge] > 0 && !reached[destination]   # changed from > 1.0e-12 to > 0 because capacities are exact integers
+            if network.capacity[edge] > 0 && !reached[destination]
                 reached[destination] = true
                 queue_end += 1
                 queue[queue_end] = destination
@@ -966,53 +977,70 @@ function _mask_seeded(cut, mask::AbstractMatrix{Bool}, band::Int)
     return cut(foreground_seed, background_seed)
 end
 
+"""Write Boykov–Jolly pixels from supplied saliency; e.g. 32×14 in fills 32×14 out."""
+function _boykov_jolly_foreground_supplied!(
+        pixels::AbstractMatrix{P},
+        image::AbstractMatrix, saliency::AbstractMatrix, smoothness_input::Real,
+    ) where {P}
+    pixel_type = P
+    storage_type = fieldtype(P, 1)
+    smoothness_value = Float64(smoothness_input)
+    smoothness = isfinite(smoothness_value) ?
+                 clamp(smoothness_value, 0.0, 20.0) : 5.0
+    mask = _boykov_jolly_cut(
+        reinterpret(image),
+        reinterpret(saliency),
+        smoothness,
+        0.9,
+    )
+    pixels .= pixel_type.(storage_type.(mask))
+    return pixels
+end
+
+"""Write Boykov–Jolly pixels from automatic seeds; e.g. 32×14 in fills 32×14 out."""
+function _boykov_jolly_foreground_automatic!(
+        pixels::AbstractMatrix{P},
+        image::AbstractMatrix, ::Nothing, smoothness_input::Real, foreground_quantile_input::Real,
+    ) where {P}
+    pixel_type = P
+    storage_type = fieldtype(P, 1)
+    smoothness_value = Float64(smoothness_input)
+    quantile_value = Float64(foreground_quantile_input)
+    smoothness = isfinite(smoothness_value) ?
+                 clamp(smoothness_value, 0.0, 20.0) : 5.0
+    foreground_quantile = isfinite(quantile_value) ?
+                          clamp(quantile_value, 0.5, 0.99) : 0.9
+    saliency = _spectral_residual_grayscale(image, 1, 2.0)
+    mask = _boykov_jolly_cut(
+        reinterpret(image),
+        saliency,
+        smoothness,
+        foreground_quantile,
+    )
+    pixels .= pixel_type.(storage_type.(mask))
+    return pixels
+end
+
+"""Write Boykov–Jolly pixels from a rough mask; e.g. 32×14 in fills 32×14 out."""
+function _boykov_jolly_foreground_mask!(
+        pixels::AbstractMatrix{P},
+        image::AbstractMatrix, mask::AbstractMatrix, band::Real,
+    ) where {P}
+    pixel_type = P
+    storage_type = fieldtype(P, 1)
+    values = reinterpret(image)
+    result = _mask_seeded(Bool.(reinterpret(mask)), _seed_band(band)) do foreground_seed, background_seed
+        _boykov_jolly_seeded_cut(values, foreground_seed, background_seed, 5.0, nothing)
+    end
+    pixels .= pixel_type.(storage_type.(result))
+    return pixels
+end
+
 """
     boykov_jolly_foreground_image2D_factory(::Type{I})
 
-Specialize automatic-seed Boykov-Jolly graph-cut foreground extraction for a
-concrete MAGE binary output type `I`.
-
-The returned callable supports these effective signatures:
-
-```julia
-boykov_jolly_foreground(image)
-boykov_jolly_foreground(image, smoothness::Real)
-boykov_jolly_foreground(image, smoothness::Real, foreground_quantile::Real)
-boykov_jolly_foreground(image, saliency)
-boykov_jolly_foreground(image, saliency, smoothness::Real)
-boykov_jolly_foreground(image, mask)
-boykov_jolly_foreground(image, mask, band::Real)
-```
-
-`image` is a same-size intensity image. With no supplied saliency map, the
-operator computes spectral-residual saliency using its defaults. A supplied
-`saliency` must be a same-size intensity image. A scale-space-smoothed version
-of the saliency map supplies both a soft spatial prior and hard seeds:
-high-saliency interior pixels become foreground seeds, while the image border
-and low-saliency pixels connected to it become background seeds. Flat saliency
-maps return an empty foreground mask.
-
-`smoothness` controls contrast-sensitive four-neighbor boundary regularization,
-is clamped to `[0, 20]`, and defaults to `5`. `foreground_quantile` controls
-the high-saliency seed fraction, is clamped to `[0.5, 0.99]`, and defaults to
-`0.9`. Non-finite values use the defaults. Appearance terms are deterministic
-32-bin foreground/background histograms with Laplace smoothing. The exact
-min-cut is computed by an internal FIFO push-relabel max-flow implementation
-with global and gap relabeling.
-
-`boykov_jolly_foreground(image, mask, [band])` refines a rough binary `mask` (e.g. a
-threshold or a dilated detection): pixels deeper than `band` inside the mask
-are fixed as foreground, pixels farther than `band` outside it as background,
-and the strip of width `2·band` along the mask's edge is decided by the
-cut, using the seeds' intensity histograms and smoothness `5`. `band` is rounded and clamped to `[0, 20]` pixels, default `4`; it
-should cover the mask's error. An object thinner than the band keeps its
-middle as a seed. An empty mask gives an empty result.
-
-Example: a flat saliency image yields an all-false foreground.
-
-Every overload has at most three MAGE inputs, accepts and ignores trailing
-framework `args...`, and returns exactly the dimensions and `BinaryPixel`
-storage type fixed by specialization `I`.
+Images above 32 pixels on either axis use a 32-pixel working grid.
+All third inputs retain their existing parameter meanings.
 """
 function boykov_jolly_foreground_image2D_factory(
         ::Type{I},
@@ -1034,17 +1062,11 @@ function boykov_jolly_foreground_image2D_factory(
             SAT,
             SALIENCY<:SizedImage{$S,IntensityPixel{SAT}},
         }
-        smoothness_value = Float64(smoothness_input)
-        smoothness = isfinite(smoothness_value) ?
-                     clamp(smoothness_value, 0.0, 20.0) : 5.0
-        mask = _boykov_jolly_cut(
-            reinterpret(image.img),
-            reinterpret(saliency.img),
-            smoothness,
-            0.9,
-        )
         pixels = output_pixels(out, image, $PT)
-        pixels .= $PT.($IT.(mask))
+        _foreground_apply!(
+            _boykov_jolly_foreground_supplied!, pixels, image.img, saliency.img,
+            (smoothness_input,), Val(:mean), Val(false),
+        )
         return image_result(out, pixels, $S)
     end
     @eval function $function_name(
@@ -1065,21 +1087,11 @@ function boykov_jolly_foreground_image2D_factory(
             foreground_quantile_input::Real,
             args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
-        smoothness_value = Float64(smoothness_input)
-        quantile_value = Float64(foreground_quantile_input)
-        smoothness = isfinite(smoothness_value) ?
-                     clamp(smoothness_value, 0.0, 20.0) : 5.0
-        foreground_quantile = isfinite(quantile_value) ?
-                              clamp(quantile_value, 0.5, 0.99) : 0.9
-        saliency = _spectral_residual_grayscale(image, 1, 2.0)
-        mask = _boykov_jolly_cut(
-            reinterpret(image.img),
-            saliency,
-            smoothness,
-            foreground_quantile,
-        )
         pixels = output_pixels(out, image, $PT)
-        pixels .= $PT.($IT.(mask))
+        _foreground_apply!(
+            _boykov_jolly_foreground_automatic!, pixels, image.img, nothing,
+            (smoothness_input, foreground_quantile_input), Val(:mean), Val(false),
+        )
         return image_result(out, pixels, $S)
     end
     @eval function $function_name(
@@ -1102,12 +1114,11 @@ function boykov_jolly_foreground_image2D_factory(
             band::Real,
             args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
-        values = reinterpret(image.img)
-        result = _mask_seeded(Bool.(reinterpret(mask.img)), _seed_band(band)) do foreground_seed, background_seed
-            _boykov_jolly_seeded_cut(values, foreground_seed, background_seed, 5.0, nothing)
-        end
         pixels = output_pixels(out, image, $PT)
-        pixels .= $PT.($IT.(result))
+        _foreground_apply!(
+            _boykov_jolly_foreground_mask!, pixels, image.img, mask.img,
+            (band,), Val(:sparse_quarter), Val(false),
+        )
         return image_result(out, pixels, $S)
     end
     @eval function $function_name(
@@ -1120,50 +1131,73 @@ function boykov_jolly_foreground_image2D_factory(
     return fn
 end
 
+"""Write GrabCut pixels from supplied saliency; e.g. 32×14 in fills 32×14 out."""
+function _grabcut_foreground_supplied!(
+        pixels::AbstractMatrix{P},
+        image::AbstractMatrix, saliency::AbstractMatrix, iterations_input::Real,
+    ) where {P}
+    pixel_type = P
+    storage_type = fieldtype(P, 1)
+    iterations_value = Float64(iterations_input)
+    iterations = isfinite(iterations_value) ?
+                 round(Int, clamp(iterations_value, 1.0, 2.0)) : 2
+    mask = _grabcut_cut(
+        reinterpret(image),
+        reinterpret(saliency),
+        iterations,
+        5.0,
+        0.9,
+    )
+    pixels .= pixel_type.(storage_type.(mask))
+    return pixels
+end
+
+"""Write GrabCut pixels from automatic seeds; e.g. 32×14 in fills 32×14 out."""
+function _grabcut_foreground_automatic!(
+        pixels::AbstractMatrix{P},
+        image::AbstractMatrix, ::Nothing, iterations_input::Real, smoothness_input::Real,
+    ) where {P}
+    pixel_type = P
+    storage_type = fieldtype(P, 1)
+    iterations_value = Float64(iterations_input)
+    smoothness_value = Float64(smoothness_input)
+    iterations = isfinite(iterations_value) ?
+                 round(Int, clamp(iterations_value, 1.0, 2.0)) : 2
+    smoothness = isfinite(smoothness_value) ?
+                 clamp(smoothness_value, 0.0, 20.0) : 5.0
+    saliency = _spectral_residual_grayscale(image, 1, 2.0)
+    mask = _grabcut_cut(
+        reinterpret(image),
+        saliency,
+        iterations,
+        smoothness,
+        0.9,
+    )
+    pixels .= pixel_type.(storage_type.(mask))
+    return pixels
+end
+
+"""Write GrabCut pixels from a rough mask; e.g. 32×14 in fills 32×14 out."""
+function _grabcut_foreground_mask!(
+        pixels::AbstractMatrix{P},
+        image::AbstractMatrix, mask::AbstractMatrix, band::Real,
+    ) where {P}
+    pixel_type = P
+    storage_type = fieldtype(P, 1)
+    values = reinterpret(image)
+    guess = BitMatrix(Bool.(reinterpret(mask)))
+    result = _mask_seeded(guess, _seed_band(band)) do foreground_seed, background_seed
+        _grabcut_seeded(values, foreground_seed, background_seed, guess, 2, 5.0)
+    end
+    pixels .= pixel_type.(storage_type.(result))
+    return pixels
+end
+
 """
     grabcut_foreground_image2D_factory(::Type{I})
 
-Specialize deterministic, saliency-initialized GrabCut for a concrete MAGE
-binary output type `I`.
-
-The returned callable supports these effective signatures:
-
-```julia
-grabcut_foreground(image)
-grabcut_foreground(image, iterations::Real)
-grabcut_foreground(image, iterations::Real, smoothness::Real)
-grabcut_foreground(image, saliency)
-grabcut_foreground(image, saliency, iterations::Real)
-grabcut_foreground(image, mask)
-grabcut_foreground(image, mask, band::Real)
-```
-
-`image` is a same-size intensity image. The operator either computes
-spectral-residual saliency internally or consumes a same-size intensity
-`saliency` image. Saliency establishes permanent foreground/background seeds
-and the initial probable-foreground region. Each GrabCut iteration fits
-deterministic five-component one-dimensional Gaussian mixtures to the current
-grayscale foreground and background, then computes an exact contrast-sensitive
-minimum cut.
-
-`iterations` is rounded and clamped to `[1, 2]`, defaulting to `2`.
-`smoothness` is clamped to `[0, 20]`, defaulting to `5`. Non-finite values
-use the defaults. Supplied-saliency calls use the default smoothness to respect
-the MAGE three-input ceiling. Flat saliency returns an empty mask.
-
-`grabcut_foreground(image, mask, [band])` refines a rough binary `mask` (e.g. a
-threshold or a dilated detection): pixels deeper than `band` inside the mask
-are fixed as foreground, pixels farther than `band` outside it as background,
-and the strip of width `2·band` along the mask's edge is decided by the
-GrabCut iterations (2, smoothness `5`), starting from the mask itself. `band` is rounded and clamped to `[0, 20]` pixels, default `4`; it
-should cover the mask's error. An object thinner than the band keeps its
-middle as a seed. An empty mask gives an empty result.
-
-Example: a flat saliency image yields an all-false foreground.
-
-Every overload accepts and ignores trailing framework `args...` and returns
-exactly the dimensions and `BinaryPixel` storage type fixed by specialization
-`I`.
+Images above 32 pixels on either axis use a 32-pixel working grid.
+All third inputs retain their existing parameter meanings.
 """
 function grabcut_foreground_image2D_factory(
         ::Type{I},
@@ -1185,18 +1219,11 @@ function grabcut_foreground_image2D_factory(
             SAT,
             SALIENCY<:SizedImage{$S,IntensityPixel{SAT}},
         }
-        iterations_value = Float64(iterations_input)
-        iterations = isfinite(iterations_value) ?
-                     round(Int, clamp(iterations_value, 1.0, 2.0)) : 2
-        mask = _grabcut_cut(
-            reinterpret(image.img),
-            reinterpret(saliency.img),
-            iterations,
-            5.0,
-            0.9,
-        )
         pixels = output_pixels(out, image, $PT)
-        pixels .= $PT.($IT.(mask))
+        _foreground_apply!(
+            _grabcut_foreground_supplied!, pixels, image.img, saliency.img,
+            (iterations_input,), Val(:mean), Val(false),
+        )
         return image_result(out, pixels, $S)
     end
     @eval function $function_name(
@@ -1217,22 +1244,11 @@ function grabcut_foreground_image2D_factory(
             smoothness_input::Real,
             args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}}}
-        iterations_value = Float64(iterations_input)
-        smoothness_value = Float64(smoothness_input)
-        iterations = isfinite(iterations_value) ?
-                     round(Int, clamp(iterations_value, 1.0, 2.0)) : 2
-        smoothness = isfinite(smoothness_value) ?
-                     clamp(smoothness_value, 0.0, 20.0) : 5.0
-        saliency = _spectral_residual_grayscale(image, 1, 2.0)
-        mask = _grabcut_cut(
-            reinterpret(image.img),
-            saliency,
-            iterations,
-            smoothness,
-            0.9,
-        )
         pixels = output_pixels(out, image, $PT)
-        pixels .= $PT.($IT.(mask))
+        _foreground_apply!(
+            _grabcut_foreground_automatic!, pixels, image.img, nothing,
+            (iterations_input, smoothness_input), Val(:mean), Val(false),
+        )
         return image_result(out, pixels, $S)
     end
     @eval function $function_name(
@@ -1255,13 +1271,11 @@ function grabcut_foreground_image2D_factory(
             band::Real,
             args::Vararg{Any}; out = nothing,
         ) where {ST,SOURCE<:SizedImage{$S,IntensityPixel{ST}},MT,MASK<:SizedImage{$S,BinaryPixel{MT}}}
-        values = reinterpret(image.img)
-        guess = BitMatrix(Bool.(reinterpret(mask.img)))
-        result = _mask_seeded(guess, _seed_band(band)) do foreground_seed, background_seed
-            _grabcut_seeded(values, foreground_seed, background_seed, guess, 2, 5.0)
-        end
         pixels = output_pixels(out, image, $PT)
-        pixels .= $PT.($IT.(result))
+        _foreground_apply!(
+            _grabcut_foreground_mask!, pixels, image.img, mask.img,
+            (band,), Val(:sparse_quarter), Val(false),
+        )
         return image_result(out, pixels, $S)
     end
     @eval function $function_name(

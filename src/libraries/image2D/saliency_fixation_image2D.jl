@@ -447,12 +447,15 @@ constant image), in task scratch (valid until the next call in the same task):
 2. residual `R = L − box mean of L` (radius `spectral_average_radius`, wrapped);
 3. `saliency = |ifft(exp(R + i·angle(spectrum)))|²`, optionally smoothed.
 
-The FFTs use the same FFTW plans as `fft` / `ifft`, applied with `mul!` into
-task scratch, so the result is unchanged.
+FFTW plans write transforms into task scratch with `mul!` to reuse buffers.
 """
-function _spectral_residual_map(image::SImageND, spectral_average_radius::Int, smoothing_sigma::Float64)
-    dims = size(image.img)
-    values = pixel_values!(scratch(:sr_values, Float64, dims...), image.img)
+_spectral_residual_map(image::SImageND, spectral_average_radius::Int, smoothing_sigma::Float64) =
+    _spectral_residual_map(image.img, spectral_average_radius, smoothing_sigma)
+
+"""Matrix/array spectral kernel; a constant input gives a zero saliency map."""
+function _spectral_residual_map(pixels::AbstractArray, spectral_average_radius::Int, smoothing_sigma::Float64)
+    dims = size(pixels)
+    values = pixel_values!(scratch(:sr_values, Float64, dims...), pixels)
     lo, hi = extrema(values)
     if !isfinite(lo) || !isfinite(hi) || hi <= lo
         return fill!(scratch(:sr_saliency, Float64, dims...), 0.0)
@@ -482,6 +485,12 @@ foreground-extraction operators).
 """
 _spectral_residual_grayscale(image::SImageND, spectral_average_radius::Int, smoothing_sigma::Float64) =
     copy(_spectral_residual_map(image, spectral_average_radius, smoothing_sigma))
+
+"""Compute owned grayscale saliency directly from pixels; a constant matrix gives zeros.
+This matrix entry point lets foreground evaluation avoid size-encoded wrappers.
+"""
+_spectral_residual_grayscale(pixels::AbstractMatrix, spectral_average_radius::Int, smoothing_sigma::Float64) =
+    copy(_spectral_residual_map(pixels, spectral_average_radius, smoothing_sigma))
 
 """
     spectral_residual_saliency_image2D_factory(::Type{I})
