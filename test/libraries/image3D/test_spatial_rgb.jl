@@ -134,6 +134,61 @@ end
     @test eltype(result16) == IntensityPixel{N0f16}
 end
 
+# Called from top level after factory creation, so inference checks see the
+# generated operator's methods without changing production dispatch.
+function _check_constant_rgb_contrast(fn, image, ::Type{T}) where {T}
+    destination = deepcopy(image)
+    for radius in (1.0, 3.0, 5.0)
+        result = @inferred fn(image, radius)
+        @test all(==(T(0.5)), reinterpret(result.img))
+        @test (@inferred fn(image, radius; out = destination)) === destination
+        @test destination.img == result.img
+    end
+end
+
+# Create operators at top level before the test block, so their methods are
+# visible to direct calls and @inferred on Julia 1.12.
+const _constant_rgb_contrast_cases = map((N0f8, N0f16, Float32, Float64)) do T
+    image = _rgb_test_image(fill(0.1, 13, 17), fill(0.5, 13, 17), fill(0.9, 13, 17), T)
+    fn = bundle_image3DIntensity_spatial_rgb_factory[:local_contrast_normalize_rgb].fn(typeof(image))
+    (fn, image, T)
+end
+
+@testset "Constant RGB contrast is exactly neutral" begin
+    spatial = UTCGP.image3D_spatial_rgb
+    # Test the working result as well as stored pixels: a quantized comparison
+    # alone could hide residuals on one side of the rounding boundary.
+    for value in (0.0, 0.1, 0.25, 0.5, 0.75, 1.0), radius in (1.0, 3.0, 5.0)
+        source = fill(value, 13, 17, 3)
+        result = similar(source)
+        @test spatial._local_contrast_normalize!(result, source, radius) === result
+        @test all(==(0.5), result)
+    end
+    for (fn, image, T) in _constant_rgb_contrast_cases
+        _check_constant_rgb_contrast(fn, image, T)
+    end
+
+    # Flat channels may coexist with textured channels. Preserve the original
+    # local-moments calculation on every nonconstant channel, even tiny contrast.
+    source = fill(0.25, 13, 17, 3)
+    source[7, 9, 2] += 1e-10
+    source[:, 9:end, 3] .= 0.75
+    original = copy(source)
+    for radius in (1, 3, 5)
+        result = similar(source)
+        spatial._local_contrast_normalize!(result, source, radius)
+        @test all(==(0.5), result[:, :, 1])
+        for channel in (2, 3)
+            plane = view(source, :, :, channel)
+            local_mean, local_variance = similar(plane), similar(plane)
+            spatial._local_moments!(local_mean, local_variance, plane, radius)
+            expected = 0.5 .+ 0.2 .* ((plane .- local_mean) ./ sqrt.(local_variance .+ 1e-6))
+            @test result[:, :, channel] == expected
+        end
+    end
+    @test source == original
+end
+
 @testset "Spatial RGB parameter sanitization" begin
     rng = MersenneTwister(91)
     rgb = _rgb_test_image(

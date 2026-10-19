@@ -239,6 +239,7 @@ _plane(key::Symbol, like::AbstractMatrix) = scratch(key, Float64, size(like)...)
 """
 Local standardisation per channel: `0.5 + 0.2 · (v − mean) / sqrt(variance + 1e-6)`
 over a `(2r+1)²` window, `r` rounded and clamped to `[1, 5]` (NaN → 3).
+Exactly constant finite channels return exactly `0.5` before pixel conversion.
 """
 function _local_contrast_normalize!(result, source, radius_input::Real)
     radius = _radius(radius_input)
@@ -246,6 +247,12 @@ function _local_contrast_normalize!(result, source, radius_input::Real)
     local_variance = _plane(:rgb_variance, source)
     for c in 1:3
         plane = _channel(source, c)
+        # Avoid filter rounding around the neutral value: 0.5 lies exactly on
+        # an N0f8 rounding boundary, so even a tiny residual can change a byte.
+        if !isempty(plane) && isfinite(first(plane)) && allequal(plane)
+            fill!(_channel(result, c), 0.5)
+            continue
+        end
         _local_moments!(local_mean, local_variance, plane, radius)
         _channel(result, c) .= 0.5 .+ 0.2 .* ((plane .- local_mean) ./ sqrt.(local_variance .+ 1.0e-6))
     end

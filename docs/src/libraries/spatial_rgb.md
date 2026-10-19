@@ -49,7 +49,7 @@ the RGB output library.
 | `gaussian_blur_rgb(rgb, sigma)` | `sigma ∈ [0.3,4]` | Gaussian smoothing |
 | `difference_of_gaussians_rgb(rgb, sigma1, sigma2)` | both in `[0.3,4]` | normalized absolute band-pass response; order-independent |
 | `unsharp_mask_rgb(rgb, sigma, amount)` | `sigma ∈ [0.3,4]`, `amount ∈ [0,3]` | `rgb + amount*(rgb-blur)` |
-| `local_contrast_normalize_rgb(rgb, radius)` | integer radius in `[1,5]` | local signed contrast mapped around `0.5` |
+| `local_contrast_normalize_rgb(rgb, radius)` | integer radius in `[1,5]` | local signed contrast mapped around `0.5`; constant finite channels give exactly `0.5` before pixel conversion |
 | `local_std_rgb(rgb, radius)` | integer radius in `[1,5]` | normalized local texture energy |
 | `gabor_energy_rgb(rgb, orientation, wavelength)` | orientation modulo `π`, wavelength in `[2,8]` | phase-independent oriented texture energy |
 

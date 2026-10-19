@@ -719,11 +719,12 @@ Define the factory function `factory_name(output_type)` (which calls
 bundle of each pixel kind in `kinds`.
 """
 function _define_factory!(factory_name::Symbol, operator::Symbol, builder, kinds, description::String, doc::String)
-    @eval function $factory_name(output_type::Type{I}) where {S1,S2,P,I<:SizedImage2D{S1,S2,P}}
+    # Keep the generic function returned by eval; its new global binding may
+    # not be visible in this frame's world on Julia 1.12.
+    factory = @eval function $factory_name(output_type::Type{I}) where {S1,S2,P,I<:SizedImage2D{S1,S2,P}}
         return $builder(output_type)
     end
     @eval @doc $doc $factory_name
-    factory = getfield(@__MODULE__, factory_name)
     for kind in kinds
         append_method!(_bundle_for(kind), factory, operator; description = description)
     end

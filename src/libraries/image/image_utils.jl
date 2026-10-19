@@ -1,5 +1,6 @@
 using ImageCore: rawview, Normed
 using ImageCore: channelview
+import ImageCore: N0f8
 using Images
 import Lazy:@forward
 
@@ -139,7 +140,7 @@ Base.Float64(pixel::AbstractPixel{T}) where T = convert(Float64, pixel.pixel)
 Base.Float32(pixel::AbstractPixel{T}) where T = convert(Float32, pixel.pixel)
 Base.Int(pixel::AbstractPixel{T}) where T = convert(Int, pixel)
 N0f8(pixel::AbstractPixel{T}) where T = convert(N0f8, pixel)
-AbstractFloat(pixel::AbstractPixel{T}) where T = AbstractFloat(Float64(pixel))
+Base.AbstractFloat(pixel::AbstractPixel{T}) where T = AbstractFloat(Float64(pixel))
 
 abstract type AbtractSizedImage{S<:Tuple,T<:AbstractPixel,N,IT} <: AbstractArray{T,N} end
 """

@@ -1335,7 +1335,9 @@ function _define!(operator::Symbol, kinds, builder, description::String)
     factory_name = length(kinds) == 1 ? Symbol(operator, :_, kinds[1], :_image3D_factory) :
                    Symbol(operator, :_image3D_factory)
     # The factory accepts any 3D image type and forwards it to the builder.
-    @eval function $factory_name(output_type::Type{I}) where {S1,S2,S3,P,I<:SizedImage3D{S1,S2,S3,P}}
+    # Keep the generic function returned by eval; its new global binding may
+    # not be visible in this frame's world on Julia 1.12.
+    factory = @eval function $factory_name(output_type::Type{I}) where {S1,S2,S3,P,I<:SizedImage3D{S1,S2,S3,P}}
         return $builder(output_type)
     end
     doc = """
@@ -1345,7 +1347,7 @@ function _define!(operator::Symbol, kinds, builder, description::String)
     """
     @eval @doc $doc $factory_name
     for kind in kinds
-        append_method!(_bundle(kind), getfield(@__MODULE__, factory_name), operator; description = description)
+        append_method!(_bundle(kind), factory, operator; description = description)
     end
 end
 

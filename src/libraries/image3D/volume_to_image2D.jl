@@ -510,7 +510,9 @@ Example: `_define!(_BINARY, :binary, :proj_any_z, …)` defines
 function _define!(bundle, kind::Symbol, operator::Symbol, builder, description::String)
     factory_name = Symbol(operator, :_, kind, :_image2D_factory)
     # The factory accepts any 2D image type and forwards it to the builder.
-    @eval function $factory_name(output_type::Type{I}) where {S1,S2,P,I<:SizedImage2D{S1,S2,P}}
+    # Keep the generic function returned by eval; its new global binding may
+    # not be visible in this frame's world on Julia 1.12.
+    factory = @eval function $factory_name(output_type::Type{I}) where {S1,S2,P,I<:SizedImage2D{S1,S2,P}}
         return $builder(output_type)
     end
     doc = """
@@ -519,7 +521,7 @@ function _define!(bundle, kind::Symbol, operator::Symbol, builder, description::
     Specialises `$operator`. $description
     """
     @eval @doc $doc $factory_name
-    append_method!(bundle, getfield(@__MODULE__, factory_name), operator; description = description)
+    append_method!(bundle, factory, operator; description = description)
 end
 
 # Builders return `output_type -> factory(output_type, …)`. They are functions,

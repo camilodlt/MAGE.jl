@@ -35,8 +35,9 @@ input and load; the slowest observed sample is not a worst-case bound.
 
 ## Install
 
-Requires **Julia 1.10 or later**. `SearchNetworks` is installed from its repository
-before MAGE because it is a package dependency.
+Requires **Julia 1.11.7 or later**. CI tests Julia 1.11.7 and 1.12; documentation
+builds use Julia 1.12. `SearchNetworks` is installed from its repository before
+MAGE because it is a package dependency.
 
 ```julia
 using Pkg
