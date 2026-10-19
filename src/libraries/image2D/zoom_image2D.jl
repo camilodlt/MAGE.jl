@@ -51,7 +51,7 @@ glimpse(img, 0.75, 0.2)   # a 10 × 10 window around column 30, row 9, resized t
 """
 module image2D_zoom
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: output_pixels, image_result
 
@@ -566,7 +566,7 @@ Define the function `operator` specialised for output type `I` and return it.
 returns the output pixel matrix. The methods (see the module docstring) differ
 only in where the mask comes from and whether a margin is given.
 """
-function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
+@serialized_factory function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     storage_type = _get_image_type(I)                 # e.g. N0f8
     pixel_type = _get_image_pixel_type(I)             # e.g. IntensityPixel{N0f8}
     size_type = _get_image_tuple_size(I)              # e.g. Tuple{28,28}
@@ -661,7 +661,7 @@ Define `operator` for output type `I` with methods `(src, x, y)`, `(src, s)`
 (meaning `x = y = s`) and `(src)` (the image centre).
 `kernel(src_pixels, x, y)` returns the output pixel matrix.
 """
-function _point_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
+@serialized_factory function _point_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     storage_type = _get_image_type(I)
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
@@ -818,7 +818,7 @@ _define_factory!(:zoom_recenter_point_image2D_factory, :zoom_recenter_point,
     """)
 
 "Define `zoom_center` for output type `I`: `(img, z)` keeps the central fraction `z` of each side (at least 5%), `(img)` keeps half."
-function _center_factory(::Type{I}) where {I}
+@serialized_factory function _center_factory(::Type{I}) where {I}
     storage_type = _get_image_type(I)
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
@@ -847,7 +847,7 @@ _define_factory!(:zoom_center_image2D_factory, :zoom_center, _center_factory, _A
     """)
 
 "Define a band crop along `axis` for output type `I`: `(img, a, b)` keeps the band between `a` and `b`; `(img, a)` a 25% band centred on `a`."
-function _band_factory(::Type{I}, operator::Symbol, axis::Int) where {I}
+@serialized_factory function _band_factory(::Type{I}, operator::Symbol, axis::Int) where {I}
     storage_type = _get_image_type(I)
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)

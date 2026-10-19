@@ -25,7 +25,7 @@ All arithmetic is in Float64, as before (Float32 noise would defeat the
 """
 module image2D_orientation
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 using ..UTCGP: FunctionBundle, append_method!
@@ -140,7 +140,7 @@ function _store_orientation!(pixels::AbstractArray{P}, gx, gy, ::Type{T}) where 
     return pixels
 end
 
-function grad_magnitude_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
+@serialized_factory function grad_magnitude_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:grad_magnitude_image2D_, _factory_type_symbol(I))
@@ -153,7 +153,7 @@ function grad_magnitude_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     end
 end
 
-function grad_orientation_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
+@serialized_factory function grad_orientation_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:grad_orientation_image2D_, _factory_type_symbol(I))
@@ -166,7 +166,7 @@ function grad_orientation_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     end
 end
 
-function orientation_select_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
+@serialized_factory function orientation_select_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     FUNCTION_NAME = Symbol(:orientation_select_image2D_, _factory_type_symbol(I))

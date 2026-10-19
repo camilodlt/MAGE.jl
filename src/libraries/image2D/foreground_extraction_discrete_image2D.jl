@@ -9,7 +9,7 @@ The exhaustive operator list is on the [Bundle Catalogue](@ref) page.
 """
 module image2D_foreground_extraction_discrete
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 # Call tree: factories → _foreground_apply! → matrix kernels → seeded cuts
 # → appearance costs + graph construction
@@ -1044,7 +1044,7 @@ end
 Images above 32 pixels on either axis use a 32-pixel working grid.
 All third inputs retain their existing parameter meanings.
 """
-function boykov_jolly_foreground_image2D_factory(
+@serialized_factory function boykov_jolly_foreground_image2D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,BinaryPixel{T}}}
     IT = _get_image_type(I)
@@ -1202,7 +1202,7 @@ end
 Images above 32 pixels on either axis use a 32-pixel working grid.
 All third inputs retain their existing parameter meanings.
 """
-function grabcut_foreground_image2D_factory(
+@serialized_factory function grabcut_foreground_image2D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,BinaryPixel{T}}}
     IT = _get_image_type(I)

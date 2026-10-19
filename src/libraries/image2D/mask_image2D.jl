@@ -13,7 +13,7 @@ Exports :
 
 module experimental_image2D_mask
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: output_pixels, image_result
 
@@ -78,7 +78,7 @@ function mask_threshold!(destination, source, mask, threshold, compare::F) where
     return destination
 end
 
-function maskgt_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function maskgt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:maskgt_image2D, :_, _factory_type_symbol(I))
@@ -100,7 +100,7 @@ function maskgt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
-function maskeqt_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function maskeqt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:maskeqt_image2D, :_, _factory_type_symbol(I))
@@ -122,7 +122,7 @@ function maskeqt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     return getfield(@__MODULE__, FUNCTION_NAME)
 end
 
-function masklt_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function masklt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:masklt_image2D, :_, _factory_type_symbol(I))
@@ -168,7 +168,7 @@ function _mask_cross!(destination, source, row_lower, row_upper, column_lower, c
     return destination
 end
 
-function notmaskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function notmaskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -194,7 +194,7 @@ function notmaskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
     return m1
 end
 
-function notmaskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function notmaskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -220,7 +220,7 @@ function notmaskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
     return m1
 end
 
-function maskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function maskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -246,7 +246,7 @@ function maskfromtov_image2D_factory(i::Type{I}) where {I<:SizedImage}
     return m1
 end
 
-function maskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function maskfromtoh_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -275,7 +275,7 @@ end
 #############################
 # MASK REGION RELATIVE      #
 ############################
-function notmaskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function notmaskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -305,7 +305,7 @@ function notmaskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImag
     return m1
 end
 
-function notmaskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function notmaskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -335,7 +335,7 @@ function notmaskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImag
     return m1
 end
 
-function maskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function maskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -365,7 +365,7 @@ function maskfromtov_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     return m1
 end
 
-function maskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function maskfromtoh_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -398,7 +398,7 @@ end
 # idea of focusing the vision around a certain area
 # TODO 1 range as parameter
 # TODO 2 change focus shape to sphere
-function notmaskaround_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function notmaskaround_relative_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
 
@@ -447,7 +447,7 @@ function color_mask!(destination, source, color)
     return destination
 end
 
-function notmaskbycolor_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function notmaskbycolor_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     function_name = Symbol(:notmaskbycolor_image2D_, _factory_type_symbol(I))

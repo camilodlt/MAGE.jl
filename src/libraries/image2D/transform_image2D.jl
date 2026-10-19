@@ -39,7 +39,7 @@ rotate(img, 0.25)         # a quarter turn counter-clockwise about the centre
 """
 module image2D_transform
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: output_pixels, image_result
 
@@ -396,7 +396,7 @@ function _factory_setup(::Type{I}, operator::Symbol) where {I}
 end
 
 "Method `op(img)` → `kernel(pixels)`."
-function _plain_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
+@serialized_factory function _plain_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
     isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 
@@ -408,7 +408,7 @@ function _plain_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
 end
 
 "Method `op(img, u)` → `kernel(pixels, clamp_unit(u))`."
-function _scalar_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
+@serialized_factory function _scalar_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
     isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 
@@ -420,7 +420,7 @@ function _scalar_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
 end
 
 "Methods `op(img, x, y)` → `kernel(pixels, x, y)` and `op(img, s)` → `kernel(pixels, s, s)` (clamped to `[0, 1]`)."
-function _point_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
+@serialized_factory function _point_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
     isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 
@@ -447,7 +447,7 @@ Mask-driven methods, each calling `kernel(pixels, mask_pixels, is_foreground)`:
 - `op(img)` using the image as its own mask — binary and intensity images
   only (a segment map has no foreground of its own).
 """
-function _mask_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
+@serialized_factory function _mask_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
     isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 

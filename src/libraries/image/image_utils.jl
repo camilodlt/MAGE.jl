@@ -380,15 +380,78 @@ function _new_float_buffer(::Type{SImageND{S,T,N,A}}) where {S,T,N,A<:Array{T,N}
     return Array{Float32,N}(undef, Tuple(S.parameters)...)
 end
 
-# Call tree: image factory → _factory_type_symbol → repr in a fixed module context.
+# Call tree: image factory → _factory_type_symbol → _factory_type_key.
 """
     _factory_type_symbol(I::Type)
 
-Canonical, complete type name for a generated library operator. A fixed `Core`
-rendering context prevents the name changing when a caller imports UTCGP or
-ImageCore into Main. For example, a 32×32 image and a 64×64 image receive
-separate names, while importing their pixel type never changes either name.
+Deterministic structural name for a generated library operator, independent of
+imports, aliases and custom `show` methods. For example, `Float64` gives
+`:Float64`, while images with different sizes, pixels or storage get distinct names.
 """
 function _factory_type_symbol(I::Type)
-    return Symbol(repr(I; context = :module => Core))
+    return Symbol(_factory_type_key(I, TypeVar[]))
+end
+
+"""Render type structure; e.g. `Vector{Float64}` includes `Array`, `Float64` and `1`."""
+function _factory_type_key(value, variables)
+    if value isa TypeVar
+        index = findfirst(variable -> variable === value, variables)
+        index !== nothing && return "variable(" * string(index) * ")"
+        return "free(" * repr(value.name) * "," * _factory_type_key(value.lb, variables) *
+               "," * _factory_type_key(value.ub, variables) * ")"
+    elseif value isa UnionAll
+        nested = [variables; value.var]
+        return "where(" * _factory_type_key(value.var.lb, variables) * "," *
+               _factory_type_key(value.var.ub, variables) * "," *
+               _factory_type_key(value.body, nested) * ")"
+    elseif value === Union{}
+        return "Union{}"
+    elseif value isa Union
+        return "Union{" * join((_factory_type_key(t, variables) for t in Base.uniontypes(value)), ",") * "}"
+    elseif value isa DataType
+        # Quote unusual identifiers so punctuation cannot imitate a module path.
+        identifier(name) = Base.isidentifier(string(name)) ? string(name) : repr(string(name))
+        path = parentmodule(value) === Core ? () : Base.fullname(parentmodule(value))
+        name = join(identifier.((path..., nameof(value))), ".")
+        isempty(value.parameters) && return name
+        return name * "{" * join((_factory_type_key(p, variables) for p in value.parameters), ",") * "}"
+    elseif value isa Symbol || value isa AbstractString
+        return repr(value)
+    elseif value isa Tuple
+        return "tuple(" * join((_factory_type_key(p, variables) for p in value), ",") * ")"
+    elseif isprimitivetype(typeof(value))
+        # Preserve parameter widths (Int8(1) and Int64(1)) and exact float bits.
+        return _factory_type_key(typeof(value), variables) * "(" * bitstring(value) * ")"
+    end
+    # Struct parameters may define custom display methods; unbounded Vararg has
+    # an unset length field, which must stay distinct from every concrete value.
+    return _factory_type_key(typeof(value), variables) * "(" *
+           join((isdefined(value, i) ? _factory_type_key(getfield(value, i), variables) : "undefined"
+                 for i in 1:fieldcount(typeof(value))), ",") * ")"
+end
+
+# One lock covers the guard and every method definition, including nested factories.
+const _factory_definition_lock = ReentrantLock()
+
+"""
+    @serialized_factory function factory(...) ... end
+
+Serialize named factory creation until all methods are installed. For example,
+concurrent `identity_image2D_factory(I)` calls return the same complete operator.
+This protects definition, not invocation: callers in an older world must still
+use `Base.invokelatest` for newly generated methods.
+"""
+macro serialized_factory(def)
+    def isa Expr && def.head === :function || error("expected a factory function")
+    signature, body = def.args
+    factory_lock = GlobalRef(@__MODULE__, :_factory_definition_lock)
+    wrapped = quote
+        lock($factory_lock)
+        try
+            $body
+        finally
+            unlock($factory_lock)
+        end
+    end
+    return esc(Expr(:function, signature, wrapped))
 end

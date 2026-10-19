@@ -53,7 +53,7 @@ Call tree:
 """
 module image_pooler
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using Statistics: mean, std, middle, quantile!
 using ImageCore: N0f8, FixedPoint
@@ -1009,7 +1009,7 @@ end
 Define `name` for the image type `I`, with the methods `(img, k, stride)`,
 `(img, k)` (stride 1) and `(img)` (k = 2, stride 1), each accepting `out`.
 """
-function _make_pooler_factory(::Type{I}, statistic::WindowStatistic, name::Symbol) where {I<:SizedImage2D}
+@serialized_factory function _make_pooler_factory(::Type{I}, statistic::WindowStatistic, name::Symbol) where {I<:SizedImage2D}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(name, :_image2D_, _factory_type_symbol(I))

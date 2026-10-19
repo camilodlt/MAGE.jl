@@ -13,7 +13,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module element_conditional
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: FunctionBundle, append_method!, SizedImage, @image_out
 
@@ -67,7 +67,7 @@ bundle_element_conditional_factory = FunctionBundle(fallback)
 Return a stable named branch operator for `T`. For example, the operator for
 `Float64` maps `(1, 2.0, 3.0)` to `2.0`; repeated factories reuse its methods.
 """
-function if_else_multiplexer_factory(element_type::Type{T}) where {T}
+@serialized_factory function if_else_multiplexer_factory(element_type::Type{T}) where {T}
     function_name = Symbol(:if_else_multiplexer_, _factory_type_symbol(T))
     isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     if T <: SizedImage

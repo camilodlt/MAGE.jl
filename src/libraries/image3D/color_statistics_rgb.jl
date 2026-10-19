@@ -10,7 +10,7 @@ The exhaustive, always-current list of operators in the bundle is on the
 """
 module image3D_color_statistics_rgb
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: @image_out
 
@@ -96,7 +96,7 @@ function _rgb_statistic(image::SImageND, statistic::Val)
     return output
 end
 
-function _rgb_statistic_factory(
+@serialized_factory function _rgb_statistic_factory(
         ::Type{I},
         operator_name::Symbol,
         ::Val{K},

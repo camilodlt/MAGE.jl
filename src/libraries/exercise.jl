@@ -82,7 +82,8 @@ end
 
 """Set every number of `arguments` to `value`; e.g. `(img, 0.7, 3)` with `-1.5` gives `(img, -1.5, -2)`."""
 _exercise_with_number(arguments, value) = map(arguments) do argument
-    argument isa Integer ? round(Int, value) : argument isa Real ? Float64(value) : argument
+    argument isa Integer ? round(typeof(argument), value) :
+    argument isa Real ? convert(typeof(argument), value) : argument
 end
 
 """
@@ -93,7 +94,8 @@ value2, ...)`, such as `image_library_examples(32)`. Enumerate concrete
 signatures by dispatch, extending the library profiler to every combination
 of example types. A signature with numeric arguments is called again once per
 value of `extra_numbers` (all its numbers set to that value, rounded for
-integers), so negative and clamped branches are compiled too. Calls use
+integers, preserving argument types), so negative and clamped branches are
+compiled too. Calls use
 `invokelatest` because factories may just have defined the methods. Also warm
 supported `out` calls, casters and fallbacks. Errors are collected per call;
 no files are read or written and no failures are silently discarded.
@@ -112,18 +114,19 @@ function exercise_library(bundles, examples::AbstractDict; with_out::Bool = true
     seen = Set{Any}()
     for bundle in bundles, wrapper in bundle
         fn = wrapper.fn
-        fn in seen && continue
-        push!(seen, fn)
+        policy = (fn, wrapper.caster, wrapper.fallback)
+        policy in seen && continue
+        push!(seen, policy)
         signatures = _exercise_signatures(fn, candidates)
         reached = Set(which(fn, Tuple{types...}) for types in signatures)
         append!(uncovered, [(wrapper.name, method) for method in methods(fn) if !(method in reached)])
         for types in signatures
             arguments = _exercise_arguments(types, examples)
-            variants = any(argument -> argument isa Real, arguments) ?
-                       [arguments, (_exercise_with_number(arguments, value) for value in extra_numbers)...] : [arguments]
-            for variant in variants
+            numbers = any(argument -> argument isa Real, arguments) ? (nothing, extra_numbers...) : (nothing,)
+            for number in numbers
                 calls += 1
                 try
+                    variant = number === nothing ? arguments : _exercise_with_number(arguments, number)
                     result = Base.invokelatest(fn, variant...)
                     if wrapper.caster !== nothing
                         Base.invokelatest(wrapper.caster, result)

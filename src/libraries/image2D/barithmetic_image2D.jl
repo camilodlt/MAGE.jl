@@ -10,7 +10,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_barithmetic
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: @image_out
 
@@ -68,7 +68,7 @@ Which computes `img1 − p` for every pixel (as floats) and clamps the result to
 
 The subtracted image as a `SImageND` with the same shape.
 """
-function bsubtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
+@serialized_factory function bsubtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -106,7 +106,7 @@ Which computes `img1 + p` for every pixel (as floats) and clamps the result to [
 
 The added image as a `SImageND` with the same shape.
 """
-function badd_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
+@serialized_factory function badd_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -144,7 +144,7 @@ Which computes `img1 · p` for every pixel (as floats) and clamps the result to 
 
 The multiplied image as a `SImageND` with the same shape.
 """
-function bmult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
+@serialized_factory function bmult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)

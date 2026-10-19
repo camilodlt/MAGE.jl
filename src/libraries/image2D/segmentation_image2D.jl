@@ -10,7 +10,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_segmentation
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 # Call tree: fastscanning factory → ImageSegmentation.fast_scanning! → output.
 # Watershed factory → _watershed_split → feature/distance transforms,
@@ -77,7 +77,7 @@ TODO
 - `min_size` is also clamped between (2, `min_size`) because a cluster has at least 2 pixel in it 
 
 """
-function felzenswalb_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function felzenswalb_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:felzenswalb_2D, :_, _factory_type_symbol(I))
@@ -123,7 +123,7 @@ end
 `0.3`): unseeded region growing; the threshold limits how different a pixel may
 be from the region it joins, so higher thresholds give fewer regions.
 """
-function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
+@serialized_factory function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT) # N0f8, N0f16
     FUNCTION_NAME = Symbol(:unseededgrow_2D, :_, _factory_type_symbol(I))
@@ -168,7 +168,7 @@ Uses the library scan with a reused label matrix and writes directly to `out`.
 For example, a constant 2 × 2 image has label 1 at every pixel.
 """
 # TODO speed: the library still allocates region dictionaries and disjoint sets.
-function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
+@serialized_factory function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -356,7 +356,7 @@ each object's maximal depth: `0` gives one label per connected object, higher
 values split more. `restrict`, a second mask, limits the result to its `true`
 pixels. Background is `0`. For example, an isolated true pixel gets label 1.
 """
-function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
+@serialized_factory function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, SegmentPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
 

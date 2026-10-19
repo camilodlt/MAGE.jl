@@ -37,7 +37,7 @@ Call tree:
 """
 module image2D_binarize
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ImageBinarization
 using ImageCore: clamp01nan
@@ -206,7 +206,7 @@ Define `name` for the mask type `I` with the methods `(img, w, p)`, `(img, w)`
 and `(img)`, where the three arguments build the ImageBinarization algorithm
 from the window size `w` and parameter `p`, from `w` only, or by default.
 """
-function _local_binarizer_factory(::Type{I}, name::Symbol, with_window_and_parameter, with_window, by_default) where {SIZE,I<:SizedImage{SIZE,<:BinaryPixel}}
+@serialized_factory function _local_binarizer_factory(::Type{I}, name::Symbol, with_window_and_parameter, with_window, by_default) where {SIZE,I<:SizedImage{SIZE,<:BinaryPixel}}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(name, :_, _factory_type_symbol(I))
@@ -239,7 +239,7 @@ end
 Define `name` for the mask type `I` with the methods `(img, n_bins)` and
 `(img)` (256 bins), thresholding with the global ImageBinarization `algorithm`.
 """
-function _histogram_binarizer_factory(::Type{I}, name::Symbol, algorithm; quiet::Bool = false,
+@serialized_factory function _histogram_binarizer_factory(::Type{I}, name::Symbol, algorithm; quiet::Bool = false,
         empty_if_constant::Bool = false) where {SIZE,I<:SizedImage{SIZE,<:BinaryPixel}}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
@@ -316,7 +316,7 @@ binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPi
 `binarize_polysegment2D(img)`: Polysegment threshold, on the values as
 `Float32`; a constant image gives an empty mask.
 """
-function binarizePolysegment_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPixel}} where {SIZE}
+@serialized_factory function binarizePolysegment_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPixel}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:binarize_polysegment2D, :_, _factory_type_symbol(I))
@@ -375,7 +375,7 @@ Manual thresholds; a pixel is set when its value is at least the threshold
 Example: `binarize_manual2D(img, 0.3)` on values `[0.2 0.8]` → `[false true]`;
 `binarize_manual2D(img, 204)` uses threshold `0.8`.
 """
-function binarizeManual_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPixel}} where {SIZE}
+@serialized_factory function binarizeManual_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPixel}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:binarize_manual2D, :_, _factory_type_symbol(I))

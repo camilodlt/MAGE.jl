@@ -13,7 +13,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_basic
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: @image_out, image_result, output_pixels, scratch, float_buffer
 
@@ -84,7 +84,7 @@ bundle_image2DBinary_basic_factory = FunctionBundle(fallback)
     Works for all types of pixels.
     Returns the identity of the img.   
 """
-function identity_image2D_factory(I::Type{<:SI}) where {SI <: SizedImage{S, T}} where {S, T}
+@serialized_factory function identity_image2D_factory(I::Type{<:SI}) where {SI <: SizedImage{S, T}} where {S, T}
     function_name = Symbol(:identity_image2D_, _factory_type_symbol(I))
     isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     return @eval @image_out function $function_name(img::$I, args::Vararg{Any})
@@ -100,7 +100,7 @@ end
     ones_2D_factory(T::Type{<:Normed})
       
 """
-function ones_2D_factory(i::Type{I}) where {I <: SizedImage2D{SIZE}} where {SIZE}
+@serialized_factory function ones_2D_factory(i::Type{I}) where {I <: SizedImage2D{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -125,7 +125,7 @@ end
 # ZEROS               #
 # ################### #
 
-function zeros_2D_factory(i::Type{I}) where {I <: SizedImage2D}
+@serialized_factory function zeros_2D_factory(i::Type{I}) where {I <: SizedImage2D}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -154,7 +154,7 @@ end
     experimental_invert_image2D(img::Array{T,2}, args...)::Array{T,2} where {T<:Number}
 
 """
-function experimental_invert_image2D_factory(i::Type{I}) where {I <: SizedImage}
+@serialized_factory function experimental_invert_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     # S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -288,7 +288,7 @@ function to_binary!(destination, img::SizedImage{S,<:SegmentPixel}, threshold) w
     return destination
 end
 
-function experimental_normalize_image2D_factory(i::Type{I}) where {I <: SizedImage}
+@serialized_factory function experimental_normalize_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:experimental_normalize_image2D_, _factory_type_symbol(I))
@@ -300,7 +300,7 @@ function experimental_normalize_image2D_factory(i::Type{I}) where {I <: SizedIma
     end
 end
 
-function experimental_standardize_image2D_factory(i::Type{I}) where {I <: SizedImage}
+@serialized_factory function experimental_standardize_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:experimental_standardize_image2D_, _factory_type_symbol(I))
@@ -324,7 +324,7 @@ function _to_binary(img::SizedImage{S, SegmentPixel{T}}, th::Float64 = 0.0) wher
     return BinaryPixel.(reinterpret(fieldtype(eltype(img.img), 1), img.img) .!= background_segment)
 end
 
-function experimental_tobinary_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
+@serialized_factory function experimental_tobinary_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:experimental_tobinary_image2D_, _factory_type_symbol(I))
@@ -336,7 +336,7 @@ function experimental_tobinary_image2D_factory(i::Type{I}) where {I <: SizedImag
     end
 end
 
-function experimental_tobinary_th_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
+@serialized_factory function experimental_tobinary_th_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:experimental_tobinary_th_image2D_, _factory_type_symbol(I))
@@ -370,7 +370,7 @@ function _to_intensity!(destination, img::SizedImage{S,SegmentPixel{T}}, ::Type{
     return destination
 end
 
-function experimental_tointensity_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
+@serialized_factory function experimental_tointensity_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:experimental_tointensity_image2D_, _factory_type_symbol(I))
@@ -383,7 +383,7 @@ function experimental_tointensity_image2D_factory(i::Type{I}) where {I <: SizedI
 end
 
 # binary => segment
-function experimental_tosegment_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE, SegmentPixel{ST}}} where {SIZE, ST}
+@serialized_factory function experimental_tosegment_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE, SegmentPixel{ST}}} where {SIZE, ST}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:experimental_tosegment_image2D_, _factory_type_symbol(I))

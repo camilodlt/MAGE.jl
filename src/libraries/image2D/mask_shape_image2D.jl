@@ -34,7 +34,7 @@ holes(mask)         # only pixel (5, 5) is set
 """
 module image2D_mask_shape
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: image_result
 
@@ -440,7 +440,7 @@ Specialise a mask operator on the output type `I`. Methods, with
 The kernel result becomes `BinaryPixel`s, or intensity pixels (values stored
 with rounding and clamping), depending on `I`.
 """
-function _shape_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
+@serialized_factory function _shape_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64) where {I,K}
     storage_type = _get_image_type(I)
     pixel_type = _get_image_pixel_type(I)
     size_type = _get_image_tuple_size(I)

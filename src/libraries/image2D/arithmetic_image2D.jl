@@ -12,7 +12,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_arithmetic
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: @image_out
 
@@ -81,7 +81,7 @@ pixels where `img2` is brighter become 0.
 
 The subtracted image as a `SImageND` with the same shape.
 """
-function subtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function subtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -124,7 +124,7 @@ Which adds `img1` and `img2` (as floats) and then clamps the result between [0,1
 
 The added image as a `SImageND` with the same shape.
 """
-function add_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function add_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -167,7 +167,7 @@ Which multiplies `img1` and `img2` (as floats) and then clamps the result betwee
 
 The multiplied image as a `SImageND` with the same shape.
 """
-function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -196,7 +196,7 @@ function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bin
 end
 
 # element wise max
-function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -225,7 +225,7 @@ function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
 end
 
 # element wise min
-function min_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function min_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)

@@ -11,7 +11,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_filtering
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 
@@ -228,7 +228,7 @@ Define, for output pixels `P`, the method
 `filter_of(img)` and border mode `_border_type(b)`, plus `name(img)` with
 `b = 0` (edges replicated). Returns the function.
 """
-function _filter_operator!(name::Symbol, ::Type{P}, size_type, image_size, filter) where {P}
+@serialized_factory function _filter_operator!(name::Symbol, ::Type{P}, size_type, image_size, filter) where {P}
     isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel{Bool},IntensityPixel}})
     fn = @eval function $name(img::Source, b::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}
@@ -295,7 +295,7 @@ max; with `one_parameter`, also `name(img, p1)` (`p2 = p1`). Without it,
 `name(img, p1)` falls to `name(img)` (the extra number is ignored), as Moffat
 always did. Returns the function.
 """
-function _two_parameter_operator!(name::Symbol, ::Type{P}, size_type, image_size, kernel_of::K, default::Float64;
+@serialized_factory function _two_parameter_operator!(name::Symbol, ::Type{P}, size_type, image_size, kernel_of::K, default::Float64;
         one_parameter::Bool = true) where {P,K}
     isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel,IntensityPixel}})
@@ -370,7 +370,7 @@ end
 Define `name(img, w1, w2)`, `name(img, w1)` (`w2 = w1`) and `name(img)`
 (3 × 3 window), marking the local extrema found by `find`.
 """
-function _extrema_operator!(name::Symbol, ::Type{P}, size_type, image_size, find::F) where {P,F}
+@serialized_factory function _extrema_operator!(name::Symbol, ::Type{P}, size_type, image_size, find::F) where {P,F}
     isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel,IntensityPixel}})
     fn = @eval function $name(img::Source, w1::Real, w2::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}

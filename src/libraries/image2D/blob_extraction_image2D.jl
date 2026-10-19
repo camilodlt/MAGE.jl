@@ -11,7 +11,7 @@ to specialize a factory always determines the output dimensions and pixel type.
 """
 module image2D_blob_extraction
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: scratch, output_pixels, image_result
 
@@ -320,7 +320,7 @@ end
 Create a selector whose methods write directly into optional caller output storage.
 Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
 """
-function _binary_geometry_factory(
+@serialized_factory function _binary_geometry_factory(
         ::Type{I},
         selector::Symbol,
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,BinaryPixel{T}}}
@@ -389,7 +389,7 @@ end
 Create a selector whose methods write directly into optional caller output storage.
 Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
 """
-function _intensity_geometry_factory(
+@serialized_factory function _intensity_geometry_factory(
         ::Type{I},
         selector::Symbol,
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,IntensityPixel{T}}}
@@ -452,7 +452,7 @@ end
 Create a selector whose methods write directly into optional caller output storage.
 Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
 """
-function _binary_area_between_factory(
+@serialized_factory function _binary_area_between_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,BinaryPixel{T}}}
     IT = _get_image_type(I)
@@ -515,7 +515,7 @@ Example: a selected pixel is copied (intensity) or set to true (binary); other p
 """
 # TODO speed: ImageMorphology still allocates its internal union-find storage;
 # retain the library kernel to preserve its labeling behavior.
-function _binary_statistic_factory(
+@serialized_factory function _binary_statistic_factory(
         ::Type{I},
         statistic::Symbol,
         direction::Symbol,
@@ -584,7 +584,7 @@ end
 Create a selector whose methods write directly into optional caller output storage.
 Example: a selected pixel is copied (intensity) or set to true (binary); other pixels are zero.
 """
-function _intensity_statistic_factory(
+@serialized_factory function _intensity_statistic_factory(
         ::Type{I},
         statistic::Symbol,
         direction::Symbol,

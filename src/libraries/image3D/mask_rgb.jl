@@ -7,7 +7,7 @@ Shape-preserving arithmetic and masking for typed RGB images.
 """
 module image3D_rgb
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: @image_out, output_pixels, image_result, scratch
 using ImageCore: N0f8
@@ -52,7 +52,7 @@ Specialize `identity_rgb(rgb) -> I`. This is the first entry of the RGB basic
 bundle by convention and returns its RGB input unchanged. Trailing framework
 `args...` are accepted and ignored.
 """
-function identity_rgb_image3D_factory(
+@serialized_factory function identity_rgb_image3D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
     function_name = Symbol(:identity_rgb_, _factory_type_symbol(I))
@@ -75,7 +75,7 @@ the second entry of the RGB basic bundle, after `identity_rgb`, matching the
 established basic-bundle convention. Framework-supplied `args...` are accepted
 and ignored, so the function remains callable from ordinary MAGE nodes.
 """
-function return_rgb_image3D_factory(
+@serialized_factory function return_rgb_image3D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
     IT = _get_image_type(I)
@@ -95,7 +95,7 @@ function return_rgb_image3D_factory(
 end
 
 """Specialize a direct pixel loop; e.g. addition of 0.8 and 0.4 saturates to 1."""
-function _rgb_arithmetic_factory(
+@serialized_factory function _rgb_arithmetic_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,
@@ -218,7 +218,7 @@ function _unary_rgb_into!(out,image,::Val{operation}) where {operation}
 end
 
 """Specialize the color loop; e.g. grayscale repeats the same luminance three times."""
-function _unary_rgb_factory(
+@serialized_factory function _unary_rgb_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,
@@ -303,7 +303,7 @@ function _adjust_rgb_into!(out,image,raw_parameter,::Val{operation}) where {oper
 end
 
 """Specialize the adjustment loop; e.g. contrast 0 returns gray 0.5."""
-function _adjust_rgb_factory(
+@serialized_factory function _adjust_rgb_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,
@@ -437,7 +437,7 @@ three channels to zero. Consequently, an all-black mask returns an all-black
 RGB image—not `nothing`—with the exact specialized size and pixel category.
 Trailing framework `args...` are accepted and ignored.
 """
-function mult_image3D_factory(
+@serialized_factory function mult_image3D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
     IT = _get_image_type(I)

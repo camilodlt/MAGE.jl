@@ -10,7 +10,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_saliency_fixation
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 
@@ -350,7 +350,7 @@ than simulating winner-take-all dynamics or inhibition of return.
 Reference: L. Itti, C. Koch, and E. Niebur, IEEE TPAMI 20(11), 1998,
 doi:10.1109/34.730558.
 """
-function itti_koch_saliency_image2D_factory(
+@serialized_factory function itti_koch_saliency_image2D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,IntensityPixel{T}}}
     _validate_factory_type(_get_image_type(I))
@@ -528,7 +528,7 @@ grayscale API.
 Reference: X. Hou and L. Zhang, CVPR 2007,
 doi:10.1109/CVPR.2007.383267.
 """
-function spectral_residual_saliency_image2D_factory(
+@serialized_factory function spectral_residual_saliency_image2D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,IntensityPixel{T}}}
     _validate_factory_type(_get_image_type(I))

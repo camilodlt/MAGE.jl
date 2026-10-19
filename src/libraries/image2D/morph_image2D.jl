@@ -12,7 +12,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_morph
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: scratch, image_result
 
@@ -221,7 +221,7 @@ methods
 `img` may be any binary or intensity image of the same size. The function is
 built once per output type and reused on later calls.
 """
-function _morph_factory(::Type{I}, SIZE, name::Symbol, op_with_se, op_default) where {I<:SizedImage}
+@serialized_factory function _morph_factory(::Type{I}, SIZE, name::Symbol, op_with_se, op_default) where {I<:SizedImage}
     inplace = if op_with_se === erode
         erode!
     elseif op_with_se === dilate
@@ -291,7 +291,7 @@ function morph_difference!(destination, img, radius::Int, operation::Symbol, mod
     return destination
 end
 
-function _morph_difference_factory(::Type{I}, SIZE, name::Symbol, operation::Symbol) where {I<:SizedImage}
+@serialized_factory function _morph_difference_factory(::Type{I}, SIZE, name::Symbol, operation::Symbol) where {I<:SizedImage}
     PT, S = _get_image_pixel_type(I), _get_image_tuple_size(I)
     function_name = Symbol(name, :_, _factory_type_symbol(I))
     isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)

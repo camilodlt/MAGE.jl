@@ -7,7 +7,7 @@ Fixed, training-free spatial feature transforms for typed RGB images.
 """
 module image3D_spatial_rgb
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 
@@ -360,7 +360,7 @@ const _SPATIAL_KERNELS = Dict(
 Define the operator for RGB images of type `I`: `op(rgb[, p1[, p2]]; out)`
 with as many numbers as the operation's kernel takes (see `_SPATIAL_KERNELS`).
 """
-function _spatial_factory(
+@serialized_factory function _spatial_factory(
         ::Type{I},
         function_name_prefix::Symbol,
         operation::Symbol,

@@ -9,7 +9,7 @@ The exhaustive operator list is on the Bundle Catalogue page.
 """
 module image2D_foreground_extraction_continuous
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: scratch, output_pixels, image_result
 
@@ -335,7 +335,7 @@ Example: `op(image, mask, 0)` fixes mask pixels to one and other pixels to zero.
 Images above 32 pixels on either axis use a 32-pixel working grid.
 All third inputs retain their existing parameter meanings.
 """
-function random_walker_foreground_image2D_factory(
+@serialized_factory function random_walker_foreground_image2D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,IntensityPixel{T}}}
     IT = _get_image_type(I)
@@ -658,7 +658,7 @@ end
 Images above 32 pixels on either axis use a 32-pixel working grid.
 All third inputs retain their existing parameter meanings.
 """
-function closed_form_matting_image2D_factory(
+@serialized_factory function closed_form_matting_image2D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,IntensityPixel{T}}}
     IT = _get_image_type(I)

@@ -12,7 +12,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_transcendental
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using ..UTCGP: @image_out, output_pixels, image_result
 
@@ -107,7 +107,7 @@ Element wise `exp`.
     exp_image2D(img1::CONCT, args::Vararg{Any})
 
 """
-function exp_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
+@serialized_factory function exp_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -141,7 +141,7 @@ Element wise `log`.
     log_image2D(img1::CONCT, args::Vararg{Any})
 
 """
-function loginv_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
+@serialized_factory function loginv_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -162,7 +162,7 @@ function loginv_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intensity
     end
     return m1
 end
-function log_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
+@serialized_factory function log_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
@@ -198,7 +198,7 @@ Each element in `img1` is elevated to the power of `p`
     powerof_image2D(img1::CONCT, p::Float64, args::Vararg{Any})
 
 """
-function powerof_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
+@serialized_factory function powerof_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPixel{T}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)

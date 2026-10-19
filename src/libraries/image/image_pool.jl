@@ -33,7 +33,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image_pool
 
-using ..UTCGP: _factory_type_symbol
+using ..UTCGP: _factory_type_symbol, @serialized_factory
 
 using Statistics: mean
 using ..UTCGP: FunctionBundle, append_method!
@@ -235,7 +235,7 @@ _average_reducer(::Type) = mean
 Define `name` for the image type `I`, with the methods `(img, k)` and `(img)`
 (`k = 2`), each accepting `out`.
 """
-function _make_block_pool_factory(::Type{I}, reducer::F, shape, name::Symbol) where {I<:SizedImage2D,F}
+@serialized_factory function _make_block_pool_factory(::Type{I}, reducer::F, shape, name::Symbol) where {I<:SizedImage2D,F}
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(name, :_image2D_, _factory_type_symbol(I))
