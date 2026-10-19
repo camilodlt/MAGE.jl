@@ -379,3 +379,16 @@ end
 function _new_float_buffer(::Type{SImageND{S,T,N,A}}) where {S,T,N,A<:Array{T,N}}
     return Array{Float32,N}(undef, Tuple(S.parameters)...)
 end
+
+# Call tree: image factory → _factory_type_symbol → repr in a fixed module context.
+"""
+    _factory_type_symbol(I::Type)
+
+Canonical, complete type name for a generated library operator. A fixed `Core`
+rendering context prevents the name changing when a caller imports UTCGP or
+ImageCore into Main. For example, a 32×32 image and a 64×64 image receive
+separate names, while importing their pixel type never changes either name.
+"""
+function _factory_type_symbol(I::Type)
+    return Symbol(repr(I; context = :module => Core))
+end

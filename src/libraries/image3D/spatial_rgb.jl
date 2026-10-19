@@ -7,6 +7,8 @@ Fixed, training-free spatial feature transforms for typed RGB images.
 """
 module image3D_spatial_rgb
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 
 using ImageFiltering: Kernel, centered, imfilter!, reflect
@@ -365,7 +367,8 @@ function _spatial_factory(
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
     _validate_factory_type(_get_image_type(I))
     S = _get_image_tuple_size(I)
-    function_name = Symbol(function_name_prefix, :_, Symbol(I))
+    function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     haskey(_SPATIAL_KERNELS, operation) || throw(ArgumentError("Unsupported spatial RGB operation: $operation"))
     kernel!, parameter_count = _SPATIAL_KERNELS[operation]
     parameters = [Symbol(:parameter, k) for k in 1:parameter_count]

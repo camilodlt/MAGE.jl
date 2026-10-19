@@ -7,6 +7,8 @@ Shape-preserving arithmetic and masking for typed RGB images.
 """
 module image3D_rgb
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: @image_out, output_pixels, image_result, scratch
 using ImageCore: N0f8
 
@@ -53,7 +55,8 @@ bundle by convention and returns its RGB input unchanged. Trailing framework
 function identity_rgb_image3D_factory(
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
-    function_name = Symbol(:identity_rgb_, Symbol(I))
+    function_name = Symbol(:identity_rgb_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     fn = @eval @image_out function $function_name(
             image::CONCT,
             args::Vararg{Any},
@@ -79,7 +82,8 @@ function return_rgb_image3D_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:return_rgb_, Symbol(I))
+    function_name = Symbol(:return_rgb_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     fn = @eval @image_out function $function_name(args::Vararg{Any})
         if out !== nothing
             fill!(out.img,$PT(one($IT)))
@@ -101,7 +105,8 @@ function _rgb_arithmetic_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(function_name_prefix, :_, Symbol(I))
+    function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     pixel_operation = operation === :add ? (+) : operation === :subtract ? (-) :
         operation === :multiply ? (*) : operation === :maximum ? max : min
     fn = @eval function $function_name(
@@ -223,7 +228,8 @@ function _unary_rgb_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(function_name_prefix, :_, Symbol(I))
+    function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     fn = @eval function $function_name(
             image::CONCT,
             args::Vararg{Any}; out = nothing,
@@ -307,7 +313,8 @@ function _adjust_rgb_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(function_name_prefix, :_, Symbol(I))
+    function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     fn = @eval function $function_name(
             image::CONCT,
             parameter_input::Real,
@@ -437,7 +444,8 @@ function mult_image3D_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:mult_image3D_, Symbol(I))
+    function_name = Symbol(:mult_image3D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,

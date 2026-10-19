@@ -53,6 +53,8 @@ Call tree:
 """
 module image_pooler
 
+using ..UTCGP: _factory_type_symbol
+
 using Statistics: mean, std, middle, quantile!
 using ImageCore: N0f8, FixedPoint
 using ..UTCGP: FunctionBundle, append_method!, output_pixels, image_result, scratch
@@ -1010,7 +1012,8 @@ Define `name` for the image type `I`, with the methods `(img, k, stride)`,
 function _make_pooler_factory(::Type{I}, statistic::WindowStatistic, name::Symbol) where {I<:SizedImage2D}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(name, :_image2D_, Symbol(I))
+    function_name = Symbol(name, :_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     pixel_statistic = _for_pixel(statistic, PT)
     f = @eval function $function_name(img::Image, k::Number, stride::Number, args::Vararg{Any}; out = nothing) where {Image<:$I}
         pixels = output_pixels(out, img)

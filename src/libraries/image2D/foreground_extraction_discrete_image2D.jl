@@ -9,6 +9,8 @@ The exhaustive operator list is on the [Bundle Catalogue](@ref) page.
 """
 module image2D_foreground_extraction_discrete
 
+using ..UTCGP: _factory_type_symbol
+
 # Call tree: factories → _foreground_apply! → matrix kernels → seeded cuts
 # → appearance costs + graph construction
 # → _maximum_flow! (_global_relabel!, _recount_heights!) → _source_partition.
@@ -1049,7 +1051,8 @@ function boykov_jolly_foreground_image2D_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:boykov_jolly_foreground_image2D_, Symbol(I))
+    function_name = Symbol(:boykov_jolly_foreground_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::SOURCE,
@@ -1206,7 +1209,8 @@ function grabcut_foreground_image2D_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:grabcut_foreground_image2D_, Symbol(I))
+    function_name = Symbol(:grabcut_foreground_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::SOURCE,

@@ -134,6 +134,8 @@ module UTCGP
     # FN RELATED
     include("libraries/function.jl")
     include("libraries/bundle.jl")
+    include("libraries/exercise.jl")
+    export exercise_library, image_library_examples
     include("libraries/meta_library.jl")
     export FunctionWrapper
     export FunctionBundle

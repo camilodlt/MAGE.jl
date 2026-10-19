@@ -39,6 +39,8 @@ rotate(img, 0.25)         # a quarter turn counter-clockwise about the centre
 """
 module image2D_transform
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: output_pixels, image_result
 
 using ..UTCGP: FunctionBundle, append_method!
@@ -390,12 +392,13 @@ type, and the name of the specialised function.
 """
 function _factory_setup(::Type{I}, operator::Symbol) where {I}
     _validate_factory_type(_get_image_type(I))
-    return _get_image_pixel_type(I), _get_image_tuple_size(I), Symbol(operator, :_, Symbol(I))
+    return _get_image_pixel_type(I), _get_image_tuple_size(I), Symbol(operator, :_, _factory_type_symbol(I))
 end
 
 "Method `op(img)` → `kernel(pixels)`."
 function _plain_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
+    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 
     return @eval function $name(src::Source, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -407,6 +410,7 @@ end
 "Method `op(img, u)` → `kernel(pixels, clamp_unit(u))`."
 function _scalar_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
+    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 
     return @eval function $name(src::Source, u::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -418,6 +422,7 @@ end
 "Methods `op(img, x, y)` → `kernel(pixels, x, y)` and `op(img, s)` → `kernel(pixels, s, s)` (clamped to `[0, 1]`)."
 function _point_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
+    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 
     fn = @eval function $name(src::Source, x::Real, y::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -444,6 +449,7 @@ Mask-driven methods, each calling `kernel(pixels, mask_pixels, is_foreground)`:
 """
 function _mask_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
+    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
 
     fn = @eval function $name(src::Source, mask::Mask, args::Vararg{Any}; out = nothing) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         pixels = output_pixels(out, src)

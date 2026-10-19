@@ -12,6 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_arithmetic
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: @image_out
 
 using ..UTCGP: image2D_basic
@@ -86,10 +88,13 @@ function subtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union
 
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    function_name = Symbol(:subtract_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
         if out !== nothing
             for i in eachindex(out.img,img1.img,img2.img)
                 v = clamp01nan(-(float(img1.img[i]),float(img2.img[i])))
@@ -126,10 +131,13 @@ function add_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
 
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    function_name = Symbol(:add_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
         if out !== nothing
             for i in eachindex(out.img,img1.img,img2.img)
                 v = clamp01nan(+(float(img1.img[i]),float(img2.img[i])))
@@ -166,10 +174,13 @@ function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bin
 
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    function_name = Symbol(:mult_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
         if out !== nothing
             for i in eachindex(out.img,img1.img,img2.img)
                 v = clamp01nan(*(float(img1.img[i]),float(img2.img[i])))
@@ -192,10 +203,13 @@ function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
 
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    function_name = Symbol(:max_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
         if out !== nothing
             for i in eachindex(out.img,img1.img,img2.img)
                 v = clamp01nan(max(float(img1.img[i]),float(img2.img[i])))
@@ -218,10 +232,13 @@ function min_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
 
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    function_name = Symbol(:min_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
         if out !== nothing
             for i in eachindex(out.img,img1.img,img2.img)
                 v = clamp01nan(min(float(img1.img[i]),float(img2.img[i])))

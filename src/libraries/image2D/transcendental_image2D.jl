@@ -12,6 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_transcendental
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: @image_out, output_pixels, image_result
 
 using ..UTCGP: image2D_basic
@@ -110,7 +112,9 @@ function exp_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPix
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval function (img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
+    function_name = Symbol(:exp_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval function $function_name(img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img1)
         F = typeof(exp(float(img1.img[firstindex(img1.img)])))
         values = image2D_basic.floating_work_buffer(F, float_scratch, img1, :transcendental_exp)
@@ -142,7 +146,10 @@ function loginv_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intensity
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval @image_out ((img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    function_name = Symbol(:loginv_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+
         if out !== nothing
             for i in eachindex(out.img,img1.img)
                 out.img[i] = $PT($IT(clamp01nan(log(float(img1.img[i])) * -1.0)))
@@ -161,7 +168,9 @@ function log_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPix
     _validate_factory_type(IT)
     TRUE_TYPE = IT.parameters[1]
 
-    m1 = @eval function (img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
+    function_name = Symbol(:log_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval function $function_name(img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img1)
         raw = reinterpret($TRUE_TYPE, img1.img)
         F = typeof(log(Float32(raw[firstindex(img1.img)])))
@@ -194,7 +203,9 @@ function powerof_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intensit
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    m1 = @eval function (img1::CONCT, p::Real, args::Vararg{Any}; out = nothing) where {CONCT <: $I}
+    function_name = Symbol(:powerof_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval function $function_name(img1::CONCT, p::Real, args::Vararg{Any}; out = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img1)
         F = typeof(float(img1.img[firstindex(img1.img)]) ^ p)   # Float32 ^ p, as the original `float(img) .^ p`
         values = image2D_basic.floating_work_buffer(F, nothing, img1, :transcendental_power)

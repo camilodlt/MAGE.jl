@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_saliency_fixation
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 
 using FFTW: plan_fft, plan_ifft
@@ -353,7 +355,8 @@ function itti_koch_saliency_image2D_factory(
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,IntensityPixel{T}}}
     _validate_factory_type(_get_image_type(I))
     S = _get_image_tuple_size(I)
-    function_name = Symbol(:itti_koch_saliency_image2D_, Symbol(I))
+    function_name = Symbol(:itti_koch_saliency_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,
@@ -530,7 +533,8 @@ function spectral_residual_saliency_image2D_factory(
     ) where {S1,S2,T,I<:SizedImage2D{S1,S2,IntensityPixel{T}}}
     _validate_factory_type(_get_image_type(I))
     S = _get_image_tuple_size(I)
-    function_name = Symbol(:spectral_residual_saliency_image2D_, Symbol(I))
+    function_name = Symbol(:spectral_residual_saliency_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,

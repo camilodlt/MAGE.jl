@@ -51,6 +51,8 @@ glimpse(img, 0.75, 0.2)   # a 10 × 10 window around column 30, row 9, resized t
 """
 module image2D_zoom
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: output_pixels, image_result
 
 using ImageCore: Normed
@@ -569,7 +571,8 @@ function _mask_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K
     pixel_type = _get_image_pixel_type(I)             # e.g. IntensityPixel{N0f8}
     size_type = _get_image_tuple_size(I)              # e.g. Tuple{28,28}
     _validate_factory_type(storage_type)
-    function_name = Symbol(operator, :_, Symbol(I))
+    function_name = Symbol(operator, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     # (src, binary mask, margin) and (src, binary mask)
     fn = @eval function $function_name(
@@ -662,7 +665,8 @@ function _point_driven_factory(::Type{I}, operator::Symbol, kernel::K) where {I,
     storage_type = _get_image_type(I)
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
-    function_name = Symbol(operator, :_, Symbol(I))
+    function_name = Symbol(operator, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     # (src, x, y): the point given by two coordinates.
     fn = @eval function $function_name(src::Source, x::Real, y::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -818,7 +822,8 @@ function _center_factory(::Type{I}) where {I}
     storage_type = _get_image_type(I)
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
-    function_name = Symbol(:zoom_center_, Symbol(I))
+    function_name = Symbol(:zoom_center_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     # (img, z): never smaller than 5% of each side.
     fn = @eval function $function_name(src::Source, z::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -846,7 +851,8 @@ function _band_factory(::Type{I}, operator::Symbol, axis::Int) where {I}
     storage_type = _get_image_type(I)
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
-    function_name = Symbol(operator, :_, Symbol(I))
+    function_name = Symbol(operator, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     # (img, a, b): the band between a and b.
     fn = @eval function $function_name(src::Source, a::Real, b::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)

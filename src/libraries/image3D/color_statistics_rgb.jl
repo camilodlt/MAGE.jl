@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in the bundle is on the
 """
 module image3D_color_statistics_rgb
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: @image_out
 
 using ..UTCGP: FunctionBundle, append_method!
@@ -103,7 +105,8 @@ function _rgb_statistic_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(operator_name, :_image3D_, Symbol(I))
+    function_name = Symbol(operator_name, :_image3D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval @image_out function $function_name(
             image::SImageND{Tuple{$S1,$S2,3},IntensityPixel{ST},3,C},

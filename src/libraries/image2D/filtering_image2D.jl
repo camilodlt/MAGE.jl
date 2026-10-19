@@ -11,6 +11,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_filtering
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 
 using ImageFiltering
@@ -227,6 +229,7 @@ Define, for output pixels `P`, the method
 `b = 0` (edges replicated). Returns the function.
 """
 function _filter_operator!(name::Symbol, ::Type{P}, size_type, image_size, filter) where {P}
+    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel{Bool},IntensityPixel}})
     fn = @eval function $name(img::Source, b::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}
         pixels = output_pixels(out, img, $P)
@@ -263,7 +266,7 @@ function XYM_filter_image2D_factory(axis::String, kernel_x, kernel_y, name::Stri
              GradientMagnitude(kernel_x, kernel_y)
     return function (::Type{I}) where {I<:SizedImage{SIZE,<:Union{BinaryPixel{T1},IntensityPixel{T2}}}} where {SIZE,T1,T2}
         P, size_type, image_size = _filter_types(I)
-        return _filter_operator!(Symbol(name, axis, :_image2D_, Symbol(I)), P, size_type, image_size, filter)
+        return _filter_operator!(Symbol(name, axis, :_image2D_, _factory_type_symbol(I)), P, size_type, image_size, filter)
     end
 end
 
@@ -277,7 +280,7 @@ function one_filter_image2D_factory(kernel, name::String)
     filter = SingleKernel(kernel)
     return function (::Type{I}) where {I<:SizedImage{SIZE,<:Union{BinaryPixel{T},IntensityPixel{T}}}} where {SIZE,T}
         P, size_type, image_size = _filter_types(I)
-        return _filter_operator!(Symbol(name, :_image2D_, Symbol(I)), P, size_type, image_size, filter)
+        return _filter_operator!(Symbol(name, :_image2D_, _factory_type_symbol(I)), P, size_type, image_size, filter)
     end
 end
 
@@ -294,6 +297,7 @@ always did. Returns the function.
 """
 function _two_parameter_operator!(name::Symbol, ::Type{P}, size_type, image_size, kernel_of::K, default::Float64;
         one_parameter::Bool = true) where {P,K}
+    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel,IntensityPixel}})
     fn = @eval function $name(img::Source, p1::Real, p2::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}
         pixels = output_pixels(out, img, $P)
@@ -320,7 +324,7 @@ _dog_kernel(p1, p2) = reflect(ImageFiltering.Kernel.DoG((_finite_clamp(p1, 0.1, 
 
 function dog_factory(::Type{I}) where {I<:SizedImage{SIZE,<:Union{BinaryPixel{T},IntensityPixel{T}}}} where {SIZE,T}
     P, size_type, image_size = _filter_types(I)
-    return _two_parameter_operator!(Symbol(:dog_image2D_, Symbol(I)), P, size_type, image_size, _dog_kernel, 0.5)
+    return _two_parameter_operator!(Symbol(:dog_image2D_, _factory_type_symbol(I)), P, size_type, image_size, _dog_kernel, 0.5)
 end
 
 """
@@ -336,7 +340,7 @@ function moffat_factories(ksize::Int)
         P, size_type, image_size = _filter_types(I)
         # The kernel size is in the name: moffat5, moffat13 and moffat25 must not share a function.
         # Moffat has no one-number method: `moffat(img, x)` uses the defaults (as the original).
-        return _two_parameter_operator!(Symbol(:moffat, ksize, :_image2D_, Symbol(I)), P, size_type, image_size, kernel_of, 0.5;
+        return _two_parameter_operator!(Symbol(:moffat, ksize, :_image2D_, _factory_type_symbol(I)), P, size_type, image_size, kernel_of, 0.5;
             one_parameter = false)
     end
 end
@@ -367,6 +371,7 @@ Define `name(img, w1, w2)`, `name(img, w1)` (`w2 = w1`) and `name(img)`
 (3 × 3 window), marking the local extrema found by `find`.
 """
 function _extrema_operator!(name::Symbol, ::Type{P}, size_type, image_size, find::F) where {P,F}
+    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel,IntensityPixel}})
     fn = @eval function $name(img::Source, w1::Real, w2::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}
         pixels = output_pixels(out, img, $P)
@@ -385,13 +390,13 @@ end
 "Factory of `findlocalminima_image2D(mask[, w1, w2])`: marks the local minima."
 function findlocalminima_factory(::Type{I}) where {I<:SizedImage{SIZE,BinaryPixel{T}}} where {SIZE,T}
     P, size_type, image_size = _filter_types(I)
-    return _extrema_operator!(Symbol(:findlocalminima_image2D_, Symbol(I)), P, size_type, image_size, findlocalminima)
+    return _extrema_operator!(Symbol(:findlocalminima_image2D_, _factory_type_symbol(I)), P, size_type, image_size, findlocalminima)
 end
 
 "Factory of `findlocalmaxima_image2D(mask[, w1, w2])`: marks the local maxima."
 function findlocalmaxima_factory(::Type{I}) where {I<:SizedImage{SIZE,BinaryPixel{T}}} where {SIZE,T}
     P, size_type, image_size = _filter_types(I)
-    return _extrema_operator!(Symbol(:findlocalmaxima_image2D_, Symbol(I)), P, size_type, image_size, findlocalmaxima)
+    return _extrema_operator!(Symbol(:findlocalmaxima_image2D_, _factory_type_symbol(I)), P, size_type, image_size, findlocalmaxima)
 end
 
 ### BUNDLES ###

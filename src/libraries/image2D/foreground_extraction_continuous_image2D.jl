@@ -9,6 +9,8 @@ The exhaustive operator list is on the Bundle Catalogue page.
 """
 module image2D_foreground_extraction_continuous
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: scratch, output_pixels, image_result
 
 using LinearAlgebra: Symmetric, cholesky, cholesky!
@@ -340,7 +342,8 @@ function random_walker_foreground_image2D_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:random_walker_foreground_image2D_, Symbol(I))
+    function_name = Symbol(:random_walker_foreground_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::SOURCE,
@@ -662,7 +665,8 @@ function closed_form_matting_image2D_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:closed_form_matting_image2D_, Symbol(I))
+    function_name = Symbol(:closed_form_matting_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::SOURCE,

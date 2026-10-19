@@ -11,6 +11,8 @@ to specialize a factory always determines the output dimensions and pixel type.
 """
 module image2D_blob_extraction
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: scratch, output_pixels, image_result
 
 using ImageMorphology: label_components!, strel_box
@@ -326,7 +328,8 @@ function _binary_geometry_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:blob_, selector, :_binary_, Symbol(I))
+    function_name = Symbol(:blob_, selector, :_binary_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             saliency::CONCT,
@@ -394,7 +397,8 @@ function _intensity_geometry_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:blob_, selector, :_intensity_, Symbol(I))
+    function_name = Symbol(:blob_, selector, :_intensity_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,
@@ -455,7 +459,8 @@ function _binary_area_between_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:blob_size_between_binary_, Symbol(I))
+    function_name = Symbol(:blob_size_between_binary_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             saliency::CONCT,
@@ -519,7 +524,8 @@ function _binary_statistic_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:blob_, direction, :_, statistic, :_binary_, Symbol(I))
+    function_name = Symbol(:blob_, direction, :_, statistic, :_binary_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::IMG,
@@ -587,7 +593,8 @@ function _intensity_statistic_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:blob_, direction, :_, statistic, :_intensity_, Symbol(I))
+    function_name = Symbol(:blob_, direction, :_, statistic, :_intensity_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,

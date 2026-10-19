@@ -37,6 +37,8 @@ Call tree:
 """
 module image2D_binarize
 
+using ..UTCGP: _factory_type_symbol
+
 using ImageBinarization
 using ImageCore: clamp01nan
 using Statistics: mean
@@ -207,7 +209,7 @@ from the window size `w` and parameter `p`, from `w` only, or by default.
 function _local_binarizer_factory(::Type{I}, name::Symbol, with_window_and_parameter, with_window, by_default) where {SIZE,I<:SizedImage{SIZE,<:BinaryPixel}}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(name, :_, Symbol(I))
+    function_name = Symbol(name, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
         return getfield(@__MODULE__, function_name)
     end
@@ -241,7 +243,7 @@ function _histogram_binarizer_factory(::Type{I}, name::Symbol, algorithm; quiet:
         empty_if_constant::Bool = false) where {SIZE,I<:SizedImage{SIZE,<:BinaryPixel}}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(name, :_, Symbol(I))
+    function_name = Symbol(name, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
         return getfield(@__MODULE__, function_name)
     end
@@ -317,7 +319,7 @@ binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPi
 function binarizePolysegment_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPixel}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:binarize_polysegment2D, :_, Symbol(I))
+    function_name = Symbol(:binarize_polysegment2D, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
         return getfield(@__MODULE__, function_name)
     end
@@ -376,7 +378,7 @@ Example: `binarize_manual2D(img, 0.3)` on values `[0.2 0.8]` → `[false true]`;
 function binarizeManual_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPixel}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(:binarize_manual2D, :_, Symbol(I))
+    function_name = Symbol(:binarize_manual2D, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
         return getfield(@__MODULE__, function_name)
     end

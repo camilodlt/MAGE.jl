@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_barithmetic
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: @image_out
 
 using ..UTCGP: image2D_basic
@@ -72,7 +74,10 @@ function bsubtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Intens
     _validate_factory_type(IT)
 
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    function_name = Symbol(:bsubtract_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}
+
         if out !== nothing
             for i in eachindex(out.img,img1.img)
                 out.img[i] = $PT($IT(clamp01nan(-(float(img1.img[i]),p))))
@@ -107,7 +112,10 @@ function badd_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityPi
     _validate_factory_type(IT)
 
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    function_name = Symbol(:badd_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}
+
         if out !== nothing
             for i in eachindex(out.img,img1.img)
                 out.img[i] = $PT($IT(clamp01nan(+(float(img1.img[i]),p))))
@@ -142,7 +150,10 @@ function bmult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, IntensityP
     _validate_factory_type(IT)
 
     # Write pixels directly when the caller supplies storage.
-    m1 = @eval @image_out ((img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    function_name = Symbol(:bmult_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}
+
         if out !== nothing
             for i in eachindex(out.img,img1.img)
                 out.img[i] = $PT($IT(clamp01nan(*(float(img1.img[i]),p))))

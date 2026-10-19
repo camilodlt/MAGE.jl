@@ -13,6 +13,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_basic
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: @image_out, image_result, output_pixels, scratch, float_buffer
 
 using ImageCore: clamp01nan!, clamp01nan, Normed, float64
@@ -83,7 +85,9 @@ bundle_image2DBinary_basic_factory = FunctionBundle(fallback)
     Returns the identity of the img.   
 """
 function identity_image2D_factory(I::Type{<:SI}) where {SI <: SizedImage{S, T}} where {S, T}
-    return @eval @image_out function (img::$I, args::Vararg{Any})
+    function_name = Symbol(:identity_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval @image_out function $function_name(img::$I, args::Vararg{Any})
         return identity(img)
     end
 end
@@ -104,7 +108,10 @@ function ones_2D_factory(i::Type{I}) where {I <: SizedImage2D{SIZE}} where {SIZE
     """
     Returns a matrix of ones.
     """
-    m1 = @eval @image_out (args::Vararg{Any},) -> begin
+    function_name = Symbol(:ones_2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(args::Vararg{Any},)
+
         if out !== nothing
             fill!(out.img,$PT(one($IT)))
             return out
@@ -128,7 +135,10 @@ function zeros_2D_factory(i::Type{I}) where {I <: SizedImage2D}
 
     Returns a matrix of zeros in the type needed.
     """
-    return @eval @image_out ((img::CONCT, args::Vararg{Any}) where {CONCT <: $I}) -> begin
+    function_name = Symbol(:zeros_2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval @image_out function $function_name(img::CONCT, args::Vararg{Any}) where {CONCT <: $I}
+
         if out !== nothing
             fill!(out.img,$PT(zero($IT)))
             return out
@@ -148,7 +158,9 @@ function experimental_invert_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     # S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: $I}
+    function_name = Symbol(:experimental_invert_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval function $function_name(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img)
         values = scratch(:experimental_invert, Float64, size(img.img)...)
         invert_into!(pixels, values, img.img)
@@ -279,7 +291,9 @@ end
 function experimental_normalize_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
+    function_name = Symbol(:experimental_normalize_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval function $function_name(img::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img)
         rescale!(pixels, img, false, float_scratch)
         return image_result(out, pixels, $S)
@@ -289,7 +303,9 @@ end
 function experimental_standardize_image2D_factory(i::Type{I}) where {I <: SizedImage}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
+    function_name = Symbol(:experimental_standardize_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval function $function_name(img::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img)
         rescale!(pixels, img, true, float_scratch)
         return image_result(out, pixels, $S)
@@ -311,7 +327,9 @@ end
 function experimental_tobinary_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$SIZE, <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
+    function_name = Symbol(:experimental_tobinary_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval function $function_name(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$SIZE, <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
         pixels = out === nothing ? similar(img.img, $PT) : out.img
         to_binary!(pixels, img, 0.0)
         return image_result(out, pixels, $S)
@@ -321,7 +339,9 @@ end
 function experimental_tobinary_th_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, th::Float64, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$SIZE, <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
+    function_name = Symbol(:experimental_tobinary_th_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval function $function_name(img::CONCT, th::Float64, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$SIZE, <:Union{IntensityPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
         pixels = out === nothing ? similar(img.img, $PT) : out.img
         to_binary!(pixels, img, th)
         return image_result(out, pixels, $S)
@@ -353,7 +373,9 @@ end
 function experimental_tointensity_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE}} where {SIZE}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
+    function_name = Symbol(:experimental_tointensity_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval function $function_name(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$(SIZE), <:Union{BinaryPixel{T1}, SegmentPixel{T2}}}} where {T1, T2}
         pixels = out === nothing ? similar(img.img, $PT) : out.img
         _to_intensity!(pixels, img, $IT)
         return image_result(out, pixels, $S)
@@ -364,7 +386,9 @@ end
 function experimental_tosegment_image2D_factory(i::Type{I}) where {I <: SizedImage{SIZE, SegmentPixel{ST}}} where {SIZE, ST}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    return @eval function (img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$(SIZE), BinaryPixel{T}}} where {T}
+    function_name = Symbol(:experimental_tosegment_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    return @eval function $function_name(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT <: SizedImage{$(SIZE), BinaryPixel{T}}} where {T}
         pixels = out === nothing ? similar(img.img, $PT) : out.img
         for index in eachindex(pixels, img.img)
             pixels[index] = $PT($IT(Int(img[index])))

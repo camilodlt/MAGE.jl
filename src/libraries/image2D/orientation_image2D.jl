@@ -25,6 +25,8 @@ All arithmetic is in Float64, as before (Float32 noise would defeat the
 """
 module image2D_orientation
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
 using ..UTCGP: FunctionBundle, append_method!
 using ..UTCGP:
@@ -141,7 +143,8 @@ end
 function grad_magnitude_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    FUNCTION_NAME = Symbol(:grad_magnitude_image2D_, Symbol(I))
+    FUNCTION_NAME = Symbol(:grad_magnitude_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     return @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         pixels = output_pixels(out, img)
         gx, gy = _sobel_gradients(img)
@@ -153,7 +156,8 @@ end
 function grad_orientation_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    FUNCTION_NAME = Symbol(:grad_orientation_image2D_, Symbol(I))
+    FUNCTION_NAME = Symbol(:grad_orientation_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     return @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         pixels = output_pixels(out, img)
         gx, gy = _sobel_gradients(img)
@@ -165,7 +169,8 @@ end
 function orientation_select_image2D_factory(i::Type{I}) where {I<:SizedImage2D}
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    FUNCTION_NAME = Symbol(:orientation_select_image2D_, Symbol(I))
+    FUNCTION_NAME = Symbol(:orientation_select_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     f = @eval function $FUNCTION_NAME(img::CONCT, theta::Number, bandwidth::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         pixels = output_pixels(out, img)
         gx, gy = _sobel_gradients(img)

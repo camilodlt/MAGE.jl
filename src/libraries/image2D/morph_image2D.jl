@@ -12,6 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_morph
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: scratch, image_result
 
 using ImageMorphology
@@ -237,7 +239,7 @@ function _morph_factory(::Type{I}, SIZE, name::Symbol, op_with_se, op_default) w
     end
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(name, :_, Symbol(I))
+    function_name = Symbol(name, :_, _factory_type_symbol(I))
     isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     fn = @eval function $function_name(img::Source, k::Number, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
         pixels = out === nothing ? similar(img.img, $PT) : out.img
@@ -291,7 +293,7 @@ end
 
 function _morph_difference_factory(::Type{I}, SIZE, name::Symbol, operation::Symbol) where {I<:SizedImage}
     PT, S = _get_image_pixel_type(I), _get_image_tuple_size(I)
-    function_name = Symbol(name, :_, Symbol(I))
+    function_name = Symbol(name, :_, _factory_type_symbol(I))
     isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     fn = @eval function $function_name(img::Source, k::Number, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
         pixels = out === nothing ? similar(img.img, $PT) : out.img

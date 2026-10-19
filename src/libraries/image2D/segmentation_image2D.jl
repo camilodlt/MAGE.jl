@@ -10,6 +10,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_segmentation
 
+using ..UTCGP: _factory_type_symbol
+
 # Call tree: fastscanning factory → ImageSegmentation.fast_scanning! → output.
 # Watershed factory → _watershed_split → feature/distance transforms,
 # component labels, watershed flooding → output.
@@ -78,7 +80,7 @@ TODO
 function felzenswalb_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT)
-    FUNCTION_NAME = Symbol(:felzenswalb_2D, :_, Symbol(I))
+    FUNCTION_NAME = Symbol(:felzenswalb_2D, :_, _factory_type_symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     StorageType = TT.types[1] # UInt8, UInt16 ...
 
@@ -124,7 +126,7 @@ be from the region it joins, so higher thresholds give fewer regions.
 function unseededgrow_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT) # N0f8, N0f16
-    FUNCTION_NAME = Symbol(:unseededgrow_2D, :_, Symbol(I))
+    FUNCTION_NAME = Symbol(:unseededgrow_2D, :_, _factory_type_symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
     StorageType = TT.types[1] # UInt8, UInt16 ...
     DefaultTH = 0.3
@@ -171,7 +173,7 @@ function fastscanning_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Seg
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
-    FUNCTION_NAME = Symbol(:fastscanning_image2D, :_, Symbol(I))
+    FUNCTION_NAME = Symbol(:fastscanning_image2D, :_, _factory_type_symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
 
     @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
@@ -358,7 +360,7 @@ function watershed_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, Segmen
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
 
-    FUNCTION_NAME = Symbol(:watershed_image2D, :_, Symbol(I))
+    FUNCTION_NAME = Symbol(:watershed_image2D, :_, _factory_type_symbol(I))
     isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
 
     @eval function $FUNCTION_NAME(img::CONCT, restriction::CONCT, level::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}

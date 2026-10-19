@@ -34,6 +34,8 @@ holes(mask)         # only pixel (5, 5) is set
 """
 module image2D_mask_shape
 
+using ..UTCGP: _factory_type_symbol
+
 using ..UTCGP: image_result
 
 using ImageMorphology: guo_iteration!
@@ -443,7 +445,8 @@ function _shape_factory(::Type{I}, operator::Symbol, kernel::K, default::Float64
     pixel_type = _get_image_pixel_type(I)
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
-    function_name = Symbol(operator, :_, Symbol(I))
+    function_name = Symbol(operator, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
     # Kernels work in a plain array from task scratch (writing through a
     # `reinterpret` view is several times slower), then one pass stores the pixels.
     working = pixel_type <: BinaryPixel ? :(scratch(:shape_mask_result, Bool, size(pixels)...)) :

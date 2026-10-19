@@ -7,6 +7,8 @@ Cross-chromosome composition of typed 2D intensity images and RGB images.
 """
 module image3D_rgb_composition
 
+using ..UTCGP: _factory_type_symbol
+
 # Call tree: generated factory callable → pixel loop below → store_rgb!.
 # Direct pixel-field reads preserve values without ReinterpretArray indexing.
 using ..UTCGP: image_result
@@ -135,7 +137,8 @@ function _rgb_composition_factory(
     PT = _get_image_pixel_type(I)
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
-    function_name = Symbol(operator_name, :_, Symbol(I))
+    function_name = Symbol(operator_name, :_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
 
     if operation === :compose
         fn = @eval function $function_name(
