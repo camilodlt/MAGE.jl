@@ -311,10 +311,11 @@ end
     @test failure isa ErrorException
     @test occursin("exceeded its work budget", sprint(showerror, failure))
     wrapped = UTCGP.FunctionWrapper(cut, :budget_regression, nothing, flow.fallback)
-    # Compile the wrapper/catch path before measuring its bounded runtime.
+    # Check repeatable evaluator recovery. The solver's operation budget, checked
+    # above, is deterministic; elapsed time is not, especially with CI coverage
+    # and forced bounds checks enabled. Measure runtime in benchmarks instead.
     @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
-    elapsed = @elapsed @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
-    @test elapsed < 3.0
+    @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
 
     # With no pairwise cost, every non-background pixel prefers foreground.
     # This exact normal cut must survive the budget and keep its original pixels.
