@@ -113,7 +113,7 @@ Element wise `exp`.
     _validate_factory_type(IT)
 
     function_name = Symbol(:exp_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img1)
         F = typeof(exp(float(img1.img[firstindex(img1.img)])))
@@ -147,7 +147,7 @@ Element wise `log`.
     _validate_factory_type(IT)
 
     function_name = Symbol(:loginv_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT, args::Vararg{Any}) where {CONCT <: $I}
 
         if out !== nothing
@@ -169,7 +169,7 @@ end
     TRUE_TYPE = IT.parameters[1]
 
     function_name = Symbol(:log_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img1::CONCT, args::Vararg{Any}; out = nothing, float_scratch = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img1)
         raw = reinterpret($TRUE_TYPE, img1.img)
@@ -204,7 +204,7 @@ Each element in `img1` is elevated to the power of `p`
     _validate_factory_type(IT)
 
     function_name = Symbol(:powerof_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img1::CONCT, p::Real, args::Vararg{Any}; out = nothing) where {CONCT <: $I}
         pixels = output_pixels(out, img1)
         F = typeof(float(img1.img[firstindex(img1.img)]) ^ p)   # Float32 ^ p, as the original `float(img) .^ p`

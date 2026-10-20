@@ -86,3 +86,7 @@ A pool must be used by one task at a time: evaluation writes into its buffers.
 Taking pools from a `Channel` keeps that true with any scheduling (`:static`, `:dynamic`, `:greedy`, or tasks pulling from a queue)
 scheduling and any number of chunks. Types whose size is not part of the type
 (e.g. vectors) are not pooled: their functions are called without `out`.
+
+```@docs
+BufferPool
+```

@@ -232,6 +232,22 @@ for bundle in unique(first.(collect(seen))), wrapper in getfield(UTCGP, bundle)
 end
 ```
 
+## Internal pooling helpers
+
+Pooling operators share these selection and counting routines. They may reorder
+their working vectors; pass scratch storage rather than a view into an input
+image when the input must remain unchanged. Their docstrings describe the
+selection rank, tie handling and pixel conversion used by the public operators.
+
+```@docs
+UTCGP.image_pooling_common
+UTCGP.image_pooling_common.unique_count!
+UTCGP.image_pooling_common.median_select!
+UTCGP.image_pooling_common.pooled_pixel
+UTCGP.image_pooling_common.kth_smallest!
+UTCGP.image_pooling_common.mode!
+```
+
 ## Timings for the examples
 
 Measured during this documentation build. See [Timing methodology](../timings.md)

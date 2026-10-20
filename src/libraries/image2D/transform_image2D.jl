@@ -398,7 +398,7 @@ end
 "Method `op(img)` → `kernel(pixels)`."
 @serialized_factory function _plain_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
-    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
+    isdefined(@__MODULE__, name) && return Base.invokelatest(getfield, @__MODULE__, name)
 
     return @eval function $name(src::Source, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -410,7 +410,7 @@ end
 "Method `op(img, u)` → `kernel(pixels, clamp_unit(u))`."
 @serialized_factory function _scalar_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
-    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
+    isdefined(@__MODULE__, name) && return Base.invokelatest(getfield, @__MODULE__, name)
 
     return @eval function $name(src::Source, u::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -422,7 +422,7 @@ end
 "Methods `op(img, x, y)` → `kernel(pixels, x, y)` and `op(img, s)` → `kernel(pixels, s, s)` (clamped to `[0, 1]`)."
 @serialized_factory function _point_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     _, size_type, name = _factory_setup(I, operator)
-    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
+    isdefined(@__MODULE__, name) && return Base.invokelatest(getfield, @__MODULE__, name)
 
     fn = @eval function $name(src::Source, x::Real, y::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -449,7 +449,7 @@ Mask-driven methods, each calling `kernel(pixels, mask_pixels, is_foreground)`:
 """
 @serialized_factory function _mask_factory(::Type{I}, operator::Symbol, kernel::K) where {I,K}
     pixel_type, size_type, name = _factory_setup(I, operator)
-    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
+    isdefined(@__MODULE__, name) && return Base.invokelatest(getfield, @__MODULE__, name)
 
     fn = @eval function $name(src::Source, mask::Mask, args::Vararg{Any}; out = nothing) where {Source<:$I,MaskBool,Mask<:SizedImage{$size_type,BinaryPixel{MaskBool}}}
         pixels = output_pixels(out, src)

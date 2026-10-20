@@ -240,7 +240,7 @@ built once per output type and reused on later calls.
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(name, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     fn = @eval function $function_name(img::Source, k::Number, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
         pixels = out === nothing ? similar(img.img, $PT) : out.img
         destination = image_result(out, pixels, $S)
@@ -294,7 +294,7 @@ end
 @serialized_factory function _morph_difference_factory(::Type{I}, SIZE, name::Symbol, operation::Symbol) where {I<:SizedImage}
     PT, S = _get_image_pixel_type(I), _get_image_tuple_size(I)
     function_name = Symbol(name, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     fn = @eval function $function_name(img::Source, k::Number, args::Vararg{Any}; out = nothing) where {Source<:SizedImage{$SIZE,<:Union{BinaryPixel,IntensityPixel}}}
         pixels = out === nothing ? similar(img.img, $PT) : out.img
         morph_difference!(pixels, img, _morph_kernel_size(k) ÷ 2, $(QuoteNode(operation)), :beucher)

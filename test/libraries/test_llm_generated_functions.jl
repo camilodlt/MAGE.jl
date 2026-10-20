@@ -85,8 +85,10 @@ end
         @test artifact.function_like(2, 3) == 6
         @test which(artifact.function_like, Tuple{Int, Int}).nargs == 4
         @test which(artifact.function_like, Tuple{Int, Int, Float64}).nargs == 4
-        @test_throws MethodError which(artifact.function_like, Tuple{Int})
-        @test_throws MethodError which(artifact.function_like, Tuple{Float64, Int})
+        # Base.which throws ErrorException for missing methods on supported
+        # Julia versions. Test dispatch compatibility rather than its error text.
+        @test !hasmethod(artifact.function_like, Tuple{Int})
+        @test !hasmethod(artifact.function_like, Tuple{Float64, Int})
 
         library_idx, fn_idx, wrapper = install_generated_function!(ml, ma, artifact)
         @test library_idx == 1

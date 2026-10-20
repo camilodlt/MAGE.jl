@@ -329,7 +329,7 @@ Example: a selected pixel is copied (intensity) or set to true (binary); other p
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, selector, :_binary_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             saliency::CONCT,
@@ -398,7 +398,7 @@ Example: a selected pixel is copied (intensity) or set to true (binary); other p
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, selector, :_intensity_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,
@@ -460,7 +460,7 @@ Example: a selected pixel is copied (intensity) or set to true (binary); other p
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:blob_size_between_binary_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             saliency::CONCT,
@@ -525,7 +525,7 @@ Example: a selected pixel is copied (intensity) or set to true (binary); other p
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, direction, :_, statistic, :_binary_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::IMG,
@@ -594,7 +594,7 @@ Example: a selected pixel is copied (intensity) or set to true (binary); other p
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:blob_, direction, :_, statistic, :_intensity_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,

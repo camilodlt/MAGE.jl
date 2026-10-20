@@ -114,7 +114,7 @@ for name in _POOLER_NAMES
         # A 3x3 image gives an exact expected result after the 2x2 reduced map is resized back to 3x3.
         @testset $(string("Image Pooler : ", name, " intensity")) begin
             img = _dummy_pooler_intensity_img()
-            fn = bundle_image2DIntensity_pooler_factory[$(QuoteNode(name))].fn(typeof(img))
+            fn = (@test_factory bundle_image2DIntensity_pooler_factory[$(QuoteNode(name))].fn(typeof(img)))
             expected = _POOLER_INTENSITY_EXPECTED[$(QuoteNode(name))]
 
             res_default = fn(img)
@@ -137,7 +137,7 @@ end
 @testset "Image Pooler : binary bundle typing" begin
     img = _dummy_pooler_binary_img()
     for name in _POOLER_NAMES
-        fn = bundle_image2DBinary_pooler_factory[name].fn(typeof(img))
+        fn = (@test_factory bundle_image2DBinary_pooler_factory[name].fn(typeof(img)))
         res = fn(img, 2, 1)
         @test eltype(res) == BinaryPixel{Bool}
         @test size(res) == size(img)
@@ -151,7 +151,7 @@ end
 @testset "Image Pooler : segment bundle typing" begin
     img = _dummy_pooler_segment_img()
     for name in _POOLER_NAMES
-        fn = bundle_image2DSegment_pooler_factory[name].fn(typeof(img))
+        fn = (@test_factory bundle_image2DSegment_pooler_factory[name].fn(typeof(img)))
         res = fn(img, 2, 1)
         @test eltype(res) == SegmentPixel{Int}
         @test size(res) == size(img)

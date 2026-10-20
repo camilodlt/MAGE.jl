@@ -17,9 +17,9 @@ offers itself where it makes sense: morphology to masks, thresholding as the
 way to *produce* a mask, segmentation as the way to produce a label map. See
 [Image Types](@ref) for the type machinery.
 
-This page gives worked, rendered examples for the orientation maps and the
-pooling families. The remaining bundles are listed at the
-[bottom of this page](@ref "All image bundles"), and the exhaustive operator
+This page gives worked, rendered examples for fixation saliency, orientation
+maps and the pooling families. The remaining bundles are documented in the
+[Core image bundle reference](image_bundles.md), and the exhaustive operator
 listing is in the [Bundle Catalogue](@ref).
 
 ## Fixation Saliency
@@ -34,9 +34,9 @@ collection because its multiscale operators are comparatively expensive.
 
 This is the grayscale part of the Itti-Koch-Niebur model: intensity and four
 orientation channels are compared across six center-surround scale pairs,
-normalized for conspicuity, and combined into one map. Color-opponency channels
-can be added when MAGE gains an RGB image type. The operator produces the static
-map; it does not simulate winner-take-all attention or inhibition of return.
+normalized for conspicuity, and combined into one map. This grayscale
+implementation omits color-opponency channels; see [RGB color statistics](color_statistics_rgb.md)
+for RGB-to-intensity transforms. The operator produces the static map; it does not simulate winner-take-all attention or inhibition of return.
 
 The specialized callable supports one, two, or three MAGE inputs; trailing
 framework `args...` do not count toward this limit:
@@ -2150,90 +2150,8 @@ morphology, thresholding and segmentation bundles are on their own page:
 
 ## All image bundles
 
-### Basics, casts and arithmetic
-
-```@docs
-UTCGP.image2D_basic
-bundle_image2DIntensity_basic_factory
-bundle_image2DBinary_basic_factory
-bundle_image2DSegment_basic_factory
-```
-
-```@docs
-UTCGP.image2D_arithmetic
-bundle_image2DIntensity_arithmetic_factory
-bundle_image2DBinary_arithmetic_factory
-```
-
-```@docs
-UTCGP.image2D_barithmetic
-bundle_image2DIntensity_barithmetic_factory
-```
-
-```@docs
-UTCGP.image2D_transcendental
-bundle_image2DIntensity_transcendental_factory
-```
-
-### Filtering
-
-```@docs
-UTCGP.image2D_filtering
-bundle_image2DIntensity_filtering_factory
-bundle_image2DBinary_filtering_factory
-```
-
-### Morphology
-
-```@docs
-UTCGP.image2D_morph
-bundle_image2DIntensity_morph_factory
-bundle_image2DBinary_morph_factory
-```
-
-### Orientation
-
-```@docs
-UTCGP.image2D_orientation
-bundle_image2DIntensity_orientation_factory
-```
-
-### Fixation saliency
-
-```@docs
-UTCGP.image2D_saliency_fixation
-bundle_image2DIntensity_saliency_fixation_factory
-```
-
-### Thresholding
-
-```@docs
-UTCGP.image2D_binarize
-bundle_image2DBinary_binarize_factory
-```
-
-### Segmentation
-
-```@docs
-UTCGP.image2D_segmentation
-bundle_image2DSegment_segmentation_factory
-```
-
-### Pooling
-
-```@docs
-UTCGP.image_pool
-bundle_image2DIntensity_pool_factory
-bundle_image2DBinary_pool_factory
-bundle_image2DSegment_pool_factory
-```
-
-```@docs
-UTCGP.image_pooler
-bundle_image2DIntensity_pooler_factory
-bundle_image2DBinary_pooler_factory
-bundle_image2DSegment_pooler_factory
-```
+The [Core image bundle reference](image_bundles.md) documents these modules and
+bundles. It is separate from the worked galleries so both pages stay readable.
 
 ## Timings for the examples
 

@@ -89,7 +89,7 @@ The subtracted image as a `SImageND` with the same shape.
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:subtract_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
@@ -132,7 +132,7 @@ The added image as a `SImageND` with the same shape.
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:add_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
@@ -175,7 +175,7 @@ The multiplied image as a `SImageND` with the same shape.
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:mult_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
@@ -204,7 +204,7 @@ end
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:max_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
@@ -233,7 +233,7 @@ end
     # works for prod(Intensity, Binary) of the same size
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:min_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}

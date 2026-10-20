@@ -61,11 +61,12 @@ exercise_fallback_two() = 2
 
 # Yield between definitions to expose premature reuse deterministically on one thread.
 UTCGP.@serialized_factory function exercise_concurrent_factory()
-    isdefined(@__MODULE__, :exercise_concurrent_operator) && return exercise_concurrent_operator
-    @eval exercise_concurrent_operator(x::Int) = x
+    isdefined(@__MODULE__, :exercise_concurrent_operator) &&
+        return Base.invokelatest(getfield, @__MODULE__, :exercise_concurrent_operator)
+    operator = @eval exercise_concurrent_operator(x::Int) = x
     yield()
     @eval exercise_concurrent_operator(x::Float64) = x
-    return exercise_concurrent_operator
+    return operator
 end
 
 @testset "Complete factory publication and scalar reuse" begin

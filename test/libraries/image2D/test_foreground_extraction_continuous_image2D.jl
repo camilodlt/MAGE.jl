@@ -21,7 +21,7 @@ _continuous_values(image) = Float64.(reinterpret(image.img))
     factory = bundle_image2DIntensity_foreground_extraction_factory[
         :random_walker_foreground
     ]
-    fn = factory.fn(typeof(output_example))
+    fn = (@test_factory factory.fn(typeof(output_example)))
 
     @test which(fn, Tuple{typeof(image)}).nargs == 3
     @test which(fn, Tuple{typeof(image),Float64}).nargs == 4
@@ -105,20 +105,20 @@ _continuous_values(image) = Float64.(reinterpret(image.img))
 
     flat = _continuous_intensity(fill(0.4, 37, 53))
     flat_saliency = _continuous_intensity(fill(0.2, 37, 53))
-    flat_fn = factory.fn(typeof(flat))
+    flat_fn = (@test_factory factory.fn(typeof(flat)))
     @test all(iszero, reinterpret(flat_fn(flat).img))
     @test all(iszero, reinterpret(flat_fn(flat, flat_saliency).img))
 
     tiny_values = reshape([0.0, 1.0, 0.0, 0.0, 1.0, 0.0], 2, 3)
     tiny = _continuous_intensity(tiny_values)
     tiny_saliency = _continuous_intensity(tiny_values)
-    tiny_fn = factory.fn(typeof(tiny))
+    tiny_fn = (@test_factory factory.fn(typeof(tiny)))
     tiny_result = tiny_fn(tiny, tiny_saliency)
     @test size(tiny_result) == (2, 3)
     @test all(isfinite, _continuous_values(tiny_result))
 
     output_16 = _continuous_intensity(zeros(height, width), N0f16)
-    fn_16 = factory.fn(typeof(output_16))
+    fn_16 = (@test_factory factory.fn(typeof(output_16)))
     result_16 = fn_16(image, saliency)
     @test size(result_16) == size(image)
     @test eltype(result_16) == IntensityPixel{N0f16}
@@ -137,7 +137,7 @@ _continuous_values(image) = Float64.(reinterpret(image.img))
     benchmark_saliency_values = rand(rng, 256, 256)
     benchmark_image = _continuous_intensity(benchmark_values)
     benchmark_saliency = _continuous_intensity(benchmark_saliency_values)
-    benchmark_fn = factory.fn(typeof(benchmark_image))
+    benchmark_fn = (@test_factory factory.fn(typeof(benchmark_image)))
     benchmark_fn(benchmark_image, 1000.0, 0.99)
     benchmark_fn(benchmark_image, benchmark_saliency, 1000.0)
     automatic_elapsed = minimum(
@@ -169,7 +169,7 @@ end
     factory = bundle_image2DIntensity_foreground_extraction_factory[
         :closed_form_matting
     ]
-    fn = factory.fn(typeof(output_example))
+    fn = (@test_factory factory.fn(typeof(output_example)))
 
     @test which(fn, Tuple{typeof(image)}).nargs == 3
     @test which(fn, Tuple{typeof(image),Float64}).nargs == 4
@@ -204,7 +204,7 @@ end
     object_values = fill(0.1, height, width)
     object_values[18:47, 20:45] .= 0.9
     object_image = _continuous_intensity(object_values)
-    object_fn = factory.fn(typeof(object_image))
+    object_fn = (@test_factory factory.fn(typeof(object_image)))
     automatic = object_fn(object_image)
     automatic_values = _continuous_values(automatic)
     @test size(automatic) == size(object_image)
@@ -291,7 +291,7 @@ end
     tiny_trimap_values = reshape([0.0, 0.5, 0.5, 0.5, 1.0], 1, 5)
     tiny = _continuous_intensity(tiny_values)
     tiny_trimap = _continuous_intensity(tiny_trimap_values)
-    tiny_fn = factory.fn(typeof(tiny))
+    tiny_fn = (@test_factory factory.fn(typeof(tiny)))
     tiny_alpha = _continuous_values(tiny_fn(tiny, tiny_trimap))
     @test size(tiny_alpha) == (1, 5)
     @test tiny_alpha[1, 1] == 0.0
@@ -299,7 +299,7 @@ end
     @test all(isfinite, tiny_alpha)
 
     output_16 = _continuous_intensity(zeros(height, width), N0f16)
-    fn_16 = factory.fn(typeof(output_16))
+    fn_16 = (@test_factory factory.fn(typeof(output_16)))
     alpha_16 = fn_16(image, trimap)
     @test size(alpha_16) == size(image)
     @test eltype(alpha_16) == IntensityPixel{N0f16}
@@ -329,7 +329,7 @@ end
     benchmark_trimap_values[104:152, 104:152] .= 1.0
     benchmark_image = _continuous_intensity(benchmark_values)
     benchmark_trimap = _continuous_intensity(benchmark_trimap_values)
-    benchmark_fn = factory.fn(typeof(benchmark_image))
+    benchmark_fn = (@test_factory factory.fn(typeof(benchmark_image)))
     benchmark_fn(benchmark_image, benchmark_trimap)
     benchmark_fn(benchmark_image)
     explicit_elapsed = minimum(
@@ -405,7 +405,7 @@ end
         image=_continuous_intensity(0.1 .+ 0.8 .*object)
         aux=_continuous_intensity(Float64.(object))
         out=_continuous_intensity(zeros(h,w))
-        fn=bundle_image2DIntensity_foreground_extraction_factory[name].fn(typeof(out))
+        fn=(@test_factory bundle_image2DIntensity_foreground_extraction_factory[name].fn(typeof(out)))
         result=fn(image,aux)
         @test fn(image,aux;out=out)===out
         @test result.img==out.img
@@ -434,7 +434,7 @@ end
 @testset "Coarse matting output may alias the explicit trimap" begin
     image=_continuous_intensity(fill(0.5,224,224))
     trimap=_continuous_intensity([isodd(r+c) ? 1.0 : 0.0 for r in 1:224,c in 1:224])
-    fn=bundle_image2DIntensity_foreground_extraction_factory[:closed_form_matting].fn(typeof(trimap))
+    fn=(@test_factory bundle_image2DIntensity_foreground_extraction_factory[:closed_form_matting].fn(typeof(trimap)))
     expected=fn(image,trimap)
     @test fn(image,trimap;out=trimap)===trimap
     @test trimap.img==expected.img
@@ -447,7 +447,7 @@ end
     output = _continuous_intensity(zeros(height, width))
     library = UTCGP.image2D_foreground_extraction_continuous
     for name in (:random_walker_foreground, :closed_form_matting)
-        fn = bundle_image2DIntensity_foreground_extraction_factory[name].fn(typeof(output))
+        fn = (@test_factory bundle_image2DIntensity_foreground_extraction_factory[name].fn(typeof(output)))
         bindings = names(library; all = true)
         fn(image, auxiliary; out = output)
         @test names(library; all = true) == bindings
@@ -463,7 +463,7 @@ end
     hint = SImageND(BinaryPixel{Bool}.(sparse))
     image = SImageND(IntensityPixel{N0f8}.(0.1 .+ 0.8 .* sparse))
     output = SImageND(IntensityPixel{N0f8}.(zeros(224, 224)))
-    fn = bundle_image2DIntensity_foreground_extraction_factory[:random_walker_foreground].fn(typeof(output))
+    fn = (@test_factory bundle_image2DIntensity_foreground_extraction_factory[:random_walker_foreground].fn(typeof(output)))
     result = fn(image, hint, 0)
     @test !any(pixel -> pixel > 0, reinterpret(result.img))
     @test fn(image, hint, 0; out = output).img == result.img

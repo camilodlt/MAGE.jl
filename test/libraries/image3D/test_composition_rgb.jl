@@ -34,7 +34,7 @@ end
 
     image2d = _composition_test_plane(zeros(8, 8))
     for wrapper in bundle
-        @test_throws MethodError wrapper.fn(typeof(image2d))
+        @test_throws MethodError (@test_factory wrapper.fn(typeof(image2d)))
     end
 
     rgb = _composition_test_rgb(
@@ -47,7 +47,7 @@ end
     ]
     for factory_bundle in specialized_bundles
         for (index, wrapper) in enumerate(factory_bundle)
-            specialized = wrapper.fn(typeof(rgb))
+            specialized = (@test_factory wrapper.fn(typeof(rgb)))
             factory_bundle.functions[index] = FunctionWrapper(
                 specialized,
                 wrapper.name,
@@ -63,7 +63,7 @@ end
     @test library[1].name == :identity_rgb
     @test library[2].name == :return_rgb
     @test length(library) == 35
-    @test library[:compose_rgb].fn(image2d, image2d, image2d) isa typeof(rgb)
+    @test (@test_factory library[:compose_rgb].fn(image2d, image2d, image2d)) isa typeof(rgb)
     @test safe_call(
         library[:compose_rgb], image2d, image2d, image2d;
         return_type = typeof(rgb),
@@ -90,7 +90,7 @@ end
     original_planes = (copy(red.img), copy(green.img), copy(blue.img), copy(control.img))
     bundle = bundle_image3DIntensity_rgb_composition_factory
 
-    compose = bundle[:compose_rgb].fn(typeof(rgb))
+    compose = (@test_factory bundle[:compose_rgb].fn(typeof(rgb)))
     @test hasmethod(compose, Tuple{typeof(red),typeof(green),typeof(blue)})
     composed = compose(red, green, blue)
     expected_composed = cat(
@@ -103,7 +103,7 @@ end
     @test reinterpret(composed.img) == N0f8.(expected_composed)
     @test compose(red, green, blue, :ignored).img == composed.img
 
-    gray = bundle[:gray_to_rgb].fn(typeof(rgb))
+    gray = (@test_factory bundle[:gray_to_rgb].fn(typeof(rgb)))
     gray_result = gray(control)
     control_values = Float64.(reinterpret(control.img))
     @test reinterpret(gray_result.img) == N0f8.(cat(control_values, control_values, control_values; dims = 3))
@@ -115,7 +115,7 @@ end
             (:replace_green_rgb, 2, green),
             (:replace_blue_rgb, 3, blue),
         )
-        fn = bundle[name].fn(typeof(rgb))
+        fn = (@test_factory bundle[name].fn(typeof(rgb)))
         @test hasmethod(fn, Tuple{typeof(rgb),typeof(plane)})
         result = fn(rgb, plane)
         expected = copy(source)
@@ -125,14 +125,14 @@ end
         @test fn(rgb, plane, :ignored).img == result.img
     end
 
-    multiply = bundle[:multiply_rgb_intensity].fn(typeof(rgb))
+    multiply = (@test_factory bundle[:multiply_rgb_intensity].fn(typeof(rgb)))
     multiplied = multiply(rgb, control)
     expected_multiply = source .* reshape(control_values, 2, 3, 1)
     @test multiplied isa typeof(rgb)
     @test reinterpret(multiplied.img) == N0f8.(expected_multiply)
     @test multiply(rgb, control, :ignored).img == multiplied.img
 
-    blend = bundle[:alpha_blend_rgb].fn(typeof(rgb))
+    blend = (@test_factory bundle[:alpha_blend_rgb].fn(typeof(rgb)))
     blended = blend(rgb, other, control)
     other_values = Float64.(reinterpret(other.img))
     weights = reshape(control_values, 2, 3, 1)
@@ -141,7 +141,7 @@ end
     @test reinterpret(blended.img) == N0f8.(expected_blend)
     @test blend(rgb, other, control, :ignored).img == blended.img
 
-    set_luminance = bundle[:set_luminance_rgb].fn(typeof(rgb))
+    set_luminance = (@test_factory bundle[:set_luminance_rgb].fn(typeof(rgb)))
     luminance_result = set_luminance(rgb, control)
     expected_luminance = similar(source)
     for col in axes(source, 2), row in axes(source, 1)
@@ -165,7 +165,7 @@ end
     @test !hasmethod(blend, Tuple{typeof(rgb),typeof(wrong_rgb),typeof(control)})
 
     rgb16 = _composition_test_rgb(zeros(2, 3), zeros(2, 3), zeros(2, 3), N0f16)
-    composed16 = bundle[:compose_rgb].fn(typeof(rgb16))(red, green, blue)
+    composed16 = (@test_factory bundle[:compose_rgb].fn(typeof(rgb16)))(red, green, blue)
     @test composed16 isa typeof(rgb16)
     @test eltype(composed16) == IntensityPixel{N0f16}
 end
@@ -187,21 +187,21 @@ end
     sanitized = [0.0 1.0; 0.0 0.0]
     bundle = bundle_image3DIntensity_rgb_composition_factory
 
-    compose = bundle[:compose_rgb].fn(typeof(rgb))
+    compose = (@test_factory bundle[:compose_rgb].fn(typeof(rgb)))
     unsafe_result = Float64.(reinterpret(compose(unsafe_map, unsafe_map, unsafe_map).img))
     @test all(isfinite, unsafe_result)
     @test unsafe_result == Float64.(N0f8.(cat(sanitized, sanitized, sanitized; dims = 3)))
 
-    gray = bundle[:gray_to_rgb].fn(typeof(rgb))
+    gray = (@test_factory bundle[:gray_to_rgb].fn(typeof(rgb)))
     @test all(isfinite, Float64.(reinterpret(gray(unsafe_map).img)))
 
-    multiply = bundle[:multiply_rgb_intensity].fn(typeof(rgb))
+    multiply = (@test_factory bundle[:multiply_rgb_intensity].fn(typeof(rgb)))
     @test all(iszero, reinterpret(multiply(rgb, zero_map).img))
     @test multiply(rgb, one_map).img == rgb.img
     expected_masked = Float64.(reinterpret(rgb.img)) .* reshape(sanitized, 2, 2, 1)
     @test reinterpret(multiply(rgb, unsafe_map).img) == N0f8.(expected_masked)
 
-    blend = bundle[:alpha_blend_rgb].fn(typeof(rgb))
+    blend = (@test_factory bundle[:alpha_blend_rgb].fn(typeof(rgb)))
     @test blend(rgb, other, zero_map).img == other.img
     @test blend(rgb, other, one_map).img == rgb.img
     unsafe_blend = Float64.(reinterpret(blend(rgb, other, unsafe_map).img))
@@ -209,7 +209,7 @@ end
 
     black = _composition_test_rgb(zeros(2, 2), zeros(2, 2), zeros(2, 2))
     half = _composition_test_plane(fill(0.5, 2, 2))
-    set_luminance = bundle[:set_luminance_rgb].fn(typeof(rgb))
+    set_luminance = (@test_factory bundle[:set_luminance_rgb].fn(typeof(rgb)))
     relit_black = set_luminance(black, half)
     @test all(reinterpret(relit_black.img) .== N0f8(0.5))
     @test all(isfinite, Float64.(reinterpret(set_luminance(rgb, unsafe_map).img)))
@@ -238,7 +238,7 @@ end
         :set_luminance_rgb => (rgb, blue),
     )
     for (name, arguments) in calls
-        fn = bundle[name].fn(typeof(rgb))
+        fn = (@test_factory bundle[name].fn(typeof(rgb)))
         fn(arguments...)
         elapsed = minimum(@elapsed(fn(arguments...)) for _ in 1:3)
         @test elapsed <= 0.5

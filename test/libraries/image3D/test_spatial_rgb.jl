@@ -29,7 +29,7 @@
 
     image2d = SImageND(IntensityPixel{N0f8}.(zeros(8, 8)))
     for wrapper in bundle
-        @test_throws MethodError wrapper.fn(typeof(image2d))
+        @test_throws MethodError (@test_factory wrapper.fn(typeof(image2d)))
     end
 
     rgb = _rgb_test_image(
@@ -41,7 +41,7 @@
     ]
     for factory_bundle in specialized_bundles
         for (index, wrapper) in enumerate(factory_bundle)
-            specialized = wrapper.fn(typeof(rgb))
+            specialized = (@test_factory wrapper.fn(typeof(rgb)))
             factory_bundle.functions[index] = FunctionWrapper(
                 specialized,
                 wrapper.name,
@@ -87,7 +87,7 @@ end
         :gabor_energy_rgb => (edge, π / 4, 4.0),
     )
     for (name, arguments) in calls
-        fn = bundle[name].fn(typeof(edge))
+        fn = (@test_factory bundle[name].fn(typeof(edge)))
         @test hasmethod(fn, Tuple{map(typeof, arguments)...})
         result = fn(arguments...)
         values = Float64.(reinterpret(result.img))
@@ -99,14 +99,14 @@ end
     end
     @test edge.img == original_edge
 
-    sobel = bundle[:sobel_magnitude_rgb].fn(typeof(constant))
-    laplacian = bundle[:laplacian_magnitude_rgb].fn(typeof(constant))
-    gaussian = bundle[:gaussian_blur_rgb].fn(typeof(constant))
-    dog = bundle[:difference_of_gaussians_rgb].fn(typeof(constant))
-    unsharp = bundle[:unsharp_mask_rgb].fn(typeof(constant))
-    local_contrast = bundle[:local_contrast_normalize_rgb].fn(typeof(constant))
-    local_std = bundle[:local_std_rgb].fn(typeof(constant))
-    gabor = bundle[:gabor_energy_rgb].fn(typeof(constant))
+    sobel = (@test_factory bundle[:sobel_magnitude_rgb].fn(typeof(constant)))
+    laplacian = (@test_factory bundle[:laplacian_magnitude_rgb].fn(typeof(constant)))
+    gaussian = (@test_factory bundle[:gaussian_blur_rgb].fn(typeof(constant)))
+    dog = (@test_factory bundle[:difference_of_gaussians_rgb].fn(typeof(constant)))
+    unsharp = (@test_factory bundle[:unsharp_mask_rgb].fn(typeof(constant)))
+    local_contrast = (@test_factory bundle[:local_contrast_normalize_rgb].fn(typeof(constant)))
+    local_std = (@test_factory bundle[:local_std_rgb].fn(typeof(constant)))
+    gabor = (@test_factory bundle[:gabor_energy_rgb].fn(typeof(constant)))
 
     @test all(iszero, reinterpret(sobel(constant).img))
     @test all(iszero, reinterpret(laplacian(constant).img))
@@ -129,7 +129,7 @@ end
         fill(0.75, height, width),
         N0f16,
     )
-    result16 = bundle[:gaussian_blur_rgb].fn(typeof(constant16))(constant16, 1.0)
+    result16 = (@test_factory bundle[:gaussian_blur_rgb].fn(typeof(constant16)))(constant16, 1.0)
     @test result16 isa typeof(constant16)
     @test eltype(result16) == IntensityPixel{N0f16}
 end
@@ -196,39 +196,39 @@ end
     )
     bundle = bundle_image3DIntensity_spatial_rgb_factory
 
-    gaussian = bundle[:gaussian_blur_rgb].fn(typeof(rgb))
+    gaussian = (@test_factory bundle[:gaussian_blur_rgb].fn(typeof(rgb)))
     @test gaussian(rgb, -100.0).img == gaussian(rgb, 0.3).img
     @test gaussian(rgb, 100.0).img == gaussian(rgb, 4.0).img
     @test gaussian(rgb, NaN).img == gaussian(rgb, 1.0).img
 
-    dog = bundle[:difference_of_gaussians_rgb].fn(typeof(rgb))
+    dog = (@test_factory bundle[:difference_of_gaussians_rgb].fn(typeof(rgb)))
     @test dog(rgb, -100.0, 100.0).img == dog(rgb, 0.3, 4.0).img
     @test dog(rgb, NaN, Inf).img == dog(rgb, 0.8, 1.6).img
     @test dog(rgb, 0.7, 1.5).img == dog(rgb, 1.5, 0.7).img
 
-    unsharp = bundle[:unsharp_mask_rgb].fn(typeof(rgb))
+    unsharp = (@test_factory bundle[:unsharp_mask_rgb].fn(typeof(rgb)))
     @test unsharp(rgb, -100.0, -100.0).img == unsharp(rgb, 0.3, 0.0).img
     @test unsharp(rgb, Inf, NaN).img == unsharp(rgb, 1.0, 1.0).img
 
-    local_contrast = bundle[:local_contrast_normalize_rgb].fn(typeof(rgb))
-    local_std = bundle[:local_std_rgb].fn(typeof(rgb))
+    local_contrast = (@test_factory bundle[:local_contrast_normalize_rgb].fn(typeof(rgb)))
+    local_std = (@test_factory bundle[:local_std_rgb].fn(typeof(rgb)))
     @test local_contrast(rgb, -100.0).img == local_contrast(rgb, 1.0).img
     @test local_contrast(rgb, Inf).img == local_contrast(rgb, 3.0).img
     @test local_std(rgb, 100.0).img == local_std(rgb, 5.0).img
     @test local_std(rgb, NaN).img == local_std(rgb, 3.0).img
 
-    gabor = bundle[:gabor_energy_rgb].fn(typeof(rgb))
+    gabor = (@test_factory bundle[:gabor_energy_rgb].fn(typeof(rgb)))
     @test gabor(rgb, π, 4.0).img == gabor(rgb, 0.0, 4.0).img
     @test gabor(rgb, 0.0, -100.0).img == gabor(rgb, 0.0, 2.0).img
     @test gabor(rgb, Inf, NaN).img == gabor(rgb, 0.0, 4.0).img
 
     for name in (:gaussian_blur_rgb, :local_contrast_normalize_rgb, :local_std_rgb)
-        fn = bundle[name].fn(typeof(rgb))
+        fn = (@test_factory bundle[name].fn(typeof(rgb)))
         @test hasmethod(fn, Tuple{typeof(rgb),Float64})
         @test !hasmethod(fn, Tuple{typeof(rgb),String})
     end
     for name in (:difference_of_gaussians_rgb, :unsharp_mask_rgb, :gabor_energy_rgb)
-        fn = bundle[name].fn(typeof(rgb))
+        fn = (@test_factory bundle[name].fn(typeof(rgb)))
         @test hasmethod(fn, Tuple{typeof(rgb),Float64,Float64})
         @test !hasmethod(fn, Tuple{typeof(rgb),String,String})
     end
@@ -251,7 +251,7 @@ end
         :gabor_energy_rgb => (rgb, π / 4, 4.0),
     )
     for (name, arguments) in calls
-        fn = bundle[name].fn(typeof(rgb))
+        fn = (@test_factory bundle[name].fn(typeof(rgb)))
         fn(arguments...)
         elapsed = minimum(@elapsed(fn(arguments...)) for _ in 1:3)
         @test elapsed <= 0.5

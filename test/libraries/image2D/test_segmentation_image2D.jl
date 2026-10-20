@@ -40,7 +40,7 @@ SEGMENT = SegmentPixel{Int}
     img_binary = generate_filter_test_image(BINARY)
     img_segment = generate_filter_test_image(SEGMENT)
     fac = Bundle[:fastscanning_image2D]
-    fn = fac.fn(typeof(img_segment))
+    fn = (@test_factory fac.fn(typeof(img_segment)))
 
     @testset for p in [-1, 0, 0.0, 0.5, 0.9, 2.]
         res = fn(img_intensity, p)
@@ -73,12 +73,12 @@ SEGMENT = SegmentPixel{Int}
 
     
     fac_to_binary = bundle_image2DBinary_basic_factory[:experimental_tobinary_image2D]
-    fn_to_binary = fac_to_binary.fn(typeof(img_binary))
+    fn_to_binary = (@test_factory fac_to_binary.fn(typeof(img_binary)))
     res_binary = fn_to_binary(res)
     length(unique(reinterpret(res_binary.img))) == 2
 
     fac_to_intensity = bundle_image2DIntensity_basic_factory[:experimental_tointensity_image2D]
-    fn_to_intensity = fac_to_intensity.fn(typeof(img_intensity))
+    fn_to_intensity = (@test_factory fac_to_intensity.fn(typeof(img_intensity)))
     res_intensity = fn_to_intensity(res)
     length(unique(reinterpret(res_intensity.img))) == 2
 
@@ -94,7 +94,7 @@ end
     img_intensity_bad1 = generate_filter_test_image(INTENSITY, s) # bad type
     img_binary_bad1 = generate_filter_test_image(BINARY, (50, 50)) # bad size
     img_segment = generate_filter_test_image(SEGMENT, s)
-    fn = Bundle[:watershed_image2D].fn(typeof(img_segment))
+    fn = (@test_factory Bundle[:watershed_image2D].fn(typeof(img_segment)))
 
     @testset for p in [-30, -15, 0, 0.0, 0.5, 0.9, 2.0, NaN]
         res = fn(img, p)
@@ -124,7 +124,7 @@ end
     # Two touching disks are cut at their neck (depth ratio ≈ 0.62).
     disks = [((r - 20)^2 + (c - 14)^2 <= 81) || ((r - 20)^2 + (c - 28)^2 <= 81) for r in 1:40, c in 1:44]
     D = SImageND(BinaryPixel{Bool}.(disks))
-    fd = Bundle[:watershed_image2D].fn(typeof(SImageND(SegmentPixel{Int}.(zeros(Int, 40, 44)))))
+    fd = (@test_factory Bundle[:watershed_image2D].fn(typeof(SImageND(SegmentPixel{Int}.(zeros(Int, 40, 44))))))
     out = Int.(reinterpret(fd(D, 0.7, -1.0).img))
     @test out[20, 12] != out[20, 30] && out[20, 12] > 0 && out[20, 30] > 0
     @test count_labels(fd(D, 0.5)) == 1
@@ -141,7 +141,7 @@ end
         ]
         mask = SImageND(BinaryPixel{Bool}.(foreground))
         output = SImageND(SegmentPixel{Int}.(zeros(Int, height, width)))
-        fn = bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output))
+        fn = (@test_factory bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output)))
         @test fn(mask, 0.7).img == fn(mask, 0.7, NaN).img
         @test fn(mask, 0.7, 1).img == fn(mask, 0.7, Inf).img
         @test fn(mask, 0.7, 0).img == fn(mask, 0.7, -0.0).img
@@ -166,7 +166,7 @@ end
     @test library._resolution_size(19, 7, library._watershed_resolution(19, 1)) == (19, 7)
     mask = SImageND(BinaryPixel{Bool}.(trues(225, 225)))
     output = SImageND(SegmentPixel{Int}.(zeros(Int, 225, 225)))
-    fn = bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output))
+    fn = (@test_factory bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output)))
     @test_throws ErrorException fn(mask, 0.7, -1)
     @test_throws ErrorException fn(mask, 0.7, -Inf)
     @test size(fn(mask, 0.7, 0).img) == (225, 225)
@@ -180,7 +180,7 @@ end
             for row in 1:side, column in 1:side
         ]))
         output = SImageND(SegmentPixel{Int}.(zeros(Int, side, side)))
-        fn = bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output))
+        fn = (@test_factory bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output)))
         for _ in 1:3
             fn(mask, 0.7; out = output)
         end
@@ -197,7 +197,7 @@ end
     objects[50:100, 102:152] .= true
     mask = SImageND(BinaryPixel{Bool}.(objects))
     output = SImageND(SegmentPixel{Int}.(zeros(Int, size(objects))))
-    fn = bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output))
+    fn = (@test_factory bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(output)))
     for selector in (1, 0)
         result = copy(reinterpret(fn(mask, 0.0, selector).img))
         @test result[75, 75] != result[75, 125]
@@ -215,7 +215,7 @@ end
     diagonal[10, 10] = diagonal[11, 11] = true
     diagonal_mask = SImageND(BinaryPixel{Bool}.(diagonal))
     small_output = SImageND(SegmentPixel{Int}.(zeros(Int, 64, 64)))
-    diagonal_fn = bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(small_output))
+    diagonal_fn = (@test_factory bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(small_output)))
     labels = reinterpret(diagonal_fn(diagonal_mask, 0.0).img)
     @test labels[10, 10] != labels[11, 11]
     # Pair renumbering follows first occurrence, independent of coarse basin IDs.
@@ -225,6 +225,6 @@ end
     # More than 255 separate islands must not silently wrap UInt8 output labels.
     speckles = [isodd(row) && isodd(column) for row in 1:64, column in 1:64]
     narrow_output = SImageND(SegmentPixel{UInt8}.(zeros(UInt8, 64, 64)))
-    narrow_fn = bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(narrow_output))
+    narrow_fn = (@test_factory bundle_image2DSegment_segmentation_factory[:watershed_image2D].fn(typeof(narrow_output)))
     @test_throws OverflowError narrow_fn(SImageND(BinaryPixel{Bool}.(speckles)), 0.0)
 end

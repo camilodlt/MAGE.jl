@@ -239,7 +239,7 @@ Define `name` for the image type `I`, with the methods `(img, k)` and `(img)`
     IT, S = _get_image_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(name, :_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     f = @eval function $function_name(img::Image, k::Number, args::Vararg{Any}; out = nothing) where {Image<:$I}
         pixels = output_pixels(out, img)
         _pool_blocks_into!(pixels, img.img, k, $reducer, $shape)

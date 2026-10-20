@@ -446,7 +446,7 @@ with rounding and clamping), depending on `I`.
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     # Kernels work in a plain array from task scratch (writing through a
     # `reinterpret` view is several times slower), then one pass stores the pixels.
     working = pixel_type <: BinaryPixel ? :(scratch(:shape_mask_result, Bool, size(pixels)...)) :

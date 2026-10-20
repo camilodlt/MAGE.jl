@@ -343,7 +343,7 @@ All third inputs retain their existing parameter meanings.
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:random_walker_foreground_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::SOURCE,
@@ -666,7 +666,7 @@ All third inputs retain their existing parameter meanings.
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:closed_form_matting_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::SOURCE,

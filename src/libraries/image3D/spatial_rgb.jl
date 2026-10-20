@@ -375,7 +375,7 @@ with as many numbers as the operation's kernel takes (see `_SPATIAL_KERNELS`).
     _validate_factory_type(_get_image_type(I))
     S = _get_image_tuple_size(I)
     function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     haskey(_SPATIAL_KERNELS, operation) || throw(ArgumentError("Unsupported spatial RGB operation: $operation"))
     kernel!, parameter_count = _SPATIAL_KERNELS[operation]
     parameters = [Symbol(:parameter, k) for k in 1:parameter_count]

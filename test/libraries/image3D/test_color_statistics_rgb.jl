@@ -33,7 +33,7 @@ end
 
     results = Dict{Symbol,Any}()
     for wrapper in bundle
-        fn = wrapper.fn(output_type)
+        fn = (@test_factory wrapper.fn(output_type))
         @test hasmethod(fn, Tuple{typeof(rgb)})
         result = fn(rgb)
         results[wrapper.name] = Float64.(reinterpret(result.img))
@@ -60,12 +60,12 @@ end
     @test rgb.img == original
 
     output16 = SImageND(IntensityPixel{N0f16}.(zeros(2, 3)))
-    result16 = bundle[:rgb_luminance].fn(typeof(output16))(rgb)
+    result16 = (@test_factory bundle[:rgb_luminance].fn(typeof(output16)))(rgb)
     @test eltype(result16) == IntensityPixel{N0f16}
     @test size(result16) == (2, 3)
 
     wrong_depth = SImageND(IntensityPixel{N0f8}.(zeros(2, 3, 4)))
-    luminance = bundle[:rgb_luminance].fn(output_type)
+    luminance = (@test_factory bundle[:rgb_luminance].fn(output_type))
     @test !hasmethod(luminance, Tuple{typeof(wrong_depth)})
 
     fresh = get_extension_color_statistics_rgb_intensityimg()
@@ -77,7 +77,7 @@ end
     benchmark_rgb = _rgb_test_image(rand(rng, 256, 256), rand(rng, 256, 256), rand(rng, 256, 256))
     benchmark_output = typeof(SImageND(IntensityPixel{N0f8}.(zeros(256, 256))))
     for wrapper in bundle
-        fn = wrapper.fn(benchmark_output)
+        fn = (@test_factory wrapper.fn(benchmark_output))
         fn(benchmark_rgb)
         elapsed = minimum(@elapsed(fn(benchmark_rgb)) for _ in 1:3)
         @test elapsed <= 0.5
@@ -132,7 +132,7 @@ end
     )
 
     for (name, operation) in operations
-        fn = bundle[name].fn(typeof(rgb1))
+        fn = (@test_factory bundle[name].fn(typeof(rgb1)))
         @test hasmethod(fn, Tuple{typeof(rgb1),typeof(rgb2)})
         result = fn(rgb1, rgb2)
         expected = clamp.(operation.(left, right), 0.0, 1.0)
@@ -143,13 +143,13 @@ end
     end
 
     wrong_size = _rgb_test_image(zeros(3, 2), zeros(3, 2), zeros(3, 2))
-    add_rgb = bundle[:add_img3D].fn(typeof(rgb1))
+    add_rgb = (@test_factory bundle[:add_img3D].fn(typeof(rgb1)))
     @test !hasmethod(add_rgb, Tuple{typeof(rgb1),typeof(wrong_size)})
     @test rgb1.img == original1
     @test rgb2.img == original2
 
     rgb16 = _rgb_test_image(fill(0.2, 2, 2), fill(0.3, 2, 2), fill(0.4, 2, 2), N0f16)
-    result16 = bundle[:add_img3D].fn(typeof(rgb16))(rgb16, rgb16)
+    result16 = (@test_factory bundle[:add_img3D].fn(typeof(rgb16)))(rgb16, rgb16)
     @test result16 isa typeof(rgb16)
     @test eltype(result16) == IntensityPixel{N0f16}
 
@@ -161,7 +161,7 @@ end
         rand(rng, 256, 256), rand(rng, 256, 256), rand(rng, 256, 256),
     )
     for name in keys(operations)
-        fn = bundle[name].fn(typeof(benchmark1))
+        fn = (@test_factory bundle[name].fn(typeof(benchmark1)))
         fn(benchmark1, benchmark2)
         elapsed = minimum(@elapsed(fn(benchmark1, benchmark2)) for _ in 1:3)
         @test elapsed <= 0.5
@@ -176,12 +176,12 @@ end
     )
     bundle = bundle_image3DIntensity_rgb_factory
 
-    identity_fn = bundle[1].fn(typeof(rgb))
+    identity_fn = (@test_factory bundle[1].fn(typeof(rgb)))
     @test hasmethod(identity_fn, Tuple{typeof(rgb)})
     @test identity_fn(rgb) === rgb
     @test identity_fn(rgb, :ignored) === rgb
 
-    return_fn = bundle[2].fn(typeof(rgb))
+    return_fn = (@test_factory bundle[2].fn(typeof(rgb)))
     @test hasmethod(return_fn, Tuple{})
     returned = return_fn()
     @test returned isa typeof(rgb)
@@ -190,7 +190,7 @@ end
     @test return_fn(:ignored).img == returned.img
 
     rgb16 = _rgb_test_image(fill(0.2, 2, 2), fill(0.3, 2, 2), fill(0.4, 2, 2), N0f16)
-    returned16 = bundle[:return_rgb].fn(typeof(rgb16))()
+    returned16 = (@test_factory bundle[:return_rgb].fn(typeof(rgb16)))()
     @test returned16 isa typeof(rgb16)
     @test eltype(returned16) == IntensityPixel{N0f16}
     @test all(isone, reinterpret(returned16.img))
@@ -227,7 +227,7 @@ end
     bundle = bundle_image3DIntensity_rgb_factory
 
     for (name, expected_values) in expected
-        fn = bundle[name].fn(typeof(rgb))
+        fn = (@test_factory bundle[name].fn(typeof(rgb)))
         @test hasmethod(fn, Tuple{typeof(rgb)})
         result = fn(rgb)
         @test result isa typeof(rgb)
@@ -248,25 +248,25 @@ end
     source = Float64.(reinterpret(rgb.img))
     bundle = bundle_image3DIntensity_rgb_factory
 
-    brightness = bundle[:adjust_brightness_rgb].fn(typeof(rgb))
+    brightness = (@test_factory bundle[:adjust_brightness_rgb].fn(typeof(rgb)))
     @test reinterpret(brightness(rgb, 0.2).img) == N0f8.(clamp.(source .+ 0.2, 0.0, 1.0))
     @test all(isone, reinterpret(brightness(rgb, 2.0).img))
     @test all(iszero, reinterpret(brightness(rgb, -2.0).img))
     @test brightness(rgb, Inf).img == rgb.img
 
-    contrast = bundle[:adjust_contrast_rgb].fn(typeof(rgb))
+    contrast = (@test_factory bundle[:adjust_contrast_rgb].fn(typeof(rgb)))
     @test all(reinterpret(contrast(rgb, 0.0).img) .== N0f8(0.5))
     @test contrast(rgb, 1.0).img == rgb.img
     @test contrast(rgb, NaN).img == rgb.img
 
-    saturation = bundle[:adjust_saturation_rgb].fn(typeof(rgb))
+    saturation = (@test_factory bundle[:adjust_saturation_rgb].fn(typeof(rgb)))
     grayscale = Float64.(reinterpret(saturation(rgb, 0.0).img))
     @test grayscale[:, :, 1] == grayscale[:, :, 2] == grayscale[:, :, 3]
     @test saturation(rgb, 1.0).img == rgb.img
     @test saturation(rgb, -10.0).img == saturation(rgb, 0.0).img
     @test saturation(rgb, Inf).img == rgb.img
 
-    gamma = bundle[:adjust_gamma_rgb].fn(typeof(rgb))
+    gamma = (@test_factory bundle[:adjust_gamma_rgb].fn(typeof(rgb)))
     @test reinterpret(gamma(rgb, 2.0).img) == N0f8.(source .^ 2.0)
     @test gamma(rgb, 1.0).img == rgb.img
     @test gamma(rgb, NaN).img == rgb.img
@@ -277,7 +277,7 @@ end
             :adjust_saturation_rgb,
             :adjust_gamma_rgb,
         )
-        fn = bundle[name].fn(typeof(rgb))
+        fn = (@test_factory bundle[name].fn(typeof(rgb)))
         @test hasmethod(fn, Tuple{typeof(rgb),Float64})
         @test fn(rgb, 0.5, :ignored) isa typeof(rgb)
         @test !hasmethod(fn, Tuple{typeof(rgb),String})
@@ -297,7 +297,7 @@ end
             :rotate_channels_left_rgb => nothing,
             :rotate_channels_right_rgb => nothing,
         ))
-        fn = bundle[name].fn(typeof(benchmark))
+        fn = (@test_factory bundle[name].fn(typeof(benchmark)))
         fn(benchmark)
         @test minimum(@elapsed(fn(benchmark)) for _ in 1:3) <= 0.5
     end
@@ -307,7 +307,7 @@ end
             :adjust_saturation_rgb,
             :adjust_gamma_rgb,
         )
-        fn = bundle[name].fn(typeof(benchmark))
+        fn = (@test_factory bundle[name].fn(typeof(benchmark)))
         fn(benchmark, 0.5)
         @test minimum(@elapsed(fn(benchmark, 0.5)) for _ in 1:3) <= 0.5
     end
@@ -322,7 +322,7 @@ end
     mask_values = Bool[true false true; false true false]
     mask = SImageND(BinaryPixel{Bool}.(mask_values))
     bundle = bundle_image3DIntensity_rgb_factory
-    fn = bundle[:mult_image3D].fn(typeof(rgb))
+    fn = (@test_factory bundle[:mult_image3D].fn(typeof(rgb)))
 
     @test hasmethod(fn, Tuple{typeof(rgb),typeof(mask)})
     result = fn(rgb, mask)

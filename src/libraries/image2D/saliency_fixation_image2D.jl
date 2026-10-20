@@ -356,7 +356,7 @@ doi:10.1109/34.730558.
     _validate_factory_type(_get_image_type(I))
     S = _get_image_tuple_size(I)
     function_name = Symbol(:itti_koch_saliency_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,
@@ -534,7 +534,7 @@ doi:10.1109/CVPR.2007.383267.
     _validate_factory_type(_get_image_type(I))
     S = _get_image_tuple_size(I)
     function_name = Symbol(:spectral_residual_saliency_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,

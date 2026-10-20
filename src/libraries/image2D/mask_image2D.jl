@@ -82,7 +82,7 @@ end
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:maskgt_image2D, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    isdefined(@__MODULE__, FUNCTION_NAME) && return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
     @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
@@ -97,14 +97,14 @@ end
         mask_threshold!(pixels, img.img, mask.img, t_f, >)
         return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
-    return getfield(@__MODULE__, FUNCTION_NAME)
+    return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 end
 
 @serialized_factory function maskeqt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:maskeqt_image2D, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    isdefined(@__MODULE__, FUNCTION_NAME) && return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
     @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
@@ -119,14 +119,14 @@ end
         mask_threshold!(pixels, img.img, mask.img, t_f, ==)
         return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
-    return getfield(@__MODULE__, FUNCTION_NAME)
+    return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 end
 
 @serialized_factory function masklt_image2D_factory(i::Type{I}) where {I<:SizedImage}
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:masklt_image2D, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    isdefined(@__MODULE__, FUNCTION_NAME) && return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
     @eval function $FUNCTION_NAME(img::CONCT, mask::CONCT, by::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
         by_f = convert(Float64, by)
         t_f = clamp(by_f, 0.0, 1.0) # new th
@@ -141,7 +141,7 @@ end
         mask_threshold!(pixels, img.img, mask.img, t_f, <)
         return image_result(out, pixels, $(_get_image_tuple_size(I)))
     end
-    return getfield(@__MODULE__, FUNCTION_NAME)
+    return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 end
 
 #####################
@@ -173,7 +173,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:notmaskfromtov_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -199,7 +199,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:notmaskfromtoh_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -225,7 +225,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:maskfromtov_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -251,7 +251,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:maskfromtoh_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -280,7 +280,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:notmaskfromtov_relative_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -310,7 +310,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:notmaskfromtoh_relative_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -340,7 +340,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:maskfromtov_relative_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -370,7 +370,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:maskfromtoh_relative_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, from::Number, to::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)
@@ -403,7 +403,7 @@ end
     _validate_factory_type(TT)
 
     function_name = Symbol(:notmaskaround_relative_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, x::Number, y::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
             pixels = output_pixels(out, img_)
@@ -451,7 +451,7 @@ end
     TT = Base.unwrap_unionall(I).parameters[2] # Image type
     _validate_factory_type(TT)
     function_name = Symbol(:notmaskbycolor_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval function $function_name(img_::CONCT, color::Number, args::Vararg{Any}; out = nothing) where {CONCT<:$I}
 
         pixels = output_pixels(out, img_)

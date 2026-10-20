@@ -211,7 +211,7 @@ from the window size `w` and parameter `p`, from `w` only, or by default.
     _validate_factory_type(IT)
     function_name = Symbol(name, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
-        return getfield(@__MODULE__, function_name)
+        return Base.invokelatest(getfield, @__MODULE__, function_name)
     end
     shorter_side = floor(Int, min(S.parameters[1], S.parameters[2]))
     @eval function $function_name(img::Image, w::Number, p::Number, args::Vararg{Any}; out = nothing) where {T,Image<:SizedImage{$SIZE,IntensityPixel{T}}}
@@ -230,7 +230,7 @@ from the window size `w` and parameter `p`, from `w` only, or by default.
         _binarize_into!(pixels, img.img, $by_default, T)
         return image_result(out, pixels, $S)
     end
-    return getfield(@__MODULE__, function_name)
+    return Base.invokelatest(getfield, @__MODULE__, function_name)
 end
 
 """
@@ -245,7 +245,7 @@ Define `name` for the mask type `I` with the methods `(img, n_bins)` and
     _validate_factory_type(IT)
     function_name = Symbol(name, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
-        return getfield(@__MODULE__, function_name)
+        return Base.invokelatest(getfield, @__MODULE__, function_name)
     end
     @eval function $function_name(img::Image, n_bins::Number, args::Vararg{Any}; out = nothing) where {T,Image<:SizedImage{$SIZE,IntensityPixel{T}}}
         pixels = output_pixels(out, img, $PT)
@@ -259,7 +259,7 @@ Define `name` for the mask type `I` with the methods `(img, n_bins)` and
             nbins = 256)
         return image_result(out, pixels, $S)
     end
-    return getfield(@__MODULE__, function_name)
+    return Base.invokelatest(getfield, @__MODULE__, function_name)
 end
 
 # Local methods. They compute local means (and standard deviations) with
@@ -321,14 +321,14 @@ binarizeSauvola_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE,<:BinaryPi
     _validate_factory_type(IT)
     function_name = Symbol(:binarize_polysegment2D, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
-        return getfield(@__MODULE__, function_name)
+        return Base.invokelatest(getfield, @__MODULE__, function_name)
     end
     @eval function $function_name(img::Image, args::Vararg{Any}; out = nothing) where {T,Image<:SizedImage{$SIZE,IntensityPixel{T}}}
         pixels = output_pixels(out, img, $PT)
         _binarize_into!(pixels, img.img, Polysegment(), Float32; empty_if_constant = true)
         return image_result(out, pixels, $S)
     end
-    return getfield(@__MODULE__, function_name)
+    return Base.invokelatest(getfield, @__MODULE__, function_name)
 end
 
 # Global (histogram) methods: (factory name, operator name, algorithm, quiet, empty_if_constant).
@@ -380,7 +380,7 @@ Example: `binarize_manual2D(img, 0.3)` on values `[0.2 0.8]` → `[false true]`;
     _validate_factory_type(IT)
     function_name = Symbol(:binarize_manual2D, :_, _factory_type_symbol(I))
     if isdefined(@__MODULE__, function_name)
-        return getfield(@__MODULE__, function_name)
+        return Base.invokelatest(getfield, @__MODULE__, function_name)
     end
     @eval function $function_name(img::Image, t::AbstractFloat, args::Vararg{Any}; out = nothing) where {T,Image<:SizedImage{$SIZE,IntensityPixel{T}}}
         pixels = output_pixels(out, img, $PT)
@@ -402,7 +402,7 @@ Example: `binarize_manual2D(img, 0.3)` on values `[0.2 0.8]` → `[false true]`;
         _threshold_into!(pixels, img.img, 0.5)
         return image_result(out, pixels, $S)
     end
-    return getfield(@__MODULE__, function_name)
+    return Base.invokelatest(getfield, @__MODULE__, function_name)
 end
 
 # ---------------------------------------------------------------------------

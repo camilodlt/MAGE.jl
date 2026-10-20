@@ -81,7 +81,7 @@ TODO
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT)
     FUNCTION_NAME = Symbol(:felzenswalb_2D, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    isdefined(@__MODULE__, FUNCTION_NAME) && return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
     StorageType = TT.types[1] # UInt8, UInt16 ...
 
     # out: copy (the kernel currently allocates its result).
@@ -94,7 +94,7 @@ TODO
         return SImageND(reinterpreted, S)
     end
 
-    return getfield(@__MODULE__, FUNCTION_NAME)
+    return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 end
 
 # ################### #
@@ -127,7 +127,7 @@ be from the region it joins, so higher thresholds give fewer regions.
     TT = Base.unwrap_unionall(I).parameters[2]
     _validate_factory_type(TT) # N0f8, N0f16
     FUNCTION_NAME = Symbol(:unseededgrow_2D, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    isdefined(@__MODULE__, FUNCTION_NAME) && return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
     StorageType = TT.types[1] # UInt8, UInt16 ...
     DefaultTH = 0.3
     # m1 (img, th::Float)
@@ -153,7 +153,7 @@ be from the region it joins, so higher thresholds give fewer regions.
         reinterpreted = reinterpret.($TT, convert.($StorageType, seg)) # convert Int64 to the correct Normed{StorageType}
         return SImageND(reinterpreted, S)
     end
-    return getfield(@__MODULE__, FUNCTION_NAME)
+    return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 end
 
 
@@ -174,7 +174,7 @@ For example, a constant 2 × 2 image has label 1 at every pixel.
     _validate_factory_type(IT)
 
     FUNCTION_NAME = Symbol(:fastscanning_image2D, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    isdefined(@__MODULE__, FUNCTION_NAME) && return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 
     @eval function $FUNCTION_NAME(img::CONCT, th::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         th = isnan(th) ? 0.1 : th
@@ -191,7 +191,7 @@ For example, a constant 2 × 2 image has label 1 at every pixel.
     @eval function $FUNCTION_NAME(img::CONCT, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}}
         return $FUNCTION_NAME(img, 0.1; out)
     end
-    return getfield(@__MODULE__, FUNCTION_NAME)
+    return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 end
 
 """
@@ -361,7 +361,7 @@ pixels. Background is `0`. For example, an isolated true pixel gets label 1.
     _validate_factory_type(IT)
 
     FUNCTION_NAME = Symbol(:watershed_image2D, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, FUNCTION_NAME) && return getfield(@__MODULE__, FUNCTION_NAME)
+    isdefined(@__MODULE__, FUNCTION_NAME) && return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 
     @eval function $FUNCTION_NAME(img::CONCT, restriction::CONCT, level::Number, args::Vararg{Any}; out = nothing) where {CONCT<:SizedImage{$(SIZE), <:BinaryPixel}}
         foreground = _watershed_values!(:watershed_input_foreground, img.img)
@@ -386,7 +386,7 @@ pixels. Background is `0`. For example, an isolated true pixel gets label 1.
         return $FUNCTION_NAME(img, 0.7; out)
     end
 
-    return getfield(@__MODULE__, FUNCTION_NAME)
+    return Base.invokelatest(getfield, @__MODULE__, FUNCTION_NAME)
 end
 
 # Factory Methods

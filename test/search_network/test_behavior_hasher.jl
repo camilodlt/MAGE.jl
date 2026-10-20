@@ -45,7 +45,7 @@ function sn_behavior_epoch_mock()
         end
     end
     utgenome.output_nodes[1][1].value = 1
-    utgenome.output_nodes[1][2].value = 1
+    utgenome.output_nodes[1][2].value = 2 # Float64 input; input 1 is Vector{Int}
     utgenome.output_nodes[1][3].value = 1
     utgenome.output_nodes[2][1].value = 1
     utgenome.output_nodes[2][2].value = 1

@@ -10,7 +10,7 @@ end
     image = _saliency_test_image(impulse)
     original = copy(image.img)
     factory = bundle_image2DIntensity_saliency_fixation_factory[:itti_koch_saliency]
-    fn = factory.fn(typeof(image))
+    fn = (@test_factory factory.fn(typeof(image)))
     @test which(fn, Tuple{typeof(image)}).nargs == 3
     @test which(fn, Tuple{typeof(image),Float64}).nargs == 4
     @test which(fn, Tuple{typeof(image),Float64,Float64}).nargs == 5
@@ -43,16 +43,16 @@ end
     @test result.img == fn(image).img
 
     flat = _saliency_test_image(fill(0.4, 37, 53))
-    flat_fn = factory.fn(typeof(flat))
+    flat_fn = (@test_factory factory.fn(typeof(flat)))
     @test all(iszero, reinterpret(flat_fn(flat).img))
 
     tiny = _saliency_test_image(reshape([0.0, 1.0, 0.0, 0.0, 1.0, 0.0], 2, 3))
-    tiny_result = factory.fn(typeof(tiny))(tiny)
+    tiny_result = (@test_factory factory.fn(typeof(tiny)))(tiny)
     @test size(tiny_result) == size(tiny)
     @test all(isfinite, Float64.(reinterpret(tiny_result.img)))
 
     float_image = SImageND(IntensityPixel{Float64}.(impulse))
-    float_result = factory.fn(typeof(float_image))(float_image)
+    float_result = (@test_factory factory.fn(typeof(float_image)))(float_image)
     @test eltype(float_result) == IntensityPixel{Float64}
 
     bundles = get_extension_saliency_intensityimg()
@@ -60,7 +60,7 @@ end
 
     rng = MersenneTwister(42)
     benchmark_image = _saliency_test_image(rand(rng, 256, 256))
-    benchmark_fn = factory.fn(typeof(benchmark_image))
+    benchmark_fn = (@test_factory factory.fn(typeof(benchmark_image)))
     benchmark_fn(benchmark_image, 1.0, 5.0)
     elapsed = minimum(
         @elapsed benchmark_fn(benchmark_image, 1.0, 5.0) for _ in 1:3
@@ -74,7 +74,7 @@ end
     image = _saliency_test_image(object)
     original = copy(image.img)
     factory = bundle_image2DIntensity_saliency_fixation_factory[:spectral_residual_saliency]
-    fn = factory.fn(typeof(image))
+    fn = (@test_factory factory.fn(typeof(image)))
 
     @test which(fn, Tuple{typeof(image)}).nargs == 3
     @test which(fn, Tuple{typeof(image),Float64}).nargs == 4
@@ -109,16 +109,16 @@ end
     @test default_result.img == fn(image).img
 
     flat = _saliency_test_image(fill(0.4, 37, 53))
-    flat_result = factory.fn(typeof(flat))(flat)
+    flat_result = (@test_factory factory.fn(typeof(flat)))(flat)
     @test all(iszero, reinterpret(flat_result.img))
 
     tiny = _saliency_test_image(reshape([0.0, 1.0, 0.0, 0.0, 1.0, 0.0], 2, 3))
-    tiny_result = factory.fn(typeof(tiny))(tiny, 15.0, 2.0)
+    tiny_result = (@test_factory factory.fn(typeof(tiny)))(tiny, 15.0, 2.0)
     @test size(tiny_result) == size(tiny)
     @test all(isfinite, Float64.(reinterpret(tiny_result.img)))
 
     float_image = SImageND(IntensityPixel{Float64}.(object))
-    float_result = factory.fn(typeof(float_image))(float_image)
+    float_result = (@test_factory factory.fn(typeof(float_image)))(float_image)
     @test eltype(float_result) == IntensityPixel{Float64}
 
     bundles = get_extension_saliency_intensityimg()
@@ -126,7 +126,7 @@ end
 
     rng = MersenneTwister(43)
     benchmark_image = _saliency_test_image(rand(rng, 256, 256))
-    benchmark_fn = factory.fn(typeof(benchmark_image))
+    benchmark_fn = (@test_factory factory.fn(typeof(benchmark_image)))
     benchmark_fn(benchmark_image, 15.0, 5.0)
     elapsed = minimum(
         @elapsed benchmark_fn(benchmark_image, 15.0, 5.0) for _ in 1:3

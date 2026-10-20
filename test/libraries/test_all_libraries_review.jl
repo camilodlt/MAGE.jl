@@ -81,25 +81,42 @@ using Statistics: mean
         thin = falses(30, 30); thin[10:11, 5:25] .= true                # 2 px thick, thinner than the band
         @test any(D._mask_band_seeds(thin, 4)[1])                       # still seeded
 
-        n = 64
-        disk = [(r - 30)^2 + (c - 36)^2 <= 14^2 for r in 1:n, c in 1:n]
-        noise = [0.05 * sin(7r) * cos(5c) for r in 1:n, c in 1:n]
-        image = SImageND(IntensityPixel{N0f8}.(clamp.(0.2 .+ 0.5 .* disk .+ noise, 0, 1)))
-        Iim, Bim = typeof(image), typeof(SImageND(BinaryPixel.(falses(n, n))))
-        blocky = SImageND(BinaryPixel.([disk[8 * cld(r, 8) - 4, 8 * cld(c, 8) - 4] for r in 1:n, c in 1:n]))
-        empty = SImageND(BinaryPixel.(falses(n, n)))
-        iou(m) = count(m .& disk) / count(m .| disk)
-        for (bundle, name, T) in ((bundle_image2DBinary_foreground_extraction_factory, :boykov_jolly_foreground, Bim),
-                                  (bundle_image2DBinary_foreground_extraction_factory, :grabcut_foreground, Bim),
-                                  (bundle_image2DIntensity_foreground_extraction_factory, :random_walker_foreground, Iim),
-                                  (bundle_image2DIntensity_foreground_extraction_factory, :closed_form_matting, Iim))
-            f = bundle[name].fn(T)
-            mask_of(out) = pixels(out) .> 0.5
-            @test iou(mask_of(call(f, image, blocky, 5.0))) >= 0.95        # the blocky mask alone: 0.79
-            @test call(f, image, blocky) == call(f, image, blocky, 4.0)    # default band 4
-            @test call(f, image, blocky, NaN) == call(f, image, blocky, 4.0)
-            @test !any(mask_of(call(f, image, empty, 4.0)))                # empty mask, empty result
-            @test call(f, image) isa T                                     # the saliency mode is still there
+        # Check native-grid accuracy separately from bounded-resolution lifting.
+        # A 64-pixel input uses a 32-pixel graph: discrete boundaries then move
+        # in two-pixel steps, so the old universal 0.95 IoU was not its contract.
+        for n in (32, 64)
+            center_row, center_column, radius = 30n / 64, 36n / 64, 14n / 64
+            disk = [(r - center_row)^2 + (c - center_column)^2 <= radius^2 for r in 1:n, c in 1:n]
+            noise = [0.05 * sin(7r) * cos(5c) for r in 1:n, c in 1:n]
+            image = SImageND(IntensityPixel{N0f8}.(clamp.(0.2 .+ 0.5 .* disk .+ noise, 0, 1)))
+            Iim, Bim = typeof(image), typeof(SImageND(BinaryPixel.(falses(n, n))))
+            spacing = n ÷ 8
+            blocky = SImageND(BinaryPixel.([disk[spacing * cld(r, spacing) - spacing ÷ 2,
+                                                   spacing * cld(c, spacing) - spacing ÷ 2] for r in 1:n, c in 1:n]))
+            empty = SImageND(BinaryPixel.(falses(n, n)))
+            iou(m) = count(m .& disk) / count(m .| disk)
+            for (bundle, name, T) in ((bundle_image2DBinary_foreground_extraction_factory, :boykov_jolly_foreground, Bim),
+                                      (bundle_image2DBinary_foreground_extraction_factory, :grabcut_foreground, Bim),
+                                      (bundle_image2DIntensity_foreground_extraction_factory, :random_walker_foreground, Iim),
+                                      (bundle_image2DIntensity_foreground_extraction_factory, :closed_form_matting, Iim))
+                f = bundle[name].fn(T)
+                mask_of(out) = pixels(out) .> 0.5
+                refined = mask_of(call(f, image, blocky, 5.0))
+                if n == 32 || T == Iim
+                    @test iou(refined) >= 0.95
+                else
+                    # Discrete lifting must improve the rough mask substantially,
+                    # and every disagreement must lie within one working-grid pixel
+                    # of the known boundary (not inside or far outside the object).
+                    @test iou(refined) >= iou(mask_of(blocky)) + 0.1
+                    @test all(abs(hypot(i[1] - center_row, i[2] - center_column) - radius) <= n / 32
+                              for i in findall(refined .!= disk))
+                end
+                @test call(f, image, blocky) == call(f, image, blocky, 4.0)    # default band 4
+                @test call(f, image, blocky, NaN) == call(f, image, blocky, 4.0)
+                @test !any(mask_of(call(f, image, empty, 4.0)))                # empty mask, empty result
+                @test call(f, image) isa T                                     # the saliency mode is still there
+            end
         end
     end
 

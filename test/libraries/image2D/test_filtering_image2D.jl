@@ -58,7 +58,7 @@ BINARY = BinaryPixel{Bool}
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_intensity))
+    fn = (@test_factory fac.fn(typeof(img_intensity)))
 
     @testset for p in [-1, 0, 0.0, 2.0]
         res = fn(img_intensity, p)
@@ -123,7 +123,7 @@ end
     fns = []
     for k in ks
         fac = Bundle[k]
-        fn = fac.fn(typeof(img_intensity))
+        fn = (@test_factory fac.fn(typeof(img_intensity)))
         push!(fns, fn)
     end
 
@@ -151,7 +151,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_intensity))
+    fn = (@test_factory fac.fn(typeof(img_intensity)))
 
     @testset for p in [-1, 0, 0.0, 2.0] # border type
         res = fn(img_intensity, p)
@@ -202,7 +202,7 @@ end
     fns = []
     for k in ks
         fac = Bundle[k]
-        fn = fac.fn(typeof(img_intensity))
+        fn = (@test_factory fac.fn(typeof(img_intensity)))
         push!(fns, fn)
     end
 
@@ -228,7 +228,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_intensity))
+    fn = (@test_factory fac.fn(typeof(img_intensity)))
 
     @testset for (p1, p2) in zip(
             [-1, -0.5, 2.0, 101.0],
@@ -281,7 +281,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_intensity))
+    fn = (@test_factory fac.fn(typeof(img_intensity)))
 
     @testset for (p1, p2) in zip(
             [-1, -0.5, 2.0, 101.0],
@@ -359,7 +359,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_binary))
+    fn = (@test_factory fac.fn(typeof(img_binary)))
 
     @testset for p in [-1, 0, 0.0, 2.0]
         res = fn(img_intensity, p)
@@ -423,7 +423,7 @@ end
     fns = []
     for k in ks
         fac = Bundle[k]
-        fn = fac.fn(typeof(img_binary))
+        fn = (@test_factory fac.fn(typeof(img_binary)))
         push!(fns, fn)
     end
 
@@ -451,7 +451,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_binary))
+    fn = (@test_factory fac.fn(typeof(img_binary)))
 
     @testset for p in [-1, 0, 0.0, 2.0] # border type
         res = fn(img_intensity, p)
@@ -501,7 +501,7 @@ end
     fns = []
     for k in ks
         fac = Bundle[k]
-        fn = fac.fn(typeof(img_binary))
+        fn = (@test_factory fac.fn(typeof(img_binary)))
         push!(fns, fn)
     end
 
@@ -531,7 +531,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_binary))
+    fn = (@test_factory fac.fn(typeof(img_binary)))
 
     @testset for (p1, p2) in zip(
             [-1, -0.5, 2.0, 101.0],
@@ -578,7 +578,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[KERNEL_METHOD]
-    fn = fac.fn(typeof(img_binary))
+    fn = (@test_factory fac.fn(typeof(img_binary)))
 
     @testset for (p1, p2) in zip(
             [-1, -0.5, 2.0, 101.0],
@@ -621,7 +621,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[:findlocalminima_image2D]
-    fn = fac.fn(typeof(img_binary))
+    fn = (@test_factory fac.fn(typeof(img_binary)))
 
     @testset for (p1, p2) in zip(
             [-1, 3, 25.0, 26],
@@ -667,7 +667,7 @@ end
     img_intensity_bad2 = generate_filter_test_image(IntensityPixel{N0f8}, (50, 50))
     img_binary = generate_filter_test_image(BINARY)
     fac = Bundle[:findlocalmaxima_image2D]
-    fn = fac.fn(typeof(img_binary))
+    fn = (@test_factory fac.fn(typeof(img_binary)))
 
     @testset for (p1, p2) in zip(
             [-1, 3, 25.0, 26],

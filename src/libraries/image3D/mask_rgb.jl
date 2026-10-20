@@ -56,7 +56,7 @@ bundle by convention and returns its RGB input unchanged. Trailing framework
         ::Type{I},
     ) where {S1,S2,T,I<:SizedImage3D{S1,S2,3,IntensityPixel{T}}}
     function_name = Symbol(:identity_rgb_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     fn = @eval @image_out function $function_name(
             image::CONCT,
             args::Vararg{Any},
@@ -83,7 +83,7 @@ and ignored, so the function remains callable from ordinary MAGE nodes.
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:return_rgb_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     fn = @eval @image_out function $function_name(args::Vararg{Any})
         if out !== nothing
             fill!(out.img,$PT(one($IT)))
@@ -106,7 +106,7 @@ end
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     pixel_operation = operation === :add ? (+) : operation === :subtract ? (-) :
         operation === :multiply ? (*) : operation === :maximum ? max : min
     fn = @eval function $function_name(
@@ -229,7 +229,7 @@ end
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     fn = @eval function $function_name(
             image::CONCT,
             args::Vararg{Any}; out = nothing,
@@ -314,7 +314,7 @@ end
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(function_name_prefix, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     fn = @eval function $function_name(
             image::CONCT,
             parameter_input::Real,
@@ -445,7 +445,7 @@ Trailing framework `args...` are accepted and ignored.
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(:mult_image3D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval function $function_name(
             image::CONCT,

@@ -1,4 +1,5 @@
 using UTCGP
+include("factory_world.jl")
 import SearchNetworks as sn
 using DataStructures
 import UTCGP: _unique_names_in_bundle, get_sr_float_bundles

@@ -229,7 +229,7 @@ Define, for output pixels `P`, the method
 `b = 0` (edges replicated). Returns the function.
 """
 @serialized_factory function _filter_operator!(name::Symbol, ::Type{P}, size_type, image_size, filter) where {P}
-    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
+    isdefined(@__MODULE__, name) && return Base.invokelatest(getfield, @__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel{Bool},IntensityPixel}})
     fn = @eval function $name(img::Source, b::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}
         pixels = output_pixels(out, img, $P)
@@ -297,7 +297,7 @@ always did. Returns the function.
 """
 @serialized_factory function _two_parameter_operator!(name::Symbol, ::Type{P}, size_type, image_size, kernel_of::K, default::Float64;
         one_parameter::Bool = true) where {P,K}
-    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
+    isdefined(@__MODULE__, name) && return Base.invokelatest(getfield, @__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel,IntensityPixel}})
     fn = @eval function $name(img::Source, p1::Real, p2::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}
         pixels = output_pixels(out, img, $P)
@@ -371,7 +371,7 @@ Define `name(img, w1, w2)`, `name(img, w1)` (`w2 = w1`) and `name(img)`
 (3 × 3 window), marking the local extrema found by `find`.
 """
 @serialized_factory function _extrema_operator!(name::Symbol, ::Type{P}, size_type, image_size, find::F) where {P,F}
-    isdefined(@__MODULE__, name) && return getfield(@__MODULE__, name)
+    isdefined(@__MODULE__, name) && return Base.invokelatest(getfield, @__MODULE__, name)
     input = :(SizedImage{$image_size,<:Union{BinaryPixel,IntensityPixel}})
     fn = @eval function $name(img::Source, w1::Real, w2::Real, args::Vararg{Any}; out = nothing) where {Source<:$input}
         pixels = output_pixels(out, img, $P)

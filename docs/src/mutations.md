@@ -95,3 +95,17 @@ what tells the search which part of a genome is expressed.
 Modules = [UTCGP]
 Pages = ["mutations/utils_mutation.jl"]
 ```
+
+## Reusing active-node positions
+
+An `ActiveNodeCache` stores the active-node positions for each population slot.
+Capture positions from the decoded programs, copy them when copying a genome,
+and invalidate the entry after every genome edit. A matching chromosome layout
+alone does not prove that cached positions still describe the genome's contents.
+Use separate caches for the two sides of a population pool; mutation scratch
+and returned result vectors belong to their cache entry.
+
+```@autodocs
+Modules = [UTCGP]
+Pages = ["mutations/active_node_cache.jl"]
+```

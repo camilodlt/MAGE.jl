@@ -106,7 +106,7 @@ end
     S = _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(operator_name, :_image3D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     fn = @eval @image_out function $function_name(
             image::SImageND{Tuple{$S1,$S2,3},IntensityPixel{ST},3,C},

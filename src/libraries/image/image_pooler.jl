@@ -1013,7 +1013,7 @@ Define `name` for the image type `I`, with the methods `(img, k, stride)`,
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     _validate_factory_type(IT)
     function_name = Symbol(name, :_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     pixel_statistic = _for_pixel(statistic, PT)
     f = @eval function $function_name(img::Image, k::Number, stride::Number, args::Vararg{Any}; out = nothing) where {Image<:$I}
         pixels = output_pixels(out, img)

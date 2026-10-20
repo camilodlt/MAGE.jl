@@ -421,27 +421,31 @@ function evaluate_population_sequential_program_on_samples(
     sample_outputs = Vector{Any}(undef, length(sample_args))
     individual_times = measure_time ? zeros(length(population), length(sample_args)) : nothing
 
-    # Workspaces are thread-local rather than sample-local to avoid races and repeated allocations.
+    # Give each worker its own workspace. Thread IDs need not start at one
+    # in the default pool (Julia 1.12 may reserve thread 1 for :interactive).
     workspaces = [PopulationSequentialWorkspace(population) for _ in 1:Threads.nthreads()]
+    worker_count = length(workspaces)
+    Threads.@threads :static for worker_index in eachindex(workspaces)
+        workspace = workspaces[worker_index]
+        for offset in worker_index:worker_count:length(sample_args)
+            sample_index = firstindex(sample_args) + offset - 1
+            args = sample_args[sample_index]
 
-    Threads.@threads :static for sample_index in eachindex(sample_args)
-        workspace = workspaces[Threads.threadid()]
-        args = sample_args[sample_index]
-
-        if measure_time
-            outputs, times = evaluate_population_sequential_program_with_time(
-                population,
-                args...;
-                workspace = workspace,
-            )
-            sample_outputs[sample_index] = outputs
-            individual_times[:, sample_index] = times
-        else
-            sample_outputs[sample_index] = evaluate_population_sequential_program(
-                population,
-                args...;
-                workspace = workspace,
-            )
+            if measure_time
+                outputs, times = evaluate_population_sequential_program_with_time(
+                    population,
+                    args...;
+                    workspace = workspace,
+                )
+                sample_outputs[sample_index] = outputs
+                individual_times[:, sample_index] = times
+            else
+                sample_outputs[sample_index] = evaluate_population_sequential_program(
+                    population,
+                    args...;
+                    workspace = workspace,
+                )
+            end
         end
     end
     return measure_time ? (sample_outputs, individual_times) : sample_outputs

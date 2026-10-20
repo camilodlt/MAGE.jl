@@ -19,7 +19,7 @@ _foreground_bits(image) = Bool.(reinterpret(image.img))
     factory = bundle_image2DBinary_foreground_extraction_factory[
         :boykov_jolly_foreground
     ]
-    fn = factory.fn(typeof(output_example))
+    fn = (@test_factory factory.fn(typeof(output_example)))
 
     @test which(fn, Tuple{typeof(image)}).nargs == 3
     @test which(fn, Tuple{typeof(image),Float64}).nargs == 4
@@ -71,13 +71,13 @@ _foreground_bits(image) = Bool.(reinterpret(image.img))
     @test count(regularized .& object) >= round(Int, 0.9count(object))
 
     flat = _foreground_intensity(fill(0.4, 37, 53))
-    flat_fn = factory.fn(typeof(_foreground_binary(falses(37, 53))))
+    flat_fn = (@test_factory factory.fn(typeof(_foreground_binary(falses(37, 53)))))
     @test all(iszero, reinterpret(flat_fn(flat).img))
 
     tiny_values = reshape([0.0, 1.0, 0.0, 0.0, 1.0, 0.0], 2, 3)
     tiny = _foreground_intensity(tiny_values)
     tiny_saliency = _foreground_intensity(tiny_values)
-    tiny_fn = factory.fn(typeof(_foreground_binary(falses(2, 3))))
+    tiny_fn = (@test_factory factory.fn(typeof(_foreground_binary(falses(2, 3)))))
     @test size(tiny_fn(tiny, tiny_saliency)) == (2, 3)
 
     image_16 = _foreground_intensity(values, N0f16)
@@ -135,7 +135,7 @@ _foreground_bits(image) = Bool.(reinterpret(image.img))
     benchmark_saliency_values = rand(rng, 256, 256)
     benchmark_image = _foreground_intensity(benchmark_values)
     benchmark_saliency = _foreground_intensity(benchmark_saliency_values)
-    benchmark_fn = factory.fn(typeof(_foreground_binary(falses(256, 256))))
+    benchmark_fn = (@test_factory factory.fn(typeof(_foreground_binary(falses(256, 256)))))
     benchmark_fn(benchmark_image, 2.0, 20.0)
     benchmark_fn(benchmark_image, benchmark_saliency, 20.0)
     automatic_elapsed = minimum(
@@ -168,7 +168,7 @@ end
     factory = bundle_image2DBinary_foreground_extraction_factory[
         :grabcut_foreground
     ]
-    fn = factory.fn(typeof(output_example))
+    fn = (@test_factory factory.fn(typeof(output_example)))
 
     @test which(fn, Tuple{typeof(image)}).nargs == 3
     @test which(fn, Tuple{typeof(image),Float64}).nargs == 4
@@ -215,14 +215,14 @@ end
 
     flat = _foreground_intensity(fill(0.4, 37, 53))
     flat_saliency = _foreground_intensity(fill(0.2, 37, 53))
-    flat_fn = factory.fn(typeof(_foreground_binary(falses(37, 53))))
+    flat_fn = (@test_factory factory.fn(typeof(_foreground_binary(falses(37, 53)))))
     @test all(iszero, reinterpret(flat_fn(flat).img))
     @test all(iszero, reinterpret(flat_fn(flat, flat_saliency).img))
 
     tiny_values = reshape([0.0, 1.0, 0.0, 0.0, 1.0, 0.0], 2, 3)
     tiny = _foreground_intensity(tiny_values)
     tiny_saliency = _foreground_intensity(tiny_values)
-    tiny_fn = factory.fn(typeof(_foreground_binary(falses(2, 3))))
+    tiny_fn = (@test_factory factory.fn(typeof(_foreground_binary(falses(2, 3)))))
     @test size(tiny_fn(tiny, tiny_saliency)) == (2, 3)
 
     image_16 = _foreground_intensity(values, N0f16)
@@ -256,7 +256,7 @@ end
     benchmark_saliency_values = rand(rng, 256, 256)
     benchmark_image = _foreground_intensity(benchmark_values)
     benchmark_saliency = _foreground_intensity(benchmark_saliency_values)
-    benchmark_fn = factory.fn(typeof(_foreground_binary(falses(256, 256))))
+    benchmark_fn = (@test_factory factory.fn(typeof(_foreground_binary(falses(256, 256)))))
     benchmark_fn(benchmark_image, 2.0, 20.0)
     benchmark_fn(benchmark_image, benchmark_saliency)
     automatic_elapsed = minimum(
@@ -277,7 +277,7 @@ end
         image=SImageND(IntensityPixel{N0f8}.(0.1 .+ 0.8 .*object))
         aux=SImageND(IntensityPixel{N0f8}.(Float64.(object)))
         out=SImageND(BinaryPixel{Bool}.(falses(h,w)))
-        fn=bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(out))
+        fn=(@test_factory bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(out)))
         result=fn(image,aux)
         @test fn(image,aux;out=out)===out
         @test result.img==out.img
@@ -311,6 +311,8 @@ end
     @test failure isa ErrorException
     @test occursin("exceeded its work budget", sprint(showerror, failure))
     wrapped = UTCGP.FunctionWrapper(cut, :budget_regression, nothing, flow.fallback)
+    # Compile the wrapper/catch path before measuring its bounded runtime.
+    @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
     elapsed = @elapsed @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
     @test elapsed < 3.0
 
@@ -329,7 +331,7 @@ end
     output = _foreground_binary(falses(height, width))
     library = UTCGP.image2D_foreground_extraction_discrete
     for name in (:boykov_jolly_foreground, :grabcut_foreground)
-        fn = bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(output))
+        fn = (@test_factory bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(output)))
         bindings = names(library; all = true)
         fn(image, auxiliary; out = output)
         @test names(library; all = true) == bindings
@@ -350,7 +352,7 @@ end
     image = SImageND(IntensityPixel{N0f8}.(0.1 .+ 0.8 .* sparse))
     for name in (:grabcut_foreground, :boykov_jolly_foreground)
         output = SImageND(BinaryPixel{Bool}.(falses(224, 224)))
-        fn = bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(output))
+        fn = (@test_factory bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(output)))
         result = fn(image, hint, 0)
         @test any(Bool.(reinterpret(result.img)))
         @test fn(image, hint, 0; out = output).img == result.img

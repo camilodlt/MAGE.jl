@@ -229,3 +229,31 @@ input types, spatial domain (`:image2D`, `:rgb` or `:volume`) and node arity.
 See [Image-to-scalar inputs and inference](image_scalar_contract.md) for the
 complete dimensional contract and ROI conventions. The historical getters
 above retain their operator membership and order.
+
+## Exercising a specialised library
+
+These helpers build deterministic synthetic inputs and exercise reachable
+operator signatures for profiling and sysimage compilation. Inspect both
+`errors` and `uncovered`: a completed workload does not imply every call
+succeeded. This workload is optional and is not run when loading MAGE.
+
+```@docs
+image_library_examples
+exercise_library
+```
+
+### Named factories and world age
+
+Factories cache named generic functions so a sysimage can retain their methods
+and compiled specialisations. A cache hit returns that same function object;
+it does not regenerate its methods. Cached module-field lookups use
+`Base.invokelatest(getfield, module, name)` to read bindings introduced by an
+intervening factory call. This only retrieves the function; operator evaluation
+continues to use ordinary calls.
+
+A newly created method must also be visible to its caller. In Julia 1.12,
+top-level code that constructs and immediately uses a factory within one block
+can use `Core.@latestworld` between construction and use. Inside a function,
+prepare the operators before entering that function instead. The test-only
+`@test_factory` macro provides this top-level boundary without wrapping the
+operator call, so `@inferred` still checks the operator itself.

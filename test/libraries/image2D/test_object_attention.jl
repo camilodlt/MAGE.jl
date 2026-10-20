@@ -207,7 +207,7 @@ end
         zoom(bundle, name, T) = bundle[name].fn(T)
 
         # A uniform object cropped with no margin fills the whole output.
-        crop_square = zoom(bundle_image2DIntensity_zoom_factory, :zoom_crop_bbox_leftmost, I)
+        crop_square = (@test_factory zoom(bundle_image2DIntensity_zoom_factory, :zoom_crop_bbox_leftmost, I))
         out = crop_square(intensity, mask, 0.0)
         @test typeof(out) == I
         @test all(≈(0.2; atol = 0.01), _oa_float(out))
@@ -215,23 +215,23 @@ end
         @test minimum(_oa_float(crop_square(intensity, mask, 0.5))) < 0.2
 
         # Self-thresholded intensity: only bar, dot and disk are ≥ 0.5.
-        crop_all = zoom(bundle_image2DIntensity_zoom_factory, :zoom_crop_bbox, I)
+        crop_all = (@test_factory zoom(bundle_image2DIntensity_zoom_factory, :zoom_crop_bbox, I))
         @test typeof(crop_all(intensity)) == I
         @test crop_all(intensity, 0.1, 0.0) isa I
 
         # Isolate keeps only the selected object.
-        isolate = zoom(bundle_image2DIntensity_zoom_factory, :zoom_crop_isolate_largest, I)
+        isolate = (@test_factory zoom(bundle_image2DIntensity_zoom_factory, :zoom_crop_isolate_largest, I))
         isolated = _oa_float(isolate(intensity, mask, 0.5))
         @test maximum(isolated) ≈ 0.8 atol = 0.01
         @test minimum(isolated) == 0.0
 
         # Binary output stays binary with nearest neighbour.
-        crop_bar = zoom(bundle_image2DBinary_zoom_factory, :zoom_crop_bbox_most_elongated, B)
+        crop_bar = (@test_factory zoom(bundle_image2DBinary_zoom_factory, :zoom_crop_bbox_most_elongated, B))
         @test all(crop_bar(mask, 0.0).img .== true)
         @test typeof(crop_bar(mask)) == B
 
         # Segment output only contains existing labels.
-        crop_seg = zoom(bundle_image2DSegment_zoom_factory, :zoom_crop_bbox_largest, G)
+        crop_seg = (@test_factory zoom(bundle_image2DSegment_zoom_factory, :zoom_crop_bbox_largest, G))
         seg_out = crop_seg(segment, mask, 0.3)
         @test typeof(seg_out) == G
         @test Set(Int.(reinterpret(seg_out.img))) ⊆ Set(0:4)
@@ -242,21 +242,21 @@ end
         @test (r1 - r0 + 1) * 30 == (c1 - c0 + 1) * 20
 
         # Recentering moves the selected centroid to the image centre.
-        recenter = zoom(bundle_image2DBinary_zoom_factory, :zoom_recenter_smallest, B)
+        recenter = (@test_factory zoom(bundle_image2DBinary_zoom_factory, :zoom_recenter_smallest, B))
         centred = recenter(mask)
         @test centred.img[10, 15] == BinaryPixel(true)
         @test count(p -> p == true, centred.img) <= count(union_mask)
 
         # Glimpses at the border are clipped, not padded.
-        glimpse = zoom(bundle_image2DIntensity_zoom_factory, :zoom_glimpse_25p, I)
+        glimpse = (@test_factory zoom(bundle_image2DIntensity_zoom_factory, :zoom_glimpse_25p, I))
         @test glimpse(intensity, 0.0) isa I
         @test glimpse(intensity, 0.2, 0.7) isa I
         corner = _oa_intensity([r <= 3 && c <= 4 ? 1.0 : 0.0 for r in 1:height, c in 1:width])
         @test minimum(_oa_float(glimpse(corner, 0.0, 0.0))) > 0.9
 
-        rows = zoom(bundle_image2DBinary_zoom_factory, :zoom_rows, B)
+        rows = (@test_factory zoom(bundle_image2DBinary_zoom_factory, :zoom_rows, B))
         @test all(rows(mask, _oa_unit(15, height), _oa_unit(16, height)).img[:, 10] .== true)
-        @test zoom(bundle_image2DSegment_zoom_factory, :zoom_center, G)(segment) isa G
+        @test (@test_factory zoom(bundle_image2DSegment_zoom_factory, :zoom_center, G))(segment) isa G
 
         # Empty masks leave the source unchanged.
         empty = _oa_binary(falses(height, width))
@@ -283,7 +283,7 @@ end
             T = typeof(prototype)
             @test length(bundle) >= 90
             for wrapper in bundle
-                fn = wrapper.fn(T)
+                fn = (@test_factory wrapper.fn(T))
                 @test all(m -> m.nargs <= 5, methods(fn))
                 called = 0
                 for inputs in input_sets

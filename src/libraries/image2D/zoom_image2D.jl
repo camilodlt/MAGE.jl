@@ -572,7 +572,7 @@ only in where the mask comes from and whether a margin is given.
     size_type = _get_image_tuple_size(I)              # e.g. Tuple{28,28}
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
 
     # (src, binary mask, margin) and (src, binary mask)
     fn = @eval function $function_name(
@@ -666,7 +666,7 @@ Define `operator` for output type `I` with methods `(src, x, y)`, `(src, s)`
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     # (src, x, y): the point given by two coordinates.
     fn = @eval function $function_name(src::Source, x::Real, y::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -824,7 +824,7 @@ _define_factory!(:zoom_recenter_point_image2D_factory, :zoom_recenter_point,
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
     function_name = Symbol(:zoom_center_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     # (img, z): never smaller than 5% of each side.
     fn = @eval function $function_name(src::Source, z::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)
@@ -853,7 +853,7 @@ _define_factory!(:zoom_center_image2D_factory, :zoom_center, _center_factory, _A
     size_type = _get_image_tuple_size(I)
     _validate_factory_type(storage_type)
     function_name = Symbol(operator, :_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     # (img, a, b): the band between a and b.
     fn = @eval function $function_name(src::Source, a::Real, b::Real, args::Vararg{Any}; out = nothing) where {Source<:$I}
         pixels = output_pixels(out, src)

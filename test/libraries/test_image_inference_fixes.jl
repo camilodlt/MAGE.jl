@@ -7,7 +7,7 @@
         I = typeof(source)
         for name in (:ones_2D,:zeros_2D)
             factory = bundle_image2DIntensity_basic_factory[name].fn
-            f = factory(I)
+            f = (@test_factory factory(I))
             output = check(f,(source,))
             @test typeof(output) === I
             @test size(output) == dims
@@ -21,14 +21,14 @@
             @test isconst(mod,:cast)
             @test mod.cast === UTCGP.image2D_morph.cast
             for w in bundle
-                f = w.fn(I)
+                f = (@test_factory w.fn(I))
                 args = hasmethod(f,Tuple{I,I}) && !(mod === UTCGP.image2D_barithmetic) ?
                     (source,source) : (source,0.5,0.7)
                 @test check(f,args) isa I
             end
         end
         for w in bundle_image2DIntensity_pooler_factory
-            f = w.fn(I)
+            f = (@test_factory w.fn(I))
             for args in ((source,),(source,3),(source,3,2))
                 output = check(f,args)
                 @test typeof(output) === I
@@ -77,17 +77,17 @@ end
         @test mod.cast === UTCGP.image2D_morph.cast
     end
     for w in bundle_image2DBinary_arithmetic_factory
-        @test check(w.fn(B),(mask,mask)) isa B
+        @test check((@test_factory w.fn(B)),(mask,mask)) isa B
     end
     for bundle in (bundle_image2DBinary_binarize_factory,bundle_image2DBinary_filtering_factory), w in bundle
-        f = w.fn(B)
+        f = (@test_factory w.fn(B))
         @test check(f,(source,)) isa B
         @test check(f,(source,0.5,0.7)) isa B
     end
     for bundle in (bundle_image2DBinary_pooler_factory,bundle_image2DSegment_pooler_factory)
         input = bundle === bundle_image2DBinary_pooler_factory ? mask : SImageND(SegmentPixel{Int}.([isodd(r+c) ? 2 : 7 for r in 1:8,c in 1:10]))
         for w in bundle
-            @test check(w.fn(typeof(input)),(input,3,2)) isa typeof(input)
+            @test check((@test_factory w.fn(typeof(input))),(input,3,2)) isa typeof(input)
         end
     end
 end

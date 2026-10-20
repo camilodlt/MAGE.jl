@@ -69,7 +69,7 @@ Return a stable named branch operator for `T`. For example, the operator for
 """
 @serialized_factory function if_else_multiplexer_factory(element_type::Type{T}) where {T}
     function_name = Symbol(:if_else_multiplexer_, _factory_type_symbol(T))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     if T <: SizedImage
         # Branch selection can return an input: the adapter copies on that path too.
         return @eval @image_out function $function_name(cond::Number, a::E, b::E, args::Vararg{Any}) where {E<:$T}

@@ -75,7 +75,7 @@ The subtracted image as a `SImageND` with the same shape.
 
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:bsubtract_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}
 
         if out !== nothing
@@ -113,7 +113,7 @@ The added image as a `SImageND` with the same shape.
 
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:badd_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}
 
         if out !== nothing
@@ -151,7 +151,7 @@ The multiplied image as a `SImageND` with the same shape.
 
     # Write pixels directly when the caller supplies storage.
     function_name = Symbol(:bmult_image2D_, _factory_type_symbol(I))
-    isdefined(@__MODULE__, function_name) && return getfield(@__MODULE__, function_name)
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
     m1 = @eval @image_out function $function_name(img1::CONCT, p::Float64, args::Vararg{Any}) where {CONCT <: $I}
 
         if out !== nothing

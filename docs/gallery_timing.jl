@@ -22,6 +22,14 @@ function g_argument(arg)
     return replace(repr(arg), "|" => "\\|", "\n" => " ")
 end
 
+# Stable factory names now include the module-qualified structural image type
+# (e.g. `_UTCGP.SImageND{...}`). Keep the operator name in the table; dimensions
+# and pixel storage already have their own columns. Retain legacy image aliases.
+function g_operator_name(fn)
+    suffix = r"_(?:(?:UTCGP|Main)(?:\.[A-Za-z_]\w*)*\.)?S(?:ImageND|Image2D|Image3D|izedImage)(?=\{|$)"
+    return first(split(string(nameof(fn)), suffix; limit = 2))
+end
+
 """
     g_call(fn, args...; label = nothing)
 
@@ -41,7 +49,7 @@ function g_call(@nospecialize(fn), args...; label = nothing)
     @nospecialize args
     result = Base.invokelatest(fn, args...)
     # Factory-generated names contain their entire concrete image type.
-    name = label === nothing ? first(split(string(nameof(fn)), r"_S(?:ImageND|Image2D|Image3D|izedImage)"; limit = 2)) : String(label)
+    name = label === nothing ? g_operator_name(fn) : String(label)
     inputs = join(g_argument.(args), "; ")
     key = (fn, inputs)
     if !(key in G_TIMING_KEYS)
