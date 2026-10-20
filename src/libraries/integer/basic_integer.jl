@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-""" Basic Int functions
+"""
+Basic `Int` operators.
 
-Exports :
+# Bundles
 
-- **bundle\\_integer\\_basic** :
-    - `identity_int`
+- [`bundle_integer_basic`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module integer_basic
 
@@ -18,6 +20,11 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return 0
 
+"""
+    bundle_integer_basic
+
+Integer basics: `identity_int` and the constant `ret_1`.
+"""
 bundle_integer_basic = FunctionBundle(fallback)
 
 # FUNCTIONS ---

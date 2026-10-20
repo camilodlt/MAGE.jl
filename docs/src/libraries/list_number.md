@@ -1,6 +1,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
 
   # LIST GENERIC RECURSIVE
   using UTCGP.listnumber_recursive:recsum
@@ -26,13 +27,7 @@ end
 Pages = ["list_number.md"]
 ```
 
-# List Generic Operations
-
-## Basic operations 
-
-### Module 
-
-### Functions 
+# List Number Operations
 
 ## Arithmetic
 ### Module
@@ -221,4 +216,28 @@ julia> range_(3.0)
  1.0
  2.0
  3.0
+```
+
+## Basic
+
+### Module
+```@docs
+UTCGP.listnumber_basic
+```
+
+## From tuples
+
+### Module
+```@docs
+UTCGP.listnumber_vectuples
+```
+
+## Bundles
+
+```@docs
+bundle_listnumber_basic
+bundle_listnumber_arithmetic
+bundle_listnumber_algebraic
+bundle_listnumber_recursive
+bundle_listnumber_vectuples
 ```

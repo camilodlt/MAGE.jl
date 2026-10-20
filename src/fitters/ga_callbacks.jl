@@ -8,6 +8,15 @@ using Statistics
 abstract type Abstract_GA_POP_ARGS end
 
 """
+    GA_POP_ARGS(population, generation, run_config, model_architecture, node_config,
+                meta_library, ind_performances, elite_idx; extras = Dict())
+
+Everything [`ga_population_callback`](@ref) needs, in one object.
+
+The GA callbacks take a single args struct instead of a long positional
+argument list, so that a custom callback can be written against a stable
+signature. `ind_performances` must have exactly one entry per individual, and
+`elite_idx` lists the indices selected as elites in the previous generation.
 """
 struct GA_POP_ARGS <: Abstract_GA_POP_ARGS
     population::Population
@@ -69,7 +78,13 @@ end
 
 
 """
+    ga_population_callback(pop_args::GA_POP_ARGS) -> Option{Population}
 
+Build the next generation: keep the `n_elite` elites, then fill `n_new` slots by
+tournament selection of size `tournament_size` among them.
+
+The returned population has `n_elite + n_new` individuals, elites first. Wrapped
+in an `Option`; unwrap with `@unwrap_or`.
 """
 function ga_population_callback(pop_args::GA_POP_ARGS)::Option{Population}
     Config = pop_args.run_config
@@ -161,6 +176,16 @@ end
 
 abstract type Abstract_GA_MUTATION_ARGS end
 
+"""
+    GA_MUTATION_ARGS(population, generation, run_config, model_architecture, node_config,
+                     meta_library, shared_inputs; extras = Dict())
+
+Arguments handed to the GA mutation callbacks
+([`ga_numbered_new_material_mutation_callback`](@ref),
+[`ga_output_mutation_callback`](@ref)).
+
+The elites sit at the front of `population` and are never mutated.
+"""
 struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
     population::Population
     generation::Int
@@ -194,6 +219,12 @@ struct GA_MUTATION_ARGS <: Abstract_GA_MUTATION_ARGS
     end
 end
 
+"""
+    ga_numbered_new_material_mutation_callback(args::Abstract_GA_MUTATION_ARGS) -> Option{Population}
+
+Apply [`new_material_mutation!`](@ref) to every non-elite individual, leaving the
+first `n_elite` untouched.
+"""
 function ga_numbered_new_material_mutation_callback(
         args::Abstract_GA_MUTATION_ARGS,
     )::Option{Population}
@@ -313,6 +344,12 @@ end
 # Default Output Mutation Callback
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
+"""
+    ga_output_mutation_callback(args::Abstract_GA_MUTATION_ARGS) -> Option{Population}
+
+Mutate the output nodes of the non-elite individuals, each with probability
+`run_config.output_mutation_rate`.
+"""
 function ga_output_mutation_callback(args::Abstract_GA_MUTATION_ARGS)::Option{Population}
     Config = args.run_config
     fs = fieldnames(typeof(Config))
@@ -391,6 +428,12 @@ end
 
 abstract type Abstract_GA_SELECTION_ARGS end
 
+"""
+    GA_SELECTION_ARGS(ind_performances, population, generation, run_config,
+                      model_architecture, node_config, meta_library, programs)
+
+Arguments handed to [`ga_elite_selection_callback`](@ref).
+"""
 struct GA_SELECTION_ARGS <: Abstract_GA_SELECTION_ARGS
     ind_performances::Union{Vector{<:Number}, Vector{Vector{<:Number}}}
     population::Population
@@ -402,6 +445,18 @@ struct GA_SELECTION_ARGS <: Abstract_GA_SELECTION_ARGS
     programs::PopulationPrograms
 end
 
+"""
+    ga_elite_selection_callback(args::Abstract_GA_SELECTION_ARGS) -> Option{Vector{Int}}
+
+Return the indices of the `n_elite` best individuals, best first.
+
+`NaN` fitnesses are treated as `Inf`. Ties are broken in favour of the younger
+individual, so a child that merely matches its parent still replaces it and the
+search keeps drifting instead of stalling.
+
+Multi-objective (Pareto) selection is not implemented here; see the NSGA-II
+fitter for that.
+"""
 function ga_elite_selection_callback(args::Abstract_GA_SELECTION_ARGS)::Option{Vector{Int}}
     :ind_performances in fieldnames(typeof(args)) ? F = args.ind_performances : return none
     :run_config in fieldnames(typeof(args)) ? R = args.run_config : return none
@@ -609,4 +664,72 @@ function (obj::eval_budget_early_stop)(ga_early_stop_args::GA_EARLYSTOP_ARGS)::B
     decision = decide_max_budget(obj)
     @info "Eval Budget. Curr budget : $(obj.cur_budget)"
     return decision
+end
+
+"""
+    ga_numbered_new_material_mutation_callback(args, cache, parent_cache, parent_indices; check=false)
+
+Opt-in mutation callback for exact parent copies, elites first. parent_indices[i]
+is the source slot whose genome was copied to destination i. Separate caches
+allow arbitrary repeated parents without overwriting source metadata. Capture
+parent_cache from evaluation programs before population replacement. check=true
+compares every child with a fresh decode before mutation (diagnostic only).
+For parallel variation, each task owns its destination slot and genome while
+parent_cache stays read-only. Distinct-slot capture/copy/mutation is safe;
+task-local default RNG draws remain schedule-dependent, as without the cache.
+"""
+function ga_numbered_new_material_mutation_callback(
+        args::Abstract_GA_MUTATION_ARGS, cache::ActiveNodeCache,
+        parent_cache::ActiveNodeCache, parent_indices::AbstractVector{<:Integer};
+        check::Bool = false)::Option{Population}
+    :n_elite in fieldnames(typeof(args.run_config)) || return none
+    pop = args.population
+    @assert length(parent_indices) == length(pop)
+    @assert length(cache.entries) >= length(pop)
+    @assert cache !== parent_cache "Use separate source/destination caches"
+    for i in eachindex(parent_indices)
+        entry = cache[i]
+        copy_active_nodes!(entry, parent_cache[parent_indices[i]])
+        if check && active_cache_matches(entry, pop[i])
+            check_active_nodes(entry, pop[i], args.meta_library, args.model_architecture, args.shared_inputs)
+        end
+        if i > args.run_config.n_elite
+            new_material_mutation!(pop[i], args.run_config, args.model_architecture,
+                args.meta_library, args.shared_inputs; active_positions=entry)
+        end
+    end
+    return some(pop)
+end
+
+"""
+    ga_population_callback(args::GA_POP_ARGS, cache, parent_cache, parent_indices)
+
+Standard GA selection with cache metadata copying and explicit parent indices.
+parent_indices is a preallocated destination vector of n_elite+n_new integers.
+Genomes use the standard callback's elite references/deepcopy behavior; pooled
+runners may instead copy genomes themselves and call copy_active_nodes!.
+"""
+function ga_population_callback(args::GA_POP_ARGS, cache::ActiveNodeCache,
+        parent_cache::ActiveNodeCache, parent_indices::AbstractVector{<:Integer})::Option{Population}
+    @assert cache !== parent_cache "Use separate source/destination caches"
+    config = args.run_config
+    n = config.n_elite + config.n_new
+    @assert length(parent_indices) == n
+    @assert length(cache.entries) >= n
+    inds = Vector{UTGenome}(undef, n)
+    for (i, parent) in enumerate(args.elite_idx)
+        inds[i] = args.population[parent]
+        parent_indices[i] = parent
+        copy_active_nodes!(cache[i], parent_cache[parent])
+    end
+    for i in (config.n_elite + 1):n
+        winner_opt, index_opt = tournament_selection(args.population,
+            config.tournament_size, args.fitnesses; return_idx=true)
+        winner = @unwrap_or winner_opt throw("Tournament could not take place with config : $(config)")
+        parent = @unwrap_or index_opt throw("Tournament did not return a parent index")
+        inds[i] = deepcopy(winner)
+        parent_indices[i] = parent
+        copy_active_nodes!(cache[i], parent_cache[parent])
+    end
+    return some(Population(inds))
 end

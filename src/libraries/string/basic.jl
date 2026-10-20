@@ -1,14 +1,14 @@
 # # -*- coding: utf-8 -*-
 
-""" 
+"""
+Basic string operators.
 
-Some basic operations.
+# Bundles
 
-Exports :
+- [`bundle_string_basic`](@ref)
 
-- **bundle\\_string\\_basic** :
-    - `number_to_string`
-
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module str_basic
 
@@ -20,6 +20,11 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return ""
 
+"""
+    bundle_string_basic
+
+String basics: `identity_str`, `empty_string`, and `number_to_string`.
+"""
 bundle_string_basic = FunctionBundle(fallback)
 
 # FUNCTIONS ---

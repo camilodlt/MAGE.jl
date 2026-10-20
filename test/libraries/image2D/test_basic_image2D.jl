@@ -24,7 +24,7 @@ types_and_bundles2 = [
     @testset for (ImageType, Bundle) in zip(types_and_bundles...)
         test_img = UTCGP._generate_test_image(ImageType)
         fn = Bundle[:identity_image2D]
-        fn = fn.fn(typeof(test_img))
+        fn = (@test_factory fn.fn(typeof(test_img)))
         res = fn(test_img)
         @test res == test_img
     end
@@ -34,7 +34,7 @@ end
     @testset for (ImageType, Bundle) in zip(types_and_bundles...)
         test_img = UTCGP._generate_test_image(ImageType)
         fn = Bundle[:ones_2D]
-        fn = fn.fn(typeof(test_img))
+        fn = (@test_factory fn.fn(typeof(test_img)))
         res = fn(test_img)
         @test all(res .== 1)
     end
@@ -44,7 +44,7 @@ end
     @testset for (ImageType, Bundle) in zip(types_and_bundles...)
         test_img = UTCGP._generate_test_image(ImageType)
         fn = Bundle[:zeros_2D]
-        fn = fn.fn(typeof(test_img))
+        fn = (@test_factory fn.fn(typeof(test_img)))
         res = fn(test_img)
         @test all(res .== 0)
     end
@@ -54,7 +54,7 @@ end
     @testset for (ImageType, Bundle) in zip(types_and_bundles2...)
         test_img = UTCGP._generate_test_image(ImageType)
         fn = Bundle[:experimental_invert_2D]
-        fn = fn.fn(typeof(test_img))
+        fn = (@test_factory fn.fn(typeof(test_img)))
         res = fn(test_img)
 
         # Convert test_img to float64 and apply the inversion and clamping
@@ -71,7 +71,7 @@ end
     @testset begin
         test_img = UTCGP._generate_test_image(IntensityPixel{N0f8})
         fn = bundle_image2DIntensity_basic_factory[:experimental_normalize_2D]
-        fn = fn.fn(typeof(test_img))
+        fn = (@test_factory fn.fn(typeof(test_img)))
         res = fn(test_img)
         @test all(0 .<= res .<= 1)
     end
@@ -81,7 +81,7 @@ end
     @testset begin
         test_img = UTCGP._generate_test_image(IntensityPixel{N0f8})
         fn = bundle_image2DIntensity_basic_factory[:experimental_standardize_2D]
-        fn = fn.fn(typeof(test_img))
+        fn = (@test_factory fn.fn(typeof(test_img)))
         res = fn(test_img)
         old_mean = mean(test_img)
         new_mean = mean(res)
@@ -95,7 +95,7 @@ end
         as_img = UTCGP._generate_test_image(t)
         test_img = UTCGP._generate_test_image(ImageType)
         fn = bundle_image2DBinary_basic_factory[:experimental_tobinary_image2D]
-        fn = fn.fn(typeof(as_img))
+        fn = (@test_factory fn.fn(typeof(as_img)))
         res = fn(test_img)
         if ImageType == IntensityPixel{N0f8}
             @test all(res .== BinaryPixel.(test_img .> 0))
@@ -113,7 +113,7 @@ end
         test_img = UTCGP._generate_test_image(from)
 
         fn = bundle_image2DIntensity_basic_factory[:experimental_tointensity_image2D]
-        fn = fn.fn(typeof(as_img))
+        fn = (@test_factory fn.fn(typeof(as_img)))
         res = fn(test_img)
 
         # Calculate the expected result by normalizing the segment values
@@ -132,7 +132,7 @@ end
         test_img = UTCGP._generate_test_image(from)
 
         fn = bundle_image2DIntensity_basic_factory[:experimental_tointensity_image2D]
-        fn = fn.fn(typeof(as_img))
+        fn = (@test_factory fn.fn(typeof(as_img)))
         res = fn(test_img)
 
         # Check that the result is of the correct type
@@ -155,7 +155,7 @@ end
         test_img = UTCGP._generate_test_image(from)
 
         fn = bundle_image2DSegment_basic_factory[:experimental_tosegment_image2D]
-        fn = fn.fn(typeof(as_img))
+        fn = (@test_factory fn.fn(typeof(as_img)))
         res = fn(test_img)
 
         # Check that the result is of the correct type

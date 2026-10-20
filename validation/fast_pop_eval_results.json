@@ -1,0 +1,318 @@
+{
+  "revision": "e10868af8d872908c9b29273f4e8fe57ca7518fd",
+  "julia": "1.11.7",
+  "threads": 1,
+  "cpu_affinity": "4-7",
+  "dataset": "606_fri_c2_1000_10",
+  "training_rows": 750,
+  "nodes": 100,
+  "batch_size": 128,
+  "repetitions": 3,
+  "focused_tests_passed": 124,
+  "results": [
+    {
+      "batch": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.003401988
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.003346194
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.003375572
+          }
+        ],
+        "seconds": 0.003375572
+      },
+      "steps": 707,
+      "generic": {
+        "allocated_check": 344838576,
+        "gc_seconds": 0.0,
+        "bytes": 344838576,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 344838576,
+            "seconds": 1.058985781
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 344838576,
+            "seconds": 1.072857276
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 344838576,
+            "seconds": 1.080091366
+          }
+        ],
+        "seconds": 1.072857276
+      },
+      "case": "1+lambda",
+      "N": 257,
+      "scalar": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.040415915
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.040178182
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.040133104
+          }
+        ],
+        "seconds": 0.040178182
+      },
+      "identity": true,
+      "speedup": 317.829771072873
+    },
+    {
+      "batch": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.006644906
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.006602269
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.006578635
+          }
+        ],
+        "seconds": 0.006602269
+      },
+      "steps": 1389,
+      "generic": {
+        "allocated_check": 850061456,
+        "gc_seconds": 0.0,
+        "bytes": 850061456,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 850061456,
+            "seconds": 2.29655106
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 850061456,
+            "seconds": 2.306010797
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 850061456,
+            "seconds": 2.306732014
+          }
+        ],
+        "seconds": 2.306010797
+      },
+      "case": "1+lambda",
+      "N": 1025,
+      "scalar": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.071912204
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.071913683
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.072530371
+          }
+        ],
+        "seconds": 0.071913683
+      },
+      "identity": true,
+      "speedup": 349.27549862024705
+    },
+    {
+      "batch": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.019100652
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.018838303
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.019438117
+          }
+        ],
+        "seconds": 0.019100652
+      },
+      "steps": 2700,
+      "generic": {
+        "allocated_check": 3751876552,
+        "gc_seconds": 0.707599361,
+        "bytes": 3751876552,
+        "runs": [
+          {
+            "gc_seconds": 0.725416466,
+            "bytes": 3751876552,
+            "seconds": 6.793194738
+          },
+          {
+            "gc_seconds": 0.707599361,
+            "bytes": 3751876552,
+            "seconds": 6.805381353
+          },
+          {
+            "gc_seconds": 0.756753865,
+            "bytes": 3751876552,
+            "seconds": 6.878622253
+          }
+        ],
+        "seconds": 6.805381353
+      },
+      "case": "1+lambda",
+      "N": 8193,
+      "scalar": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.139760476
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.140116038
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.139769097
+          }
+        ],
+        "seconds": 0.139769097
+      },
+      "identity": true,
+      "speedup": 356.29052626056955
+    },
+    {
+      "batch": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.004942573
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.004894882
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.004831734
+          }
+        ],
+        "seconds": 0.004894882
+      },
+      "steps": 1081,
+      "generic": {
+        "allocated_check": 489546576,
+        "gc_seconds": 0.0,
+        "bytes": 489546576,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 489546576,
+            "seconds": 1.608887657
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 489546576,
+            "seconds": 1.612351144
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 489546576,
+            "seconds": 1.619413196
+          }
+        ],
+        "seconds": 1.612351144
+      },
+      "case": "mu+lambda",
+      "N": 272,
+      "scalar": {
+        "allocated_check": 32,
+        "gc_seconds": 0.0,
+        "bytes": 32,
+        "runs": [
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.061218811
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.061465818
+          },
+          {
+            "gc_seconds": 0.0,
+            "bytes": 32,
+            "seconds": 0.061155959
+          }
+        ],
+        "seconds": 0.061218811
+      },
+      "identity": true,
+      "speedup": 329.39530391130984
+    }
+  ]
+}

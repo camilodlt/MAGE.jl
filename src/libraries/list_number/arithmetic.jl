@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Vector to Vector arithmetic or Vector to Number arithmetic by broadcasting. 
- 
-Exports : **bundle\\_listnumber\\_arithmetic**: 
-- `sum_broadcast`
-- `subtract_broadcast`
-- `mult_broadcast`
-- `div_broadcast`
-- `sum_vector`
-- `subtract_vector`
-- `mult_vector`
-- `div_vector`
+Arithmetic between two numeric lists, or between a list and a scalar by
+broadcasting.
+
+# Bundles
+
+- [`bundle_listnumber_arithmetic`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listnumber_arithmetic
 
@@ -19,6 +17,15 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 fallback(args...) = Number[]
 
+"""
+    bundle_listnumber_arithmetic
+
+Arithmetic over numeric lists, in two flavours.
+
+`sum_broadcast`, `subtract_broadcast`, `mult_broadcast` and `div_broadcast`
+apply a scalar to every element; `sum_vector`, `subtract_vector`, `mult_vector`
+and `div_vector` work element-wise between two lists.
+"""
 bundle_listnumber_arithmetic = FunctionBundle(fallback)
 
 

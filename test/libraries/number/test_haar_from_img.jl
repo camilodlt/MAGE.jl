@@ -87,8 +87,10 @@ function _manual_weight_matrix(kind::Symbol, h::Int, w::Int)
         col_mid = fld(w, 2)
         row_mid == 0 && return weights
         col_mid == 0 && return weights
-        center_h = max(cld(h, 3), 1)
-        center_w = max(cld(w, 3), 1)
+        # about a third, same parity as the window so it is exactly centred
+        centre(n) = (c = max(cld(n, 3), 1); isodd(n - c) && c + 1 < n ? c + 1 : c)
+        center_h = centre(h)
+        center_w = centre(w)
         row_start = clamp(fld(h - center_h, 2) + 1, 1, h)
         row_end = clamp(row_start + center_h - 1, 1, h)
         col_start = clamp(fld(w - center_w, 2) + 1, 1, w)
@@ -97,15 +99,17 @@ function _manual_weight_matrix(kind::Symbol, h::Int, w::Int)
     elseif kind === :haar_three_h
         third = fld(w, 3)
         third == 0 && return weights
-        weights[:, 1:third] .= 1.0
-        weights[:, third + 1:2 * third] .= -1.0
-        weights[:, 2 * third + 1:3 * third] .= 1.0
+        o = fld(w - 3 * third, 2)                    # bands centred in the window
+        weights[:, o + 1:o + third] .= 1.0
+        weights[:, o + third + 1:o + 2 * third] .= -1.0
+        weights[:, o + 2 * third + 1:o + 3 * third] .= 1.0
     elseif kind === :haar_three_v
         third = fld(h, 3)
         third == 0 && return weights
-        weights[1:third, :] .= 1.0
-        weights[third + 1:2 * third, :] .= -1.0
-        weights[2 * third + 1:3 * third, :] .= 1.0
+        o = fld(h - 3 * third, 2)
+        weights[o + 1:o + third, :] .= 1.0
+        weights[o + third + 1:o + 2 * third, :] .= -1.0
+        weights[o + 2 * third + 1:o + 3 * third, :] .= 1.0
     else
         error("unknown test haar kind")
     end

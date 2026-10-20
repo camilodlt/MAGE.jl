@@ -1,6 +1,7 @@
 ```@meta
 CurrentModule = UTCGP
 DocTestSetup = quote
+  using UTCGP
 
   # LIST GENERIC SUBSET
   using UTCGP.listgeneric_basic:identity_list
@@ -188,4 +189,48 @@ But lists have to be of the same type:
 julia> concat_two_lists([1,2], [3.0,4.0])
 ERROR: MethodError: no method matching
 [...]
+```
+
+## Set operations
+
+### Module
+```@docs
+UTCGP.listgeneric_set
+```
+
+## Where
+
+### Module
+```@docs
+UTCGP.listgeneric_where
+```
+
+## Utils
+
+### Module
+```@docs
+UTCGP.listgeneric_utils
+```
+
+## Bundles
+
+Each generic list bundle comes in two forms: the plain one, already specialised
+to `Any`, and the `_factory` one whose entries take a type and return the
+method specialised for it. See [Libraries](@ref).
+
+```@docs
+bundle_listgeneric_basic
+bundle_listgeneric_basic_factory
+bundle_listgeneric_subset
+bundle_listgeneric_subset_factory
+bundle_listgeneric_makelist
+bundle_listgeneric_makelist_factory
+bundle_listgeneric_concat
+bundle_listgeneric_concat_factory
+bundle_listgeneric_set
+bundle_listgeneric_set_factory
+bundle_listgeneric_utils
+bundle_listgeneric_utils_factory
+bundle_listgeneric_where
+bundle_listgeneric_where_factory
 ```

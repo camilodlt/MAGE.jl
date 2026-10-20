@@ -1,24 +1,15 @@
 # # -*- coding: utf-8 -*-
 
-""" Lower Upper and Capitalize functions
+"""
+Upper-case, lower-case and capitalisation operators. Indices are clipped rather
+than throwing.
 
-Exports :
+# Bundles
 
-- **bundle\\_string\\_caps** :
-    - `uppercase_`
-    - `uppercase_at`
-    - `uppercase_after`
-    - `uppercase_char_after`
-    - `uppercase_before`
-    - `uppercase_char_before  `
-    - `lowercase_`
-    - `lowercase_at`
-    - `lowercase_after`
-    - `lowercase_char_after`
-    - `lowercase_before`
-    - `lowercase_char_before  `
-    - `capitalize_first`
-    - `capitalize_all`
+- [`bundle_string_caps`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module str_caps
 
@@ -30,6 +21,16 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return ""
 
+"""
+    bundle_string_caps
+
+Case operators: `uppercase_`/`lowercase_` over a whole string, at an index
+(`_at`), from an index on (`_after`, `_before`), on a single character
+(`_char_after`, `_char_before`), plus `capitalize_first` and `capitalize_all`.
+
+Indices are clipped rather than throwing, so an out-of-range position yields the
+string unchanged.
+"""
 bundle_string_caps = FunctionBundle(fallback)
 
 # FUNCTIONS ---

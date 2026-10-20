@@ -109,20 +109,26 @@ function _region_half_size_percent_for_test(img::AbstractMatrix, pct::Float64)
     if iseven(kernel_size) && kernel_size > 1
         kernel_size -= 1
     end
-    return fld(kernel_size - 1, 2)
+    return max(fld(kernel_size - 1, 2), 1)       # windows are at least 3 × 3
 end
 
+# Brute force: every pixel of the outer window that is not in the inner window is ring.
 function _region_contrast_expected(img::AbstractMatrix, cx, cy, half_size::Int)
-    inner = _patch_for_test(img, cx, cy, half_size)
+    h, w = size(img)
+    center_row = clamp(round(Int, clamp(Float64(cy), 0.0, 1.0) * (h - 1) + 1), 1, h)
+    center_col = clamp(round(Int, clamp(Float64(cx), 0.0, 1.0) * (w - 1) + 1), 1, w)
     outer_half_size = max(half_size + 1, min(2 * half_size + 1, fld(min(size(img)...) - 1, 2)))
-    outer = _patch_for_test(img, cx, cy, outer_half_size)
-    inner_h, inner_w = size(inner)
-    outer_h, outer_w = size(outer)
-    row_offset = fld(outer_h - inner_h, 2)
-    col_offset = fld(outer_w - inner_w, 2)
-    ring_mask = trues(size(outer))
-    ring_mask[row_offset + 1:row_offset + inner_h, col_offset + 1:col_offset + inner_w] .= false
-    return mean(inner) - mean(outer[ring_mask])
+    inner_values = Float64[]
+    ring_values = Float64[]
+    for c in 1:w, r in 1:h
+        dr, dc = abs(r - center_row), abs(c - center_col)
+        if dr <= half_size && dc <= half_size
+            push!(inner_values, img[r, c])
+        elseif dr <= outer_half_size && dc <= outer_half_size
+            push!(ring_values, img[r, c])
+        end
+    end
+    return mean(inner_values) - mean(ring_values)
 end
 
 @testset "Reduce Image" begin

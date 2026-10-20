@@ -33,7 +33,7 @@ INTENSITY = IntensityPixel{N0f8}
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:erosion_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -72,7 +72,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:erosion_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         @testset for (k, expected) in zip(ks, expected)
             # Test without k parameter
@@ -106,9 +106,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -120,7 +120,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:dilation_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -150,9 +150,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     test_img_intensity.img[test_img_intensity.==1] .= 0.8 # it should dilate 0.8s
@@ -166,7 +166,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:dilation_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -197,9 +197,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     expected = [5, 5, 13, 13, 75, 75]
@@ -212,7 +212,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:dilation_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         @testset for (k, expected) in zip(ks, expected)
             # Test without k parameter
@@ -254,7 +254,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:opening_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -294,7 +294,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:opening_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         @testset for (k, expected) in zip(ks, expected)
             # Test without k parameter
@@ -328,9 +328,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -342,7 +342,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:closing_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -372,9 +372,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -388,7 +388,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:closing_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         @testset for (k, expected) in zip(ks, expected)
             # Test without k parameter
@@ -430,7 +430,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:tophat_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -469,7 +469,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:tophat_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         @testset for (k, expected) in zip(ks, expected)
             # Test without k parameter
@@ -502,9 +502,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -516,7 +516,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:bothat_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -546,9 +546,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     expected = [0, 0, 0, 0, 0, 0]
@@ -561,7 +561,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:bothat_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         @testset for (k, expected) in zip(ks, expected)
             # Test without k parameter
@@ -610,7 +610,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:morphogradient_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -653,7 +653,7 @@ end
         bundle_image2DIntensity_morph_factory
     # Get the function for the specific image type
     fn = bundle[:morphogradient_2D]
-    fn = fn.fn(factory_for)
+    fn = (@test_factory fn.fn(factory_for))
 
     @testset for (k, n_expected_1, n_expected_2, value_expected_1, value_expected_2) in zip(
         ks,
@@ -696,7 +696,7 @@ end
         bundle_image2DIntensity_morph_factory
     # Get the function for the specific image type
     fn = bundle[:morphogradient_2D]
-    fn = fn.fn(factory_for)
+    fn = (@test_factory fn.fn(factory_for))
 
     @testset for (k, n_expected_1, n_expected_2, value_expected_1, value_expected_2) in zip(
         ks,
@@ -746,7 +746,7 @@ end
         bundle_image2DIntensity_morph_factory
     # Get the function for the specific image type
     fn = bundle[:morphogradient_2D]
-    fn = fn.fn(factory_for)
+    fn = (@test_factory fn.fn(factory_for))
 
     @testset for (k, n_expected_1, n_expected_2, value_expected_1, value_expected_2) in zip(
         ks,
@@ -803,7 +803,7 @@ end
         bundle_image2DIntensity_morph_factory
     # Get the function for the specific image type
     fn = bundle[:morphogradient_2D]
-    fn = fn.fn(factory_for)
+    fn = (@test_factory fn.fn(factory_for))
     @testset for (k, n_expected_1, n_expected_2, value_expected_1, value_expected_2) in zip(
         ks,
         n_expected_binary,
@@ -854,9 +854,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -873,7 +873,7 @@ end
             bundle_image2DIntensity_morph_factory
         # Get the function for the specific image type
         fn = bundle[:morpholaplace_2D]
-        fn = fn.fn(factory_for)
+        fn = (@test_factory fn.fn(factory_for))
 
         # Test without k parameter
         res1 = fn(test_img_binary)
@@ -903,9 +903,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity))
+        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     test_img_intensity.img[5, 5] = 0.8
@@ -922,7 +922,7 @@ end
         bundle_image2DIntensity_morph_factory
     # Get the function for the specific image type
     fn = bundle[:morpholaplace_2D]
-    fn = fn.fn(factory_for)
+    fn = (@test_factory fn.fn(factory_for))
 
     @testset for (k, n_expected_1, n_expected_2, value_expected_1, value_expected_2) in zip(
         ks,
@@ -965,7 +965,7 @@ end
         bundle_image2DIntensity_morph_factory
     # Get the function for the specific image type
     fn = bundle[:morpholaplace_2D]
-    fn = fn.fn(factory_for)
+    fn = (@test_factory fn.fn(factory_for))
 
     @testset for (k, n_expected_1, n_expected_2, value_expected_1, value_expected_2) in zip(
         ks,

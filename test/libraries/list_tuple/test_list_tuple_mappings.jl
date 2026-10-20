@@ -56,14 +56,14 @@
     # Factory
     @test begin
         # Normal 
-        z = listtuple_mappings.mappings_a_to_b_factory(Float64)
-        d = listtuple_mappings.mappings_a_to_b_factory(String)
+        z = (@test_factory listtuple_mappings.mappings_a_to_b_factory(Float64))
+        d = (@test_factory listtuple_mappings.mappings_a_to_b_factory(String))
         z([1.0, 2.0], [4.0, 5.0]) == [(1.0, 4.0), (2.0, 5.0)] &&
             d(["1.0", "2.0"], ["4.0", "5.0"]) == [("1.0", "4.0"), ("2.0", "5.0")]
     end
     @test_throws MethodError begin
         # Wrong concrete type
-        z = listtuple_mappings.mappings_a_to_b_factory(Float64)
+        z = (@test_factory listtuple_mappings.mappings_a_to_b_factory(Float64))
         z([1, 2], [4, 5])
     end
 end

@@ -58,14 +58,14 @@ using UTCGP.listgeneric_utils: unique_in_list
         # Wrong types
         a = ["1"]
         m = [(1, 2)]
-        z = listgeneric_utils.replace_by_mapping_factory(String)
+        z = (@test_factory listgeneric_utils.replace_by_mapping_factory(String))
         z(a, m)
     end
     @test begin
         # Wrong types
         a = ["1"]
         m = [("1", "2")]
-        z = listgeneric_utils.replace_by_mapping_factory(String)
+        z = (@test_factory listgeneric_utils.replace_by_mapping_factory(String))
         z(a, m) == ["2"]
     end
 end

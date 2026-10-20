@@ -63,6 +63,17 @@ function _eval_batch_on_pop(
     @info "Ended Batch fit at Thread $(tid). $(now())"
 end
 
+"""
+    fit_mt(args...)
+
+Multithreaded [`fit`](@ref): the batch is evaluated in parallel across Julia
+threads.
+
+Same arguments and same return value, except that `X` is expected to be a
+batched data loader exposing `batch_size` and `length`. Start Julia with `-t` /
+`JULIA_NUM_THREADS` for it to do anything, and make sure any callback you pass
+is thread-safe.
+"""
 function fit_mt(
     X::Any,
     Y::Union{Any,Nothing},

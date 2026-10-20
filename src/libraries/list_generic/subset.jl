@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Exports :
+Slicing and masking of lists. Indices are clipped, so slicing never throws.
 
-- **bundle\\_listgeneric\\_subset** :
-    - `pick_from_exclusive_generic`
-    - `pick_from_inclusive_generic`
-    - `pick_until_exclusive_generic`
-    - `pick_until_inclusive_generic`
-    - `subset_list_of_tuples`
-    - `subset_by_mask`
-    - `subset_by_indices`
+# Bundles
 
+- [`bundle_listgeneric_subset`](@ref)
+- [`bundle_listgeneric_subset_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module listgeneric_subset
 
@@ -22,7 +20,26 @@ import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 # SUBSET LIST #
 # ########### #
 
+"""
+    bundle_listgeneric_subset
+
+Slicing: `pick_from_inclusive_generic`, `pick_from_exclusive_generic`,
+`pick_until_inclusive_generic`, `pick_until_exclusive_generic`,
+`subset_list_of_tuples`, `subset_by_mask` and `subset_by_indices`.
+
+Out-of-range indices are clipped, so slicing never throws.
+"""
 bundle_listgeneric_subset = FunctionBundle(identity_list, new_list)
+"""
+    bundle_listgeneric_subset_factory
+
+Factory form of [`bundle_listgeneric_subset`](@ref).
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_listgeneric_subset_factory = FunctionBundle(identity_list, new_list)
 
 # FUNCTIONS ---

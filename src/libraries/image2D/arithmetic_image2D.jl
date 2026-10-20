@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
-""" Arithmetic ops between 2D images
-
-Exports :
-
-- **bundle\\_image2D\\_arithmetic** :
-    - subtract\\_image2D\\_factory 
-    - add\\_image2D\\_factory 
-    - mult\\_image2D\\_factory
-    - max\\_image2D\\_factory
-    - min\\_image2D\\_factory
 """
+Pixel-wise arithmetic between two images of the same type.
 
+# Bundles
+
+- [`bundle_image2DIntensity_arithmetic_factory`](@ref)
+- [`bundle_image2DBinary_arithmetic_factory`](@ref)
+
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
+"""
 module image2D_arithmetic
+
+using ..UTCGP: _factory_type_symbol, @serialized_factory
+
+using ..UTCGP: @image_out
 
 using ..UTCGP: image2D_basic
 using ..UTCGP:image2D_morph
-using ..UTCGP: ManualDispatcher
 using ..UTCGP: FunctionBundle, append_method!
 import UTCGP:
     CONSTRAINED,
@@ -30,10 +32,33 @@ using ..UTCGP:
     SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type, 
     IntensityPixel, BinaryPixel, SegmentPixel
 
-cast = image2D_morph.cast
+const cast = image2D_morph.cast
 fallback(args...) = return nothing
 
+"""
+    bundle_image2DBinary_arithmetic_factory
+
+Pixel-wise arithmetic between two masks: `add_img2D`, `subtract_img2D`,
+`mult_img2D`, `max_img2D`, `min_img2D` — the boolean or/and-nots of mask
+algebra.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DBinary_arithmetic_factory = FunctionBundle(fallback)
+"""
+    bundle_image2DIntensity_arithmetic_factory
+
+Pixel-wise arithmetic between two intensity images: `add_img2D`,
+`subtract_img2D`, `mult_img2D`, `max_img2D`, `min_img2D`.
+
+This is a *factory* bundle: each entry is a function of a type that returns the
+method specialised for it, so the same operator can be instantiated for several
+image or element types. See [Libraries](@ref) for how factories are specialised
+into a library.
+"""
 bundle_image2DIntensity_arithmetic_factory = FunctionBundle(fallback)
 
 # ################### #
@@ -49,22 +74,34 @@ with InputType = SizedImage2D{S1,S2,T,IT} where {S1,S2,T<:Normed,IT}
 
     m1 = @eval ((img1::CONCT, img2::CONCT, args::Vararg{Any}) where {CONCT<:\$I})
 
-Which subtracts `img1` from `img2` (as floats) and then clamps the result between [0,1].
+Which computes `img1 − img2` (as floats), pixel by pixel, and clamps the result to [0,1]:
+pixels where `img2` is brighter become 0.
 
 **Returns**:
 
 The subtracted image as a `SImageND` with the same shape.
 """
-function subtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function subtract_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    function_name = Symbol(:subtract_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(-(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = float(img1) - float(img2)
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -87,16 +124,27 @@ Which adds `img1` and `img2` (as floats) and then clamps the result between [0,1
 
 The added image as a `SImageND` with the same shape.
 """
-function add_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function add_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    function_name = Symbol(:add_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(+(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = float(img1) + float(img2)
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -119,16 +167,27 @@ Which multiplies `img1` and `img2` (as floats) and then clamps the result betwee
 
 The multiplied image as a `SImageND` with the same shape.
 """
-function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    function_name = Symbol(:mult_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(*(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = float(img1) .* float(img2)
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -137,16 +196,27 @@ function mult_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bin
 end
 
 # element wise max
-function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    function_name = Symbol(:max_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(max(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = max.(float(img1),float(img2))
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)
@@ -155,16 +225,27 @@ function max_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{Bina
 end
 
 # element wise min
-function min_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
+@serialized_factory function min_image2D_factory(i::Type{I}) where {I<:SizedImage{SIZE, <:Union{BinaryPixel{T}, IntensityPixel{T}}}} where {SIZE,T}
     IT, PT, S = _get_image_type(I), _get_image_pixel_type(I), _get_image_tuple_size(I)
     S1, S2 = S.parameters[1], S.parameters[2]
     _validate_factory_type(IT)
 
     # works for prod(Intensity, Binary) of the same size
-    m1 = @eval ((img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
+    # Write pixels directly when the caller supplies storage.
+    function_name = Symbol(:min_image2D_, _factory_type_symbol(I))
+    isdefined(@__MODULE__, function_name) && return Base.invokelatest(getfield, @__MODULE__, function_name)
+    m1 = @eval @image_out function $function_name(img1::CONCT1, img2::CONCT2, args::Vararg{Any}) where {
             CONCT1 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}},
             CONCT2 <: SizedImage{$(SIZE), <:Union{BinaryPixel, IntensityPixel}}
-        }) -> begin
+        }
+
+        if out !== nothing
+            for i in eachindex(out.img,img1.img,img2.img)
+                v = clamp01nan(min(float(img1.img[i]),float(img2.img[i])))
+                out.img[i] = $PT($IT === Bool ? Bool(round(Int,v)) : $IT(v))
+            end
+            return out
+        end
         img3 = min.(float(img1),float(img2))
         clamp01nan!(img3)
         return SImageND($PT.(cast($IT, img3)), $S)

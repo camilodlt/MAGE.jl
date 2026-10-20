@@ -1,18 +1,15 @@
 # # -*- coding: utf-8 -*-
 
-""" Paste Operations
+"""
+Concatenate strings, and collapse a list of strings into one.
 
-Exports :
+# Bundles
 
-- **bundle\\_string\\_paste** :
-    - `paste`
-    - `paste_0`
-    - `paste_with_space `
-- **bundle\\_string\\_concat\\_list\\_string** :
-    - `paste_space_list_string`
-    - `paste_list_string_sep`
-    - `paste_list_string`
+- [`bundle_string_paste`](@ref)
+- [`bundle_string_concat_list_string`](@ref)
 
+The exhaustive, always-current list of operators in each bundle is on the
+[Bundle Catalogue](@ref) page.
 """
 module str_paste
 
@@ -24,7 +21,23 @@ using ..UTCGP: FunctionBundle, append_method!
 
 fallback(args...) = return ""
 
+"""
+    bundle_string_paste
+
+String concatenation: `paste` (comma-joined), `paste0` (no separator) and
+`paste_with_space`.
+"""
 bundle_string_paste = FunctionBundle(fallback)
+"""
+    bundle_string_concat_list_string
+
+Collapse a vector of strings into one: `paste_list_string`,
+`paste_space_list_string`, and `paste_list_string_sep` with an explicit
+separator.
+
+The input type is a list of strings and the output a string, so this bundle
+belongs to a `String` chromosome reading from a `Vector{String}` one.
+"""
 bundle_string_concat_list_string = FunctionBundle(fallback)
 
 # FUNCTIONS ---

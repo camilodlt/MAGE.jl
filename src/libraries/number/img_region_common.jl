@@ -1,4 +1,11 @@
-""" Shared image-region helpers for image-to-float number libraries. """
+"""
+Shared image-region helpers for the image-to-float number libraries
+(`region_*`, `haar_*`).
+
+Coordinates are normalised to `[0, 1]` (`0` = first pixel, `1` = last);
+non-finite inputs fall back to the image centre (`0.5`) and sizes to `1`,
+so values coming from evolved programs never throw.
+"""
 module number_imgRegionCommon
 
 using ..UTCGP: SImageND, IntensityPixel, BinaryPixel, SegmentPixel
@@ -9,13 +16,29 @@ function _image_numeric(from::SImageND)
     return Float64.(reinterpret(from.img))
 end
 
+"`coord` clamped to `[0, 1]`; `NaN` and `±Inf` become `0.5` (the centre)."
+_unit_or_centre(coord::Number) = (c = Float64(coord); isfinite(c) ? clamp(c, 0.0, 1.0) : 0.5)
+
+"""
+Index `1:n` of the pixel at normalised coordinate `coord`.
+
+Example with `n = 11`: `0 → 1`, `0.5 → 6`, `1 → 11`.
+"""
 function _normalized_index(coord::Number, n::Int)
-    c = clamp(Float64(coord), 0.0, 1.0)
+    c = _unit_or_centre(coord)
     return clamp(round(Int, c * (n - 1) + 1), 1, n)
 end
 
+"""
+Index `1:n` of the element at normalised position `position` in a flattened
+(column-major) array of `n` elements.
+
+Example for a `3 × 4` image (`n = 12`): `position = 0` is pixel `(1, 1)`,
+`1/11` pixel `(2, 1)`, `3/11` pixel `(1, 2)` (the next column), `1` pixel
+`(3, 4)`.
+"""
 function _normalized_flat_index(position::Number, n::Int)
-    p = clamp(Float64(position), 0.0, 1.0)
+    p = _unit_or_centre(position)
     return clamp(round(Int, p * (n - 1) + 1), 1, n)
 end
 
@@ -59,8 +82,15 @@ function _region_window_from_position(from::SImageND, position::Number, half_h::
     return @view img[row_lo:row_hi, col_lo:col_hi]
 end
 
+"""
+Half-width in pixels from a size parameter: `round(abs(size))`, at least `1`
+(a 3-pixel window). Non-finite sizes give `1`; huge ones are capped at
+`10^6` before rounding (the window is clipped to the image anyway).
+"""
 function _half_extent(size_param::Number)
-    return max(round(Int, abs(Float64(size_param))), 1)
+    s = abs(Float64(size_param))
+    isfinite(s) || return 1
+    return max(round(Int, min(s, 1.0e6)), 1)
 end
 
 end

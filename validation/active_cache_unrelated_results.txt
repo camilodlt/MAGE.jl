@@ -1,0 +1,912 @@
+Compile, validate, install, and dispatch: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:88
+  Expression: which(artifact.function_like, Tuple{Int})
+    Expected: MethodError
+      Thrown: ErrorException
+      Calling invoke(f, t, args...) would throw:
+      MethodError: no method matching invoke sum_plus_one(::Int64)
+      The function `sum_plus_one` exists, but no method is defined for this combination of argument types.
+      
+      Closest candidates are:
+        sum_plus_one(::Int64, !Matched::Int64, !Matched::Any...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)
+         @ Main.GeneratedMAGEFn_sum_plus_one_1 GeneratedMAGEFn_sum_plus_one_1.jl:1
+      
+      Stacktrace:
+       [1] which(f::Any, t::Any)
+         @ Base ./reflection.jl:2228
+       [2] which(f::SourceBackedFunction, t::Type{Tuple{Int64}})
+         @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
+       [3] macro expansion
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:88 [inlined]
+       [4] macro expansion
+         @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:774 [inlined]
+       [5] macro expansion
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:88 [inlined]
+       [6] macro expansion
+         @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+       [7] macro expansion
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:49 [inlined]
+       [8] macro expansion
+         @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+       [9] top-level scope
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:48
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:88 [inlined]
+ [2] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [3] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:49 [inlined]
+ [4] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [5] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:48
+Compile, validate, install, and dispatch: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:89
+  Expression: which(artifact.function_like, Tuple{Float64, Int})
+    Expected: MethodError
+      Thrown: ErrorException
+      Calling invoke(f, t, args...) would throw:
+      MethodError: no method matching invoke sum_plus_one(::Float64, ::Int64)
+      The function `sum_plus_one` exists, but no method is defined for this combination of argument types.
+      
+      Closest candidates are:
+        sum_plus_one(!Matched::Int64, ::Int64, Any...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)
+         @ Main.GeneratedMAGEFn_sum_plus_one_1 GeneratedMAGEFn_sum_plus_one_1.jl:1
+      
+      Stacktrace:
+       [1] which(f::Any, t::Any)
+         @ Base ./reflection.jl:2228
+       [2] which(f::SourceBackedFunction, t::Type{Tuple{Float64, Int64}})
+         @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
+       [3] macro expansion
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:89 [inlined]
+       [4] macro expansion
+         @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:774 [inlined]
+       [5] macro expansion
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:89 [inlined]
+       [6] macro expansion
+         @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+       [7] macro expansion
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:49 [inlined]
+       [8] macro expansion
+         @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+       [9] top-level scope
+         @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:48
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:89 [inlined]
+ [2] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [3] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:49 [inlined]
+ [4] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [5] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:48
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ [ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+┌ Info: Generated-function dispatch debug
+│   name = :sum_plus_one
+│   input_types =
+│    2-element Vector{DataType}:
+│     Int64
+│     Int64
+└   output_type = Int64
+┌ Info: methods(runtime_fn)
+└   methods = "# 1 method for generic function \"sum_plus_one\" from Main.GeneratedMAGEFn_sum_plus_one_1:\n [1] sum_plus_one(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n     @ GeneratedMAGEFn_sum_plus_one_1.jl:1"
+┌ Info: which(runtime_fn, exact_tuple)
+│   tuple_type = Tuple{Int64, Int64}
+└   method = "sum_plus_one(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_sum_plus_one_1 GeneratedMAGEFn_sum_plus_one_1.jl:1"
+┌ Info: which(runtime_fn, extra_tuple)
+│   tuple_type = Tuple{Int64, Int64, Int64}
+└   method = "sum_plus_one(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_sum_plus_one_1 GeneratedMAGEFn_sum_plus_one_1.jl:1"
+┌ Info: which(runtime_fn, too_short_tuple)
+│   tuple_type = Tuple{Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke sum_plus_one(::Int64)\nThe function `sum_plus_one` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  sum_plus_one(::Int64, " ⋯ 70 bytes ⋯ "at_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_sum_plus_one_1 GeneratedMAGEFn_sum_plus_one_1.jl:1\n"
+┌ Info: which(runtime_fn, wrong_tuple)
+│   tuple_type = Tuple{Float64, Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke sum_plus_one(::Float64, ::Int64)\nThe function `sum_plus_one` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  sum_plus_on" ⋯ 71 bytes ⋯ "at_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_sum_plus_one_1 GeneratedMAGEFn_sum_plus_one_1.jl:1\n"
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+┌ Info: Generated-function dispatch debug
+│   name = :sum_two_ints
+│   input_types =
+│    2-element Vector{DataType}:
+│     Int64
+│     Int64
+└   output_type = Int64
+┌ Info: methods(runtime_fn)
+└   methods = "# 1 method for generic function \"sum_two_ints\" from Main.GeneratedMAGEFn_sum_two_ints_2:\n [1] sum_two_ints(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n     @ GeneratedMAGEFn_sum_two_ints_2.jl:1"
+┌ Info: which(runtime_fn, exact_tuple)
+│   tuple_type = Tuple{Int64, Int64}
+└   method = "sum_two_ints(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_sum_two_ints_2 GeneratedMAGEFn_sum_two_ints_2.jl:1"
+┌ Info: which(runtime_fn, extra_tuple)
+│   tuple_type = Tuple{Int64, Int64, Int64}
+└   method = "sum_two_ints(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_sum_two_ints_2 GeneratedMAGEFn_sum_two_ints_2.jl:1"
+┌ Info: which(runtime_fn, too_short_tuple)
+│   tuple_type = Tuple{Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke sum_two_ints(::Int64)\nThe function `sum_two_ints` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  sum_two_ints(::Int64, " ⋯ 70 bytes ⋯ "at_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_sum_two_ints_2 GeneratedMAGEFn_sum_two_ints_2.jl:1\n"
+┌ Info: which(runtime_fn, wrong_tuple)
+│   tuple_type = Tuple{Float64, Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke sum_two_ints(::Float64, ::Int64)\nThe function `sum_two_ints` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  sum_two_int" ⋯ 71 bytes ⋯ "at_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_sum_two_ints_2 GeneratedMAGEFn_sum_two_ints_2.jl:1\n"
+┌ Info: Generated-function dispatch debug
+│   name = :double_sum_two_ints
+│   input_types =
+│    2-element Vector{DataType}:
+│     Int64
+│     Int64
+└   output_type = Int64
+┌ Info: methods(runtime_fn)
+└   methods = "# 1 method for generic function \"double_sum_two_ints\" from Main.GeneratedMAGEFn_double_sum_two_ints_3:\n [1] double_sum_two_ints(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n     @ GeneratedMAGEFn_double_sum_two_ints_3.jl:1"
+┌ Info: which(runtime_fn, exact_tuple)
+│   tuple_type = Tuple{Int64, Int64}
+└   method = "double_sum_two_ints(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_double_sum_two_ints_3 GeneratedMAGEFn_double_sum_two_ints_3.jl:1"
+┌ Info: which(runtime_fn, extra_tuple)
+│   tuple_type = Tuple{Int64, Int64, Int64}
+└   method = "double_sum_two_ints(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_double_sum_two_ints_3 GeneratedMAGEFn_double_sum_two_ints_3.jl:1"
+┌ Info: which(runtime_fn, too_short_tuple)
+│   tuple_type = Tuple{Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke double_sum_two_ints(::Int64)\nThe function `double_sum_two_ints` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  double_" ⋯ 106 bytes ⋯ "matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_double_sum_two_ints_3 GeneratedMAGEFn_double_sum_two_ints_3.jl:1\n"
+┌ Info: which(runtime_fn, wrong_tuple)
+│   tuple_type = Tuple{Float64, Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke double_sum_two_ints(::Float64, ::Int64)\nThe function `double_sum_two_ints` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are" ⋯ 107 bytes ⋯ "matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_double_sum_two_ints_3 GeneratedMAGEFn_double_sum_two_ints_3.jl:1\n"
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+┌ Info: Generated-function dispatch debug
+│   name = :fresh_name_at_compile
+│   input_types =
+│    2-element Vector{DataType}:
+│     Int64
+│     Int64
+└   output_type = Int64
+┌ Info: methods(runtime_fn)
+└   methods = "# 1 method for generic function \"fresh_name_at_compile\" from Main.GeneratedMAGEFn_fresh_name_at_compile_4:\n [1] fresh_name_at_compile(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n     @ GeneratedMAGEFn_fresh_name_at_compile_4.jl:1"
+┌ Info: which(runtime_fn, exact_tuple)
+│   tuple_type = Tuple{Int64, Int64}
+└   method = "fresh_name_at_compile(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_fresh_name_at_compile_4 GeneratedMAGEFn_fresh_name_at_compile_4.jl:1"
+┌ Info: which(runtime_fn, extra_tuple)
+│   tuple_type = Tuple{Int64, Int64, Int64}
+└   method = "fresh_name_at_compile(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_fresh_name_at_compile_4 GeneratedMAGEFn_fresh_name_at_compile_4.jl:1"
+┌ Info: which(runtime_fn, too_short_tuple)
+│   tuple_type = Tuple{Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke fresh_name_at_compile(::Int64)\nThe function `fresh_name_at_compile` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  fre" ⋯ 116 bytes ⋯ "ix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_fresh_name_at_compile_4 GeneratedMAGEFn_fresh_name_at_compile_4.jl:1\n"
+┌ Info: which(runtime_fn, wrong_tuple)
+│   tuple_type = Tuple{Float64, Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke fresh_name_at_compile(::Float64, ::Int64)\nThe function `fresh_name_at_compile` exists, but no method is defined for this combination of argument types.\n\nClosest candidates" ⋯ 117 bytes ⋯ "ix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_fresh_name_at_compile_4 GeneratedMAGEFn_fresh_name_at_compile_4.jl:1\n"
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+[ Info: Unpacking Functions
+[ Info: Library with no cache.
+┌ Info: Generated-function dispatch debug
+│   name = :repair_me
+│   input_types =
+│    2-element Vector{DataType}:
+│     Int64
+│     Int64
+└   output_type = Int64
+┌ Info: methods(runtime_fn)
+└   methods = "# 1 method for generic function \"repair_me\" from Main.GeneratedMAGEFn_repair_me_5:\n [1] repair_me(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n     @ GeneratedMAGEFn_repair_me_5.jl:1"
+┌ Info: which(runtime_fn, exact_tuple)
+│   tuple_type = Tuple{Int64, Int64}
+└   method = "repair_me(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_repair_me_5 GeneratedMAGEFn_repair_me_5.jl:1"
+┌ Info: which(runtime_fn, extra_tuple)
+│   tuple_type = Tuple{Int64, Int64, Int64}
+└   method = "repair_me(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_repair_me_5 GeneratedMAGEFn_repair_me_5.jl:1"
+┌ Info: which(runtime_fn, too_short_tuple)
+│   tuple_type = Tuple{Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke repair_me(::Int64)\nThe function `repair_me` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  repair_me(::Int64, !Matched:" ⋯ 55 bytes ⋯ "D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_repair_me_5 GeneratedMAGEFn_repair_me_5.jl:1\n"
+┌ Info: which(runtime_fn, wrong_tuple)
+│   tuple_type = Tuple{Float64, Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke repair_me(::Float64, ::Int64)\nThe function `repair_me` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  repair_me(!Matche" ⋯ 56 bytes ⋯ "D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_repair_me_5 GeneratedMAGEFn_repair_me_5.jl:1\n"
+┌ Info: Generated-function dispatch debug
+│   name = :repair_me
+│   input_types =
+│    2-element Vector{DataType}:
+│     Int64
+│     Int64
+└   output_type = Int64
+┌ Info: methods(runtime_fn)
+└   methods = "# 1 method for generic function \"repair_me\" from Main.GeneratedMAGEFn_repair_me_6:\n [1] repair_me(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n     @ GeneratedMAGEFn_repair_me_6.jl:1"
+┌ Info: which(runtime_fn, exact_tuple)
+│   tuple_type = Tuple{Int64, Int64}
+└   method = "repair_me(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_repair_me_6 GeneratedMAGEFn_repair_me_6.jl:1"
+┌ Info: which(runtime_fn, extra_tuple)
+│   tuple_type = Tuple{Int64, Int64, Int64}
+└   method = "repair_me(x1::Int64, x2::Int64, args...; bool_matrix_to_binary_SImage2D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like) @ Main.GeneratedMAGEFn_repair_me_6 GeneratedMAGEFn_repair_me_6.jl:1"
+┌ Info: which(runtime_fn, too_short_tuple)
+│   tuple_type = Tuple{Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke repair_me(::Int64)\nThe function `repair_me` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  repair_me(::Int64, !Matched:" ⋯ 55 bytes ⋯ "D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_repair_me_6 GeneratedMAGEFn_repair_me_6.jl:1\n"
+┌ Info: which(runtime_fn, wrong_tuple)
+│   tuple_type = Tuple{Float64, Int64}
+└   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke repair_me(::Float64, ::Int64)\nThe function `repair_me` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  repair_me(!Matche" ⋯ 56 bytes ⋯ "D, float_fns, float_matrix_to_intensity_SImage2D, fns_returning_float, fns_returning_int, image_values, image_values_float64, int_fns, int_matrix_to_segmented_SImage2D, rewrap_like)\n   @ Main.GeneratedMAGEFn_repair_me_6 GeneratedMAGEFn_repair_me_6.jl:1\n"
+ERROR: LoadError: Some tests did not pass: 59 passed, 41 failed, 0 errored, 0 broken.
+in expression starting at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/validation/unrelated_failures_check.jl:2
+~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Dice algo: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88
+  Expression: begin
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:89 =#
+    res = dice_game_example_algo(x, y)
+    #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:90 =#
+    isapprox(res, y[1], atol = 0.0001)
+end
+
+Stacktrace:
+ [1] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:680 [inlined]
+ [2] macro expansion
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:88 [inlined]
+ [3] macro expansion
+   @ ~/.juliaup/juliaup/julia-1.11.7+0.x64.linux.gnu/share/julia/stdlib/v1.11/Test/src/Test.jl:1709 [inlined]
+ [4] top-level scope
+   @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_dice_game.jl:86
+Test Summary:                                                           | Pass  Fail  Total  Time
+Independent unrelated failures (no cache calls)                         |   59    41    100  8.5s
+  LLM Generated Functions                                               |   48     2     50  8.0s
+    Compile, validate, install, and dispatch                            |   18     2     20  6.3s
+    Generated functions compose through named callables                 |    9            9  0.0s
+    Namespace dispatch handles same readable name with multiple methods |    3            3  0.0s
+    Rejects illegal signatures                                          |    4            4  0.3s
+    Rejects duplicate generated-function names at install time          |    2            2  0.0s
+    llama.cpp client parses structured function specs                   |    7            7  0.8s
+    Iterative repair loop                                               |    5            5  0.5s
+  Dice algo                                                             |   11    39     50  0.3s
