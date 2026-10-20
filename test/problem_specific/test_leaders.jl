@@ -1,6 +1,6 @@
-using UTCGP.listinteger_iscond: is_more_eq_than_right
-using UTCGP.listgeneric_subset: subset_by_mask
-using UTCGP: listinteger_caster
+using MAGE.listinteger_iscond: is_more_eq_than_right
+using MAGE.listgeneric_subset: subset_by_mask
+using MAGE: listinteger_caster
 leaders_train_data = [
     [[Int[]], [[]]],
     [[[0]], [[0]]],

@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # 3D Volumes: Projections and Descriptors
@@ -10,9 +10,9 @@ example phantom and the slice viewers are those of [3D Volumes: CT, MRI and
 Microscopy](@ref): drag a row's slider to move through the slices.
 
 ```@setup vol
-using UTCGP
+using MAGE
 volume_gallery_tag = "volume_projections"
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "volume_gallery.jl"))
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "volume_gallery.jl"))
 nodule_mask = call(bv(:vol_threshold), vol, 0.85)
 ```
 
@@ -177,7 +177,7 @@ organ. Only the intensity features see it (`stat_frac_above(·, 0.85)`,
 it.
 
 ```@example vol
-ST = UTCGP.number_intensityStatsFromImg
+ST = MAGE.number_intensityStatsFromImg
 println(rpad("", 30), join(rpad.(first.(classes), 18)))
 for (name, f) in (("stat_q95", ST.stat_q95), ("stat_frac_above(·, 0.85)", v -> g_call(ST.stat_frac_above, v, 0.85)),
                   ("stat_entropy", ST.stat_entropy))
@@ -194,13 +194,13 @@ end
 ## Bundles
 
 ```@docs
-UTCGP.image3D_to_image2D
-UTCGP.image3D_to_image2D.bundle_image2DIntensity_fromVolume_factory
-UTCGP.image3D_to_image2D.bundle_image2DBinary_fromVolume_factory
-UTCGP.number_volumeFromImg
-UTCGP.number_volumeFromImg.bundle_number_volumeShapeFromImg
-UTCGP.number_volumeFromImg.bundle_number_volumeGranulometryFromImg
-UTCGP.number_volumeFromImg.bundle_number_volumeProfileFromImg
+MAGE.image3D_to_image2D
+MAGE.image3D_to_image2D.bundle_image2DIntensity_fromVolume_factory
+MAGE.image3D_to_image2D.bundle_image2DBinary_fromVolume_factory
+MAGE.number_volumeFromImg
+MAGE.number_volumeFromImg.bundle_number_volumeShapeFromImg
+MAGE.number_volumeFromImg.bundle_number_volumeGranulometryFromImg
+MAGE.number_volumeFromImg.bundle_number_volumeProfileFromImg
 ```
 
 ## Timings for the examples

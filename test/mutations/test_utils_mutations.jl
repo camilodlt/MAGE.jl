@@ -1,4 +1,4 @@
-using UTCGP
+using MAGE
 using Random
 using Statistics
 
@@ -35,19 +35,19 @@ end
 
     @test begin # uses the default rng.
         rng = Random.seed!(123)
-        choosen_element_idx = UTCGP._sample_one_node_element_idx(10)
+        choosen_element_idx = MAGE._sample_one_node_element_idx(10)
         rng = Random.seed!(123)
-        choosen_element_idx_2 = UTCGP._sample_one_node_element_idx(10)
+        choosen_element_idx_2 = MAGE._sample_one_node_element_idx(10)
         choosen_element_idx == choosen_element_idx_2
     end
     @test begin # min is 1 max is 10
         rng = Random.seed!(123)
-        choices = [UTCGP._sample_one_node_element_idx(10) for i = 1:1000]
+        choices = [MAGE._sample_one_node_element_idx(10) for i = 1:1000]
         min(choices...) == 1 && max(choices...) == 10
     end
     @test begin # is uniform
         rng = Random.seed!(123)
-        choices = [UTCGP._sample_one_node_element_idx(10) for i = 1:10000]
+        choices = [MAGE._sample_one_node_element_idx(10) for i = 1:10000]
         nb_1 = sum(choices .== 1) / 10000
         nb_8 = sum(choices .== 8) / 10000
         nb_1 > 0.09 && nb_1 < 0.11 && nb_8 > 0.09 && nb_8 < 0.11
@@ -62,7 +62,7 @@ end
         el_2 = CGPElement(1, 1000, 0, 0, 0, false, FUNCTION)
         el_1.value = 1
         el_2.value = 1
-        UTCGP._mutate_all_alleles!([el_1, el_2])
+        MAGE._mutate_all_alleles!([el_1, el_2])
         el_1.value !== 1 && el_2.value != 1
     end
     @test begin # uses the default rng.
@@ -73,7 +73,7 @@ end
         initialize_node_element!(el_2)
         prec_value_1 = el_1.value
         prec_value_2 = el_2.value
-        UTCGP._mutate_all_alleles!([el_1, el_2])
+        MAGE._mutate_all_alleles!([el_1, el_2])
         el_1.value !== prec_value_1 && el_2.value != prec_value_2
     end
     @test begin # uses the default rng.
@@ -84,7 +84,7 @@ end
         initialize_node_element!(el_2)
         prec_value_1 = el_1.value
         prec_value_2 = el_2.value
-        UTCGP._mutate_all_alleles!([el_1, el_2])
+        MAGE._mutate_all_alleles!([el_1, el_2])
         el_1.value == prec_value_1 && el_2.value == prec_value_2
     end
     @test begin # No mutation since elements are frozen
@@ -95,7 +95,7 @@ end
         initialize_node_element!(el_2)
         prec_value_1 = el_1.value
         prec_value_2 = el_2.value
-        UTCGP._mutate_all_alleles!([el_1, el_2])
+        MAGE._mutate_all_alleles!([el_1, el_2])
         el_1.value == prec_value_1 && el_2.value == prec_value_2
     end
 end
@@ -202,18 +202,18 @@ end
 @testset "Sample n" begin
     # SAMPLABLE NBS 
     @test begin
-        sampled = UTCGP.sample_n(3, 3)
+        sampled = MAGE.sample_n(3, 3)
         sort!(sampled)
         sampled == [1, 2, 3]
     end
     @test_throws AssertionError begin
-        UTCGP.sample_n(1, 0)
+        MAGE.sample_n(1, 0)
     end
     @test_throws AssertionError begin
-        UTCGP.sample_n(1, 2)
+        MAGE.sample_n(1, 2)
     end
     @test_throws AssertionError begin
-        UTCGP.sample_n(-1, -2)
+        MAGE.sample_n(-1, -2)
     end
 end
 

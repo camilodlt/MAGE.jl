@@ -7,7 +7,7 @@ function init_pop(genome, ma, ml, si, n_pop::Int)
     for i = 1:n_pop
         g_new = deepcopy(genome)
         if random_initialization
-            UTCGP.reset_genome!(g_new)
+            MAGE.reset_genome!(g_new)
             initialize_genome!(g_new)
             correct_all_nodes!(g_new, ma, ml, si)
             fix_all_output_nodes!(g_new)
@@ -21,7 +21,7 @@ function _nsga2_init_params(genome::UTGenome, run_config::RunConfNSGA2)
     early_stop = false
     best_programs = nothing
     pareto_front_idx = nothing
-    population = UTCGP.Population([deepcopy(genome) for i = 1:run_config.pop_size]) # initial pop 
+    population = MAGE.Population([deepcopy(genome) for i = 1:run_config.pop_size]) # initial pop
     ranks = [1 for i = 1:run_config.pop_size]
     distances = [0.0 for i = 1:run_config.pop_size]
     return early_stop, best_programs, pareto_front_idx, population, ranks, distances
@@ -157,7 +157,7 @@ function fit_nsga2_atari_mt(
             distances,
         )
         if iteration > 1
-            # Compute offspring 
+            # Compute offspring
             offspring, time_pop =
                 @unwrap_or _make_nsga2_population(nsga2_pop_args, population_callbacks) throw(
                     "Could not unwrap make_population",
@@ -186,7 +186,7 @@ function fit_nsga2_atari_mt(
             offspring = population
         end
 
-        # Genotype to Phenotype mapping --- 
+        # Genotype to Phenotype mapping ---
         offspring_programs, time_pop_prog = _make_decoding(
             offspring,
             iteration,
@@ -198,7 +198,7 @@ function fit_nsga2_atari_mt(
             decoding_callbacks,
         )
 
-        UTCGP.reset_programs!.(offspring_programs)
+        MAGE.reset_programs!.(offspring_programs)
 
         # TODO implement tracker for vector fitnesses
         # M_individual_loss_tracker = IndividualLossTracker() # size of []
@@ -213,7 +213,7 @@ function fit_nsga2_atari_mt(
         offspring_fitness_values = get_endpoint_results(endpoint_holder) # Vector{Vector{Float64}}
 
         # TODO implement tracker for vector fitnesses
-        # UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
+        # MAGE.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 
         # Resetting the population (removes node values)
         [reset_genome!(g) for g in offspring]
@@ -221,7 +221,7 @@ function fit_nsga2_atari_mt(
         # final step call...
         if !isnothing(final_step_callbacks)
             for final_step_callback in final_step_callbacks
-                UTCGP.get_fn_from_symbol(final_step_callback)()
+                MAGE.get_fn_from_symbol(final_step_callback)()
             end
         end
 
@@ -255,7 +255,7 @@ function fit_nsga2_atari_mt(
         # @show ind_performances
 
         # TODO loss trackers
-        # ind_performances = UTCGP.resolve_ind_loss_tracker(M_individual_loss_tracker)
+        # ind_performances = MAGE.resolve_ind_loss_tracker(M_individual_loss_tracker)
 
         # try
         #     # histogram(ind_performances) |> println
@@ -301,10 +301,10 @@ function fit_nsga2_atari_mt(
             iteration,
             pareto_front_fitnesses,
         )
-        println("Iteration $iteration. 
+        println("Iteration $iteration.
                  Pareto front fitness values : $pareto_front_fitnesses")
 
-        # EARLY STOP CALLBACK 
+        # EARLY STOP CALLBACK
         if !isnothing(early_stop_callbacks) && length(early_stop_callbacks) != 0
             # early_stop_args = GA_EARLYSTOP_ARGS(
             #     M_gen_loss_tracker,
@@ -344,7 +344,7 @@ function fit_nsga2_atari_mt(
                 #     elite_idx,
                 # )
             end
-            # UTCGP.show_program(program)
+            # MAGE.show_program(program)
             return tuple(pareto_front_individuals, best_programs, M_gen_loss_tracker)
         end
 

@@ -12,7 +12,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module bool_basic
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 
 fallback(args...) = return false
 

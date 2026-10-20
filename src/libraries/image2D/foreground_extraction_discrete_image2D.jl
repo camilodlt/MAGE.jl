@@ -9,21 +9,21 @@ The exhaustive operator list is on the [Bundle Catalogue](@ref) page.
 """
 module image2D_foreground_extraction_discrete
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
 # Call tree: factories → _foreground_apply! → matrix kernels → seeded cuts
 # → appearance costs + graph construction
 # → _maximum_flow! (_global_relabel!, _recount_heights!) → _source_partition.
 # Scratch slots are task-local; separate slots keep simultaneously live arrays distinct.
 
-using ..UTCGP: scratch, output_pixels, image_result
+using ..MAGE: scratch, output_pixels, image_result
 include("foreground_resolution.jl")
 
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
 using ImageFiltering: Kernel, imfilter
 using ImageMorphology: distance_transform, feature_transform, label_components, label_components!
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

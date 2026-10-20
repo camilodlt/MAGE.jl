@@ -15,7 +15,7 @@ stores one score per individual in a `fitness_results` field.
 Defining a problem is therefore just defining a struct:
 
 ```julia
-struct EndpointMAE <: UTCGP.BatchEndpoint
+struct EndpointMAE <: MAGE.BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointMAE(preds::Vector{<:Vector{<:Number}}, y::Number)
         res = [isnan(p[1]) ? 2.0 : abs(p[1] - y) for p in preds]

@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Mutations
@@ -40,7 +40,7 @@ Per-allele mutation. Each element of each node is redrawn with probability
 that connexions still type-check.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["mutations/standard_mutation.jl"]
 ```
 
@@ -51,7 +51,7 @@ each is mutated. The amount of change per individual then does not drift as the
 genome grows.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["mutations/numbered_mutation.jl"]
 ```
 
@@ -61,7 +61,7 @@ The numbered operator, retried per node until the node's decoded material
 actually changes (up to 1000 attempts).
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["mutations/new_material_mutation.jl"]
 ```
 
@@ -71,7 +71,7 @@ Mutation that does not maintain type-correctness. It must be paired with the
 free decoder, [`default_free_decoding_callback`](@ref).
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["mutations/mt_mutation.jl"]
 ```
 
@@ -82,7 +82,7 @@ whenever something upstream may have left a node inconsistent — a free
 mutation, or a library swapped under an existing genome.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["mutations/correct_all_nodes.jl"]
 ```
 
@@ -92,7 +92,7 @@ The building blocks the operators above are made of. `get_active_nodes` is also
 what tells the search which part of a genome is expressed.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["mutations/utils_mutation.jl"]
 ```
 
@@ -106,6 +106,6 @@ Use separate caches for the two sides of a population pool; mutation scratch
 and returned result vectors belong to their cache entry.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["mutations/active_node_cache.jl"]
 ```

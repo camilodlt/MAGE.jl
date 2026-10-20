@@ -1,6 +1,6 @@
 # Ordered active-node cache
 
-This is an opt-in UTCGP cache for ordinary `UTGenome` mutation, independent of
+This is an opt-in MAGE cache for ordinary `UTGenome` mutation, independent of
 application types, input count, chromosome count, or chromosome width. Existing
 calls without a cache retain their original decode, sampling, and node mutation.
 No runner files are changed. Base: `fast-pop-eval`, `8b59d28`.
@@ -40,26 +40,26 @@ ActiveNodeCache(n::Integer)
 ActiveNodeCacheEntry()
 Base.getindex(cache::ActiveNodeCache, i::Integer)
 capture_active_nodes!(entry::ActiveNodeCacheEntry, genome::UTGenome,
-                      programs::UTCGP.IndividualPrograms)
+                      programs::MAGE.IndividualPrograms)
 copy_active_nodes!(dest::ActiveNodeCacheEntry, src::ActiveNodeCacheEntry)
 invalidate_active_nodes!(entry::ActiveNodeCacheEntry)
 active_cache_matches(entry::ActiveNodeCacheEntry, genome::UTGenome)::Bool
 check_active_nodes(entry::ActiveNodeCacheEntry, genome::UTGenome,
                    ml::MetaLibrary, arch::modelArchitecture, shared::SharedInput)::Bool
 
-new_material_mutation!(genome::UTGenome, config::UTCGP.AbstractRunConf,
+new_material_mutation!(genome::UTGenome, config::MAGE.AbstractRunConf,
     arch::modelArchitecture, ml::MetaLibrary, shared::SharedInput;
     active_positions::Union{Nothing,ActiveNodeCacheEntry}=nothing)
 
-UTCGP.default_decoding_callback(population::Population, generation::Int,
-    config::UTCGP.AbstractRunConf, arch::modelArchitecture, nc::nodeConfig,
+MAGE.default_decoding_callback(population::Population, generation::Int,
+    config::MAGE.AbstractRunConf, arch::modelArchitecture, nc::nodeConfig,
     ml::MetaLibrary, shared::SharedInput, cache::ActiveNodeCache)
 
-UTCGP.ga_population_callback(args::UTCGP.GA_POP_ARGS,
+MAGE.ga_population_callback(args::MAGE.GA_POP_ARGS,
     cache::ActiveNodeCache, parent_cache::ActiveNodeCache,
     parent_indices::AbstractVector{<:Integer})
 
-UTCGP.ga_numbered_new_material_mutation_callback(args::UTCGP.Abstract_GA_MUTATION_ARGS,
+MAGE.ga_numbered_new_material_mutation_callback(args::MAGE.Abstract_GA_MUTATION_ARGS,
     cache::ActiveNodeCache, parent_cache::ActiveNodeCache,
     parent_indices::AbstractVector{<:Integer}; check::Bool=false)
 ```
@@ -136,8 +136,8 @@ child has already been edited.
 For standard GA callbacks, close over both caches and the indices:
 
 ```julia
-population_cb = args -> UTCGP.ga_population_callback(args, dst, src, parents)
-mutation_cb = args -> UTCGP.ga_numbered_new_material_mutation_callback(
+population_cb = args -> MAGE.ga_population_callback(args, dst, src, parents)
+mutation_cb = args -> MAGE.ga_numbered_new_material_mutation_callback(
     args, dst, src, parents; check=(args.generation % check_every == 0))
 ```
 
@@ -232,7 +232,7 @@ and errors reproduce in independent runs that never invoke the active cache:
 `unrelated_errors_check.jl` reproduces **51 pass / 0 fail / 2 errors** (one
 behavior-hasher include). Logs are `active_cache_unrelated_results.txt` and
 `active_cache_unrelated_errors_results.txt`. No unrelated implementation was
-changed and the required UTCGP bounds were retained.
+changed and the required MAGE bounds were retained.
 
 The temp environment required exposing already-manifested ImageMorphology and
 Combinatorics as direct dependencies to load the entire registry. `_env3` remains

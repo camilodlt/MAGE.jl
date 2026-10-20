@@ -8,7 +8,7 @@ function _ga_init_params(genome::UTGenome, run_config::AbstractRunConf)
     early_stop = false
     best_programs = nothing
     elite_idx = nothing
-    population = UTCGP.Population([deepcopy(genome) for i = 1:run_config.n_elite]) # initial pop 
+    population = MAGE.Population([deepcopy(genome) for i = 1:run_config.n_elite]) # initial pop
     ind_performances = [1.0 for i = 1:run_config.n_elite]
     return early_stop, best_programs, elite_idx, population, ind_performances
 end
@@ -51,7 +51,7 @@ best_genome, best_program, history = fit_ga(
 
 Every generation runs the same phases, and each phase is a tuple of callbacks
 (a `Symbol` naming one of the built-ins, a `Function`, or any
-`UTCGP.AbstractCallable`):
+`MAGE.AbstractCallable`):
 
 | Argument                    | Phase                                              |
 |:----------------------------|:---------------------------------------------------|
@@ -148,7 +148,7 @@ function fit_ga(
         ) throw("Could not unwrap make_ga_output_mutations")
         @info "Time Out Mutation $time_out_mut"
 
-        # Genotype to Phenotype mapping --- 
+        # Genotype to Phenotype mapping ---
         population_programs, time_pop_prog = _make_decoding(
             population,
             iteration,
@@ -174,7 +174,7 @@ function fit_ga(
                 (pos, value) in enumerate(x)
             ]
             # append input nodes to pop
-            replace_shared_inputs!(population_programs, input_nodes) # update 
+            replace_shared_inputs!(population_programs, input_nodes) # update
             time_eval = @elapsed outputs = evaluate_population_programs(
                 population_programs,
                 model_architecture,
@@ -266,8 +266,8 @@ function fit_ga(
         # store iteration loss/fitness
         affect_fitness_to_loss_tracker!(M_gen_loss_tracker, iteration, elite_best_fitness)
         println(
-            "Iteration $iteration. 
-            Best fitness: $(round(elite_best_fitness, digits = 10)) at index $elite_best_fitness_idx 
+            "Iteration $iteration.
+            Best fitness: $(round(elite_best_fitness, digits = 10)) at index $elite_best_fitness_idx
             Elite mean fitness : $(round(elite_avg_fitness, digits = 10)). Std: $(round(elite_std_fitness)) at indices : $(elite_idx)",
         )
 
@@ -312,7 +312,7 @@ function fit_ga(
                     elite_idx,
                 )
             end
-            # UTCGP.show_program(program)
+            # MAGE.show_program(program)
             return tuple(genome, best_programs, M_gen_loss_tracker)
         end
 
@@ -358,7 +358,7 @@ function fit_ga_mt(
 
     local early_stop, best_programs, elite_idx, population, ind_performances, =
         _ga_init_params(genome, run_config)
-    # DL 
+    # DL
     BatchSize = X.batch_size
     TrainSize = length(X)
 
@@ -405,7 +405,7 @@ function fit_ga_mt(
         #     output_mutation_callbacks,
         # ) throw("Could not unwrap make_ga_output_mutations")
 
-        # Genotype to Phenotype mapping --- 
+        # Genotype to Phenotype mapping ---
         population_programs, time_pop_prog = _make_decoding(
             population,
             iteration,
@@ -421,7 +421,7 @@ function fit_ga_mt(
         M_individual_loss_tracker = IndividualLossTrackerMT(length(population), length(X))
 
         @warn "Multi Threaded Graphs evals"
-        UTCGP.reset_programs!(population_programs)
+        MAGE.reset_programs!(population_programs)
         batch = X[1:TrainSize] # should do in parallel
         for ith_x in Iterators.partition(1:TrainSize, BatchSize)
             @debug "Spawn training batch $ith_x. $(now()) "
@@ -537,8 +537,8 @@ function fit_ga_mt(
         # store iteration loss/fitness
         affect_fitness_to_loss_tracker!(M_gen_loss_tracker, iteration, elite_best_fitness)
         println(
-            "Iteration $iteration. 
-            Best fitness: $(round(elite_best_fitness, digits = 10)) at index $elite_best_ftiness_idx 
+            "Iteration $iteration.
+            Best fitness: $(round(elite_best_fitness, digits = 10)) at index $elite_best_ftiness_idx
             Elite mean fitness : $(round(elite_avg_fitness, digits = 10)). Std: $(round(elite_std_fitness)) at indices : $(elite_idx)",
         )
 
@@ -582,7 +582,7 @@ function fit_ga_mt(
                     elite_idx,
                 )
             end
-            # UTCGP.show_program(program)
+            # MAGE.show_program(program)
             return tuple(genome, best_programs, M_gen_loss_tracker)
         end
 
@@ -624,7 +624,7 @@ function fit_ga_meanbatch_mt(
 
     local early_stop, best_programs, elite_idx, population, ind_performances, =
         _ga_init_params(genome, run_config)
-    # DL 
+    # DL
     BatchSize = X.batch_size
     TrainSize = length(X)
 
@@ -671,7 +671,7 @@ function fit_ga_meanbatch_mt(
         #     output_mutation_callbacks,
         # ) throw("Could not unwrap make_ga_output_mutations")
 
-        # Genotype to Phenotype mapping --- 
+        # Genotype to Phenotype mapping ---
         population_programs, time_pop_prog = _make_decoding(
             population,
             iteration,
@@ -687,11 +687,11 @@ function fit_ga_meanbatch_mt(
         pop_size = length(population)
         Repetitions_loss_tracker = Matrix{Float64}(undef, pop_size, n_repetitions)
         @warn "Multi Threaded Graphs evals"
-        UTCGP.reset_programs!(population_programs)
+        MAGE.reset_programs!(population_programs)
         ALL_BATCHS = []
         for ith_repetition = 1:n_repetitions
             @info "Repetition n° $ith_repetition"
-            UTCGP.reset_programs!(population_programs)
+            MAGE.reset_programs!(population_programs)
             batch = X[1:TrainSize] # should do in parallel
             push!(ALL_BATCHS, batch...)
             # Storage for all evaluations (pop * X)
@@ -815,8 +815,8 @@ function fit_ga_meanbatch_mt(
         # store iteration loss/fitness
         affect_fitness_to_loss_tracker!(M_gen_loss_tracker, iteration, elite_best_fitness)
         println(
-            "Iteration $iteration. 
-            Best fitness: $(round(elite_best_fitness, digits = 10)) at index $elite_best_ftiness_idx 
+            "Iteration $iteration.
+            Best fitness: $(round(elite_best_fitness, digits = 10)) at index $elite_best_ftiness_idx
             Elite mean fitness : $(round(elite_avg_fitness, digits = 10)). Std: $(round(elite_std_fitness)) at indices : $(elite_idx)",
         )
 
@@ -861,7 +861,7 @@ function fit_ga_meanbatch_mt(
                     elite_idx,
                 )
             end
-            # UTCGP.show_program(program)
+            # MAGE.show_program(program)
             return tuple(genome, best_programs, M_gen_loss_tracker)
         end
 

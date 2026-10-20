@@ -15,7 +15,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module element_pick
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 
 # ################### #
 # Pick From Vector    #

@@ -1,11 +1,11 @@
-using UTCGP
-using UTCGP.element_pick: pick_element_from_vector
-using UTCGP.element_pick: pick_last_element
-using UTCGP.number_arithmetic: number_div
-using UTCGP.listnumber_recursive: recmult
-using UTCGP.listnumber_arithmetic: sum_vector
-using UTCGP.number_reduce: reduce_sum
-using UTCGP.number_arithmetic: number_minus
+using MAGE
+using MAGE.element_pick: pick_element_from_vector
+using MAGE.element_pick: pick_last_element
+using MAGE.number_arithmetic: number_div
+using MAGE.listnumber_recursive: recmult
+using MAGE.listnumber_arithmetic: sum_vector
+using MAGE.number_reduce: reduce_sum
+using MAGE.number_arithmetic: number_minus
 
 bouncing_balls_train_data = [
     (Any[1.001, 1.0, 1], [2.001]),

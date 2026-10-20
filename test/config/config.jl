@@ -1,4 +1,4 @@
-using UTCGP
+using MAGE
 
 
 @testset "runConf" begin

@@ -1,5 +1,5 @@
 
-using UTCGP.str_grep: replace_pattern
+using MAGE.str_grep: replace_pattern
 
 """
 Text from paper: 

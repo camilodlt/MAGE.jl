@@ -1,12 +1,12 @@
-using UTCGP.number_reduce: reduce_length
-using UTCGP.listgeneric_makelist: make_list_from_one_element, make_list_from_two_elements
-using UTCGP.listinteger_iscond: greater_than_broadcast
-using UTCGP.element_pick: pick_element_from_vector
-using UTCGP.str_basic: number_to_string
-using UTCGP.listgeneric_basic: append_to_list
-using UTCGP.str_paste: paste_space_list_string
-using UTCGP.str_conditional: if_else_string
-using UTCGP.integer_cond: str_is_empty
+using MAGE.number_reduce: reduce_length
+using MAGE.listgeneric_makelist: make_list_from_one_element, make_list_from_two_elements
+using MAGE.listinteger_iscond: greater_than_broadcast
+using MAGE.element_pick: pick_element_from_vector
+using MAGE.str_basic: number_to_string
+using MAGE.listgeneric_basic: append_to_list
+using MAGE.str_paste: paste_space_list_string
+using MAGE.str_conditional: if_else_string
+using MAGE.integer_cond: str_is_empty
 
 """
 Text from paper: 

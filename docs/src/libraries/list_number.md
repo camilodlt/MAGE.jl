@@ -1,25 +1,25 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
 
   # LIST GENERIC RECURSIVE
-  using UTCGP.listnumber_recursive:recsum
-  using UTCGP.listnumber_recursive:recmult
-  using UTCGP.listnumber_recursive:range_
+  using MAGE.listnumber_recursive:recsum
+  using MAGE.listnumber_recursive:recmult
+  using MAGE.listnumber_recursive:range_
 
   # LIST NUMBER ARITHMETIC
-  using UTCGP.listnumber_arithmetic:sum_broadcast
-  using UTCGP.listnumber_arithmetic:subtract_broadcast
-  using UTCGP.listnumber_arithmetic:mult_broadcast
-  using UTCGP.listnumber_arithmetic:div_broadcast
-  using UTCGP.listnumber_arithmetic:sum_vector
-  using UTCGP.listnumber_arithmetic:subtract_vector
-  using UTCGP.listnumber_arithmetic:mult_vector
-  using UTCGP.listnumber_arithmetic:div_vector
+  using MAGE.listnumber_arithmetic:sum_broadcast
+  using MAGE.listnumber_arithmetic:subtract_broadcast
+  using MAGE.listnumber_arithmetic:mult_broadcast
+  using MAGE.listnumber_arithmetic:div_broadcast
+  using MAGE.listnumber_arithmetic:sum_vector
+  using MAGE.listnumber_arithmetic:subtract_vector
+  using MAGE.listnumber_arithmetic:mult_vector
+  using MAGE.listnumber_arithmetic:div_vector
 
   # LIST NUMBER ALGEBRAIC
-  using UTCGP.listnumber_algebraic:abs_vector
+  using MAGE.listnumber_algebraic:abs_vector
 end
 ```
 
@@ -32,14 +32,14 @@ Pages = ["list_number.md"]
 ## Arithmetic
 ### Module
 ```@docs
-UTCGP.listnumber_arithmetic
+MAGE.listnumber_arithmetic
 ```
 ### Functions
 
 #### Broadcast
 
 ```@docs
-UTCGP.listnumber_arithmetic.sum_broadcast
+MAGE.listnumber_arithmetic.sum_broadcast
 ```
 ```jldoctest
 julia> sum_broadcast([1,2,3],10)
@@ -50,7 +50,7 @@ julia> sum_broadcast([1,2,3],10)
 ```
 
 ```@docs
-UTCGP.listnumber_arithmetic.subtract_broadcast
+MAGE.listnumber_arithmetic.subtract_broadcast
 ```
 ```jldoctest
 julia> subtract_broadcast([1,2,3],10)
@@ -61,7 +61,7 @@ julia> subtract_broadcast([1,2,3],10)
 ```
 
 ```@docs
-UTCGP.listnumber_arithmetic.mult_broadcast
+MAGE.listnumber_arithmetic.mult_broadcast
 ```
 ```jldoctest
 julia> mult_broadcast([1,2,3],10)
@@ -72,7 +72,7 @@ julia> mult_broadcast([1,2,3],10)
 ```
 
 ```@docs
-UTCGP.listnumber_arithmetic.div_broadcast
+MAGE.listnumber_arithmetic.div_broadcast
 ```
 ```jldoctest
 julia> div_broadcast([1,2,3],10)
@@ -90,7 +90,7 @@ ERROR: DivideError: integer division error
 #### Vector
 
 ```@docs
-UTCGP.listnumber_arithmetic.sum_vector
+MAGE.listnumber_arithmetic.sum_vector
 ```
 ```jldoctest
 julia> sum_vector([1,2,3],[-1,-2,-3])
@@ -106,7 +106,7 @@ ERROR: DimensionMismatch: a has size (3,), b has size (2,), mismatch at dim 1
 ```
 
 ```@docs
-UTCGP.listnumber_arithmetic.subtract_vector
+MAGE.listnumber_arithmetic.subtract_vector
 ```
 ```jldoctest
 julia> subtract_vector([1,2,3],[1,2,3])
@@ -117,7 +117,7 @@ julia> subtract_vector([1,2,3],[1,2,3])
 ```
 
 ```@docs
-UTCGP.listnumber_arithmetic.mult_vector
+MAGE.listnumber_arithmetic.mult_vector
 ```
 ```jldoctest
 julia> mult_vector([1.,2.,3.],[1,2,3])
@@ -128,7 +128,7 @@ julia> mult_vector([1.,2.,3.],[1,2,3])
 ```
 
 ```@docs
-UTCGP.listnumber_arithmetic.div_vector
+MAGE.listnumber_arithmetic.div_vector
 ```
 ```jldoctest
 julia> div_vector([1,2,3],[10,10,10])
@@ -146,12 +146,12 @@ ERROR: DivideError: integer division error
 ## Algebraic
 ### Module
 ```@docs
-UTCGP.listnumber_algebraic
+MAGE.listnumber_algebraic
 ```
 ### Functions
 
 ```@docs
-UTCGP.listnumber_algebraic.abs_vector
+MAGE.listnumber_algebraic.abs_vector
 ```
 ```jldoctest
 julia> abs_vector([-1,2,3])
@@ -164,14 +164,14 @@ julia> abs_vector([-1,2,3])
 
 ### Module
 ```@docs
-UTCGP.listnumber_recursive
+MAGE.listnumber_recursive
 ```
 
 ### Functions
 
 
 ```@docs
-UTCGP.listnumber_recursive.recsum
+MAGE.listnumber_recursive.recsum
 ```
 ```jldoctest
 julia> recsum([1,2,3])
@@ -189,7 +189,7 @@ julia> recsum([1.,2.,3.])
 ```
 
 ```@docs
-UTCGP.listnumber_recursive.recmult
+MAGE.listnumber_recursive.recmult
 ```
 ```jldoctest
 julia> recmult(2,0.5,3)
@@ -201,7 +201,7 @@ julia> recmult(2,0.5,3)
 ```
 
 ```@docs
-UTCGP.listnumber_recursive.range_
+MAGE.listnumber_recursive.range_
 ```
 ```jldoctest
 julia> range_(3)
@@ -222,14 +222,14 @@ julia> range_(3.0)
 
 ### Module
 ```@docs
-UTCGP.listnumber_basic
+MAGE.listnumber_basic
 ```
 
 ## From tuples
 
 ### Module
 ```@docs
-UTCGP.listnumber_vectuples
+MAGE.listnumber_vectuples
 ```
 
 ## Bundles

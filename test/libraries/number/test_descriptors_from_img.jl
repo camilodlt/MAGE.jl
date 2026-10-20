@@ -1,9 +1,9 @@
 using Statistics: quantile, mean, std, var
 
 @testset "Classification descriptors" begin
-    I = UTCGP.number_intensityStatsFromImg
-    Sh = UTCGP.number_shapeFromImg
-    G = UTCGP.number_granulometryFromImg
+    I = MAGE.number_intensityStatsFromImg
+    Sh = MAGE.number_shapeFromImg
+    G = MAGE.number_granulometryFromImg
     _d_intensity(values, ::Type{T} = N0f8) where {T} = SImageND(IntensityPixel{T}.(clamp.(values, 0.0, 1.0)))
     _d_binary(values) = SImageND(BinaryPixel.(Bool.(values)))
     _d_values(img) = Float64.(reinterpret(img.img))
@@ -74,7 +74,7 @@ using Statistics: quantile, mean, std, var
         @test I.stat_mean_diff(img8, empty) == -I.stat_mean(img8)
         @test Sh.shape_solidity(empty) == 0.0
         @test Sh.shape_hu1(empty) == 0.0
-        @test UTCGP.number_shapeFromImg.objs_area_mean(empty) == 0.0
+        @test MAGE.number_shapeFromImg.objs_area_mean(empty) == 0.0
         @test G.gran_open_r2(empty) == 0.0
         @test G.gran_thickness_max(empty) == 0.0
     end
@@ -134,28 +134,28 @@ using Statistics: quantile, mean, std, var
         end
         m = _d_binary(population)
         fractions = areas ./ (60 * 80)
-        @test UTCGP.number_shapeFromImg.objs_area_mean(m) ≈ mean(fractions)
-        @test UTCGP.number_shapeFromImg.objs_area_max(m) ≈ maximum(fractions)
-        @test UTCGP.number_shapeFromImg.objs_area_std(m) ≈ std(fractions; corrected = false)
-        @test UTCGP.number_shapeFromImg.objs_area_median(m) ≈ sort(fractions)[3]
-        @test UTCGP.number_shapeFromImg.objs_area_cv(m) ≈ std(fractions; corrected = false) / mean(fractions)
-        @test UTCGP.number_shapeFromImg.objs_solidity_min(m) == 1.0
-        @test UTCGP.number_shapeFromImg.objs_extent_mean(m) == 1.0
+        @test MAGE.number_shapeFromImg.objs_area_mean(m) ≈ mean(fractions)
+        @test MAGE.number_shapeFromImg.objs_area_max(m) ≈ maximum(fractions)
+        @test MAGE.number_shapeFromImg.objs_area_std(m) ≈ std(fractions; corrected = false)
+        @test MAGE.number_shapeFromImg.objs_area_median(m) ≈ sort(fractions)[3]
+        @test MAGE.number_shapeFromImg.objs_area_cv(m) ≈ std(fractions; corrected = false) / mean(fractions)
+        @test MAGE.number_shapeFromImg.objs_solidity_min(m) == 1.0
+        @test MAGE.number_shapeFromImg.objs_extent_mean(m) == 1.0
         sorted = sort(Float64.(areas))
         n = length(sorted)
-        @test UTCGP.number_shapeFromImg.objs_area_gini(m) ≈ sum((2i - n - 1) * sorted[i] for i in 1:n) / (n * sum(sorted))
-        @test UTCGP.number_shapeFromImg.objs_nn_distance_min(m) > 0.0
+        @test MAGE.number_shapeFromImg.objs_area_gini(m) ≈ sum((2i - n - 1) * sorted[i] for i in 1:n) / (n * sum(sorted))
+        @test MAGE.number_shapeFromImg.objs_nn_distance_min(m) > 0.0
         # ROI: objects whose centroid lies in the top half.
         top = _d_binary([r <= 20 for r in 1:60, c in 1:80])
-        @test UTCGP.number_shapeFromImg.objs_area_mean(m, top) ≈ mean(fractions[1:2])
+        @test MAGE.number_shapeFromImg.objs_area_mean(m, top) ≈ mean(fractions[1:2])
         # Mean intensity per object, aggregated.
         values = zeros(60, 80)
         values[population] .= 0.5
         values[45:53, 65:73] .= 0.9
         img = _d_intensity(values)
-        @test UTCGP.number_shapeFromImg.objs_intensity_max(img, m) ≈ Float64(N0f8(0.9))
-        @test UTCGP.number_shapeFromImg.objs_intensity_min(img, m) ≈ Float64(N0f8(0.5))
-        @test UTCGP.number_shapeFromImg.objs_intensity_mean(img, img, 0.3) ≈ (4 * Float64(N0f8(0.5)) + Float64(N0f8(0.9))) / 5
+        @test MAGE.number_shapeFromImg.objs_intensity_max(img, m) ≈ Float64(N0f8(0.9))
+        @test MAGE.number_shapeFromImg.objs_intensity_min(img, m) ≈ Float64(N0f8(0.5))
+        @test MAGE.number_shapeFromImg.objs_intensity_mean(img, img, 0.3) ≈ (4 * Float64(N0f8(0.5)) + Float64(N0f8(0.9))) / 5
     end
 
     @testset "granulometry" begin

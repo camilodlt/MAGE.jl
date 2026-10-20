@@ -1,10 +1,10 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
   # COMBINATORICS
-  using UTCGP.listtuple_combinatorics:vector_of_products  
-  using UTCGP.listtuple_combinatorics:vector_of_combinations  
+  using MAGE.listtuple_combinatorics:vector_of_products
+  using MAGE.listtuple_combinatorics:vector_of_combinations
 end
 ```
 
@@ -23,13 +23,13 @@ mapping between two lists.
 
 ### Module
 ```@docs
-UTCGP.listtuple_combinatorics
+MAGE.listtuple_combinatorics
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.listtuple_combinatorics.vector_of_products
+MAGE.listtuple_combinatorics.vector_of_products
 ```
 ```jldoctest
 julia> vector_of_products(["hungry"],["yes","no"])
@@ -39,7 +39,7 @@ julia> vector_of_products(["hungry"],["yes","no"])
 ```
 
 ```@docs
-UTCGP.listtuple_combinatorics.vector_of_combinations
+MAGE.listtuple_combinatorics.vector_of_combinations
 ```
 ```jldoctest
 julia> vector_of_combinations(["hungry","yes","no"])
@@ -53,16 +53,16 @@ julia> vector_of_combinations(["hungry","yes","no"])
 
 ### Module
 ```@docs
-UTCGP.listtuple_mappings
+MAGE.listtuple_mappings
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.listtuple_mappings.mappings_a_to_b
+MAGE.listtuple_mappings.mappings_a_to_b
 ```
 ```jldoctest
-julia> UTCGP.listtuple_mappings.mappings_a_to_b(["a","b"], ["x","y"])
+julia> MAGE.listtuple_mappings.mappings_a_to_b(["a","b"], ["x","y"])
 2-element Vector{Tuple{String, String}}:
  ("a", "x")
  ("b", "y")

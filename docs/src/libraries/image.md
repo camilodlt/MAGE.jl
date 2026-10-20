@@ -1,7 +1,7 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-    using UTCGP
+    using MAGE
 end
 ```
 
@@ -66,7 +66,7 @@ The first example uses both defaults.
     `spectral_residual_saliency`.
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 values = zeros(Float64, 64, 64)
@@ -79,14 +79,14 @@ saliency = fn(img)
 ```
 
 ```@setup fixation_saliency_assets
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 input_path = joinpath(repo_root, "assets", "000_img.png")
 assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "saliency_fixation")
 assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "saliency_fixation")
@@ -175,8 +175,8 @@ end
 ```
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:35%; margin:0;"><img src="../assets/fns/saliency_fixation/itti_koch_input.png" alt="Itti-Koch input" style="width:100%;" /><figcaption>Input intensity image</figcaption></figure>
@@ -298,7 +298,7 @@ g_raw_gallery(gallery_html_7) # hide
 ```
 
 ```@docs
-UTCGP.image2D_saliency_fixation.itti_koch_saliency_image2D_factory
+MAGE.image2D_saliency_fixation.itti_koch_saliency_image2D_factory
 ```
 
 The implementation follows the multiscale map construction in
@@ -331,7 +331,7 @@ Non-finite values use the defaults. The output preserves the exact input size
 and specialized `IntensityPixel` storage type.
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 values = zeros(Float64, 64, 64)
@@ -424,7 +424,7 @@ g_raw_gallery(gallery_html_12) # hide
 ```
 
 ```@docs
-UTCGP.image2D_saliency_fixation.spectral_residual_saliency_image2D_factory
+MAGE.image2D_saliency_fixation.spectral_residual_saliency_image2D_factory
 ```
 
 Reference: [Hou and Zhang (2007)](https://doi.org/10.1109/CVPR.2007.383267).
@@ -435,7 +435,7 @@ The gallery and scalar summaries share the same Sobel machinery. Its
 conventions distinguish gradient directions from directions along edges:
 
 ```@docs
-UTCGP.image2D_orientation_common
+MAGE.image2D_orientation_common
 ```
 
 `bundle_image2DIntensity_orientation_factory` turns an intensity image into
@@ -460,8 +460,8 @@ the **edge** direction instead, so `orientation_energy_90` measures those same
 vertical edges.
 
 ```@setup orientation_maps
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 assets = g_assets("orientation")
 # A bright disk on black: its border has edges at every orientation. The
 # border is a 2-pixel ramp, so the angles are not quantised by a pixel staircase.
@@ -591,25 +591,25 @@ To obtain a callable function, first select the function from the bundle, then
 specialize it on the concrete image type.
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
-img = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(rand(4, 4)))
-avg_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img))
-max_intensity = UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img))
+img = MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(rand(4, 4)))
+avg_intensity = MAGE.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img))
+max_intensity = MAGE.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img))
 
 (typeof(avg_intensity), typeof(max_intensity))
 ```
 
 ```@setup pool_gallery
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 input_path = joinpath(repo_root, "assets", "000_img.png")
 docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "image_pool")
 docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "image_pool")
@@ -635,23 +635,23 @@ function _save_segment_pair(name, img)
     return nothing
 end
 
-img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(gray)))
-img_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
-segment_template = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
-seg_fn = g_timed(UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template)))
+img_intensity = MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(Float64.(gray)))
+img_binary = MAGE.SImageND(MAGE.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
+segment_template = MAGE.SImageND(MAGE.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
+seg_fn = g_timed(MAGE.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template)))
 img_segment = seg_fn(img_intensity, 0.1)
 
-avg_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img_intensity)))
-avg_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:avgpool_blocks].fn(typeof(img_binary)))
-avg_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:avgpool_blocks].fn(typeof(img_segment)))
+avg_intensity = g_timed(MAGE.bundle_image2DIntensity_pool_factory[:avgpool_blocks].fn(typeof(img_intensity)))
+avg_binary = g_timed(MAGE.bundle_image2DBinary_pool_factory[:avgpool_blocks].fn(typeof(img_binary)))
+avg_segment = g_timed(MAGE.bundle_image2DSegment_pool_factory[:avgpool_blocks].fn(typeof(img_segment)))
 
-max_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img_intensity)))
-max_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:maxpool_blocks].fn(typeof(img_binary)))
-max_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:maxpool_blocks].fn(typeof(img_segment)))
+max_intensity = g_timed(MAGE.bundle_image2DIntensity_pool_factory[:maxpool_blocks].fn(typeof(img_intensity)))
+max_binary = g_timed(MAGE.bundle_image2DBinary_pool_factory[:maxpool_blocks].fn(typeof(img_binary)))
+max_segment = g_timed(MAGE.bundle_image2DSegment_pool_factory[:maxpool_blocks].fn(typeof(img_segment)))
 
-min_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:minpool_blocks].fn(typeof(img_intensity)))
-min_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:minpool_blocks].fn(typeof(img_binary)))
-min_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:minpool_blocks].fn(typeof(img_segment)))
+min_intensity = g_timed(MAGE.bundle_image2DIntensity_pool_factory[:minpool_blocks].fn(typeof(img_intensity)))
+min_binary = g_timed(MAGE.bundle_image2DBinary_pool_factory[:minpool_blocks].fn(typeof(img_binary)))
+min_segment = g_timed(MAGE.bundle_image2DSegment_pool_factory[:minpool_blocks].fn(typeof(img_segment)))
 
 cross_demo = zeros(Float64, 10, 10)
 cross_demo[3, 1:5] .= 1.0
@@ -663,25 +663,25 @@ cross_demo[6:10, 3] .= 0.6
 cross_demo[8, 6:10] .= 0.4
 cross_demo[6:10, 8] .= 0.4
 
-img_cross_demo = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(cross_demo))
-avg_cross_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:avgpool_cross_blocks].fn(typeof(img_cross_demo)))
-max_cross_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:maxpool_cross_blocks].fn(typeof(img_cross_demo)))
-min_cross_intensity = g_timed(UTCGP.bundle_image2DIntensity_pool_factory[:minpool_cross_blocks].fn(typeof(img_cross_demo)))
+img_cross_demo = MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(cross_demo))
+avg_cross_intensity = g_timed(MAGE.bundle_image2DIntensity_pool_factory[:avgpool_cross_blocks].fn(typeof(img_cross_demo)))
+max_cross_intensity = g_timed(MAGE.bundle_image2DIntensity_pool_factory[:maxpool_cross_blocks].fn(typeof(img_cross_demo)))
+min_cross_intensity = g_timed(MAGE.bundle_image2DIntensity_pool_factory[:minpool_cross_blocks].fn(typeof(img_cross_demo)))
 
-avg_cross_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:avgpool_cross_blocks].fn(typeof(img_binary)))
-avg_cross_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:avgpool_cross_blocks].fn(typeof(img_segment)))
+avg_cross_binary = g_timed(MAGE.bundle_image2DBinary_pool_factory[:avgpool_cross_blocks].fn(typeof(img_binary)))
+avg_cross_segment = g_timed(MAGE.bundle_image2DSegment_pool_factory[:avgpool_cross_blocks].fn(typeof(img_segment)))
 
-max_cross_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:maxpool_cross_blocks].fn(typeof(img_binary)))
-max_cross_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:maxpool_cross_blocks].fn(typeof(img_segment)))
+max_cross_binary = g_timed(MAGE.bundle_image2DBinary_pool_factory[:maxpool_cross_blocks].fn(typeof(img_binary)))
+max_cross_segment = g_timed(MAGE.bundle_image2DSegment_pool_factory[:maxpool_cross_blocks].fn(typeof(img_segment)))
 
-min_cross_binary = g_timed(UTCGP.bundle_image2DBinary_pool_factory[:minpool_cross_blocks].fn(typeof(img_binary)))
-min_cross_segment = g_timed(UTCGP.bundle_image2DSegment_pool_factory[:minpool_cross_blocks].fn(typeof(img_segment)))
+min_cross_binary = g_timed(MAGE.bundle_image2DBinary_pool_factory[:minpool_cross_blocks].fn(typeof(img_binary)))
+min_cross_segment = g_timed(MAGE.bundle_image2DSegment_pool_factory[:minpool_cross_blocks].fn(typeof(img_segment)))
 ```
 
 ### Avg Pool
 
 ```@docs
-UTCGP.image_pool.avgpool_blocks_image2D_factory
+MAGE.image_pool.avgpool_blocks_image2D_factory
 ```
 
 #### Intensity image, `k = 2`
@@ -771,7 +771,7 @@ nothing # hide
 ### Max Pool
 
 ```@docs
-UTCGP.image_pool.maxpool_blocks_image2D_factory
+MAGE.image_pool.maxpool_blocks_image2D_factory
 ```
 
 #### Intensity image, `k = 2`
@@ -861,7 +861,7 @@ nothing # hide
 ### Min Pool
 
 ```@docs
-UTCGP.image_pool.minpool_blocks_image2D_factory
+MAGE.image_pool.minpool_blocks_image2D_factory
 ```
 
 #### Intensity image, `k = 2`
@@ -953,7 +953,7 @@ nothing # hide
 ### Avg Cross Pool
 
 ```@docs
-UTCGP.image_pool.avgpool_cross_blocks_image2D_factory
+MAGE.image_pool.avgpool_cross_blocks_image2D_factory
 ```
 
 #### Custom 10x10 intensity image, `k = 3`
@@ -1043,7 +1043,7 @@ nothing # hide
 ### Max Cross Pool
 
 ```@docs
-UTCGP.image_pool.maxpool_cross_blocks_image2D_factory
+MAGE.image_pool.maxpool_cross_blocks_image2D_factory
 ```
 
 #### Custom 10x10 intensity image, `k = 3`
@@ -1133,7 +1133,7 @@ nothing # hide
 ### Min Cross Pool
 
 ```@docs
-UTCGP.image_pool.minpool_cross_blocks_image2D_factory
+MAGE.image_pool.minpool_cross_blocks_image2D_factory
 ```
 
 #### Custom 10x10 intensity image, `k = 3`
@@ -1260,25 +1260,25 @@ The sliding-window poolers are exposed through:
 - `bundle_image2DSegment_pooler_factory`
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
-img = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(rand(8, 8)))
-mean_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:meanpool].fn(typeof(img))
-iqr_intensity = UTCGP.bundle_image2DIntensity_pooler_factory[:iqrpool].fn(typeof(img))
+img = MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(rand(8, 8)))
+mean_intensity = MAGE.bundle_image2DIntensity_pooler_factory[:meanpool].fn(typeof(img))
+iqr_intensity = MAGE.bundle_image2DIntensity_pooler_factory[:iqrpool].fn(typeof(img))
 
 (typeof(mean_intensity), typeof(iqr_intensity))
 ```
 
 ```@setup pooler_gallery
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 input_path = joinpath(repo_root, "assets", "000_img.png")
 docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "image_pooler")
 docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "image_pooler")
@@ -1310,10 +1310,10 @@ function _save_pooler_segment_pair(name, img)
     return nothing
 end
 
-img_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(gray)))
-img_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
-segment_template = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
-seg_fn = g_timed(UTCGP.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template)))
+img_intensity = MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(Float64.(gray)))
+img_binary = MAGE.SImageND(MAGE.BinaryPixel{Bool}.(Float64.(gray) .> 0.3))
+segment_template = MAGE.SImageND(MAGE.SegmentPixel{Int}.(zeros(Int, size(gray)...)))
+seg_fn = g_timed(MAGE.bundle_image2DSegment_segmentation_factory[:fastscanning_image2D].fn(typeof(segment_template)))
 img_segment = seg_fn(img_intensity, 0.1)
 
 pooler_syms = (
@@ -1327,15 +1327,15 @@ pooler_syms = (
     :argmincountpool,
     :iqrpool,
 )
-pooler_intensity = Dict(sym => g_timed(UTCGP.bundle_image2DIntensity_pooler_factory[sym].fn(typeof(img_intensity))) for sym in pooler_syms)
-pooler_binary = Dict(sym => g_timed(UTCGP.bundle_image2DBinary_pooler_factory[sym].fn(typeof(img_binary))) for sym in pooler_syms)
-pooler_segment = Dict(sym => g_timed(UTCGP.bundle_image2DSegment_pooler_factory[sym].fn(typeof(img_segment))) for sym in pooler_syms)
+pooler_intensity = Dict(sym => g_timed(MAGE.bundle_image2DIntensity_pooler_factory[sym].fn(typeof(img_intensity))) for sym in pooler_syms)
+pooler_binary = Dict(sym => g_timed(MAGE.bundle_image2DBinary_pooler_factory[sym].fn(typeof(img_binary))) for sym in pooler_syms)
+pooler_segment = Dict(sym => g_timed(MAGE.bundle_image2DSegment_pooler_factory[sym].fn(typeof(img_segment))) for sym in pooler_syms)
 ```
 
 ### Mean Pool
 
 ```@docs
-UTCGP.image_pooler.meanpool_image2D_factory
+MAGE.image_pooler.meanpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -1425,7 +1425,7 @@ nothing # hide
 ### Max Pool
 
 ```@docs
-UTCGP.image_pooler.maxpool_image2D_factory
+MAGE.image_pooler.maxpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -1515,7 +1515,7 @@ nothing # hide
 ### Min Pool
 
 ```@docs
-UTCGP.image_pooler.minpool_image2D_factory
+MAGE.image_pooler.minpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -1605,7 +1605,7 @@ nothing # hide
 ### Std Pool
 
 ```@docs
-UTCGP.image_pooler.stdpool_image2D_factory
+MAGE.image_pooler.stdpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -1695,7 +1695,7 @@ nothing # hide
 ### Median Pool
 
 ```@docs
-UTCGP.image_pooler.medianpool_image2D_factory
+MAGE.image_pooler.medianpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -1785,7 +1785,7 @@ nothing # hide
 ### Unique Count Pool
 
 ```@docs
-UTCGP.image_pooler.uniquecountpool_image2D_factory
+MAGE.image_pooler.uniquecountpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -1875,7 +1875,7 @@ nothing # hide
 ### Argmax Count Pool
 
 ```@docs
-UTCGP.image_pooler.argmaxcountpool_image2D_factory
+MAGE.image_pooler.argmaxcountpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -1965,7 +1965,7 @@ nothing # hide
 ### Argmin Count Pool
 
 ```@docs
-UTCGP.image_pooler.argmincountpool_image2D_factory
+MAGE.image_pooler.argmincountpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`
@@ -2055,7 +2055,7 @@ nothing # hide
 ### IQR Pool
 
 ```@docs
-UTCGP.image_pooler.iqrpool_image2D_factory
+MAGE.image_pooler.iqrpool_image2D_factory
 ```
 
 #### Intensity image, `k = 3`, `stride = 1`

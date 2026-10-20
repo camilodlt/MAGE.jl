@@ -1,6 +1,6 @@
-# push!(LOAD_PATH, "/home/irit/Documents/Camilo/utcgp/utcgp_julia/utcgp")
+# push!(LOAD_PATH, "/home/irit/Documents/Camilo/mage/mage_julia/mage")
 # using Revise
-using UTCGP
+using MAGE
 
 
 """
@@ -16,7 +16,7 @@ end
 
     @test begin
         # bundle import
-        using UTCGP: bundle_listgeneric_basic
+        using MAGE: bundle_listgeneric_basic
         length(bundle_listgeneric_basic) == 3 &&
             _unique_names_in_bundle(bundle_listgeneric_basic)
     end
@@ -44,7 +44,7 @@ end
         length(m) == 1
     end
     @test begin
-        using UTCGP.listgeneric_basic: reverse_list
+        using MAGE.listgeneric_basic: reverse_list
         reverse_list([1, 2, 3]) == [3, 2, 1]
     end
 end

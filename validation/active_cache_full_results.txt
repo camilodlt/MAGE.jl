@@ -165,11 +165,11 @@
 [ Info: Library with no cache.
 [ Info: Unpacking Functions
 ┌ Warning: The unpack of the bundles resulted in an empty list of functions
-└ @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/meta_library.jl:151
+└ @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/meta_library.jl:151
 [ Info: Library with no cache.
 [ Info: Unpacking Functions
 ┌ Warning: The unpack of the bundles resulted in an empty list of functions
-└ @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/meta_library.jl:151
+└ @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/meta_library.jl:151
 [ Info: Library with no cache.
 [ Info: Unpacking Functions
 [ Info: Library with no cache.
@@ -184,7 +184,7 @@
 [ Info: Unpacking Functions
 [ Info: Library with no cache.
 ┌ Warning: Tried to index program input's at bad index (3)
-└ @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/programs.jl:68
+└ @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/programs.jl:68
 [ Info: Unpacking Functions
 [ Info: Library with no cache.
 [ Info: Node is frozen but it has a nothing value. The new value will be set
@@ -6301,7 +6301,7 @@ result = 19
                                      [38;2;66;165;245m└[39m[38;2;66;165;245m─[39m[38;2;255;238;88m 1 [39m[38;2;239;154;154m⇒[39m [38;2;100;181;101madd[39m
                                                
 
-subgraph_result = (Program(UTCGP.AbstractOperation[, , ], SharedInput(InputNode[InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 1, 1, 1, "inp (1,1)")), 1, 1, 1, "inp (1,1)"), InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 2, 2, 1, "inp (2,1)")), 2, 2, 1, "inp (2,1)")]), true), DataType[Int64, Int64], Int64)
+subgraph_result = (Program(MAGE.AbstractOperation[, , ], SharedInput(InputNode[InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 1, 1, 1, "inp (1,1)")), 1, 1, 1, "inp (1,1)"), InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 2, 2, 1, "inp (2,1)")), 2, 2, 1, "inp (2,1)")]), true), DataType[Int64, Int64], Int64)
 [38;2;206;147;216mDict[39m[38;2;206;147;216m                                              
   [38;2;66;165;245m└[39m[38;2;66;165;245m─[39m CGPNode Float64[] at nd (1,1) [38;2;239;154;154m⇒[39m [38;2;206;147;216mVector[39m[38;2;206;147;216m       
                                      [38;2;66;165;245m└[39m[38;2;66;165;245m─[39m[38;2;255;238;88m 1 [39m[38;2;239;154;154m⇒[39m [38;2;100;181;101mstring[39m
@@ -6317,7 +6317,7 @@ subgraph_result = (Program(UTCGP.AbstractOperation[, , ], SharedInput(InputNode[
                                      [38;2;66;165;245m└[39m[38;2;66;165;245m─[39m[38;2;255;238;88m 1 [39m[38;2;239;154;154m⇒[39m [38;2;100;181;101madd[39m
                                                
 
-subgraph_program = Program(UTCGP.AbstractOperation[, , ], SharedInput(InputNode[InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 1, 1, 1, "inp (1,1)")), 1, 1, 1, "inp (1,1)"), InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 2, 2, 1, "inp (2,1)")), 2, 2, 1, "inp (2,1)")]), true)
+subgraph_program = Program(MAGE.AbstractOperation[, , ], SharedInput(InputNode[InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 1, 1, 1, "inp (1,1)")), 1, 1, 1, "inp (1,1)"), InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 2, 2, 1, "inp (2,1)")), 2, 2, 1, "inp (2,1)")]), true)
 sg_input_types = DataType[Int64, Int64]
 sg_output_type = Int64
 [38;2;206;147;216mDict[39m[38;2;206;147;216m                                              
@@ -6340,7 +6340,7 @@ sg_output_type = Int64
                                           [38;2;66;165;245m└[39m[38;2;66;165;245m─[39m[38;2;255;238;88m 1 [39m[38;2;239;154;154m⇒[39m [38;2;100;181;101midentity_int[39m
                                                              
 
-subgraph_program = Program(UTCGP.AbstractOperation[, , , ], SharedInput(InputNode[InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 1, 1, 1, "inp (1,1)")), 1, 1, 1, "inp (1,1)"), InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 2, 2, 1, "inp (2,1)")), 2, 2, 1, "inp (2,1)")]), true)
+subgraph_program = Program(MAGE.AbstractOperation[, , , ], SharedInput(InputNode[InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 1, 1, 1, "inp (1,1)")), 1, 1, 1, "inp (1,1)"), InputNode(NodeMaterial(CGPElement[]), fill(InputNode(NodeMaterial(CGPElement[]), nothing, 2, 2, 1, "inp (2,1)")), 2, 2, 1, "inp (2,1)")]), true)
 subgraph_value_12 = 14
 subgraph_value_21 = 1236
 Compile, validate, install, and dispatch: Test Failed at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:88
@@ -6359,7 +6359,7 @@ Compile, validate, install, and dispatch: Test Failed at /home/camilo/Documents/
        [1] which(f::Any, t::Any)
          @ Base ./reflection.jl:2228
        [2] which(f::SourceBackedFunction, t::Type{Tuple{Int64}})
-         @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
+         @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
        [3] macro expansion
          @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:88 [inlined]
        [4] macro expansion
@@ -6402,7 +6402,7 @@ Compile, validate, install, and dispatch: Test Failed at /home/camilo/Documents/
        [1] which(f::Any, t::Any)
          @ Base ./reflection.jl:2228
        [2] which(f::SourceBackedFunction, t::Type{Tuple{Float64, Int64}})
-         @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
+         @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
        [3] macro expansion
          @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:89 [inlined]
        [4] macro expansion
@@ -7545,8 +7545,8 @@ end
      @ Base ./essentials.jl:14
    [2] getindex
      @ ./essentials.jl:916 [inlined]
-   [3] (::UTCGP.listgeneric_subset.var"#9#10")(::Vector{Tuple{Int64, Int64}}, ::Int64)
-     @ UTCGP.listgeneric_subset ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/list_generic/subset.jl:170
+   [3] (::MAGE.listgeneric_subset.var"#9#10")(::Vector{Tuple{Int64, Int64}}, ::Int64)
+     @ MAGE.listgeneric_subset ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/list_generic/subset.jl:170
    [4] algo_find_pair(x::Vector{Any}, y::Vector{Any})
      @ Main ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:20
    [5] macro expansion
@@ -8629,13 +8629,13 @@ sn_behavior_hasher: Error During Test at /home/camilo/Documents/dev/MAGENetRunne
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:223 =#
     for g = [child1, child2, child3, child4, parent]
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 =#
-        p = UTCGP.decode_with_output_nodes(g, d["meta_library"], d["model_architecture"], d["shared_inputs"])
+        p = MAGE.decode_with_output_nodes(g, d["meta_library"], d["model_architecture"], d["shared_inputs"])
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:230 =#
         push!(progs, p)
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:232 =#
     end
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:235 =#
-    sn_writer_callback([4.0, 4.0, 2.0, 2.0, 4.0], Population([child1, child2, child3, child4, parent]), 1, d["run_config"], d["model_architecture"], d["node_config"], d["meta_library"], d["shared_inputs"], UTCGP.PopulationPrograms(identity.(progs)), 1.0, progs[3], 1)
+    sn_writer_callback([4.0, 4.0, 2.0, 2.0, 4.0], Population([child1, child2, child3, child4, parent]), 1, d["run_config"], d["model_architecture"], d["node_config"], d["meta_library"], d["shared_inputs"], MAGE.PopulationPrograms(identity.(progs)), 1.0, progs[3], 1)
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:251 =#
     nodes = sn.get_nodes_from_db(con)
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:252 =#
@@ -8669,15 +8669,15 @@ end
   
   Closest candidates are:
     identity_float(!Matched::Float64, Any...)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
   
   Stacktrace:
    [1] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:200
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:200
    [2] decode_with_output_node
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
    [3] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
    [4] macro expansion
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
    [5] macro expansion
@@ -8695,17 +8695,17 @@ end
   
   Closest candidates are:
     identity_float(!Matched::Float64, Any...)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
   
   Stacktrace:
    [1] which(f::Any, t::Any)
      @ Base ./reflection.jl:2228
    [2] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:163
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:163
    [3] decode_with_output_node
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
    [4] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
    [5] macro expansion
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
    [6] macro expansion
@@ -8743,13 +8743,13 @@ sn_behavior_hasher: Error During Test at /home/camilo/Documents/dev/MAGENetRunne
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:223 =#
     for g = [child1, child2, child3, child4, parent]
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 =#
-        p = UTCGP.decode_with_output_nodes(g, d["meta_library"], d["model_architecture"], d["shared_inputs"])
+        p = MAGE.decode_with_output_nodes(g, d["meta_library"], d["model_architecture"], d["shared_inputs"])
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:230 =#
         push!(progs, p)
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:232 =#
     end
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:235 =#
-    sn_writer_callback([4.0, 4.0, 2.0, 2.0, 4.0], Population([child1, child2, child3, child4, parent]), 1, d["run_config"], d["model_architecture"], d["node_config"], d["meta_library"], d["shared_inputs"], UTCGP.PopulationPrograms(identity.(progs)), 1.0, progs[3], 1)
+    sn_writer_callback([4.0, 4.0, 2.0, 2.0, 4.0], Population([child1, child2, child3, child4, parent]), 1, d["run_config"], d["model_architecture"], d["node_config"], d["meta_library"], d["shared_inputs"], MAGE.PopulationPrograms(identity.(progs)), 1.0, progs[3], 1)
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:251 =#
     nodes = sn.get_nodes_from_db(con)
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:252 =#
@@ -8783,15 +8783,15 @@ end
   
   Closest candidates are:
     identity_float(!Matched::Float64, Any...)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
   
   Stacktrace:
    [1] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:200
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:200
    [2] decode_with_output_node
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
    [3] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
    [4] macro expansion
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
    [5] macro expansion
@@ -8809,17 +8809,17 @@ end
   
   Closest candidates are:
     identity_float(!Matched::Float64, Any...)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
   
   Stacktrace:
    [1] which(f::Any, t::Any)
      @ Base ./reflection.jl:2228
    [2] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:163
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:163
    [3] decode_with_output_node
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
    [4] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
    [5] macro expansion
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
    [6] macro expansion
@@ -8832,7 +8832,7 @@ end
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:176
 unique_hashes = ["23e544bc77f90ef63dd5f1a716f033c5fc44f2dd5e270cba6a724e9a57679be9"]
 Test Summary:                                                                       |  Pass  Fail  Error  Total     Time
-UTCGP TEST                                                                          | 26209    41      3  26253  7m56.3s
+MAGE TEST                                                                          | 26209    41      3  26253  7m56.3s
   constructor element nodes                                                         |     8                   8     0.3s
   node elements methods                                                             |     7                   7     0.0s
   test init                                                                         |    11                  11     1.4s
@@ -9223,9 +9223,9 @@ UTCGP TEST                                                                      
 │   declared_argument_names = nothing
 │   declared_input_types = nothing
 │   hasmethod_on_arg_types = false
-│   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke identity_float(::Vector{Int64})\nThe function `identity_float` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  identity_float(!Matched::Float64, Any...)\n   @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35\n"
-│   available_methods = "# 1 method for generic function \"identity_float\" from UTCGP.float_basic:\n [1] identity_float(from::Float64, args...)\n     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35"
-└ @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:193
+│   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke identity_float(::Vector{Int64})\nThe function `identity_float` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  identity_float(!Matched::Float64, Any...)\n   @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35\n"
+│   available_methods = "# 1 method for generic function \"identity_float\" from MAGE.float_basic:\n [1] identity_float(from::Float64, args...)\n     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35"
+└ @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:193
 [ Info: Unpacking Functions
 [ Info: Library with no cache.
 [ Info: Unpacking Functions
@@ -9279,9 +9279,9 @@ UTCGP TEST                                                                      
 │   declared_argument_names = nothing
 │   declared_input_types = nothing
 │   hasmethod_on_arg_types = false
-│   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke identity_float(::Vector{Int64})\nThe function `identity_float` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  identity_float(!Matched::Float64, Any...)\n   @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35\n"
-│   available_methods = "# 1 method for generic function \"identity_float\" from UTCGP.float_basic:\n [1] identity_float(from::Float64, args...)\n     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35"
-└ @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:193
+│   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke identity_float(::Vector{Int64})\nThe function `identity_float` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  identity_float(!Matched::Float64, Any...)\n   @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35\n"
+│   available_methods = "# 1 method for generic function \"identity_float\" from MAGE.float_basic:\n [1] identity_float(from::Float64, args...)\n     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35"
+└ @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:193
 [ Info: Unpacking Functions
 [ Info: Library with no cache.
 [ Info: Unpacking Functions

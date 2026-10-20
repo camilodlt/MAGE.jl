@@ -27,7 +27,7 @@ function _stn_id_hash_pop!(
     _stn_verif_mappings_length(pop, mappings)
     i = 1
     for (ind, mapping) in zip(pop, mappings)
-        id_hash = UTCGP.general_hasher_sha(ind)
+        id_hash = MAGE.general_hasher_sha(ind)
         _update_stn_pair!(mapping, id_hash, ind_is)
         i += 1
     end
@@ -51,7 +51,7 @@ end
 # SERIALIZE INDIVIDUAL TO STRING
 function serialize_ind_to_string(ind::UTGenome)
     reset_genome!(ind)
-    join(string.(UTCGP.general_serializer(ind)), "_")
+    join(string.(MAGE.general_serializer(ind)), "_")
 end
 function deserialize_ind_from_string(serialized_string::String)
     serialized_ints = parse.(UInt8, split(serialized_string, "_"))
@@ -251,7 +251,7 @@ function stn_population_callback(pop_args::STN_POP_ARGS)::Option{Population}
         ind = deserialize_ind_from_string(ind_to_resuscitate)
         push!(new_pop, ind)
     end
-    UTCGP.reset_genome!.(new_pop)
+    MAGE.reset_genome!.(new_pop)
     # @assert length(unique(DF_fittest_per_behavior[:, behavior_col])) == length(new_pop) # there is one individual for each behavior
 
     n = length(new_pop)
@@ -291,7 +291,7 @@ function stn_numbered_new_material_mutation_callback(
             args.shared_inputs,
         )
     end
-    UTCGP.reset_genome!.(Pop)
+    MAGE.reset_genome!.(Pop)
     # _stn_id_hash_pop!(Pop, args.mappings, Offspring()) # updates the second element of the mappings
     return some(Pop)
 end

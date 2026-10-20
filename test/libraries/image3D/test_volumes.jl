@@ -2,9 +2,9 @@ using Random
 using Statistics: quantile, mean, std
 
 @testset "Volumes: 3D → 3D, 3D → 2D, 3D → scalar" begin
-    VC = UTCGP.image3D_volume_common
-    V = UTCGP.number_volumeFromImg
-    ST = UTCGP.number_intensityStatsFromImg
+    VC = MAGE.image3D_volume_common
+    V = MAGE.number_volumeFromImg
+    ST = MAGE.number_intensityStatsFromImg
     _v_intensity(values) = SImageND(IntensityPixel{N0f8}.(clamp.(values, 0.0, 1.0)))
     _v_binary(values) = SImageND(BinaryPixel.(Bool.(values)))
     _v_bits(img) = Bool.(reinterpret(img.img))
@@ -126,7 +126,7 @@ using Statistics: quantile, mean, std
         @test as_intensity isa I
         @test _v_values(as_intensity) == Float64.(_v_bits(mask))
         # The 3D → 3D getters put the basic bundle first.
-        for getter in (UTCGP.get_extension_volume_intensityimg, UTCGP.get_extension_volume_binaryimg)
+        for getter in (MAGE.get_extension_volume_intensityimg, MAGE.get_extension_volume_binaryimg)
             basic = first(getter())
             @test basic[1].name == :vol_identity && basic[2].name == :vol_ones
         end
@@ -193,9 +193,9 @@ using Statistics: quantile, mean, std
         cropped = _v_values(_v_call(iop(:vol_crop_bbox_largest), vol, mask, 0.0))
         @test minimum(cropped) >= 0.09 && maximum(cropped) <= 0.81
         recentred = _v_bits(_v_call(bop(:vol_recenter_largest), mask, mask))
-        t = UTCGP.image3D_volume_common.volume_table(recentred, identity)
+        t = MAGE.image3D_volume_common.volume_table(recentred, identity)
         largest = argmax(t.area)
-        @test all(abs.(UTCGP.image3D_volume_common.centroid(t, largest) .- (dims .+ 1) ./ 2) .<= 1.0)
+        @test all(abs.(MAGE.image3D_volume_common.centroid(t, largest) .- (dims .+ 1) ./ 2) .<= 1.0)
         plane = rand(MersenneTwister(3), 20, 24) .> 0.5
         extruded = _v_bits(_v_call(bop(:vol_extrude_z), _v_binary(plane)))
         @test all(extruded[:, :, k] == plane for k in 1:16)

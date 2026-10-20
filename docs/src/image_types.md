@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Image Types
@@ -54,7 +54,7 @@ constructor taking `S` explicitly is type-stable and free, which is what library
 code uses on hot paths:
 
 ```@example imgtypes
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 img = SImageND(IntensityPixel{N0f8}.(rand(8, 8)))

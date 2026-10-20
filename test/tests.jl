@@ -1,9 +1,10 @@
-using UTCGP
+using MAGE
+include("package_identity.jl")
 include("factory_world.jl")
 import SearchNetworks as sn
 using DataStructures
-import UTCGP: _unique_names_in_bundle, get_sr_float_bundles
-import UTCGP: SImageND
+import MAGE: _unique_names_in_bundle, get_sr_float_bundles
+import MAGE: SImageND
 import TestImages: testimage
 import ImageSegmentation
 using ImageCore

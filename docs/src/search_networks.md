@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Search Networks
@@ -38,27 +38,27 @@ individual of a population is the carried-over elite.
 ## Writing a network
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["search_network/sn_types.jl", "search_network/sn_callbacks.jl", "search_network/sn_writer_init_utils.jl"]
 ```
 
 ## Node hashers
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["search_network/node_hashers.jl", "search_network/hashers.jl"]
 ```
 
 ## Edge properties
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["search_network/edge_prop_getters.jl"]
 ```
 
 ## Utilities
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["search_network/utils.jl"]
 ```

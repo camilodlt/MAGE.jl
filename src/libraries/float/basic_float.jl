@@ -11,7 +11,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 module float_basic
 
 using DispatchDoctor
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 
 # ################### #
 # IDENTITY            #

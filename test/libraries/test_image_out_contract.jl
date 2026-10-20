@@ -1,15 +1,15 @@
 using Test, Random
 using ImageCore: N0f8, N0f16
 
-# Discover bindings in UTCGP and its library modules, including experimental
-# bundles that are intentionally not exported from UTCGP.
+# Discover bindings in MAGE and its library modules, including experimental
+# bundles that are intentionally not exported from MAGE.
 function _image_out_bundles()
     found = Dict{Symbol,Any}()
-    modules = Module[UTCGP]
-    for name in names(UTCGP; all=true)
-        isdefined(UTCGP,name) || continue
-        value = getfield(UTCGP,name)
-        value isa Module && parentmodule(value) === UTCGP && push!(modules,value)
+    modules = Module[MAGE]
+    for name in names(MAGE; all=true)
+        isdefined(MAGE,name) || continue
+        value = getfield(MAGE,name)
+        value isa Module && parentmodule(value) === MAGE && push!(modules,value)
     end
     for mod in modules, name in names(mod; all=true)
         text = string(name)
@@ -17,7 +17,7 @@ function _image_out_bundles()
         occursin("image",lowercase(text)) || name === :bundle_element_conditional_factory || continue
         isdefined(mod,name) || continue
         bundle = getfield(mod,name)
-        bundle isa UTCGP.FunctionBundle || continue
+        bundle isa MAGE.FunctionBundle || continue
         found[name] = bundle
     end
     return sort!(collect(found); by=p -> string(first(p)))

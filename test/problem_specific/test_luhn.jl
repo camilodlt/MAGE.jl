@@ -1,11 +1,11 @@
-using UTCGP.listgeneric_where: replace_vec_at
-using UTCGP.listgeneric_subset: subset_by_mask
-using UTCGP.listinteger_iscond: inverse_mask, greater_than_broadcast
-using UTCGP.listinteger_iscond: odd_indices_mask
-using UTCGP.listnumber_arithmetic: mult_broadcast, subtract_broadcast, sum_vector
-using UTCGP.number_reduce: reduce_sum
-using UTCGP.listnumber_basic: zeros_
-using UTCGP: listinteger_caster
+using MAGE.listgeneric_where: replace_vec_at
+using MAGE.listgeneric_subset: subset_by_mask
+using MAGE.listinteger_iscond: inverse_mask, greater_than_broadcast
+using MAGE.listinteger_iscond: odd_indices_mask
+using MAGE.listnumber_arithmetic: mult_broadcast, subtract_broadcast, sum_vector
+using MAGE.number_reduce: reduce_sum
+using MAGE.listnumber_basic: zeros_
+using MAGE: listinteger_caster
 
 luhn_train_data = [
     ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3], [80]),

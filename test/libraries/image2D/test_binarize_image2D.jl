@@ -22,7 +22,7 @@ BINARY = BinaryPixel{Bool}
 # Adaptive Threshold #
 #####################
 @testset "Image2D Binarize: binarizeAdaptive(img, w, p) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -57,7 +57,7 @@ BINARY = BinaryPixel{Bool}
 end
 
 @testset "Image2D Binarize: binarizeAdaptive(img, w) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -92,7 +92,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeAdaptive(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -124,7 +124,7 @@ end
 # ####################
 
 @testset "Image2D Binarize: binarizeNiblack(img, w, b) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -157,7 +157,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeNiblack(img, w) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -191,7 +191,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeNiblack(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -222,7 +222,7 @@ end
 # # Polysegment      #
 # ####################
 @testset "Image2D Binarize: binarizePolysegment(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -253,7 +253,7 @@ end
 # # SAUVOLA          #
 # ####################
 @testset "Image2D Binarize: binarizeSauvola(img, w, p) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -287,7 +287,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeSauvola(img, w) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -321,7 +321,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeSauvola(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -354,7 +354,7 @@ end
 # ####################
 
 @testset "Image2D Binarize: binarizeOtsu(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -384,7 +384,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeOtsu(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -417,7 +417,7 @@ end
 # MINIMUM INTERMODES
 
 @testset "Image2D Binarize: binarizeMinimumIntermodes(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -443,7 +443,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeMinimumIntermodes(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -478,7 +478,7 @@ end
 # # INTERMODES       #
 # ####################
 @testset "Image2D Binarize: binarizeIntermodes(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -508,7 +508,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeIntermodes(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -544,7 +544,7 @@ end
 # # MINIMUM ERROR    #
 # ####################
 @testset "Image2D Binarize: binarizeMinimumError(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -566,7 +566,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeMinimumError(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         # Create a test image with a known pattern
         test_img = generate_binarize_test_image(INTENSITY)
@@ -601,7 +601,7 @@ end
 # # MANUAL BINARIZER #
 # ####################
 @testset "Image2D Binarize: binarizeMoments(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -619,7 +619,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeMoments(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -641,7 +641,7 @@ end
 # # UNIMODAL ROSIN   #
 # ####################
 @testset "Image2D Binarize: binarizeUnimodalRosin(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -659,7 +659,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeUnimodalRosin(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -681,7 +681,7 @@ end
 # # ENTROPY          #
 # ####################
 @testset "Image2D Binarize: binarizeEntropy(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -699,7 +699,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeEntropy(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -721,7 +721,7 @@ end
 # # BALANCED         #
 # ####################
 @testset "Image2D Binarize: binarizeBalanced(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -739,7 +739,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeBalanced(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -757,7 +757,7 @@ end
 # # YEN              #
 # ####################
 @testset "Image2D Binarize: binarizeYen(img, nbins) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -775,7 +775,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeYen(img) Default" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -794,7 +794,7 @@ end
 # ####################
 
 @testset "Image2D Binarize: binarizeManual(img, t) with Number" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -815,7 +815,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeManual(img, t) with Float64" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)
@@ -839,7 +839,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeManual(img1, img2)" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img1 = generate_binarize_test_image(INTENSITY)
         test_img2 = generate_binarize_test_image(INTENSITY)
@@ -861,7 +861,7 @@ end
 end
 
 @testset "Image2D Binarize: binarizeManual(img)" begin
-    Bundle = UTCGP.bundle_image2DBinary_binarize_factory
+    Bundle = MAGE.bundle_image2DBinary_binarize_factory
     @testset begin
         test_img = generate_binarize_test_image(INTENSITY)
         as_img = generate_binarize_test_image(BINARY)

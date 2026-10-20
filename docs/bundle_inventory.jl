@@ -1,4 +1,4 @@
-using UTCGP
+using MAGE
 using Markdown
 
 # Where each bundle's docstring is rendered.
@@ -128,27 +128,27 @@ groups = [
 ]
 
 submodules = Module[]
-for n in names(UTCGP, all = true)
-    v = try getfield(UTCGP, n) catch; continue end
-    v isa Module && v !== UTCGP && push!(submodules, v)
+for n in names(MAGE, all = true)
+    v = try getfield(MAGE, n) catch; continue end
+    v isa Module && v !== MAGE && push!(submodules, v)
 end
 
 "Documenter anchors a docstring under the binding's defining module."
 function anchor_for(name::String)
     sym = Symbol(name)
-    value = getfield(UTCGP, sym)
+    value = getfield(MAGE, sym)
     for m in submodules
         if isdefined(m, sym) && getfield(m, sym) === value
-            return "UTCGP.$(nameof(m)).$(name)"
+            return "MAGE.$(nameof(m)).$(name)"
         end
     end
-    return "UTCGP.$(name)"
+    return "MAGE.$(name)"
 end
 
 
 "All exported bundle bindings, including experimental bundles."
 function exported_bundles()
-    return sort([String(n) for n in names(UTCGP) if getfield(UTCGP, n) isa UTCGP.FunctionBundle])
+    return sort([String(n) for n in names(MAGE) if getfield(MAGE, n) isa MAGE.FunctionBundle])
 end
 
 # Bundles are organised by their intended chromosome output. Numeric and
@@ -187,7 +187,7 @@ function bundle_output_index()
         for name in matches
             # Catalogue headings are plain bundle names inside links. Explicit
             # anchors there make this independent of Documenter slug rules.
-            println(io, "- [`", name, "`](", prefix, "#", name, ") (", length(getfield(UTCGP, Symbol(name))), " operators)")
+            println(io, "- [`", name, "`](", prefix, "#", name, ") (", length(getfield(MAGE, Symbol(name))), " operators)")
         end
         println(io)
         append!(listed, matches)

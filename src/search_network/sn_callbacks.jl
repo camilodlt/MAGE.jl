@@ -71,7 +71,7 @@ function (writer::SN_writer)(
     best_program::IndividualPrograms,
     elite_idx::Int,
 )
-    epoch_params = UTCGP.ParametersStandardEpoch(
+    epoch_params = MAGE.ParametersStandardEpoch(
         ind_performances,
         population,
         generation,

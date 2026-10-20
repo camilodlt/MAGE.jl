@@ -50,7 +50,7 @@ llm_generated_function_client_backend(args...) = @error "No generated-function L
     llm_generated_function_client_status(args...)
 
 Extension hook returning one small status summary for a concrete generated-function
-client. This keeps runtime-specific readiness checks out of UTCGP's core.
+client. This keeps runtime-specific readiness checks out of MAGE's core.
 
 Example: an Ollama-backed client may report its model name and local host.
 """

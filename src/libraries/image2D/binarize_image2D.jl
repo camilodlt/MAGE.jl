@@ -37,17 +37,17 @@ Call tree:
 """
 module image2D_binarize
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
 using ImageBinarization
 using ImageCore: clamp01nan
 using Statistics: mean
 using Logging
-using ..UTCGP: FunctionBundle, append_method!, output_pixels, image_result, scratch, pixel_values!
-using ..UTCGP: SizedImage, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
+using ..MAGE: FunctionBundle, append_method!, output_pixels, image_result, scratch, pixel_values!
+using ..MAGE: SizedImage, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel
 
-using ..UTCGP: image2D_morph
+using ..MAGE: image2D_morph
 
 # Shared pixel caster of the image2D libraries (a test checks this binding is the morph one and constant).
 const cast = image2D_morph.cast

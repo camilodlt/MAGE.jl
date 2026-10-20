@@ -13,13 +13,13 @@ Exports :
 
 module experimental_image2D_mask
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: output_pixels, image_result
+using ..MAGE: output_pixels, image_result
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 using ..image2D_basic: storage_boundary
-import UTCGP:
+import MAGE:
     CONSTRAINED,
     MIN_INT,
     MAX_INT,
@@ -29,7 +29,7 @@ import UTCGP:
     _ceil_positive_params
 using ImageCore: N0f8, Normed, clamp01nan!
 using FixedPointNumbers: rawtype
-using ..UTCGP:
+using ..MAGE:
     IntensityPixel, SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type
 
 fallback(args...) = return nothing

@@ -1,6 +1,6 @@
-using UTCGP
+using MAGE
 
-import UTCGP: decode_with_output_node
+import MAGE: decode_with_output_node
 function get_example_utgraph()
     # 2 types
     # 2 inputs, 3 nodes, 1 output node 
@@ -54,7 +54,7 @@ function get_example_utgraph()
     # Decode
     program =
         decode_with_output_node(ut_genome, ut_genome.output_nodes[1], ml, ma, shared_inputs)
-    res = UTCGP.evaluate_program(program, [String, Vector{String}], ml)
+    res = MAGE.evaluate_program(program, [String, Vector{String}], ml)
     return ma, ml, nc, program, res, shared_inputs, ut_genome
 end
 
@@ -122,8 +122,8 @@ function get_example_utgraph_2out()
         decode_with_output_node(ut_genome, ut_genome.output_nodes[1], ml, ma, shared_inputs)
     program_2 =
         decode_with_output_node(ut_genome, ut_genome.output_nodes[2], ml, ma, shared_inputs)
-    res_1 = UTCGP.evaluate_program(program_1, [String, Vector{String}], ml)
-    res_2 = UTCGP.evaluate_program(program_2, [String, Vector{String}], ml)
+    res_1 = MAGE.evaluate_program(program_1, [String, Vector{String}], ml)
+    res_2 = MAGE.evaluate_program(program_2, [String, Vector{String}], ml)
     @show res_1
     @show res_2
     return ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome
@@ -140,25 +140,25 @@ end
 
     @test begin
         ma, ml, nc, program, res, shared_inputs, ut_genome = get_example_utgraph()
-        ind_programs = UTCGP.IndividualPrograms([program])
+        ind_programs = MAGE.IndividualPrograms([program])
         active_nodes = get_active_nodes(ind_programs)
         length(active_nodes) == 3
     end
     @test begin
         ma, ml, nc, program, res, shared_inputs, ut_genome = get_example_utgraph()
-        ind_programs = UTCGP.IndividualPrograms([program])
+        ind_programs = MAGE.IndividualPrograms([program])
         active_nodes = get_active_nodes(ind_programs)
         active_nodes[1].id == "nd (3,1)"
     end
     @test begin
         ma, ml, nc, program, res, shared_inputs, ut_genome = get_example_utgraph()
-        ind_programs = UTCGP.IndividualPrograms([program])
+        ind_programs = MAGE.IndividualPrograms([program])
         active_nodes = get_active_nodes(ind_programs)
         active_nodes[2].id == "nd (4,2)"
     end
     @test begin
         ma, ml, nc, program, res, shared_inputs, ut_genome = get_example_utgraph()
-        ind_programs = UTCGP.IndividualPrograms([program])
+        ind_programs = MAGE.IndividualPrograms([program])
         active_nodes = get_active_nodes(ind_programs)
         active_nodes[3].id == "nd (5,1)"
     end
@@ -173,28 +173,28 @@ end
     @test begin
         ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome =
             get_example_utgraph_2out()
-        ind_programs = UTCGP.IndividualPrograms([program_1, program_2])
+        ind_programs = MAGE.IndividualPrograms([program_1, program_2])
         active_nodes = get_active_nodes(ind_programs)
         length(active_nodes) == 3
     end
     @test begin
         ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome =
             get_example_utgraph_2out()
-        ind_programs = UTCGP.IndividualPrograms([program_1, program_2])
+        ind_programs = MAGE.IndividualPrograms([program_1, program_2])
         active_nodes = get_active_nodes(ind_programs)
         active_nodes[1].id == "nd (3,1)"
     end
     @test begin
         ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome =
             get_example_utgraph_2out()
-        ind_programs = UTCGP.IndividualPrograms([program_1, program_2])
+        ind_programs = MAGE.IndividualPrograms([program_1, program_2])
         active_nodes = get_active_nodes(ind_programs)
         active_nodes[2].id == "nd (4,2)"
     end
     @test begin
         ma, ml, nc, program_1, program_2, res_1, res_2, shared_inputs, ut_genome =
             get_example_utgraph_2out()
-        ind_programs = UTCGP.IndividualPrograms([program_1, program_2])
+        ind_programs = MAGE.IndividualPrograms([program_1, program_2])
         active_nodes = get_active_nodes(ind_programs)
         active_nodes[3].id == "nd (5,1)"
     end

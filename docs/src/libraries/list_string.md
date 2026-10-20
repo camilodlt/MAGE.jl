@@ -1,13 +1,13 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
-  using UTCGP.liststring_caps:capitalize_list_string
-  using UTCGP.liststring_caps:uppercasefirst_list_string
+  using MAGE
+  using MAGE.liststring_caps:capitalize_list_string
+  using MAGE.liststring_caps:uppercasefirst_list_string
 
   # Split string 
 
-  using UTCGP.liststring_split:split_string_to_vector
+  using MAGE.liststring_split:split_string_to_vector
 end
 ```
 
@@ -21,12 +21,12 @@ Pages = ["list_string.md"]
 
 ### Module 
 ```@docs
-UTCGP.liststring_caps
+MAGE.liststring_caps
 ```
 ### Functions 
 
 ```@docs 
-UTCGP.liststring_caps.capitalize_list_string
+MAGE.liststring_caps.capitalize_list_string
 ```
 
 ```jldoctest
@@ -43,7 +43,7 @@ julia> capitalize_list_string(["julia julia", "julia"])
 ```
 
 ```@docs 
-UTCGP.liststring_caps.uppercasefirst_list_string
+MAGE.liststring_caps.uppercasefirst_list_string
 ```
 ```jldoctest
 julia> uppercasefirst_list_string(["julia julia", "julia"])
@@ -56,12 +56,12 @@ julia> uppercasefirst_list_string(["julia julia", "julia"])
 
 ### Module 
 ```@docs
-UTCGP.liststring_split
+MAGE.liststring_split
 ```
 ### Functions 
 
 ```@docs 
-UTCGP.liststring_split.split_string_to_vector
+MAGE.liststring_split.split_string_to_vector
 ```
 
 ```jldoctest
@@ -78,7 +78,7 @@ julia> split_string_to_vector("julia", "")
 
 ### Module
 ```@docs
-UTCGP.liststring_broadcast
+MAGE.liststring_broadcast
 ```
 
 ## Bundles

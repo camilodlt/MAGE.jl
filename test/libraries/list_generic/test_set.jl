@@ -1,6 +1,6 @@
-using UTCGP: bundle_listgeneric_set
-using UTCGP.listgeneric_set: intersect_
-using UTCGP.listgeneric_set: left_join
+using MAGE: bundle_listgeneric_set
+using MAGE.listgeneric_set: intersect_
+using MAGE.listgeneric_set: left_join
 
 @testset "Set" begin
     @test begin

@@ -19,7 +19,7 @@
     }
 
     # Factories with several signatures build one named function with one method each.
-    factory = UTCGP.image2D_binarize.binarizeMinimumintermodes_image2D_factory
+    factory = MAGE.image2D_binarize.binarizeMinimumintermodes_image2D_factory
     fn = factory(binary_image_type)
     @test fn isa Function && length(methods(fn)) == 2
     @test factory(binary_image_type) === fn                          # built once, then reused
@@ -55,7 +55,7 @@
     @test_throws MethodError fn(1.0, 2.0)
 
     # The same factory specialised on two output types gives two distinct functions.
-    erosion = UTCGP.image2D_morph.erosion_image2D_factory
+    erosion = MAGE.image2D_morph.erosion_image2D_factory
     @test erosion(binary_image_type) !== erosion(intensity_image_type)
     @test erosion(binary_image_type) === erosion(binary_image_type)
 end

@@ -6,8 +6,8 @@ thresholding and segmentation bundles, run on the same inputs. Captions give
 the call. Images are shown at 2×.
 
 ```@setup core_gallery
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 page = "core_gallery"
 cell = g_intensity(Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end])
 g_name!(cell, "cell")
@@ -20,7 +20,7 @@ shifted_mask = g_call(g_timed(bundle_image2DBinary_binarize_factory[:binarize_ot
 g_name!(mask, "Otsu mask")
 g_name!(shifted, "shifted cell")
 g_name!(shifted_mask, "shifted Otsu mask")
-fn(bundle, name, T) = getfield(UTCGP, bundle)[name].fn(T)
+fn(bundle, name, T) = getfield(MAGE, bundle)[name].fn(T)
 """
 One gallery entry per call: `(bundle, name, T, args, caption)`. Files are
 named `<tag>_<operator>_<k>.png`, so galleries never overwrite each other.
@@ -227,7 +227,7 @@ g_gallery(page, vcat(entries("seg", [
 
 ```@setup core_gallery
 # New registrations must get an effect example on this page.
-for bundle in unique(first.(collect(seen))), wrapper in getfield(UTCGP, bundle)
+for bundle in unique(first.(collect(seen))), wrapper in getfield(MAGE, bundle)
     (bundle, wrapper.name) in seen || error("Missing core gallery example: $bundle / $(wrapper.name)")
 end
 ```
@@ -240,12 +240,12 @@ image when the input must remain unchanged. Their docstrings describe the
 selection rank, tie handling and pixel conversion used by the public operators.
 
 ```@docs
-UTCGP.image_pooling_common
-UTCGP.image_pooling_common.unique_count!
-UTCGP.image_pooling_common.median_select!
-UTCGP.image_pooling_common.pooled_pixel
-UTCGP.image_pooling_common.kth_smallest!
-UTCGP.image_pooling_common.mode!
+MAGE.image_pooling_common
+MAGE.image_pooling_common.unique_count!
+MAGE.image_pooling_common.median_select!
+MAGE.image_pooling_common.pooled_pixel
+MAGE.image_pooling_common.kth_smallest!
+MAGE.image_pooling_common.mode!
 ```
 
 ## Timings for the examples

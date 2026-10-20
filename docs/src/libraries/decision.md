@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Scalar Decisions and Motion
@@ -24,10 +24,10 @@ must decide whether to go up or down. Every step below is a single MAGE
 operator, so an evolved program can express the whole chain.
 
 ```@setup decision
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
-O = UTCGP.number_objectFromImg
-D = UTCGP.number_decision
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
+O = MAGE.number_objectFromImg
+D = MAGE.number_decision
 assets = g_assets("decision")
 
 function pong(ball; left = 40, right = 55)
@@ -182,9 +182,9 @@ dy = g_call(O.obj_dy_smallest_largest, g_binary(Float64.(reinterpret(frame.img))
 ## Bundles
 
 ```@docs
-UTCGP.number_decision
-UTCGP.number_decision.bundle_number_decision
-UTCGP.number_decision.bundle_number_motion
+MAGE.number_decision
+MAGE.number_decision.bundle_number_decision
+MAGE.number_decision.bundle_number_motion
 ```
 
 ## Timings for the examples

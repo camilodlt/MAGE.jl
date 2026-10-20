@@ -1,15 +1,14 @@
 # MAGE.jl
 
 [![Documentation](https://img.shields.io/badge/docs-adf-4f81bd.svg)](https://camilodlt.github.io/MAGE.jl/adf/)
-[![Build Status](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml/badge.svg?branch=adf)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
-[![Julia 1.11.7 compatible](https://img.shields.io/badge/Julia-1.11.7%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
-[![Julia 1.12 compatible](https://img.shields.io/badge/Julia-1.12%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
-[![Julia 1.13 compatible](https://img.shields.io/badge/Julia-1.13%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
+[![Build Status](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml/badge.svg?branch=rename-package-to-mage)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Arename-package-to-mage)
+[![Julia 1.11.7 compatible](https://img.shields.io/badge/Julia-1.11.7%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Arename-package-to-mage)
+[![Julia 1.12 compatible](https://img.shields.io/badge/Julia-1.12%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Arename-package-to-mage)
+[![Julia 1.13 compatible](https://img.shields.io/badge/Julia-1.13%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Arename-package-to-mage)
 
 **Multimodal Adaptive Graph Evolution (MAGE)** extends Cartesian Genetic
 Programming (CGP) to evolve programs that combine images, numbers, strings and
-other data types in one graph. The Julia package is currently named **`UTCGP`**:
-install MAGE, then import it with `using UTCGP`.
+other data types in one graph. Import the package with `using MAGE`.
 
 An evolved pipeline can blur an image, extract edges, reduce them to a scalar,
 and use that scalar to control another image operation. Each type has its own
@@ -17,6 +16,8 @@ chromosome and library of operators; typed connections let these chromosomes
 work together.
 
 ## Explore the documentation
+
+See the [changelog](CHANGELOG.md) for recent changes and migration instructions.
 
 The [manual for this branch](https://camilodlt.github.io/MAGE.jl/adf/) includes
 an automatically generated list of **all exported bundles grouped by output
@@ -45,11 +46,21 @@ installed from its repository before MAGE because it is a package dependency.
 ```julia
 using Pkg
 Pkg.add(url="https://github.com/camilodlt/SearchNetworks.jl")
-Pkg.add(url="https://github.com/camilodlt/MAGE.jl", rev="adf")
-using UTCGP
+Pkg.add(url="https://github.com/camilodlt/MAGE.jl", rev="rename-package-to-mage")
+using MAGE
 ```
 
-Omit `rev="adf"` to install the repository's default branch instead.
+The package rename is developed on `rename-package-to-mage`. Use this branch for
+the installation example above until the rename is merged.
+
+### Updating an existing installation
+
+Update imports, qualified references and package dependency keys to `MAGE`.
+The package UUID is unchanged. Configuration variables use the `MAGE_` prefix;
+see [configuration](https://camilodlt.github.io/MAGE.jl/adf/config/).
+Rebuild sysimages and regenerate saved Julia source after updating. Serialized
+objects from an earlier module name may need to be loaded in their original
+environment and exported before migration.
 
 ## Build your first genome
 
@@ -57,9 +68,9 @@ Choose the operators, declare the types, and create a graph. This example uses
 two floating-point inputs and one floating-point output:
 
 ```julia
-using UTCGP
+using MAGE
 
-library = Library(UTCGP.get_sr_float_bundles())
+library = Library(MAGE.get_sr_float_bundles())
 meta_library = MetaLibrary([library])
 architecture = modelArchitecture(
     [Float64, Float64],  # input types

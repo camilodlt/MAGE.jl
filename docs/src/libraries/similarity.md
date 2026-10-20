@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Image Similarity and Template Matching
@@ -24,9 +24,9 @@ Every `sim_*` operator takes two same-size images (intensity or binary). The
 reference below is a Pong frame; each column is one variant of it.
 
 ```@setup sim
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
-S = UTCGP.number_similarityFromImg
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
+S = MAGE.number_similarityFromImg
 assets = g_assets("similarity")
 
 function pong(ball; left = 40, right = 55)
@@ -214,9 +214,9 @@ A flat template (nothing at the centre of `ref`) has no shape to match:
 ## Bundles
 
 ```@docs
-UTCGP.number_similarityFromImg
-UTCGP.number_similarityFromImg.bundle_number_similarityFromImg
-UTCGP.number_similarityFromImg.bundle_number_templateFromImg
+MAGE.number_similarityFromImg
+MAGE.number_similarityFromImg.bundle_number_similarityFromImg
+MAGE.number_similarityFromImg.bundle_number_templateFromImg
 ```
 
 ## Timings for the examples

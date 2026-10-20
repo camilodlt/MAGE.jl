@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Getting Started
@@ -20,11 +20,11 @@ is the set of bundles available to one chromosome, and a
 [`MetaLibrary`](@ref) collects one library per chromosome.
 
 ```@example gs
-using UTCGP
+using MAGE
 using Random
 Random.seed!(1)
 
-float_bundles = UTCGP.get_sr_float_bundles()
+float_bundles = MAGE.get_sr_float_bundles()
 lib = Library(float_bundles)
 ml  = MetaLibrary([lib])
 
@@ -89,12 +89,12 @@ At this point `ut_genome` is a valid random program. See
 
 ## 5. Say what "good" means
 
-A problem is stated as a [`BatchEndpoint`](@ref UTCGP.AbstractEndpoint): a
+A problem is stated as a [`BatchEndpoint`](@ref MAGE.AbstractEndpoint): a
 struct whose constructor receives every individual's outputs and the expected
 value, and stores one score per individual. Lower is better.
 
 ```@example gs
-struct EndpointMAE <: UTCGP.BatchEndpoint
+struct EndpointMAE <: MAGE.BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointMAE(preds::Vector{<:Vector{<:Number}}, y::Number)
         res = Float64[]

@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Descriptors for Image Classification
@@ -33,11 +33,11 @@ use the volume bundles for spatial 3D geometry. See
 [Image-to-scalar inputs](../image_scalar_contract.md) for dispatch and inference.
 
 ```@setup desc
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
-I = UTCGP.number_intensityStatsFromImg
-Sh = UTCGP.number_shapeFromImg
-G = UTCGP.number_granulometryFromImg
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
+I = MAGE.number_intensityStatsFromImg
+Sh = MAGE.number_shapeFromImg
+G = MAGE.number_granulometryFromImg
 assets = g_assets("descriptors")
 noise(r, c, seed) = 0.5 + 0.5 * sin(12.9898r + 78.233c + 37.719seed)       # deterministic texture
 
@@ -302,7 +302,7 @@ top_half = g_binary([r <= 48 for r in 1:96, c in 1:96])
 Every aggregate on the two fields:
 
 ```@example desc
-O = UTCGP.number_shapeFromImg
+O = MAGE.number_shapeFromImg
 rows = [(String(w.name), [g_call(w.fn, g_binary(m)) for (_, m) in fields])
         for w in bundle_number_objectStatsFromImg if !startswith(String(w.name), "objs_intensity")]
 push!(rows, ("objs_area_mean(mask, top)", [g_call(O.objs_area_mean, g_binary(m), top_half) for (_, m) in fields]))
@@ -445,13 +445,13 @@ table(vcat([("gran_grey_open_r$(r)", [g_call(getfield(G, Symbol(:gran_grey_open_
 ## Bundles
 
 ```@docs
-UTCGP.number_intensityStatsFromImg
-UTCGP.number_intensityStatsFromImg.bundle_number_intensityStatsFromImg
-UTCGP.number_shapeFromImg
-UTCGP.number_shapeFromImg.bundle_number_shapeFromImg
-UTCGP.number_shapeFromImg.bundle_number_objectStatsFromImg
-UTCGP.number_granulometryFromImg
-UTCGP.number_granulometryFromImg.bundle_number_granulometryFromImg
+MAGE.number_intensityStatsFromImg
+MAGE.number_intensityStatsFromImg.bundle_number_intensityStatsFromImg
+MAGE.number_shapeFromImg
+MAGE.number_shapeFromImg.bundle_number_shapeFromImg
+MAGE.number_shapeFromImg.bundle_number_objectStatsFromImg
+MAGE.number_granulometryFromImg
+MAGE.number_granulometryFromImg.bundle_number_granulometryFromImg
 ```
 
 ## Timings for the examples

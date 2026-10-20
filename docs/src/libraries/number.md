@@ -1,24 +1,24 @@
 
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
 
   # NUMBER ARITHMETIC
-  using UTCGP.number_arithmetic:number_sum
-  using UTCGP.number_arithmetic:number_minus
-  using UTCGP.number_arithmetic:number_mult
-  using UTCGP.number_arithmetic:number_div
-  using UTCGP.number_arithmetic:safe_div
+  using MAGE.number_arithmetic:number_sum
+  using MAGE.number_arithmetic:number_minus
+  using MAGE.number_arithmetic:number_mult
+  using MAGE.number_arithmetic:number_div
+  using MAGE.number_arithmetic:safe_div
 
   # INTEGER REDUCE
 
-  using UTCGP.number_reduce:reduce_sum
-  using UTCGP.number_reduce:reduce_min
-  using UTCGP.number_reduce:reduce_max
-  using UTCGP.number_reduce:reduce_argmin
-  using UTCGP.number_reduce:reduce_argmax
-  using UTCGP.number_reduce:reduce_length
+  using MAGE.number_reduce:reduce_sum
+  using MAGE.number_reduce:reduce_min
+  using MAGE.number_reduce:reduce_max
+  using MAGE.number_reduce:reduce_argmin
+  using MAGE.number_reduce:reduce_argmax
+  using MAGE.number_reduce:reduce_length
 end
 ```
 
@@ -73,8 +73,8 @@ stronger; this is the orientation the scalars use.
 - [`orientation_spread`](#orientation_spread)
 
 ```@setup orientation_summary_assets
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
@@ -141,9 +141,9 @@ function orientation_cross_array(n::Int = 30)
 end
 
 orientation_intensity_image(arr::AbstractMatrix{<:Real}) =
-    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
+    MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(Float64.(arr)))
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "orientation_summary")
 docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "orientation_summary")
 mkpath(docs_assets_src)
@@ -167,15 +167,15 @@ function _save_orientation_summary_rgb(name, img)
 end
 
 function _save_orientation_summary_set(prefix, img)
-    gx, gy = UTCGP.image2D_orientation_common._sobel_xy(img)
-    gm, _, _ = UTCGP.image2D_orientation_common._grad_magnitude_matrix(img)
-    grad_theta, _, _ = UTCGP.image2D_orientation_common._gradient_orientation_matrix(img)
-    struct_theta, _, _ = UTCGP.image2D_orientation_common._structure_orientation_matrix(img)
+    gx, gy = MAGE.image2D_orientation_common._sobel_xy(img)
+    gm, _, _ = MAGE.image2D_orientation_common._grad_magnitude_matrix(img)
+    grad_theta, _, _ = MAGE.image2D_orientation_common._gradient_orientation_matrix(img)
+    struct_theta, _, _ = MAGE.image2D_orientation_common._structure_orientation_matrix(img)
     _save_orientation_summary_gray(prefix * "_original.png", reinterpret(img.img))
     _save_orientation_summary_gray(prefix * "_gx.png", gx)
     _save_orientation_summary_gray(prefix * "_gy.png", gy)
     _save_orientation_summary_gray(prefix * "_grad_theta.png", grad_theta ./ π)
-    glyphs = UTCGP.image2D_orientation_common._orientation_glyph_canvas(struct_theta, gm; stride = 1)
+    glyphs = MAGE.image2D_orientation_common._orientation_glyph_canvas(struct_theta, gm; stride = 1)
     _save_orientation_summary_rgb(prefix * "_structure_theta.png", glyphs)
     return gx, gy
 end
@@ -215,7 +215,7 @@ ops = [:orientation_energy_0, :orientation_energy_45, :orientation_energy_90, :o
 short = ["E0", "E45", "E90", "E135", "dominant", "coherence", "spread"]
 println(rpad("", 17), join(lpad.(short, 10)))
 for (name, img) in images
-    values = [g_call(UTCGP.bundle_float_orientation[op].fn, img) for op in ops]
+    values = [g_call(MAGE.bundle_float_orientation[op].fn, img) for op in ops]
     println(rpad(name, 17), join(lpad.(string.(round.(values, digits = 2)), 10)))
 end
 ```
@@ -226,13 +226,13 @@ Measure how aligned the edges are. The vertical bars have only vertical edges, s
 
 ```@example orientation_summary_assets
 img = orientation_coherence_img
-fn = g_timed(UTCGP.bundle_float_orientation[:orientation_coherence].fn)
+fn = g_timed(MAGE.bundle_float_orientation[:orientation_coherence].fn)
 fn(img)
 ```
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start; flex-wrap:wrap;">
 <div style="width:18%;"><div style="text-align:center; font-size:0.9em;">orig</div><img src="../assets/fns/orientation_summary/orientation_coherence_original.png" alt="orientation_coherence original" style="width:100%; image-rendering:pixelated; image-rendering:crisp-edges;" /></div>
@@ -254,7 +254,7 @@ The edge orientation bin with the most edge strength. This step has a single `/`
 
 ```@example orientation_summary_assets
 img = dominant_orientation_img
-fn = g_timed(UTCGP.bundle_float_orientation[:dominant_orientation].fn)
+fn = g_timed(MAGE.bundle_float_orientation[:dominant_orientation].fn)
 fn(img)
 ```
 
@@ -280,7 +280,7 @@ Share of the edge strength on horizontal edges. The horizontal step gives `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_0_img
-fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_0].fn)
+fn = g_timed(MAGE.bundle_float_orientation[:orientation_energy_0].fn)
 fn(img)
 ```
 
@@ -306,7 +306,7 @@ Share of the edge strength on `\` diagonal edges (down to the right, 45° clockw
 
 ```@example orientation_summary_assets
 img = orientation_energy_45_img
-fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_45].fn)
+fn = g_timed(MAGE.bundle_float_orientation[:orientation_energy_45].fn)
 fn(img)
 ```
 
@@ -332,7 +332,7 @@ Share of the edge strength on vertical edges. The vertical step gives `1`.
 
 ```@example orientation_summary_assets
 img = orientation_energy_90_img
-fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_90].fn)
+fn = g_timed(MAGE.bundle_float_orientation[:orientation_energy_90].fn)
 fn(img)
 ```
 
@@ -358,7 +358,7 @@ Share of the edge strength on `/` diagonal edges (135° clockwise). The `/` line
 
 ```@example orientation_summary_assets
 img = orientation_energy_135_img
-fn = g_timed(UTCGP.bundle_float_orientation[:orientation_energy_135].fn)
+fn = g_timed(MAGE.bundle_float_orientation[:orientation_energy_135].fn)
 fn(img)
 ```
 
@@ -384,7 +384,7 @@ g_raw_gallery(gallery_html_6) # hide
 
 ```@example orientation_summary_assets
 img = orientation_spread_img
-fn = g_timed(UTCGP.bundle_float_orientation[:orientation_spread].fn)
+fn = g_timed(MAGE.bundle_float_orientation[:orientation_spread].fn)
 fn(img)
 ```
 
@@ -438,9 +438,9 @@ Window sides for a few image sizes (the `_5p` and `_10p` windows of small
 images are often just the `3 × 3` minimum):
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
-R = UTCGP.number_regionFromImg
+R = MAGE.number_regionFromImg
 side(half) = 2half + 1
 println(rpad("image", 10), rpad("_5p", 18), rpad("_10p", 18), "_20p        (window / contrast outer window)")
 for n in (28, 30, 64, 128, 256)
@@ -502,14 +502,14 @@ come from the same bounds functions the operators use.
 - [`region_entropy_20p`](#region_entropy_20p)
 
 ```@setup region_stats
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using Markdown
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "region_stats")
 docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "region_stats")
 mkpath(docs_assets_src)
@@ -568,9 +568,9 @@ region_segment_arr[:, 11:20] .= 2
 region_segment_arr[12:22, 21:30] .= 3
 region_segment_arr[20:30, 1:10] .= 4
 
-region_intensity = UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(region_intensity_arr))
-region_binary = UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(region_binary_arr))
-region_segment = UTCGP.SImageND(UTCGP.SegmentPixel{Int}.(region_segment_arr))
+region_intensity = MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(region_intensity_arr))
+region_binary = MAGE.SImageND(MAGE.BinaryPixel{Bool}.(region_binary_arr))
+region_segment = MAGE.SImageND(MAGE.SegmentPixel{Int}.(region_segment_arr))
 
 _save_region_gray("region_intensity.png", region_intensity_arr)
 _save_region_gray("region_binary.png", Float64.(region_binary_arr))
@@ -579,7 +579,7 @@ g_save([docs_assets_src, docs_assets_build], "region_segment.png", g_canvas(regi
 function _region_examples_md(specs)
     io = IOBuffer()
     for (idx, (fn_name, desc)) in enumerate(specs)
-        fn = g_timed(UTCGP.bundle_number_regionFromImg[fn_name].fn)
+        fn = g_timed(MAGE.bundle_number_regionFromImg[fn_name].fn)
         cx = mod(3 * idx + 1, 9) / 10
         cy = mod(5 * idx + 2, 9) / 10
         result = (
@@ -589,23 +589,23 @@ function _region_examples_md(specs)
         )
         half_size =
             if endswith(String(fn_name), "_5p")
-                UTCGP.number_regionFromImg._region_half_size_from_percent(region_intensity, 0.05)
+                MAGE.number_regionFromImg._region_half_size_from_percent(region_intensity, 0.05)
             elseif endswith(String(fn_name), "_10p")
-                UTCGP.number_regionFromImg._region_half_size_from_percent(region_intensity, 0.10)
+                MAGE.number_regionFromImg._region_half_size_from_percent(region_intensity, 0.10)
             elseif endswith(String(fn_name), "_20p")
-                UTCGP.number_regionFromImg._region_half_size_from_percent(region_intensity, 0.20)
+                MAGE.number_regionFromImg._region_half_size_from_percent(region_intensity, 0.20)
             else
-                UTCGP.number_regionFromImg._REGION_HALF_SIZE
+                MAGE.number_regionFromImg._REGION_HALF_SIZE
             end
 
         function _boxes_for(from)
-            inner = UTCGP.number_regionFromImg._region_bounds(from, cx, cy, half_size)
+            inner = MAGE.number_regionFromImg._region_bounds(from, cx, cy, half_size)
             boxes = [(inner[1], inner[2], inner[3], inner[4], RGB(1, 0, 0))]
             if occursin("contrast", String(fn_name))
                 outer_half = fn_name === :region_contrast ?
-                    UTCGP.number_regionFromImg._REGION_CONTRAST_OUTER_HALF_SIZE :
-                    UTCGP.number_regionFromImg._region_contrast_outer_half_size(from, half_size)
-                outer = UTCGP.number_regionFromImg._region_bounds(from, cx, cy, outer_half)
+                    MAGE.number_regionFromImg._REGION_CONTRAST_OUTER_HALF_SIZE :
+                    MAGE.number_regionFromImg._region_contrast_outer_half_size(from, half_size)
+                outer = MAGE.number_regionFromImg._region_bounds(from, cx, cy, outer_half)
                 push!(boxes, (outer[1], outer[2], outer[3], outer[4], RGB(0, 1, 0)))
             end
             return boxes
@@ -623,7 +623,7 @@ function _region_examples_md(specs)
         println(io, desc)
         println(io)
         println(io, "```julia")
-        println(io, "fn = UTCGP.bundle_number_regionFromImg[:", fn_name, "].fn")
+        println(io, "fn = MAGE.bundle_number_regionFromImg[:", fn_name, "].fn")
         println(io, "(")
         println(io, "    fn(region_intensity, ", cx, ", ", cy, "),")
         println(io, "    fn(region_binary, ", cx, ", ", cy, "),")
@@ -724,11 +724,11 @@ ones), drawn from the same weight mask the operator uses
 Where `position` lands on a `7 × 7` image (49 pixels, numbered `1` … `49`):
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 img = SImageND(IntensityPixel{N0f8}.(zeros(7, 7)))
 for position in (0.0, 0.0625, 0.2, 0.5, 0.75, 1.0)
-    row, col = UTCGP.number_imgRegionCommon._position_row_col(img, position)
+    row, col = MAGE.number_imgRegionCommon._position_row_col(img, position)
     println("position = ", rpad(position, 7), "→ pixel ", rpad(round(Int, position * 48 + 1), 3), "→ (row ", row, ", column ", col, ")")
 end
 ```
@@ -737,11 +737,11 @@ The masks of a full (unclipped) window, for `size = 1` (`3 × 3`) and
 `size = 2` (`5 × 5`), as the operators build them:
 
 ```@example
-using UTCGP
+using MAGE
 sym(w) = w > 0 ? "+" : w < 0 ? "−" : "·"
 kinds = (:haar_lr, :haar_tb, :haar_diag_main, :haar_diag_anti, :haar_center_surround, :haar_three_h, :haar_three_v)
 for n in (3, 5)
-    masks = [UTCGP.number_haarFromImg._haar_weight_matrix(k, n, n) for k in kinds]
+    masks = [MAGE.number_haarFromImg._haar_weight_matrix(k, n, n) for k in kinds]
     println(join(rpad.(string.(kinds), 22)))
     for r in 1:n
         println(join([rpad(join(sym.(m[r, :]), " "), 22) for m in masks]))
@@ -761,23 +761,23 @@ end
 - [`haar_three_v`](#haar_three_v)
 
 ```@setup haar_from_img_assets
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 docs_assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "haar_from_img")
 docs_assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "haar_from_img")
 mkpath(docs_assets_src)
 mkpath(docs_assets_build)
 
 haar_intensity_image(arr::AbstractMatrix{<:Real}) =
-    UTCGP.SImageND(UTCGP.IntensityPixel{N0f8}.(Float64.(arr)))
+    MAGE.SImageND(MAGE.IntensityPixel{N0f8}.(Float64.(arr)))
 haar_binary_image(arr::AbstractMatrix{Bool}) =
-    UTCGP.SImageND(UTCGP.BinaryPixel{Bool}.(arr))
+    MAGE.SImageND(MAGE.BinaryPixel{Bool}.(arr))
 
 function _save_haar_gray(name, img)
     vals = Float64.(img)
@@ -798,9 +798,9 @@ end
 
 function _save_haar_set(prefix, intensity_img, binary_img, kind, position, region_size)
     _save_haar_gray(prefix * "_intensity_orig.png", reinterpret(intensity_img.img))
-    _save_haar_rgb(prefix * "_intensity_overlay.png", UTCGP.number_haarFromImg._haar_overlay_canvas(intensity_img, kind, position, region_size))
+    _save_haar_rgb(prefix * "_intensity_overlay.png", MAGE.number_haarFromImg._haar_overlay_canvas(intensity_img, kind, position, region_size))
     _save_haar_gray(prefix * "_binary_orig.png", Float64.(reinterpret(binary_img.img)))
-    _save_haar_rgb(prefix * "_binary_overlay.png", UTCGP.number_haarFromImg._haar_overlay_canvas(binary_img, kind, position, region_size))
+    _save_haar_rgb(prefix * "_binary_overlay.png", MAGE.number_haarFromImg._haar_overlay_canvas(binary_img, kind, position, region_size))
     return nothing
 end
 
@@ -972,7 +972,7 @@ columns 4–7: the `+` half (columns 4–5) is half white, the `−` half
 (columns 6–7) black, so the value is `0.5`.
 
 ```@example haar_from_img_assets
-fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_lr].fn)
+fn = g_timed(MAGE.bundle_number_haarFromImg[:haar_lr].fn)
 (
     intensity_size_1 = fn(haar_lr_intensity, 0.5, 1),
     intensity_size_2 = fn(haar_lr_intensity, 0.5, 2),
@@ -1012,7 +1012,7 @@ g_raw_gallery(gallery_html_8) # hide
 Top half (`+`) minus bottom half (`−`): positive when the top is brighter.
 
 ```@example haar_from_img_assets
-fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_tb].fn)
+fn = g_timed(MAGE.bundle_number_haarFromImg[:haar_tb].fn)
 (fn(haar_tb_intensity, 0.5, 2), fn(haar_tb_binary, 0.5, 2))
 ```
 
@@ -1036,7 +1036,7 @@ g_raw_gallery(gallery_html_9) # hide
 Top-left and bottom-right quadrants (`+`) minus top-right and bottom-left quadrants (`−`): positive when the bright parts lie along the main diagonal (top-left to bottom-right).
 
 ```@example haar_from_img_assets
-fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_diag_main].fn)
+fn = g_timed(MAGE.bundle_number_haarFromImg[:haar_diag_main].fn)
 (fn(haar_diag_main_intensity, 0.5, 2), fn(haar_diag_main_binary, 0.5, 2))
 ```
 
@@ -1060,7 +1060,7 @@ g_raw_gallery(gallery_html_10) # hide
 Top-right and bottom-left quadrants (`+`) minus top-left and bottom-right quadrants (`−`): positive when the bright parts lie along the anti-diagonal (top-right to bottom-left).
 
 ```@example haar_from_img_assets
-fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_diag_anti].fn)
+fn = g_timed(MAGE.bundle_number_haarFromImg[:haar_diag_anti].fn)
 (fn(haar_diag_anti_intensity, 0.5, 2), fn(haar_diag_anti_binary, 0.5, 2))
 ```
 
@@ -1084,7 +1084,7 @@ g_raw_gallery(gallery_html_11) # hide
 Central rectangle (the middle third, `+`) minus the rest of the window (`−`): positive for a bright spot on a darker background.
 
 ```@example haar_from_img_assets
-fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_center_surround].fn)
+fn = g_timed(MAGE.bundle_number_haarFromImg[:haar_center_surround].fn)
 (fn(haar_center_surround_intensity, 0.5, 2), fn(haar_center_surround_binary, 0.5, 2))
 ```
 
@@ -1108,7 +1108,7 @@ g_raw_gallery(gallery_html_12) # hide
 Left and right bands (`+`) minus the middle band (`−`), three equal vertical bands centred in the window: positive for a dark vertical line between brighter areas.
 
 ```@example haar_from_img_assets
-fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_three_h].fn)
+fn = g_timed(MAGE.bundle_number_haarFromImg[:haar_three_h].fn)
 (fn(haar_three_h_intensity, 0.5, 2), fn(haar_three_h_binary, 0.5, 2))
 ```
 
@@ -1132,7 +1132,7 @@ g_raw_gallery(gallery_html_13) # hide
 Top and bottom bands (`+`) minus the middle band (`−`), three equal horizontal bands centred in the window: positive for a dark horizontal line between brighter areas.
 
 ```@example haar_from_img_assets
-fn = g_timed(UTCGP.bundle_number_haarFromImg[:haar_three_v].fn)
+fn = g_timed(MAGE.bundle_number_haarFromImg[:haar_three_v].fn)
 (fn(haar_three_v_intensity, 0.5, 2), fn(haar_three_v_binary, 0.5, 2))
 ```
 
@@ -1155,13 +1155,13 @@ g_raw_gallery(gallery_html_14) # hide
 
 ### Module
 ```@docs
-UTCGP.number_arithmetic
+MAGE.number_arithmetic
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.number_arithmetic.number_sum
+MAGE.number_arithmetic.number_sum
 ```
 ```jldoctest
 julia> number_sum(0,1)
@@ -1169,7 +1169,7 @@ julia> number_sum(0,1)
 ```
 
 ```@docs
-UTCGP.number_arithmetic.number_minus
+MAGE.number_arithmetic.number_minus
 ```
 ```jldoctest
 julia> number_minus(0,1)
@@ -1177,7 +1177,7 @@ julia> number_minus(0,1)
 ```
 
 ```@docs
-UTCGP.number_arithmetic.number_mult
+MAGE.number_arithmetic.number_mult
 ```
 ```jldoctest
 julia> number_mult(3,3)
@@ -1185,7 +1185,7 @@ julia> number_mult(3,3)
 ```
 
 ```@docs
-UTCGP.number_arithmetic.number_div
+MAGE.number_arithmetic.number_div
 ```
 ```jldoctest
 julia> number_div(3,3)
@@ -1193,7 +1193,7 @@ julia> number_div(3,3)
 ```
 
 ```@docs
-UTCGP.number_arithmetic.safe_div
+MAGE.number_arithmetic.safe_div
 ```
 ```jldoctest
 julia> safe_div(3,0)
@@ -1204,13 +1204,13 @@ julia> safe_div(3,0)
 
 ### Module
 ```@docs
-UTCGP.number_reduce
+MAGE.number_reduce
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.number_reduce.reduce_sum
+MAGE.number_reduce.reduce_sum
 ```
 ```jldoctest
 julia> reduce_sum([1,2,3])
@@ -1218,7 +1218,7 @@ julia> reduce_sum([1,2,3])
 ```
 
 ```@docs
-UTCGP.number_reduce.reduce_min
+MAGE.number_reduce.reduce_min
 ```
 ```jldoctest
 julia> reduce_min([1,2,3])
@@ -1226,7 +1226,7 @@ julia> reduce_min([1,2,3])
 ```
 
 ```@docs
-UTCGP.number_reduce.reduce_max
+MAGE.number_reduce.reduce_max
 ```
 ```jldoctest
 julia> reduce_max([1,2,3])
@@ -1234,7 +1234,7 @@ julia> reduce_max([1,2,3])
 ```
 
 ```@docs
-UTCGP.number_reduce.reduce_argmin
+MAGE.number_reduce.reduce_argmin
 ```
 ```jldoctest
 julia> reduce_argmin([1,2,3])
@@ -1242,7 +1242,7 @@ julia> reduce_argmin([1,2,3])
 ```
 
 ```@docs
-UTCGP.number_reduce.reduce_argmax
+MAGE.number_reduce.reduce_argmax
 ```
 ```jldoctest
 julia> reduce_argmax([1,2,3])
@@ -1250,7 +1250,7 @@ julia> reduce_argmax([1,2,3])
 ```
 
 ```@docs
-UTCGP.number_reduce.reduce_length
+MAGE.number_reduce.reduce_length
 ```
 ```jldoctest
 julia> reduce_length(collect(1:10))
@@ -1266,17 +1266,17 @@ image at once.
 ### Modules
 
 ```@docs
-UTCGP.number_reduceFromImg
-UTCGP.number_regionFromImg
-UTCGP.number_haarFromImg
-UTCGP.number_imgRegionCommon
+MAGE.number_reduceFromImg
+MAGE.number_regionFromImg
+MAGE.number_haarFromImg
+MAGE.number_imgRegionCommon
 ```
 
 ## Transcendental
 
 ### Module
 ```@docs
-UTCGP.number_transcendental
+MAGE.number_transcendental
 ```
 
 ## Bundles

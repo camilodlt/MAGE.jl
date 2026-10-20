@@ -43,7 +43,7 @@ SELECTOR_FUNCTIONS[1][2](t)      # :largest → object 1
 module image2D_object_common
 
 using ImageCore: N0f8
-using ..UTCGP: SizedImage, IntensityPixel, BinaryPixel, SegmentPixel
+using ..MAGE: SizedImage, IntensityPixel, BinaryPixel, SegmentPixel
 
 # ---------------------------------------------------------------------------
 # 1. Scalar inputs and coordinates
@@ -105,7 +105,7 @@ The numeric value of a pixel (`IntensityPixel`, `BinaryPixel` → 0/1, …) as a
 
 # `scratch` lives in libraries/image/image_buffers.jl, so that libraries loaded
 # before this file can use it too; it is re-imported here for existing users.
-using ..UTCGP: scratch
+using ..MAGE: scratch
 
 # ---------------------------------------------------------------------------
 # 3. Distance transforms

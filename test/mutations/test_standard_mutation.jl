@@ -1,4 +1,4 @@
-using UTCGP
+using MAGE
 using Random
 rng = Random.seed!(123)
 

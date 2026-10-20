@@ -118,7 +118,7 @@ discovered through traits — see [`runconf_trait`](@ref) and
 """
 abstract type AbstractRunConf end
 abstract type AbstractRunConfTrait end
-struct MissingRunConfTrait <: UTCGP.AbstractRunConfTrait end
+struct MissingRunConfTrait <: MAGE.AbstractRunConfTrait end
 
 # Default trait: if no specialization is provided for a type T, we return a MissingRunConfTrait.
 """
@@ -319,7 +319,7 @@ This is what lets generic code ask "how many elites, how many new, what
 tournament size?" without knowing the concrete configuration type.
 """
 runconf_trait_evolutationary_strategy(conf::AbstractRunConf) = MissingGAArgs
-runconf_trait_evolutationary_strategy(conf::UTCGP.RunConfCrossOverGA) =
+runconf_trait_evolutationary_strategy(conf::MAGE.RunConfCrossOverGA) =
     GAWithTournamentArgs(conf.n_elite, conf.n_new, conf.tournament_size)
 
 # TODO

@@ -126,7 +126,7 @@ Pretty print an operation.
 """
 function Base.show(_::IO, op::Operation)
     # function _extract_id_from_R(, x::OperationInput)
-    #     R_input = UTCGP._extract_input_node_from_operationInput(x)
+    #     R_input = MAGE._extract_input_node_from_operationInput(x)
     #     input = unwrap_or(x, throw("Could not unwrap the node"))
     #     input.id
     # end
@@ -155,7 +155,7 @@ function show_program()
     #                 " at $(op.calling_node.id)"
     #             op_dict = Dict()
     #             ins = [
-    #                 UTCGP._extract_input_node_from_operationInput(inp).id for
+    #                 MAGE._extract_input_node_from_operationInput(inp).id for
     #                 inp in op.inputs
     #             ]
     #             insert!(ins, 1, string(op.fn.name))

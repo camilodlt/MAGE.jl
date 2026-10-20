@@ -1,21 +1,27 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # MAGE.jl
+
+See the [changelog](https://github.com/camilodlt/MAGE.jl/blob/rename-package-to-mage/CHANGELOG.md)
+for recent changes and package migration instructions.
 
 MAGE — **M**ultimodal **A**daptive **G**raph **E**volution — is a type-aware
 extension of Cartesian Genetic Programming (CGP) for evolving programs that mix
 several data types in one graph.
 
 !!! note "Package name"
-    The Julia package that implements MAGE is still called `UTCGP`. Renaming it
-    is a separate migration, so throughout this manual the module is `UTCGP`
-    while the method is MAGE.
+    The package and its Julia module are both named `MAGE`.
 
     ```julia
-    using UTCGP
+    using MAGE
     ```
+
+    When updating an older installation, update imports and dependency keys,
+    use the `MAGE_` configuration prefix, and rebuild sysimages. The package UUID
+    is unchanged. Saved Julia source should be regenerated; serialized objects
+    that refer to the previous module name may require their original environment.
 
 ## What makes it different
 
@@ -41,9 +47,9 @@ classification, image segmentation and policy search.
 ## A minimal run
 
 ```julia
-using UTCGP
+using MAGE
 
-lib          = Library(UTCGP.get_sr_float_bundles())     # what the program may call
+lib          = Library(MAGE.get_sr_float_bundles())     # what the program may call
 ml           = MetaLibrary([lib])                        # one library per chromosome
 model_arch   = modelArchitecture([Float64, Float64], [1, 1], [Float64], [Float64], [1])
 node_config  = nodeConfig(30, 1, 2, 2)                    # 30 nodes, arity 2, 2 inputs
@@ -69,8 +75,8 @@ Bundles named
 `number_*FromImg` return scalars, even though their inputs are images.
 
 ```@eval
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "bundle_inventory.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "bundle_inventory.jl"))
 bundle_output_index()
 ```
 

@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Discrete Foreground Extraction
@@ -68,7 +68,7 @@ foreground quantile of `0.9`, leaving the third input available for
 `smoothness` under MAGE's arity ceiling.
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 values = fill(0.15, 64, 64)
@@ -93,14 +93,14 @@ Cell and coffee are downsampled once to keep this exact graph-cut example below
 the library's runtime target; Lena remains at its native 256×256 resolution.
 
 ```@setup foreground_extraction_assets
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "foreground_extraction")
 assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "foreground_extraction")
 mkpath(assets_src)
@@ -179,8 +179,8 @@ regularization suppresses isolated assignments and favors coherent boundaries,
 while contrast still permits cuts at strong intensity changes.
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction/coffee_smoothness_0_0.png" alt="Coffee foreground with smoothness zero" style="width:100%;" /><figcaption><code>smoothness = 0.0</code></figcaption></figure>
@@ -351,8 +351,8 @@ g_raw_gallery(gallery_html_4) # hide
     bright objects).
 
 ```@setup fg_mask
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 page = "foreground_mask"
 x = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end][1:96, 1:128]
 cell = g_intensity(x)
@@ -360,7 +360,7 @@ I = typeof(cell)
 B = typeof(g_binary(falses(size(x)...)))
 otsu = g_call(g_timed(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B)), cell)
 fat = g_call(g_timed(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B)), otsu, 7.0)   # a deliberately rough mask
-D = UTCGP.image2D_foreground_extraction_discrete
+D = MAGE.image2D_foreground_extraction_discrete
 "Seeds of a mask as a picture: white foreground seeds, black background seeds, grey undecided."
 function seeds_picture(mask, band)
     fg, bg = g_call(D._mask_band_seeds, BitMatrix(Bool.(reinterpret(mask.img))), band)
@@ -410,10 +410,10 @@ The output is a mask, not a masked intensity image. MAGE can combine it with
 the source using image arithmetic, for example `image * mask`.
 
 ```@docs
-UTCGP.image2D_foreground_extraction_discrete
-UTCGP.image2D_foreground_extraction_discrete.bundle_image2DBinary_foreground_extraction_factory
-UTCGP.image2D_foreground_extraction_discrete.boykov_jolly_foreground_image2D_factory
-UTCGP.image2D_foreground_extraction_discrete.grabcut_foreground_image2D_factory
+MAGE.image2D_foreground_extraction_discrete
+MAGE.image2D_foreground_extraction_discrete.bundle_image2DBinary_foreground_extraction_factory
+MAGE.image2D_foreground_extraction_discrete.boykov_jolly_foreground_image2D_factory
+MAGE.image2D_foreground_extraction_discrete.grabcut_foreground_image2D_factory
 ```
 
 References:

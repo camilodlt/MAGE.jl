@@ -73,7 +73,7 @@ using Statistics: mean
     end
 
     @testset "foreground extraction from a rough mask" begin
-        D = UTCGP.image2D_foreground_extraction_discrete
+        D = MAGE.image2D_foreground_extraction_discrete
         square = falses(30, 30); square[6:25, 6:25] .= true
         fg, bg = D._mask_band_seeds(square, 2)
         @test count(fg) == 16^2 && fg[8, 8] && !fg[7, 7]               # 20-px square shrunk by 2 on each side
@@ -121,6 +121,6 @@ using Statistics: mean
     end
 
     @testset "number_div throws an instance" begin
-        @test_throws DivideError UTCGP.number_arithmetic.number_div(1, 0)
+        @test_throws DivideError MAGE.number_arithmetic.number_div(1, 0)
     end
 end

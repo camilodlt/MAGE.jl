@@ -1,7 +1,7 @@
 # Drawing helpers shared by the library gallery pages. Each page's `@setup`
 # block includes this file, then renders its own images with these functions.
 
-using UTCGP
+using MAGE
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
@@ -19,7 +19,7 @@ const G_PALETTE = [
     RGB{Float64}(0.8, 0.4, 0.0), RGB{Float64}(0.8, 0.6, 0.7),
 ]
 
-g_repo_root() = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+g_repo_root() = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 
 "Asset directories (source and build) for a page, created on demand."
 function g_assets(page::AbstractString)

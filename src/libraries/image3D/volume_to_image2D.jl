@@ -23,7 +23,7 @@ which pixel kind the volume may have and whether a scalar or a mask follows.
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 vol = SImageND(IntensityPixel{N0f8}.(rand(28, 28, 16)))   # (y, x, z)
 I2 = typeof(SImageND(IntensityPixel{N0f8}.(rand(28, 28))))  # 2D output type (y, x)
 
@@ -36,12 +36,12 @@ slice(vol, 0.0)   # slice 1;  slice(vol, 1.0) is slice 16, slice(vol, 0.5) slice
 """
 module image3D_to_image2D
 
-using ..UTCGP: image_result, scratch
+using ..MAGE: image_result, scratch
 using ImageCore: Normed
 using FixedPointNumbers: rawtype
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

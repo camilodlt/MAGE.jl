@@ -1,5 +1,5 @@
-using UTCGP: liststring_broadcast
-using UTCGP: bundle_liststring_broadcast
+using MAGE: liststring_broadcast
+using MAGE: bundle_liststring_broadcast
 
 @testset "Broadcast" begin
     @test begin

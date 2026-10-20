@@ -29,12 +29,12 @@ measure.
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 m = falses(20, 40)
 m[3:4, 5:6] .= true          # a small square, top left
 m[10:17, 25:36] .= true      # a large rectangle, right
 mask = SImageND(BinaryPixel.(m))
-O = UTCGP.number_objectFromImg
+O = MAGE.number_objectFromImg
 
 O.obj_x_largest(mask)              # (30.5 − 1) / 39 ≈ 0.76: centre column of the rectangle
 O.obj_y_smallest(mask)             # (3.5 − 1) / 19 ≈ 0.13: centre row of the square
@@ -46,8 +46,8 @@ O.obj_dx_smallest_largest(mask)    # ≈ −0.64: the square is left of the rect
 """
 module number_objectFromImg
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..image2D_object_common:
     ObjectTable,
     IsSet,

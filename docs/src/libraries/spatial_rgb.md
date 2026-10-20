@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Spatial RGB Features
@@ -24,8 +24,8 @@ This is an extension bundle, so it does not repeat `identity_rgb` or
 `return_rgb`. Place it after the basic RGB bundle:
 
 ```@example spatial_rgb_setup
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 
 rgb = SImageND(IntensityPixel{N0f8}.(rand(32, 32, 3)))
@@ -63,14 +63,14 @@ The examples use a half-resolution copy of `coffee.png` so the page exercises
 the same implementation while remaining quick to build.
 
 ```@setup spatial_rgb_gallery
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 full_color_input = RGB.(load(joinpath(repo_root, "assets", "coffee.png")))
 color_input = full_color_input[1:2:end, 1:2:end]
 channel_last = permutedims(Float64.(channelview(color_input)), (2, 3, 1))
@@ -159,8 +159,8 @@ end
 ### Parameter-free edges
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/spatial_rgb/input.png" alt="Coffee RGB input" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
@@ -262,16 +262,16 @@ g_raw_gallery(gallery_html_6) # hide
 ```
 
 ```@docs
-UTCGP.image3D_spatial_rgb
-UTCGP.image3D_spatial_rgb.bundle_image3DIntensity_spatial_rgb_factory
-UTCGP.image3D_spatial_rgb.sobel_magnitude_rgb_image3D_factory
-UTCGP.image3D_spatial_rgb.laplacian_magnitude_rgb_image3D_factory
-UTCGP.image3D_spatial_rgb.gaussian_blur_rgb_image3D_factory
-UTCGP.image3D_spatial_rgb.difference_of_gaussians_rgb_image3D_factory
-UTCGP.image3D_spatial_rgb.unsharp_mask_rgb_image3D_factory
-UTCGP.image3D_spatial_rgb.local_contrast_normalize_rgb_image3D_factory
-UTCGP.image3D_spatial_rgb.local_std_rgb_image3D_factory
-UTCGP.image3D_spatial_rgb.gabor_energy_rgb_image3D_factory
+MAGE.image3D_spatial_rgb
+MAGE.image3D_spatial_rgb.bundle_image3DIntensity_spatial_rgb_factory
+MAGE.image3D_spatial_rgb.sobel_magnitude_rgb_image3D_factory
+MAGE.image3D_spatial_rgb.laplacian_magnitude_rgb_image3D_factory
+MAGE.image3D_spatial_rgb.gaussian_blur_rgb_image3D_factory
+MAGE.image3D_spatial_rgb.difference_of_gaussians_rgb_image3D_factory
+MAGE.image3D_spatial_rgb.unsharp_mask_rgb_image3D_factory
+MAGE.image3D_spatial_rgb.local_contrast_normalize_rgb_image3D_factory
+MAGE.image3D_spatial_rgb.local_std_rgb_image3D_factory
+MAGE.image3D_spatial_rgb.gabor_energy_rgb_image3D_factory
 ```
 
 ## Timings for the examples

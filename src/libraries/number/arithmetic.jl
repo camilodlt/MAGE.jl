@@ -16,7 +16,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module number_arithmetic
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 
 # ################### #
 # NUMBER ARITHMETIC   #

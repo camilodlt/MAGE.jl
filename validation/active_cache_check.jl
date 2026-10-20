@@ -1,5 +1,5 @@
-using Test, Random, UTCGP, ErrorTypes
-const U = UTCGP
+using Test, Random, MAGE, ErrorTypes
+const U = MAGE
 function cache_fixture(; typed=false, n=100)
     types = typed ? [Float64, Int] : [Float64]
     arch = modelArchitecture(typed ? [Float64, Int] : [Float64, Float64], [1, typed ? 2 : 1], types,

@@ -91,7 +91,7 @@ function ga_population_callback(pop_args::GA_POP_ARGS)::Option{Population}
     Pop = pop_args.population
     n_elite = Config.n_elite
     pop_size = n_elite + Config.n_new
-    inds = Vector{UTCGP.UTGenome}(undef, pop_size)
+    inds = Vector{MAGE.UTGenome}(undef, pop_size)
 
     @show pop_args.elite_idx
     @show length(Pop)

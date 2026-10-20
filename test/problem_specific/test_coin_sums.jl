@@ -1,9 +1,9 @@
 
-using UTCGP.integer_modulo: modulo
-using UTCGP: bundle_number_arithmetic
-using UTCGP.listgeneric_concat: concat_two_lists
-using UTCGP.listgeneric_basic: reverse_list
-using UTCGP: evaluate_fn_wrapper
+using MAGE.integer_modulo: modulo
+using MAGE: bundle_number_arithmetic
+using MAGE.listgeneric_concat: concat_two_lists
+using MAGE.listgeneric_basic: reverse_list
+using MAGE: evaluate_fn_wrapper
 
 """
 Text from PSB2: 

@@ -12,8 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 [Bundle Catalogue](@ref) page.
 """
 module listtuple_mappings
-import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
-import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
+import ..MAGE: FunctionBundle, append_method!, FunctionWrapper
+import MAGE: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ######### #
 # MAPPINGS  #

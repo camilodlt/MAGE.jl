@@ -23,10 +23,10 @@ The exhaustive, always-current list of operators in each bundle is on the
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 img = SImageND(IntensityPixel{N0f8}.([0.2 0.2; 0.8 0.8]))
 roi = SImageND(BinaryPixel.([false false; true true]))      # bottom row
-S = UTCGP.number_intensityStatsFromImg
+S = MAGE.number_intensityStatsFromImg
 
 S.stat_mean(img)             # 0.5: the whole image
 S.stat_mean(img, roi)        # 0.8: inside the region
@@ -39,8 +39,8 @@ module number_intensityStatsFromImg
 
 using Statistics: quantile!
 using ImageCore: N0f8, N0f16
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..image2D_object_common: clamp_unit, pixel_value, scratch
 
 # Returned by the bundle when no method matches the inputs.

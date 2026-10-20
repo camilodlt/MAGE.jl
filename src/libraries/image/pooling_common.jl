@@ -21,7 +21,7 @@ module image_pooling_common
 
 using ImageCore: FixedPoint
 using Statistics: middle
-using ..UTCGP: IntensityPixel, BinaryPixel, SegmentPixel, pixel_values!, scratch
+using ..MAGE: IntensityPixel, BinaryPixel, SegmentPixel, pixel_values!, scratch
 
 export pixel_values!, mode!, unique_count!, median_select!, kth_smallest!, pooled_pixel   # pixel_values! lives in image_buffers.jl
 

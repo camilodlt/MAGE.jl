@@ -8,7 +8,7 @@ so values coming from evolved programs never throw.
 """
 module number_imgRegionCommon
 
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel, SegmentPixel
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel, SegmentPixel
 
 const RegionCompatiblePixel = Union{IntensityPixel, BinaryPixel, SegmentPixel}
 

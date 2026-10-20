@@ -11,14 +11,14 @@ to specialize a factory always determines the output dimensions and pixel type.
 """
 module image2D_blob_extraction
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: scratch, output_pixels, image_result
+using ..MAGE: scratch, output_pixels, image_result
 
 using ImageMorphology: label_components!, strel_box
 using ..image_pooling_common: median_select!
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

@@ -1,11 +1,11 @@
-using UTCGP
+using MAGE
 
 @testset "Clone Bundle" begin
 
     @test begin
         # FROM INT TO INT
         # COPY BUNDLE
-        generic_bundle = UTCGP.bundle_number_reduce
+        generic_bundle = MAGE.bundle_number_reduce
         bundle_int = deepcopy(generic_bundle)
         bundle_float = deepcopy(generic_bundle)
         # Update caster
@@ -15,12 +15,12 @@ using UTCGP
         update_fallback!(bundle_float, () -> 0.0)
         # eval int => int
         reduce_sum = bundle_int[1]
-        UTCGP.evaluate_fn_wrapper(reduce_sum, [[1, 2, 3]]) === 6
+        MAGE.evaluate_fn_wrapper(reduce_sum, [[1, 2, 3]]) === 6
     end
     @test begin
         # FROM INT TO FLOAT
         # COPY BUNDLE
-        generic_bundle = UTCGP.bundle_number_reduce
+        generic_bundle = MAGE.bundle_number_reduce
         bundle_int = deepcopy(generic_bundle)
         bundle_float = deepcopy(generic_bundle)
         # Update caster
@@ -30,12 +30,12 @@ using UTCGP
         update_fallback!(bundle_float, () -> 0.0)
         # eval int => int
         reduce_sum = bundle_int[1]
-        UTCGP.evaluate_fn_wrapper(reduce_sum, [[1, 2, 3]]) === 6.0
+        MAGE.evaluate_fn_wrapper(reduce_sum, [[1, 2, 3]]) === 6.0
     end
     @test begin
         # FROM FLOAT TO INT
         # COPY BUNDLE
-        generic_bundle = UTCGP.bundle_number_reduce
+        generic_bundle = MAGE.bundle_number_reduce
         bundle_int = deepcopy(generic_bundle)
         bundle_float = deepcopy(generic_bundle)
         # Update caster
@@ -45,12 +45,12 @@ using UTCGP
         update_fallback!(bundle_float, () -> 0.0)
         # eval int => int
         reduce_sum = bundle_float[1]
-        UTCGP.evaluate_fn_wrapper(reduce_sum, [[1.0, 2.0, 3.0]]) === 6
+        MAGE.evaluate_fn_wrapper(reduce_sum, [[1.0, 2.0, 3.0]]) === 6
     end
     @test begin
         # FROM FLOAT TO FLOAT
         # COPY BUNDLE
-        generic_bundle = UTCGP.bundle_number_reduce
+        generic_bundle = MAGE.bundle_number_reduce
         bundle_int = deepcopy(generic_bundle)
         bundle_float = deepcopy(generic_bundle)
         # Update caster
@@ -60,7 +60,7 @@ using UTCGP
         update_fallback!(bundle_float, () -> 0.0)
         # eval int => int
         reduce_sum = bundle_float[1]
-        UTCGP.evaluate_fn_wrapper(reduce_sum, [[1.0, 2.0, 3.0]]) === 6.0
+        MAGE.evaluate_fn_wrapper(reduce_sum, [[1.0, 2.0, 3.0]]) === 6.0
     end
 
 end

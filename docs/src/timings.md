@@ -23,7 +23,7 @@ MAGE_DOC_TIMING_SAMPLES=3 nice -n 15 julia --project=docs docs/make.jl
 ```
 
 The docs environment must already have been instantiated with this checkout
-of UTCGP developed into it. Keep Julia and BLAS thread counts low when sharing
+of MAGE developed into it. Keep Julia and BLAS thread counts low when sharing
 CPU resources. Set `MAGE_DOC_TIMING_SAMPLES` from 1 to 20 to change the sample
 count. Sampling stops after at least 0.1 seconds of measured work per case;
 this limits repeat work, and does not interrupt an individual operator.
@@ -60,8 +60,8 @@ a loaded machine is practical. They are examples of expensive or degenerate
 cases, not an exhaustive search for the worst input.
 
 ```@setup stress
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 page = "timing_stress"
 n = 48
 fields = [
@@ -90,8 +90,8 @@ for image in (flat, textured), parameter in (NaN, Inf, -Inf, 1e30, 13.0)
     g_call(bundle_image2DIntensity_morph_factory[:erosion_2D].fn(I), image, parameter)
 end
 for image in (flat, textured)
-    g_call(UTCGP.number_similarityFromImg.sim_shift_x, image, image)
-    g_call(UTCGP.number_similarityFromImg.match_score_30p, image, image)
+    g_call(MAGE.number_similarityFromImg.sim_shift_x, image, image)
+    g_call(MAGE.number_similarityFromImg.match_score_30p, image, image)
 end
 ```
 

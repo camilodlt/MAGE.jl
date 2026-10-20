@@ -1,7 +1,7 @@
-using Test, UTCGP
+using Test, MAGE
 @testset "Native ADF population allocation and original-node mapping" begin
-    old=UTCGP.SAFE_CALL[]
-    UTCGP.SAFE_CALL[]=false
+    old=MAGE.SAFE_CALL[]
+    MAGE.SAFE_CALL[]=false
     try
         f=_float_cone_fixture()
         slot=native_test_slot(f,native_test_seq(f,[(FunctionWrapper(identity,:identity,nothing,()->0.0),Float64)]))
@@ -22,6 +22,6 @@ using Test, UTCGP
         @test nodes==[seq.steps[1].original_node]
         @test all(i -> S[1,i]===P[1,i],1:4)
     finally
-        UTCGP.SAFE_CALL[]=old
+        MAGE.SAFE_CALL[]=old
     end
 end

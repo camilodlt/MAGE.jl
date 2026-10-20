@@ -1,4 +1,4 @@
-using UTCGP.number_arithmetic: power_of
+using MAGE.number_arithmetic: power_of
 
 """
 Text from paper: 

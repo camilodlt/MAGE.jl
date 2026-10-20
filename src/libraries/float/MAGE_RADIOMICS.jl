@@ -2,8 +2,8 @@
 
 # using PythonCall
 # using ThreadPools
-# using ..UTCGP: FunctionBundle, append_method!
-# import UTCGP:
+# using ..MAGE: FunctionBundle, append_method!
+# import MAGE:
 #     CONSTRAINED,
 #     MIN_INT,
 #     MAX_INT,
@@ -12,7 +12,7 @@
 #     _positive_params,
 #     _ceil_positive_params
 # using ImageCore: N0f8, Normed, float64
-# using ..UTCGP:
+# using ..MAGE:
 #     SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type
 # fallback(args...) = return 0.0
 # bundle_image2D_radiomicsFOS_factory = FunctionBundle(fallback)
@@ -59,9 +59,9 @@
 # """
 # ENV["JULIA_PYTHONCALL_EXE"] = "/home/irit/miniconda3/envs/pyr/bin/python"
 # ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
-# using Revise, UTCGP
+# using Revise, MAGE
 # img = ones(Float64, (3, 3))
 # s_img = SImageND(img)
-# d = UTCGP.MAGE_RADIOMICS._FOS_MeanFeatureValue(typeof(s_img))
+# d = MAGE.MAGE_RADIOMICS._FOS_MeanFeatureValue(typeof(s_img))
 # d(s_img)
 # """

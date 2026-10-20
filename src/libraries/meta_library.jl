@@ -8,7 +8,7 @@ Parent of all concrete Libraries
 abstract type AbstractLibrary end
 
 """
-A Library Holds ALL functions that return a 'type' for UTCGP
+A Library Holds ALL functions that return a 'type' for MAGE
 
 Callable functions come in bundles of FunctionWrappers.
 

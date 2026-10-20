@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # RGB Images and Color Statistics
@@ -37,8 +37,8 @@ by tests so later insertions cannot silently break the convention.
 ## Constructing the RGB input
 
 ```@example rgb_types
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 
 red = [1.0 0.0; 0.5 0.0]
@@ -143,14 +143,14 @@ The input below is the `coffee.png` image distributed by
 [JuliaImages/TestImages.jl](https://github.com/JuliaImages/TestImages.jl).
 
 ```@setup rgb_gallery
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 color_input = RGB.(load(joinpath(repo_root, "assets", "coffee.png")))
 channel_first = Float64.(channelview(color_input))
 channel_last = permutedims(channel_first, (2, 3, 1))
@@ -248,8 +248,8 @@ save_rgb_gallery(
 ```
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-start;">
 <figure style="width:30%; margin:0;"><img src="../assets/fns/color_statistics_rgb/coffee_rgb.png" alt="Coffee RGB input" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
@@ -375,36 +375,36 @@ g_raw_gallery(gallery_html_7) # hide
 ```
 
 ```@docs
-UTCGP.image3D_color_statistics_rgb
-UTCGP.image3D_color_statistics_rgb.bundle_image2DIntensity_color_statistics_rgb_factory
-UTCGP.image3D_color_statistics_rgb.rgb_luminance_image2D_factory
-UTCGP.image3D_color_statistics_rgb.red_green_opponency_image2D_factory
-UTCGP.image3D_color_statistics_rgb.blue_yellow_opponency_image2D_factory
-UTCGP.image3D_color_statistics_rgb.rgb_saturation_image2D_factory
-UTCGP.image3D_color_statistics_rgb.normalized_red_image2D_factory
-UTCGP.image3D_color_statistics_rgb.normalized_green_image2D_factory
-UTCGP.image3D_color_statistics_rgb.normalized_blue_image2D_factory
-UTCGP.image3D_rgb
-UTCGP.image3D_rgb.bundle_image3DIntensity_rgb_factory
-UTCGP.image3D_rgb.identity_rgb_image3D_factory
-UTCGP.image3D_rgb.return_rgb_image3D_factory
-UTCGP.image3D_rgb.add_image3D_factory
-UTCGP.image3D_rgb.subtract_image3D_factory
-UTCGP.image3D_rgb.mult_rgb_image3D_factory
-UTCGP.image3D_rgb.max_image3D_factory
-UTCGP.image3D_rgb.min_image3D_factory
-UTCGP.image3D_rgb.invert_rgb_image3D_factory
-UTCGP.image3D_rgb.grayscale_rgb_image3D_factory
-UTCGP.image3D_rgb.keep_red_rgb_image3D_factory
-UTCGP.image3D_rgb.keep_green_rgb_image3D_factory
-UTCGP.image3D_rgb.keep_blue_rgb_image3D_factory
-UTCGP.image3D_rgb.rotate_channels_left_rgb_image3D_factory
-UTCGP.image3D_rgb.rotate_channels_right_rgb_image3D_factory
-UTCGP.image3D_rgb.adjust_brightness_rgb_image3D_factory
-UTCGP.image3D_rgb.adjust_contrast_rgb_image3D_factory
-UTCGP.image3D_rgb.adjust_saturation_rgb_image3D_factory
-UTCGP.image3D_rgb.adjust_gamma_rgb_image3D_factory
-UTCGP.image3D_rgb.mult_image3D_factory
+MAGE.image3D_color_statistics_rgb
+MAGE.image3D_color_statistics_rgb.bundle_image2DIntensity_color_statistics_rgb_factory
+MAGE.image3D_color_statistics_rgb.rgb_luminance_image2D_factory
+MAGE.image3D_color_statistics_rgb.red_green_opponency_image2D_factory
+MAGE.image3D_color_statistics_rgb.blue_yellow_opponency_image2D_factory
+MAGE.image3D_color_statistics_rgb.rgb_saturation_image2D_factory
+MAGE.image3D_color_statistics_rgb.normalized_red_image2D_factory
+MAGE.image3D_color_statistics_rgb.normalized_green_image2D_factory
+MAGE.image3D_color_statistics_rgb.normalized_blue_image2D_factory
+MAGE.image3D_rgb
+MAGE.image3D_rgb.bundle_image3DIntensity_rgb_factory
+MAGE.image3D_rgb.identity_rgb_image3D_factory
+MAGE.image3D_rgb.return_rgb_image3D_factory
+MAGE.image3D_rgb.add_image3D_factory
+MAGE.image3D_rgb.subtract_image3D_factory
+MAGE.image3D_rgb.mult_rgb_image3D_factory
+MAGE.image3D_rgb.max_image3D_factory
+MAGE.image3D_rgb.min_image3D_factory
+MAGE.image3D_rgb.invert_rgb_image3D_factory
+MAGE.image3D_rgb.grayscale_rgb_image3D_factory
+MAGE.image3D_rgb.keep_red_rgb_image3D_factory
+MAGE.image3D_rgb.keep_green_rgb_image3D_factory
+MAGE.image3D_rgb.keep_blue_rgb_image3D_factory
+MAGE.image3D_rgb.rotate_channels_left_rgb_image3D_factory
+MAGE.image3D_rgb.rotate_channels_right_rgb_image3D_factory
+MAGE.image3D_rgb.adjust_brightness_rgb_image3D_factory
+MAGE.image3D_rgb.adjust_contrast_rgb_image3D_factory
+MAGE.image3D_rgb.adjust_saturation_rgb_image3D_factory
+MAGE.image3D_rgb.adjust_gamma_rgb_image3D_factory
+MAGE.image3D_rgb.mult_image3D_factory
 ```
 
 ## Timings for the examples

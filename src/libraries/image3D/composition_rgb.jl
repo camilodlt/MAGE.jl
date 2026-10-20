@@ -7,14 +7,14 @@ Cross-chromosome composition of typed 2D intensity images and RGB images.
 """
 module image3D_rgb_composition
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
 # Call tree: generated factory callable → pixel loop below → store_rgb!.
 # Direct pixel-field reads preserve values without ReinterpretArray indexing.
-using ..UTCGP: image_result
+using ..MAGE: image_result
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     IntensityPixel,
     SImageND,
     SizedImage3D,

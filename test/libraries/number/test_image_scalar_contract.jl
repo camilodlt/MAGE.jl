@@ -6,8 +6,8 @@ using ImageCore: N0f8, N0f16
 _scalar_inferred(f::F, args::A) where {F,A<:Tuple} = @inferred f(args...)
 
 @testset "Image-to-scalar dispatch and inference" begin
-    ST = UTCGP.number_intensityStatsFromImg
-    SI = UTCGP.number_similarityFromImg
+    ST = MAGE.number_intensityStatsFromImg
+    SI = MAGE.number_similarityFromImg
     raw = reshape(collect(range(0.05, 0.95; length=120)), 4, 6, 5)
     roi_values = [isodd(r+c) for r in 1:4, c in 1:6]
     roi = SImageND(BinaryPixel.(roi_values))

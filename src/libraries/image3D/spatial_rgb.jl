@@ -7,13 +7,13 @@ Fixed, training-free spatial feature transforms for typed RGB images.
 """
 module image3D_spatial_rgb
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
+using ..MAGE: output_pixels, image_result, scratch, pixel_values!
 
 using ImageFiltering: Kernel, centered, imfilter!, reflect
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     IntensityPixel,
     SImageND,
     SizedImage3D,

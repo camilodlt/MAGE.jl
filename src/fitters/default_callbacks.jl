@@ -766,7 +766,7 @@ function racing_mutation!(
             model_architecture,
             shared_inputs,
         )
-        hash = UTCGP.individual_phen_hasher(new_prog)
+        hash = MAGE.individual_phen_hasher(new_prog)
         if hash in keys(racing_struct.bookkeeper)
             racing_struct.bookkeeper[hash] += 1
             continue

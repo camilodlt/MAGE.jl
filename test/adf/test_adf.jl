@@ -19,10 +19,10 @@ function _adf_calling_genome(adf_fn_index::Int)
 end
 
 function _single_output_tuple(genome, model_arch, ml, inputs, values...)
-    decoded = UTCGP.decode_with_output_nodes(genome, ml, model_arch, inputs)
+    decoded = MAGE.decode_with_output_nodes(genome, ml, model_arch, inputs)
     replace_shared_inputs!(decoded, Any[values...])
-    outputs = UTCGP.evaluate_individual_programs(decoded, model_arch.chromosomes_types, ml)
-    UTCGP.reset_programs!(decoded)
+    outputs = MAGE.evaluate_individual_programs(decoded, model_arch.chromosomes_types, ml)
+    MAGE.reset_programs!(decoded)
     return Tuple(outputs)
 end
 
@@ -39,12 +39,12 @@ end
 @testset "ADF slots can be replaced by genome-backed definitions" begin
     setup = _install_deterministic_adf()
     slot = setup.slots[1]
-    decoded = UTCGP.decode_with_output_nodes(setup.genome, setup.ml, setup.model_arch, setup.inputs)
-    seq = UTCGP.compile_program(decoded, setup.model_arch, setup.ml)
+    decoded = MAGE.decode_with_output_nodes(setup.genome, setup.ml, setup.model_arch, setup.inputs)
+    seq = MAGE.compile_program(decoded, setup.model_arch, setup.ml)
 
     replace_shared_inputs!(decoded, Any[2, 2])
-    eval_output = UTCGP.evaluate_individual_programs(decoded, setup.model_arch.chromosomes_types, setup.ml)
-    UTCGP.reset_programs!(decoded)
+    eval_output = MAGE.evaluate_individual_programs(decoded, setup.model_arch.chromosomes_types, setup.ml)
+    MAGE.reset_programs!(decoded)
 
     @test !adf_is_empty(slot)
     @test eval_output == collect(seq(2, 2)) == [slot(2, 2)]
@@ -52,14 +52,14 @@ end
     @test slot.definition.sequential_program(3, 12) == seq(3, 12)
     @test setup.registry.wrappers[slot.slot_id].name == :adf_sum_div
     @test setup.registry.wrappers[slot.slot_id].description ==
-        UTCGP.sequential_source(slot.definition.sequential_program)
+        MAGE.sequential_source(slot.definition.sequential_program)
 end
 
 @testset "ADF usage checks include population and recursive ADF dependencies" begin
     setup = _install_deterministic_adf()
     adf_fn_index = length(setup.ml[1]) - 1
     parent_genome, parent_arch, parent_inputs = _adf_calling_genome(adf_fn_index)
-    parent_programs = UTCGP.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs)
+    parent_programs = MAGE.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs)
 
     replace_adf_slot!(
         setup.registry,
@@ -74,7 +74,7 @@ end
     @test direct_adf_usage(parent_programs) == Set([setup.slots[1].slot_id])
     @test !can_replace_adf_slot(setup.registry, setup.slots[1].slot_id, [parent_programs])
     @test setup.slots[1].slot_id in recursive_adf_dependencies(setup.registry, setup.slots[2].slot_id)
-    @test !can_replace_adf_slot(setup.registry, setup.slots[1].slot_id, UTCGP.IndividualPrograms[])
+    @test !can_replace_adf_slot(setup.registry, setup.slots[1].slot_id, MAGE.IndividualPrograms[])
     @test _single_output_tuple(parent_genome, parent_arch, setup.ml, parent_inputs, 2, 2) == (setup.slots[1](2, 2),)
 end
 
@@ -82,7 +82,7 @@ end
     setup = _install_deterministic_adf()
     adf_fn_index = length(setup.ml[1]) - 1
     parent_genome, parent_arch, parent_inputs = _adf_calling_genome(adf_fn_index)
-    parent_programs = UTCGP.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs)
+    parent_programs = MAGE.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs)
 
     replace_adf_slot!(
         setup.registry,
@@ -122,7 +122,7 @@ end
     setup = _install_deterministic_adf()
     adf_fn_index = length(setup.ml[1]) - 1
     parent_genome, parent_arch, parent_inputs = _adf_calling_genome(adf_fn_index)
-    parent_programs = UTCGP.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs)
+    parent_programs = MAGE.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs)
 
     saved = saved_individual_with_adfs(
         :elite_roundtrip,
@@ -167,13 +167,13 @@ end
     parent_genome, parent_arch, parent_inputs = _adf_calling_genome(adf_fn_index)
     flat_genome = flatten_adfs(parent_genome, parent_inputs, parent_arch, setup.ml, setup.registry)
 
-    parent_seq = UTCGP.compile_program(
-        UTCGP.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs),
+    parent_seq = MAGE.compile_program(
+        MAGE.decode_with_output_nodes(parent_genome, setup.ml, parent_arch, parent_inputs),
         parent_arch,
         setup.ml,
     )
-    flat_seq = UTCGP.compile_program(
-        UTCGP.decode_with_output_nodes(flat_genome, setup.ml, parent_arch, parent_inputs),
+    flat_seq = MAGE.compile_program(
+        MAGE.decode_with_output_nodes(flat_genome, setup.ml, parent_arch, parent_inputs),
         parent_arch,
         setup.ml,
     )
@@ -181,6 +181,6 @@ end
     @test flat_genome !== parent_genome
     @test _single_output_tuple(parent_genome, parent_arch, setup.ml, parent_inputs, 2, 2) ==
         _single_output_tuple(flat_genome, parent_arch, setup.ml, parent_inputs, 2, 2)
-    @test !occursin("adf_sum_div", UTCGP.sequential_source(flat_seq))
-    @test occursin("adf_sum_div", UTCGP.sequential_source(parent_seq))
+    @test !occursin("adf_sum_div", MAGE.sequential_source(flat_seq))
+    @test occursin("adf_sum_div", MAGE.sequential_source(parent_seq))
 end

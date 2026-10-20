@@ -21,12 +21,12 @@ one operator per kernel (whole-foreground descriptors and Hu moments) or per
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 m = falses(30, 30)
 m[5:9, 5:9] .= true            # a 5 × 5 square (25 pixels)
 m[15:24, 20:22] .= true        # a 10 × 3 bar (30 pixels)
 mask = SImageND(BinaryPixel.(m))
-S = UTCGP.number_shapeFromImg
+S = MAGE.number_shapeFromImg
 
 S.shape_fill(mask)             # 55 / 900 ≈ 0.061
 S.shape_euler(mask)            # 2.0: two objects, no hole
@@ -37,8 +37,8 @@ S.objs_elongation_max(mask)    # ≈ 0.70: the bar (the square scores 0)
 """
 module number_shapeFromImg
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..image2D_object_common:
     ObjectTable,
     IsSet,

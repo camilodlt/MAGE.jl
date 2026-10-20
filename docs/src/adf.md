@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Automatically Defined Functions
@@ -44,21 +44,21 @@ purely as a fast callable view.
 ## Slots and definitions
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["adf/types.jl"]
 ```
 
 ## Reserving slots in a library
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["adf/library_extension.jl"]
 ```
 
 ## Which ADFs does a program use?
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["adf/usage.jl"]
 ```
 
@@ -71,14 +71,14 @@ function indices when installing the extracted genome. Connection setters
 check bounds and ordering; callers remain responsible for compatible types.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["adf/extract.jl"]
 ```
 
 ## Flattening back to plain CGP
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["adf/genome_flatten.jl"]
 ```
 
@@ -88,6 +88,6 @@ An ADF environment is a genome plus the definitions its slots hold, saved
 together so a run can be resumed or an individual shipped elsewhere.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["adf/serialization.jl"]
 ```

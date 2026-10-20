@@ -155,7 +155,7 @@ const _constant_rgb_contrast_cases = map((N0f8, N0f16, Float32, Float64)) do T
 end
 
 @testset "Constant RGB contrast is exactly neutral" begin
-    spatial = UTCGP.image3D_spatial_rgb
+    spatial = MAGE.image3D_spatial_rgb
     # Test the working result as well as stored pixels: a quantized comparison
     # alone could hide residuals on one side of the rounding boundary.
     for value in (0.0, 0.1, 0.25, 0.5, 0.75, 1.0), radius in (1.0, 3.0, 5.0)

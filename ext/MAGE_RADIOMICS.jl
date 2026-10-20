@@ -2,10 +2,10 @@
 
 # using PythonCall
 # using ThreadPools
-# using UTCGP: ManualDispatcher
-# using UTCGP
-# using UTCGP: FunctionBundle, append_method!
-# import UTCGP:
+# using MAGE: ManualDispatcher
+# using MAGE
+# using MAGE: FunctionBundle, append_method!
+# import MAGE:
 #     CONSTRAINED,
 #     MIN_INT,
 #     MAX_INT,
@@ -14,7 +14,7 @@
 #     _positive_params,
 #     _ceil_positive_params
 # using ImageCore: N0f8, Normed, float64
-# using UTCGP:
+# using MAGE:
 #     SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type
 # import MAGE_RADIOMICS_EXT
 
@@ -49,7 +49,7 @@
 # # getVarianceFeatureValue
 # # getUniformityFeatureValue
 
-# function UTCGP._FOS_MeanFeatureValue(i::Type{I}) where {I<:SizedImage}
+# function MAGE._FOS_MeanFeatureValue(i::Type{I}) where {I<:SizedImage}
 #     TT = Base.unwrap_unionall(I).parameters[2]
 #     _validate_factory_type(TT)
 
@@ -81,9 +81,9 @@
 # """
 # ENV["JULIA_PYTHONCALL_EXE"] = "/home/irit/miniconda3/envs/pyr/bin/python"
 # ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
-# using Revise, UTCGP
+# using Revise, MAGE
 # img = ones(Float64, (3, 3))
 # s_img = SImageND(img)
-# d = UTCGP.MAGE_RADIOMICS._FOS_MeanFeatureValue(typeof(s_img))
+# d = MAGE.MAGE_RADIOMICS._FOS_MeanFeatureValue(typeof(s_img))
 # d(s_img)
 # """

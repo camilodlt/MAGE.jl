@@ -1,11 +1,11 @@
-using UTCGP.listgeneric_utils: sort_list
-using UTCGP.listgeneric_utils: append_to_list
-using UTCGP.listgeneric_utils: unique_in_list
+using MAGE.listgeneric_utils: sort_list
+using MAGE.listgeneric_utils: append_to_list
+using MAGE.listgeneric_utils: unique_in_list
 
 @testset "SORT" begin
     @test begin
         # bundle import
-        using UTCGP.listgeneric_utils: bundle_listgeneric_utils
+        using MAGE.listgeneric_utils: bundle_listgeneric_utils
         length(bundle_listgeneric_utils) == 4 &&
             _unique_names_in_bundle(bundle_listgeneric_utils)
 
@@ -27,7 +27,7 @@ using UTCGP.listgeneric_utils: unique_in_list
     # UNIQUE
     @test begin
         a = [1, 1, 3]
-        using UTCGP: listgeneric_utils
+        using MAGE: listgeneric_utils
         unique_in_list(a) == [1, 3] && a == [1, 1, 3]
     end
     @test begin

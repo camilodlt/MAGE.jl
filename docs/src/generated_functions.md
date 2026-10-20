@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Generated Functions
@@ -61,14 +61,14 @@ a generated function is type-correct by construction rather than by review.
 ## Everything
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["libraries/llm_generated_functions.jl"]
 ```
 
 ## Backend hooks
 
 Concrete backends are provided by package extensions; these two hooks are the
-only thing UTCGP's core knows about them. See [Package Extensions](@ref).
+only thing MAGE's core knows about them. See [Package Extensions](@ref).
 
 ```@docs; canonical = false
 llm_generated_function_client_backend

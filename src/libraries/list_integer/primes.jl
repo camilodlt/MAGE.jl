@@ -12,9 +12,9 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module listinteger_primes
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 using Primes
-import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
+import MAGE: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ########### #
 # PRIMES      #

@@ -23,7 +23,7 @@ module image2D_orientation_common
 
 using ImageFiltering: Kernel, reflect, imfilter!
 using ImageCore: RGB
-using ..UTCGP: SImageND, scratch, pixel_values!
+using ..MAGE: SImageND, scratch, pixel_values!
 
 const _YSOBEL, _XSOBEL = reflect.(Kernel.sobel())
 

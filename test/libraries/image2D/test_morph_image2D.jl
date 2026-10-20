@@ -1,5 +1,5 @@
 using ImageCore
-using UTCGP
+using MAGE
 
 # Helper function to generate a test image with a known pattern
 function generate_erosion_test_image(::Type{BinaryPixel{T}}, size = (10, 10)) where {T}
@@ -106,9 +106,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -150,9 +150,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     test_img_intensity.img[test_img_intensity.==1] .= 0.8 # it should dilate 0.8s
@@ -197,9 +197,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     expected = [5, 5, 13, 13, 75, 75]
@@ -328,9 +328,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -372,9 +372,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -502,9 +502,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -546,9 +546,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     expected = [0, 0, 0, 0, 0, 0]
@@ -854,9 +854,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
 
@@ -903,9 +903,9 @@ end
     test_img_binary = generate_erosion_test_image(BINARY)
     test_img_intensity = generate_erosion_test_image(INTENSITY)
     inverter1 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_binary)))
     inverter2 =
-        (@test_factory UTCGP.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
+        (@test_factory MAGE.image2D_basic.experimental_invert_image2D_factory(typeof(test_img_intensity)))
     test_img_binary = inverter1(test_img_binary)
     test_img_intensity = inverter2(test_img_intensity)
     test_img_intensity.img[5, 5] = 0.8

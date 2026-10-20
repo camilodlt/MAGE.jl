@@ -1,8 +1,8 @@
-using UTCGP.str_grep: bundle_string_grep
-using UTCGP.str_grep: replace_pattern
-using UTCGP.str_grep: replace_first_pattern
-using UTCGP.str_grep: remove_pattern
-using UTCGP: _unique_names_in_bundle
+using MAGE.str_grep: bundle_string_grep
+using MAGE.str_grep: replace_pattern
+using MAGE.str_grep: replace_first_pattern
+using MAGE.str_grep: remove_pattern
+using MAGE: _unique_names_in_bundle
 
 @testset "STR GREP LIB" begin
     @test begin

@@ -55,11 +55,11 @@ If there is no method specialized
 runconf_trait_crossover(conf::AbstractRunConf) = MissingCrossOverArgs
 
 """
-    runconf_trait_crossover(conf::UTCGP.RunConfCrossOverGA) -> CrossOverArgs
+    runconf_trait_crossover(conf::MAGE.RunConfCrossOverGA) -> CrossOverArgs
 
 Extracts the minimal crossover arguments from a run configuration.
 """
-runconf_trait_crossover(conf::UTCGP.RunConfCrossOverGA) =
+runconf_trait_crossover(conf::MAGE.RunConfCrossOverGA) =
     CrossOverArgs(conf.mutation_prob, conf.mutation_n_active_nodes, conf.crossover_prob)
 
 """

@@ -11,9 +11,9 @@
 │   declared_argument_names = nothing
 │   declared_input_types = nothing
 │   hasmethod_on_arg_types = false
-│   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke identity_float(::Vector{Int64})\nThe function `identity_float` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  identity_float(!Matched::Float64, Any...)\n   @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35\n"
-│   available_methods = "# 1 method for generic function \"identity_float\" from UTCGP.float_basic:\n [1] identity_float(from::Float64, args...)\n     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35"
-└ @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:193
+│   error = "Calling invoke(f, t, args...) would throw:\nMethodError: no method matching invoke identity_float(::Vector{Int64})\nThe function `identity_float` exists, but no method is defined for this combination of argument types.\n\nClosest candidates are:\n  identity_float(!Matched::Float64, Any...)\n   @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35\n"
+│   available_methods = "# 1 method for generic function \"identity_float\" from MAGE.float_basic:\n [1] identity_float(from::Float64, args...)\n     @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35"
+└ @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:193
 ERROR: LoadError: Some tests did not pass: 51 passed, 0 failed, 2 errored, 0 broken.
 in expression starting at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/validation/unrelated_errors_check.jl:3
 find pair: Error During Test at /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:212
@@ -28,8 +28,8 @@ end
      @ Base ./essentials.jl:14
    [2] getindex
      @ ./essentials.jl:916 [inlined]
-   [3] (::UTCGP.listgeneric_subset.var"#9#10")(::Vector{Tuple{Int64, Int64}}, ::Int64)
-     @ UTCGP.listgeneric_subset ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/list_generic/subset.jl:170
+   [3] (::MAGE.listgeneric_subset.var"#9#10")(::Vector{Tuple{Int64, Int64}}, ::Int64)
+     @ MAGE.listgeneric_subset ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/list_generic/subset.jl:170
    [4] algo_find_pair(x::Vector{Any}, y::Vector{Any})
      @ Main ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/problem_specific/test_find_pair.jl:20
    [5] macro expansion
@@ -68,13 +68,13 @@ sn_behavior_hasher: Error During Test at /home/camilo/Documents/dev/MAGENetRunne
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:223 =#
     for g = [child1, child2, child3, child4, parent]
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 =#
-        p = UTCGP.decode_with_output_nodes(g, d["meta_library"], d["model_architecture"], d["shared_inputs"])
+        p = MAGE.decode_with_output_nodes(g, d["meta_library"], d["model_architecture"], d["shared_inputs"])
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:230 =#
         push!(progs, p)
         #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:232 =#
     end
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:235 =#
-    sn_writer_callback([4.0, 4.0, 2.0, 2.0, 4.0], Population([child1, child2, child3, child4, parent]), 1, d["run_config"], d["model_architecture"], d["node_config"], d["meta_library"], d["shared_inputs"], UTCGP.PopulationPrograms(identity.(progs)), 1.0, progs[3], 1)
+    sn_writer_callback([4.0, 4.0, 2.0, 2.0, 4.0], Population([child1, child2, child3, child4, parent]), 1, d["run_config"], d["model_architecture"], d["node_config"], d["meta_library"], d["shared_inputs"], MAGE.PopulationPrograms(identity.(progs)), 1.0, progs[3], 1)
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:251 =#
     nodes = sn.get_nodes_from_db(con)
     #= /home/camilo/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:252 =#
@@ -108,15 +108,15 @@ end
   
   Closest candidates are:
     identity_float(!Matched::Float64, Any...)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
   
   Stacktrace:
    [1] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:200
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:200
    [2] decode_with_output_node
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
    [3] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
    [4] macro expansion
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
    [5] macro expansion
@@ -134,17 +134,17 @@ end
   
   Closest candidates are:
     identity_float(!Matched::Float64, Any...)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/float/basic_float.jl:35
   
   Stacktrace:
    [1] which(f::Any, t::Any)
      @ Base ./reflection.jl:2228
    [2] recursive_decode_node!(calling_node::OutputNode, meta_library::MetaLibrary, type_idx::Int64, operations_list::Vector{Operation}, model_architecture::modelArchitecture, ut_genome::UTGenome, program::Program)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:163
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:163
    [3] decode_with_output_node
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:266 [inlined]
    [4] decode_with_output_nodes(ut_genome::UTGenome, meta_library::MetaLibrary, model_architecture::modelArchitecture, shared_inputs::SharedInput)
-     @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
+     @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/programs/decode.jl:302
    [5] macro expansion
      @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/search_network/test_behavior_hasher.jl:224 [inlined]
    [6] macro expansion

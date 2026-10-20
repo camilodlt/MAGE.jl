@@ -50,7 +50,7 @@ centroid(t, 1)                       # (2.5, 2.5, 2.5)
 module image3D_volume_common
 
 using ImageCore: N0f8
-using ..UTCGP: SizedImage, IntensityPixel, BinaryPixel, SegmentPixel, AbstractPixel
+using ..MAGE: SizedImage, IntensityPixel, BinaryPixel, SegmentPixel, AbstractPixel
 using ..image2D_object_common:
     scratch, clamp_unit, pixel_value, IsSet, AtLeast, fast_foreground_test, _find_root, _union!
 using ..image2D_zoom: to_storage, zero_pixel

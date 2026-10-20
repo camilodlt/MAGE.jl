@@ -23,10 +23,10 @@ Most locators share one recipe:
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 m = zeros(5, 11); m[2, 9] = 1.0                 # one bright pixel: row 2, column 9
 img = SImageND(IntensityPixel{N0f8}.(m))
-L = UTCGP.number_locateFromImg
+L = MAGE.number_locateFromImg
 
 L.com_x(img)        # (9 − 1) / (11 − 1) = 0.8
 L.com_y(img)        # (2 − 1) / (5 − 1) = 0.25
@@ -37,8 +37,8 @@ L.refine_x_25p(img, 0.7, 0.3)   # snaps x = 0.7 onto the bright pixel nearby: 0.
 module number_locateFromImg
 
 using ImageCore: N0f8
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..image2D_object_common: clamp_unit, position_to_unit, unit_to_position, pixel_value
 
 # Returned by the bundle when no method matches: the image centre.

@@ -1,9 +1,9 @@
-using UTCGP.listgeneric_where: replace_vec_at
+using MAGE.listgeneric_where: replace_vec_at
 
 @testset "Where" begin
     @test begin
         # bundle import
-        using UTCGP: bundle_listgeneric_where
+        using MAGE: bundle_listgeneric_where
         length(bundle_listgeneric_where) == 1 &&
             _unique_names_in_bundle(bundle_listgeneric_where)
     end

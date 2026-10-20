@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Geometric Transforms
@@ -23,8 +23,8 @@ neighbour so their values are never blended.
 ## Example frame
 
 ```@setup tr
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 assets = g_assets("transform")
 const H, W = 80, 120
 function frame_values(; ball = (30, 30))
@@ -200,10 +200,10 @@ save_img("segment_rotate.png", g_call(sop(:transform_rotate), segment, 0.06))
 ## Bundles
 
 ```@docs
-UTCGP.image2D_transform
-UTCGP.image2D_transform.bundle_image2DIntensity_transform_factory
-UTCGP.image2D_transform.bundle_image2DBinary_transform_factory
-UTCGP.image2D_transform.bundle_image2DSegment_transform_factory
+MAGE.image2D_transform
+MAGE.image2D_transform.bundle_image2DIntensity_transform_factory
+MAGE.image2D_transform.bundle_image2DBinary_transform_factory
+MAGE.image2D_transform.bundle_image2DSegment_transform_factory
 ```
 
 ## Timings for the examples

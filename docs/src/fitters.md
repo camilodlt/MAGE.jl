@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Fitters and Callbacks
@@ -11,9 +11,9 @@ configuration's type:
 |:--|:--|:--|
 | [`fit`](@ref) / [`fit_mt`](@ref) | [`runConf`](@ref) | `1 + λ` |
 | [`fit_ga`](@ref) / [`fit_ga_mt`](@ref) | [`RunConfGA`](@ref) | generational GA, tournament selection |
-| `UTCGP.fit_nsga2` | `RunConfNSGA2` | multi-objective (NSGA-II) |
-| `UTCGP.fit_me` | `RunConfME` | MAP-Elites |
-| `UTCGP.fit_stn` | `RunConfSTN` | search-network tracing |
+| `MAGE.fit_nsga2` | `RunConfNSGA2` | multi-objective (NSGA-II) |
+| `MAGE.fit_me` | `RunConfME` | MAP-Elites |
+| `MAGE.fit_stn` | `RunConfSTN` | search-network tracing |
 
 All of them return the same triple: the best genome, its decoded programs, and a
 `GenerationLossTracker`.
@@ -27,7 +27,7 @@ Depth = 2
 
 Every fitter runs the same phases each generation, and each phase is a *tuple*
 of callbacks. An entry may be a `Symbol` naming a built-in, a `Function`, or any
-`UTCGP.AbstractCallable` — which is how stateful trackers are passed in.
+`MAGE.AbstractCallable` — which is how stateful trackers are passed in.
 
 ```
 pre_callbacks                once, before the loop
@@ -53,7 +53,7 @@ last_callback                once, after the loop
 These take a positional argument list.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/default_callbacks.jl"]
 ```
 
@@ -63,28 +63,28 @@ These take a single args struct instead, so a custom callback can be written
 against a stable signature.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/ga_callbacks.jl"]
 ```
 
 ### Calling the callbacks
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/callbacks_callers.jl"]
 ```
 
 ## `1 + λ`
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/fit.jl", "fitters/fit_mt.jl"]
 ```
 
 ## Genetic algorithm
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/ga_fit.jl"]
 ```
 
@@ -95,7 +95,7 @@ rather than a single best, so the run returns a *repertoire* of diverse
 solutions instead of one optimum.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/mapelites_callbacks.jl", "population/mapelites_repertoire.jl"]
 ```
 
@@ -105,7 +105,7 @@ For problems with several objectives to trade off — accuracy against program
 size, say.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/nsga2_callbacks.jl"]
 ```
 
@@ -115,7 +115,7 @@ The STN fitter records every step of the search into a
 [search network](@ref "Search Networks") as it runs.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["fitters/stn_callbacks.jl", "fitters/stn_fit.jl"]
 ```
 
@@ -125,7 +125,7 @@ Any callable object can be a callback. An epoch callback, for example, receives
 the generation's state and can compute a held-out loss:
 
 ```julia
-mutable struct ValidationTracker <: UTCGP.AbstractCallable
+mutable struct ValidationTracker <: MAGE.AbstractCallable
     X::Any
     y::Any
     losses::Vector{Float64}

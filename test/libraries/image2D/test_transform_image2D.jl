@@ -1,5 +1,5 @@
 @testset "Geometric transforms" begin
-    O = UTCGP.number_objectFromImg
+    O = MAGE.number_objectFromImg
     _tr_intensity(values) = SImageND(IntensityPixel{N0f8}.(clamp.(values, 0.0, 1.0)))
     _tr_binary(values) = SImageND(BinaryPixel.(Bool.(values)))
     _tr_values(img) = Float64.(reinterpret(img.img))

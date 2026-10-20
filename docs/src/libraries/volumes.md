@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # 3D Volumes: CT, MRI and Microscopy
@@ -38,9 +38,9 @@ error. Objects are 26-connected and cavities 6-connected.
 ## Example volume
 
 ```@setup vol
-using UTCGP
+using MAGE
 volume_gallery_tag = "volume_operators"
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "volume_gallery.jl"))
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "volume_gallery.jl"))
 ```
 
 A 28³ phantom (the MedMNIST3D size): a textured body (soft tissue, about
@@ -305,7 +305,7 @@ viewer(["p = 0.00004 (< 1 voxel)" => call(bv(:vol_remove_small), messy_mask, 0.0
 ```
 
 ```@example vol
-t = UTCGP.image3D_volume_common.volume_table(Bool.(reinterpret(messy_mask.img)), identity) # hide
+t = MAGE.image3D_volume_common.volume_table(Bool.(reinterpret(messy_mask.img)), identity) # hide
 println("object sizes in the messy mask (voxels): ", sort(t.area; rev = true)) # hide
 ```
 
@@ -471,13 +471,13 @@ Turning a volume into 2D images (projections, slices) or into numbers
 ## Bundles
 
 ```@docs
-UTCGP.image3D_volume_common
-UTCGP.image3D_volume_basic
-UTCGP.image3D_volume_basic.bundle_image3DIntensity_volume_basic_factory
-UTCGP.image3D_volume_basic.bundle_image3DBinary_volume_basic_factory
-UTCGP.image3D_volume
-UTCGP.image3D_volume.bundle_image3DIntensity_volume_factory
-UTCGP.image3D_volume.bundle_image3DBinary_volume_factory
+MAGE.image3D_volume_common
+MAGE.image3D_volume_basic
+MAGE.image3D_volume_basic.bundle_image3DIntensity_volume_basic_factory
+MAGE.image3D_volume_basic.bundle_image3DBinary_volume_basic_factory
+MAGE.image3D_volume
+MAGE.image3D_volume.bundle_image3DIntensity_volume_factory
+MAGE.image3D_volume.bundle_image3DBinary_volume_factory
 ```
 
 ## Timings for the examples

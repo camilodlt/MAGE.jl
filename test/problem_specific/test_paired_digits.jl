@@ -1,6 +1,6 @@
-using UTCGP.liststring_split: split_string_to_vector
-using UTCGP.listinteger_iscond: is_eq_to_prev
-using UTCGP.listinteger_string: parse_from_list_string
+using MAGE.liststring_split: split_string_to_vector
+using MAGE.listinteger_iscond: is_eq_to_prev
+using MAGE.listinteger_string: parse_from_list_string
 
 """
 Text from the paper: 

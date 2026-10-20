@@ -1,22 +1,22 @@
 @testset "Conditional" begin
-    using UTCGP.element_conditional: if_else_multiplexer_factory
+    using MAGE.element_conditional: if_else_multiplexer_factory
 
     @test begin
         # bundle import
-        using UTCGP: bundle_element_conditional
+        using MAGE: bundle_element_conditional
         length(bundle_element_conditional) == 1 &&
             _unique_names_in_bundle(bundle_element_conditional)
     end
     @test begin
         # bundle import
-        using UTCGP: bundle_element_conditional_factory
+        using MAGE: bundle_element_conditional_factory
         length(bundle_element_conditional_factory) == 1 &&
             _unique_names_in_bundle(bundle_element_conditional_factory)
     end
 
     # IF ELSE MULTIPLEXER
     @test begin
-        using UTCGP.element_conditional: if_else_multiplexer
+        using MAGE.element_conditional: if_else_multiplexer
         if_else_multiplexer(1, 122.12, 12.12) == 122.12 &&
             if_else_multiplexer(10, 122.12, 12.12) == 122.12 &&
             if_else_multiplexer(0.12, 122.12, 12.12) == 122.12 &&

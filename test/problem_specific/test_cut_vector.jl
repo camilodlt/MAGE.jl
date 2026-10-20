@@ -1,9 +1,9 @@
-using UTCGP.listnumber_recursive: recsum
-using UTCGP.listgeneric_basic: reverse_list
-using UTCGP.listnumber_arithmetic: subtract_vector
-using UTCGP.listnumber_algebraic: abs_vector
-using UTCGP.number_reduce: reduce_argmin
-using UTCGP.listgeneric_subset: pick_until_inclusive_generic, pick_from_exclusive_generic
+using MAGE.listnumber_recursive: recsum
+using MAGE.listgeneric_basic: reverse_list
+using MAGE.listnumber_arithmetic: subtract_vector
+using MAGE.listnumber_algebraic: abs_vector
+using MAGE.number_reduce: reduce_argmin
+using MAGE.listgeneric_subset: pick_until_inclusive_generic, pick_from_exclusive_generic
 
 function cut_vector_algo(x, y)
     y = [Int.(sub) for sub in y]

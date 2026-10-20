@@ -1,12 +1,12 @@
 @testset "Int Cond" begin
     @test begin
         # bundle import
-        using UTCGP: bundle_integer_cond
+        using MAGE: bundle_integer_cond
         length(bundle_integer_cond) == 5 && _unique_names_in_bundle(bundle_integer_cond)
     end
     @test begin
         # two ints 
-        using UTCGP.integer_cond
+        using MAGE.integer_cond
         integer_cond.is_eq_to(3, 3) == 1
     end
     @test begin
@@ -25,24 +25,24 @@
     # EMPTY STRING
     @test begin
         # empty
-        using UTCGP.integer_cond
+        using MAGE.integer_cond
         integer_cond.str_is_empty("") == 1
     end
     @test begin
         # not empty
-        using UTCGP.integer_cond
+        using MAGE.integer_cond
         integer_cond.str_is_empty("1") == 0
     end
     @test begin
-        using UTCGP.integer_cond
+        using MAGE.integer_cond
         integer_cond.experimental_is_gt(3, 2) == 1 && integer_cond.experimental_is_gt(2, 3) == 0
     end
     @test begin
-        using UTCGP.integer_cond
+        using MAGE.integer_cond
         integer_cond.experimental_is_lt(2, 3) == 1 && integer_cond.experimental_is_lt(3, 2) == 0
     end
     @test begin
-        using UTCGP.integer_cond
+        using MAGE.integer_cond
         integer_cond.experimental_not(0) == 1 && integer_cond.experimental_not(1) == 0
     end
 

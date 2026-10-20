@@ -1,5 +1,5 @@
 @testset "Image similarity and template matching" begin
-    S = UTCGP.number_similarityFromImg
+    S = MAGE.number_similarityFromImg
     _sim_intensity(values) = SImageND(IntensityPixel{N0f8}.(clamp.(values, 0.0, 1.0)))
     _sim_binary(values) = SImageND(BinaryPixel.(Bool.(values)))
     h, w = 24, 32

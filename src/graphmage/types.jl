@@ -115,7 +115,7 @@ end
 
 Everything `expand_node!`/`run_graphmage` need to actually run GA and decode
 programs, bundled once by the caller. `fitter_fn` is any function matching
-the standard UTCGP GA-fitter calling convention (see `fit_ga_meanbatch_mt`);
+the standard MAGE GA-fitter calling convention (see `fit_ga_meanbatch_mt`);
 GraphMAGE itself never inspects its internals, it only calls it -- this is
 the seam that lets the caller plug in a problem-specific, time-aware,
 population-graph-evaluator fitter without GraphMAGE's core code knowing

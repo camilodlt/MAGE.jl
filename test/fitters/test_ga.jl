@@ -31,7 +31,7 @@ end
     (ind, model_arch, ml, shared_inputs, nc) = _deterministic_program()
     ind2 = deepcopy(ind)
     ind2[1][1][1].value = 2 # change the fn 
-    pop = UTCGP.Population([ind, ind2])
+    pop = MAGE.Population([ind, ind2])
     r = RunConfGA(10, 10, 2, 0.1, 0.2, 1)
     gen = 1
 
@@ -101,7 +101,7 @@ end
     (ind, model_arch, ml, shared_inputs, nc) = _deterministic_program()
     ind2 = deepcopy(ind)
     ind2[1][1][1].value = 2 # change the fn 
-    pop = UTCGP.Population([ind, ind2])
+    pop = MAGE.Population([ind, ind2])
     hs_init = general_hasher_sha.(pop)
     r = RunConfGA(1, 1, 1, 1.1, 0.2, 1) # the first will be the elite. The second will be mutated
     gen = 1
@@ -120,7 +120,7 @@ end
     (ind, model_arch, ml, shared_inputs, nc) = _deterministic_program()
     ind2 = deepcopy(ind)
     ind2[1][1][1].value = 2 # change the fn 
-    pop = UTCGP.Population([ind, ind2])
+    pop = MAGE.Population([ind, ind2])
     hs_init = general_hasher_sha.(pop)
     gen = 1
 
@@ -163,7 +163,7 @@ end
     # another ind
     ind3 = deepcopy(ind2)
     ind3[1][1][1].value = 4 # change the fn 
-    pop = UTCGP.Population([ind, ind3, ind2])
+    pop = MAGE.Population([ind, ind3, ind2])
     gen = 1
 
     @test begin # Select the best in pop. One is the absolute best. The other has eq f as the parent
@@ -177,7 +177,7 @@ end
             model_arch,
             nc,
             ml,
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]),
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]),
         )
         indices_best = @unwrap_or ga_elite_selection_callback(args) return false
         length(indices_best) == 2 && 3 in indices_best && 2 in indices_best
@@ -194,7 +194,7 @@ end
             model_arch,
             nc,
             ml,
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]),
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]),
         )
         indices_best = @unwrap_or ga_elite_selection_callback(args) return false
         length(indices_best) == 2 && 3 in indices_best && 1 in indices_best
@@ -211,7 +211,7 @@ end
             model_arch,
             nc,
             ml,
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]),
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]),
         )
         indices_best = @unwrap_or ga_elite_selection_callback(args) return false
         length(indices_best) == 1 && 3 in indices_best
@@ -228,7 +228,7 @@ end
             model_arch,
             nc,
             ml,
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]),
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]),
         )
         indices_best = @unwrap_or ga_elite_selection_callback(args) return false
         length(indices_best) == 1 && indices_best == [1]

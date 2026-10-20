@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # RGB Composition
@@ -26,8 +26,8 @@ This is an extension bundle. It deliberately does not duplicate `identity_rgb`
 or `return_rgb`; add it after the basic RGB bundle:
 
 ```@example rgb_composition_setup
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using ImageCore: N0f8
 
 rgb = SImageND(IntensityPixel{N0f8}.(rand(32, 32, 3)))
@@ -62,14 +62,14 @@ but retaining it as an intensity image also permits soft boundaries.
 ## Coffee input and operand examples
 
 ```@setup rgb_composition_gallery
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 full_input = RGB.(load(joinpath(repo_root, "assets", "coffee.png")))
 color_input = full_input[1:2:end, 1:2:end]
 channel_last = permutedims(Float64.(channelview(color_input)), (2, 3, 1))
@@ -174,8 +174,8 @@ input is an ordinary evolved intensity image: channels can be permuted,
 filtered, masked, or replaced before composition.
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; flex-wrap:wrap;">
 <figure style="width:22%; margin:0;"><img src="../assets/fns/composition_rgb/input.png" alt="Coffee RGB input" style="width:100%;" /><figcaption>RGB input</figcaption></figure>
@@ -253,16 +253,16 @@ g_raw_gallery(gallery_html_4) # hide
 ## API
 
 ```@docs
-UTCGP.image3D_rgb_composition
-UTCGP.image3D_rgb_composition.bundle_image3DIntensity_rgb_composition_factory
-UTCGP.image3D_rgb_composition.compose_rgb_image3D_factory
-UTCGP.image3D_rgb_composition.gray_to_rgb_image3D_factory
-UTCGP.image3D_rgb_composition.replace_red_rgb_image3D_factory
-UTCGP.image3D_rgb_composition.replace_green_rgb_image3D_factory
-UTCGP.image3D_rgb_composition.replace_blue_rgb_image3D_factory
-UTCGP.image3D_rgb_composition.multiply_rgb_intensity_image3D_factory
-UTCGP.image3D_rgb_composition.alpha_blend_rgb_image3D_factory
-UTCGP.image3D_rgb_composition.set_luminance_rgb_image3D_factory
+MAGE.image3D_rgb_composition
+MAGE.image3D_rgb_composition.bundle_image3DIntensity_rgb_composition_factory
+MAGE.image3D_rgb_composition.compose_rgb_image3D_factory
+MAGE.image3D_rgb_composition.gray_to_rgb_image3D_factory
+MAGE.image3D_rgb_composition.replace_red_rgb_image3D_factory
+MAGE.image3D_rgb_composition.replace_green_rgb_image3D_factory
+MAGE.image3D_rgb_composition.replace_blue_rgb_image3D_factory
+MAGE.image3D_rgb_composition.multiply_rgb_intensity_image3D_factory
+MAGE.image3D_rgb_composition.alpha_blend_rgb_image3D_factory
+MAGE.image3D_rgb_composition.set_luminance_rgb_image3D_factory
 ```
 
 ## Timings for the examples

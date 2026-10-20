@@ -1,26 +1,26 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
 
   # LIST GENERIC SUBSET
-  using UTCGP.listgeneric_basic:identity_list
-  using UTCGP.listgeneric_basic:new_list
-  using UTCGP.listgeneric_basic:reverse_list
+  using MAGE.listgeneric_basic:identity_list
+  using MAGE.listgeneric_basic:new_list
+  using MAGE.listgeneric_basic:reverse_list
   
   # LIST GENERIC SUBSET
-  using UTCGP.listgeneric_subset:pick_from_exclusive_generic
-  using UTCGP.listgeneric_subset:pick_from_inclusive_generic
-  using UTCGP.listgeneric_subset:pick_until_exclusive_generic
-  using UTCGP.listgeneric_subset:pick_until_inclusive_generic
+  using MAGE.listgeneric_subset:pick_from_exclusive_generic
+  using MAGE.listgeneric_subset:pick_from_inclusive_generic
+  using MAGE.listgeneric_subset:pick_until_exclusive_generic
+  using MAGE.listgeneric_subset:pick_until_inclusive_generic
 
   # MAKE LIST 
-  using UTCGP.listgeneric_makelist:make_list_from_one_element
-  using UTCGP.listgeneric_makelist:make_list_from_two_elements
-  using UTCGP.listgeneric_makelist:make_list_from_three_elements
+  using MAGE.listgeneric_makelist:make_list_from_one_element
+  using MAGE.listgeneric_makelist:make_list_from_two_elements
+  using MAGE.listgeneric_makelist:make_list_from_three_elements
 
  # Concat List
- using UTCGP.listgeneric_concat: concat_two_lists
+ using MAGE.listgeneric_concat: concat_two_lists
 end
 ```
 
@@ -35,12 +35,12 @@ Pages = ["list_generic.md"]
 ### Module 
 
 ```@docs
-UTCGP.listgeneric_basic
+MAGE.listgeneric_basic
 ```
 ### Functions 
 
 ```@docs
-UTCGP.listgeneric_basic.identity_list
+MAGE.listgeneric_basic.identity_list
 ```
 ```jldoctest
 julia> identity_list([1,2,3,4])
@@ -52,7 +52,7 @@ julia> identity_list([1,2,3,4])
 ```
 
 ```@docs
-UTCGP.listgeneric_basic.new_list
+MAGE.listgeneric_basic.new_list
 ```
 ```jldoctest
 julia> new_list()
@@ -60,7 +60,7 @@ Any[]
 ```
 
 ```@docs
-UTCGP.listgeneric_basic.reverse_list
+MAGE.listgeneric_basic.reverse_list
 ```
 ```jldoctest
 julia> reverse_list([1,2])
@@ -73,18 +73,18 @@ julia> reverse_list([1,2])
 
 ### Module
 ```@docs
-UTCGP.listgeneric_subset
+MAGE.listgeneric_subset
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.listgeneric_subset.pick_from_exclusive_generic
+MAGE.listgeneric_subset.pick_from_exclusive_generic
 ```
 
 
 ```@docs
-UTCGP.listgeneric_subset.pick_from_inclusive_generic
+MAGE.listgeneric_subset.pick_from_inclusive_generic
 ```
 ```jldoctest
 julia> pick_from_inclusive_generic([1,2,3,4], -1)
@@ -107,10 +107,10 @@ Int64[]
 ```
 
 ```@docs
-UTCGP.listgeneric_subset.pick_until_exclusive_generic
+MAGE.listgeneric_subset.pick_until_exclusive_generic
 ```
 ```@docs
-UTCGP.listgeneric_subset.pick_until_inclusive_generic
+MAGE.listgeneric_subset.pick_until_inclusive_generic
 ```
 
 
@@ -119,13 +119,13 @@ UTCGP.listgeneric_subset.pick_until_inclusive_generic
 
 ### Module
 ```@docs
-UTCGP.listgeneric_makelist
+MAGE.listgeneric_makelist
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.listgeneric_makelist.make_list_from_one_element
+MAGE.listgeneric_makelist.make_list_from_one_element
 ```
 ```jldoctest
 julia> make_list_from_one_element(12344)
@@ -134,7 +134,7 @@ julia> make_list_from_one_element(12344)
 ```
 
 ```@docs
-UTCGP.listgeneric_makelist.make_list_from_two_elements
+MAGE.listgeneric_makelist.make_list_from_two_elements
 ```
 ```jldoctest
 julia> make_list_from_two_elements("ju","lia")
@@ -151,7 +151,7 @@ ERROR: MethodError: no method matching
 ```
 
 ```@docs
-UTCGP.listgeneric_makelist.make_list_from_three_elements
+MAGE.listgeneric_makelist.make_list_from_three_elements
 ```
 ```jldoctest
 julia> make_list_from_three_elements("ju", "l", "ia")
@@ -166,13 +166,13 @@ julia> make_list_from_three_elements("ju", "l", "ia")
 
 ### Module
 ```@docs
-UTCGP.listgeneric_concat
+MAGE.listgeneric_concat
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.listgeneric_concat.concat_two_lists
+MAGE.listgeneric_concat.concat_two_lists
 ```
 ```jldoctest
 julia> concat_two_lists([1,2], [3,4])
@@ -195,21 +195,21 @@ ERROR: MethodError: no method matching
 
 ### Module
 ```@docs
-UTCGP.listgeneric_set
+MAGE.listgeneric_set
 ```
 
 ## Where
 
 ### Module
 ```@docs
-UTCGP.listgeneric_where
+MAGE.listgeneric_where
 ```
 
 ## Utils
 
 ### Module
 ```@docs
-UTCGP.listgeneric_utils
+MAGE.listgeneric_utils
 ```
 
 ## Bundles

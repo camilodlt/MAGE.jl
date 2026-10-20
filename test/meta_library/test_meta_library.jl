@@ -1,6 +1,6 @@
 
 
-using UTCGP
+using MAGE
 
 
 @testset "MetaLibrary" begin

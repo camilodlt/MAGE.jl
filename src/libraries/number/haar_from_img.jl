@@ -12,8 +12,8 @@ module number_haarFromImg
 
 using Statistics: mean
 using ImageCore: RGB
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..number_imgRegionCommon:
     _image_numeric,
     _half_extent,

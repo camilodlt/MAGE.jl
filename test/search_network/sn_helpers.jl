@@ -1,12 +1,12 @@
 using Base: Unordered
 import DataStructures: OrderedDict
 import SearchNetworks as sn
-import UTCGP: SN_writer
+import MAGE: SN_writer
 import DataFrames: nrow
 
 function sn_setup()
-    vecint_bundles = UTCGP.get_listinteger_bundles()
-    int_bundles = UTCGP.get_integer_bundles()
+    vecint_bundles = MAGE.get_listinteger_bundles()
+    int_bundles = MAGE.get_integer_bundles()
     run_config = runConf(1, 1, 0.1, 0.1)
     model_architecture = modelArchitecture([Int], [1], [Int, Vector{Int}], [Int], [1])
     node_config = nodeConfig(1, 1, 1, 1)
@@ -34,6 +34,6 @@ function sn_setup()
     )
 end
 
-edge_index_fn = UTCGP._mock_edge_prop_getter()
-node_fn = UTCGP._mock_node_hash_function()
-edge_fn = UTCGP._mock_edge_prop_getter()
+edge_index_fn = MAGE._mock_edge_prop_getter()
+node_fn = MAGE._mock_node_hash_function()
+edge_fn = MAGE._mock_edge_prop_getter()

@@ -12,8 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module liststring_caps
 
-using ..UTCGP: FunctionBundle, append_method!
-import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
+using ..MAGE: FunctionBundle, append_method!
+import MAGE: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ################### #
 # Broacast uppercase #

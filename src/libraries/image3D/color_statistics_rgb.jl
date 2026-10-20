@@ -10,12 +10,12 @@ The exhaustive, always-current list of operators in the bundle is on the
 """
 module image3D_color_statistics_rgb
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: @image_out
+using ..MAGE: @image_out
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     IntensityPixel,
     SImageND,
     SizedImage2D,

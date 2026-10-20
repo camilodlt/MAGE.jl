@@ -26,7 +26,7 @@ neighbour otherwise.
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 img = SImageND(IntensityPixel{N0f8}.(rand(32, 32)))
 I = typeof(img)
 flip = bundle_image2DIntensity_transform_factory[:transform_flip_h].fn(I)
@@ -39,12 +39,12 @@ rotate(img, 0.25)         # a quarter turn counter-clockwise about the centre
 """
 module image2D_transform
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: output_pixels, image_result
+using ..MAGE: output_pixels, image_result
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     AbstractPixel,
     BinaryPixel,
     IntensityPixel,

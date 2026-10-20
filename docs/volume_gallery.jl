@@ -1,6 +1,6 @@
 # Shared setup of the two 3D volume pages: the phantom, its mask and helpers.
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 assets = g_assets("volumes")
 const N = 28
 noise3(r, c, s, k) = 0.5 + 0.5 * sin(12.9898r + 78.233c + 37.719s + 4.1k)
