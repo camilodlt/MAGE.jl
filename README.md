@@ -2,6 +2,9 @@
 
 [![Documentation](https://img.shields.io/badge/docs-adf-4f81bd.svg)](https://camilodlt.github.io/MAGE.jl/adf/)
 [![Build Status](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml/badge.svg?branch=adf)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
+[![Julia 1.11.7 compatible](https://img.shields.io/badge/Julia-1.11.7%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
+[![Julia 1.12 compatible](https://img.shields.io/badge/Julia-1.12%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
+[![Julia 1.13 compatible](https://img.shields.io/badge/Julia-1.13%20compatible-389826?logo=julia)](https://github.com/camilodlt/MAGE.jl/actions/workflows/CI.yml?query=branch%3Aadf)
 
 **Multimodal Adaptive Graph Evolution (MAGE)** extends Cartesian Genetic
 Programming (CGP) to evolve programs that combine images, numbers, strings and
@@ -35,9 +38,9 @@ input and load; the slowest observed sample is not a worst-case bound.
 
 ## Install
 
-Requires **Julia 1.11.7 or later**. CI tests Julia 1.11.7 and 1.12; documentation
-builds use Julia 1.12. `SearchNetworks` is installed from its repository before
-MAGE because it is a package dependency.
+Requires **Julia 1.11.7 or later**; **Julia 1.13 is recommended**. CI tests Julia
+1.11.7, 1.12 and 1.13; documentation builds use Julia 1.13. `SearchNetworks` is
+installed from its repository before MAGE because it is a package dependency.
 
 ```julia
 using Pkg
