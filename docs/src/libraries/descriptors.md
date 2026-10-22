@@ -107,6 +107,29 @@ Each comes in four forms:
 | `stat_x_out(img, roi)` | outside the region |
 | `stat_x_diff(img, roi)` | inside value minus outside value |
 
+### Mean computation and temporary storage
+
+`stat_mean`, `stat_mean_out` and `stat_mean_diff` use streaming counts and sums.
+They do not build a histogram, calculate higher moments, or request scratch
+arrays. The difference operator visits each source sample once, maintaining
+separate inside and outside sums to avoid cancellation from subtracting a
+region sum from a whole-image sum. Each empty region contributes `0.0`.
+
+This applies to N0f8, N0f16, Float32 and Float64 storage, including RGB channel
+arrays, volumes, full-size ROIs and spatial 2D ROIs repeated through depth.
+The output remains a compiler-inferred `Float64`.
+
+Other summary-based statistics still build their general summary separately
+for each call. N0f8 uses an exact 256-level histogram; N0f16 also stores raw
+16-bit samples, and floating-point storage keeps Float64 samples for quantiles.
+Those scratch arrays are reused per task, so first-use or growth allocations
+must be distinguished from warmed-call allocation measurements.
+
+The [reproducible mean benchmark](https://github.com/camilodlt/MAGE.jl/blob/perf-streaming-image-means/validation/STREAMING_IMAGE_MEAN.md)
+compares the previous summary algorithm with these streaming operators, including
+fresh-task and warmed allocations. Its measurements are observations, not CI
+timing thresholds.
+
 The histograms below are of the round and the lobed cell (whole image). Grey
 bars: 64-bin histogram; blue lines: `q25`, `q50`, `q75`; red line: Otsu
 threshold.

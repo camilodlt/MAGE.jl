@@ -12,11 +12,11 @@ The exhaustive, always-current list of operators in each bundle is on the
 # How this file is organised
 
 1. A *selection* (`_All`, `_Inside`, `_Outside`) says which pixels count.
-2. `_summary` walks the selected pixels once and gathers everything the
-   statistics need (count, mean, central moments, histogram, values) in a
-   `_Summary`.
-3. Each statistic is a small function of the summary (`_std`, `_quantile`,
-   `_entropy`, …), listed in `_STATISTICS`.
+2. Means stream counts and sums without scratch buffers; the inside − outside
+   mean collects both regions in one image pass.
+3. Other statistics gather central moments, histogram and values in a
+   `_Summary`, then apply a small function (`_std`, `_quantile`, `_entropy`, …)
+   listed in `_STATISTICS`.
 4. The registration loop turns each statistic into three operators:
    `stat_<name>`, `stat_<name>_out`, `stat_<name>_diff`.
 
@@ -81,6 +81,11 @@ has no ROI method: MAGE's decoder then selects `stat_x(img, args...)` and the
 node is a one-input whole-image statistic.
 `stat_frac_above` takes the threshold as its last argument (default `0.5`).
 An empty selection gives `0.0`.
+
+The three mean operators stream counts and sums without histograms, higher
+moments or image-sized temporary storage. `stat_mean_diff` visits the image
+once and keeps separate inside/outside sums. Other summary-based statistics
+still share the general `_Summary` implementation.
 """
 bundle_number_intensityStatsFromImg = FunctionBundle(fallback)
 
@@ -370,6 +375,12 @@ end
 
 "Population standard deviation."
 _std(s::_Summary) = sqrt(s.m2)
+"Mean from a general summary; its public operators use the streaming overload."
+_mean(s::_Summary) = s.mean
+# Intentional near-constant policy for skewness, excess kurtosis and bimodality:
+# variance <= 1e-14 returns 0.0, even for nonconstant data. This absolute cutoff
+# suppresses unstable descriptors in very low-contrast selections; it is not
+# scale-invariant and can affect Float32/Float64 or sparse N0f16 selections.
 "Skewness `m3 / m2^1.5`; `0` for a constant selection. Positive: a long bright tail; negative: a long dark tail."
 _skewness(s::_Summary) = s.m2 <= 1e-14 ? 0.0 : s.m3 / s.m2^1.5
 "Excess kurtosis `m4 / m2² − 3`; `0` for a constant selection. `0` for a normal distribution, negative for flat or two-peaked ones."
@@ -486,7 +497,7 @@ const _STATISTICS = (
     (:q75, s -> _quantile(s, 0.75), "third quartile"),
     (:q95, s -> _quantile(s, 0.95), "95th percentile"),
     (:iqr, s -> _quantile(s, 0.75) - _quantile(s, 0.25), "interquartile range"),
-    (:mean, s -> s.mean, "mean"),
+    (:mean, _mean, "mean"),
     (:std, _std, "standard deviation"),
     (:mad, s -> s.mad, "mean absolute deviation"),
     (:skewness, _skewness, "skewness"),
@@ -522,6 +533,56 @@ end
     return Float64(statistic(s))
 end
 
+# The former summary path rejected NaN while converting its histogram bin.
+# Preserve that failure for floating-point callers without building a histogram.
+@inline function _mean_value(p)
+    v = pixel_value(p)
+    isnan(v) && _level(p)
+    return v
+end
+@inline _mean_value(p::IntensityPixel{N0f8}) = pixel_value(p)
+@inline _mean_value(p::IntensityPixel{N0f16}) = pixel_value(p)
+
+"Count and sum selected samples in storage order, using constant extra space."
+function _mean(pixels::AbstractArray, selection)
+    n = 0
+    total = 0.0
+    @inbounds for i in eachindex(pixels)
+        _selected(selection, i) || continue
+        total += _mean_value(pixels[i])
+        n += 1
+    end
+    return n == 0 ? 0.0 : total / n
+end
+
+@inline _stat(::typeof(_mean), pixels, selection) = _mean(pixels, selection)
+
+"Inside minus outside for general statistics; each scalar is finished before scratch reuse."
+@inline function _stat_diff(statistic::F, pixels, mask, is_in::P) where {F,P}
+    return _stat(statistic, pixels, _Inside(mask, is_in)) -
+           _stat(statistic, pixels, _Outside(mask, is_in))
+end
+
+"Collect both means in one pass, preserving each region's original summation order."
+function _stat_diff(::typeof(_mean), pixels::AbstractArray, mask, is_in::P) where {P}
+    inside = _Inside(mask, is_in)
+    n_in = n_out = 0
+    sum_in = sum_out = 0.0
+    @inbounds for i in eachindex(pixels)
+        v = _mean_value(pixels[i])
+        if _selected(inside, i)
+            sum_in += v
+            n_in += 1
+        else
+            sum_out += v
+            n_out += 1
+        end
+    end
+    mean_in = n_in == 0 ? 0.0 : sum_in / n_in
+    mean_out = n_out == 0 ? 0.0 : sum_out / n_out
+    return mean_in - mean_out
+end
+
 "Attach `doc` to the function `name` and register it in the bundle."
 function _register!(name::Symbol, description::String, doc::String)
     @eval @doc $doc $name
@@ -551,8 +612,7 @@ for (stat, statistic, what) in _STATISTICS
             end
             function $diff(img::$source, roi::$region, args...) where {$(parameters...)}
                 mask, is_in = _roi(img, roi)
-                return _stat($statistic, img.img, _Inside(mask, is_in)) -
-                       _stat($statistic, img.img, _Outside(mask, is_in))
+                return _stat_diff($statistic, img.img, mask, is_in)
             end
         end
     end

@@ -24,6 +24,21 @@ the October 2026 updates; it is not a complete record of earlier development.
 - This changelog, including migration guidance for the package rename.
 - Regression checks for package identity and `MAGE_` environment configuration.
 
+### Performance
+
+- Stream image means using counts and sums instead of building the general
+  intensity-statistics summary. `stat_mean`, `stat_mean_out` and
+  `stat_mean_diff` no longer request histograms, higher moments or sample
+  scratch buffers; the difference collects both regions in one image pass.
+  Public signatures, summation order within each region, empty-region behavior
+  and inferred Float64 results are preserved across image storage types.
+  See the [benchmark results and reproduction instructions](validation/STREAMING_IMAGE_MEAN.md).
+
+### Documentation
+
+- Explain mean computation and scratch-buffer behavior, and annotate the
+  intentional near-constant cutoff for skewness, kurtosis and bimodality.
+
 ## Recent development before the rename
 
 These entries identify development commits, not published releases.
