@@ -10,23 +10,23 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_segmentation
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
 # Call tree: fastscanning factory → ImageSegmentation.fast_scanning! → output.
 # Watershed factory → _watershed_split → feature/distance transforms,
 # component labels, watershed flooding → output.
 
 
-using ..UTCGP: @image_out, scratch, output_pixels, image_result, pixel_values!
+using ..MAGE: @image_out, scratch, output_pixels, image_result, pixel_values!
 using ..image2D_foreground_extraction_discrete: _resolution_size, _resolution_pool!
 
 using ImageSegmentation
 using ImageMorphology
 using LRUCache
 using TimerOutputs
-using ..UTCGP: image2D_basic
-using ..UTCGP: FunctionBundle, append_method!
-import UTCGP:
+using ..MAGE: image2D_basic
+using ..MAGE: FunctionBundle, append_method!
+import MAGE:
     CONSTRAINED,
     MIN_INT,
     MAX_INT,
@@ -35,7 +35,7 @@ import UTCGP:
     _positive_params,
     _ceil_positive_params
 using ImageCore: N0f8, Normed, clamp01nan!, clamp01nan, float64, Gray, FixedPoint
-using ..UTCGP:
+using ..MAGE:
     SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type, 
     IntensityPixel, BinaryPixel, SegmentPixel
 

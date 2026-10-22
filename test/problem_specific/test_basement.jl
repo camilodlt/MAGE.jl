@@ -1,7 +1,7 @@
-using UTCGP.listnumber_recursive: recsum
-using UTCGP.listinteger_iscond: is_less_0
-using UTCGP.integer_find: find_first
-using UTCGP.number_arithmetic: number_sum
+using MAGE.listnumber_recursive: recsum
+using MAGE.listinteger_iscond: is_less_0
+using MAGE.integer_find: find_first
+using MAGE.number_arithmetic: number_sum
 
 function basement_algo(x)
     rs = recsum(x[1])

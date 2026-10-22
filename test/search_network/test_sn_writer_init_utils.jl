@@ -6,7 +6,7 @@
     @test_throws AssertionError begin
         con = sn.create_DB()
         sn.create_SN_tables!(con) # no extra cols
-        UTCGP._assert_sn_writer_consistency(
+        MAGE._assert_sn_writer_consistency(
             con,
             OrderedDict("a" => () -> 1),
             sn.Abstract_Nodes,
@@ -18,7 +18,7 @@
     @test_throws AssertionError begin
         con = sn.create_DB()
         sn.create_SN_tables!(con) # no extra cols
-        UTCGP._assert_sn_writer_consistency(
+        MAGE._assert_sn_writer_consistency(
             con,
             OrderedDict("a" => () -> 1),
             sn.Abstract_Edges,
@@ -35,7 +35,7 @@
                 "b" => sn.SN_col_type(float = true),
             ),
         ) # memory
-        UTCGP._assert_sn_writer_consistency(
+        MAGE._assert_sn_writer_consistency(
             con,
             OrderedDict("a" => () -> 1, "b" => () -> 1, "c" => () -> 1),
             sn.Abstract_Nodes,
@@ -52,7 +52,7 @@
                 "b" => sn.SN_col_type(float = true),
             ),
         ) # memory
-        UTCGP._assert_sn_writer_consistency(
+        MAGE._assert_sn_writer_consistency(
             con,
             OrderedDict("a" => () -> 1, "b" => () -> 1, "c" => () -> 1),
             sn.Abstract_Edges,
@@ -69,7 +69,7 @@
                 "b" => sn.SN_col_type(float = true),
             ),
         ) # memory
-        UTCGP._assert_sn_writer_consistency(
+        MAGE._assert_sn_writer_consistency(
             con,
             OrderedDict("a" => () -> 1, "b" => () -> 1),
             sn.Abstract_Edges,
@@ -85,7 +85,7 @@
                 "c" => sn.SN_col_type(float = true),
             ),
         ) # memory
-        UTCGP._assert_sn_writer_consistency(
+        MAGE._assert_sn_writer_consistency(
             con,
             OrderedDict("a" => () -> 1, "c" => () -> 1),
             sn.Abstract_Edges,

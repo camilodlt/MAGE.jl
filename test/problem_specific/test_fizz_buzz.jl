@@ -1,7 +1,7 @@
-using UTCGP.str_parse: parse_number
-using UTCGP.integer_cond: is_eq_to as nb_eq_to, str_is_empty
-using UTCGP.str_conditional: if_string
-using UTCGP.str_paste: paste0
+using MAGE.str_parse: parse_number
+using MAGE.integer_cond: is_eq_to as nb_eq_to, str_is_empty
+using MAGE.str_conditional: if_string
+using MAGE.str_paste: paste0
 """
 Fizz Buzz (CW) Given an integer 𝑥, return "Fizz" if 𝑥 is
 divisible by 3, "Buzz" if 𝑥 is divisible by 5, "FizzBuzz" if 𝑥

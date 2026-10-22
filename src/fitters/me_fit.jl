@@ -54,7 +54,7 @@ function fit_me_atari_mt(
         @warn "Iteration : $iteration"
         # RANDOM MT RATE
         mutation_rate = rand([1.1, 2.1, 3.1, 4.1, 5.1, 6.1, 7.1])
-        run_config = UTCGP.RunConfME(
+        run_config = MAGE.RunConfME(
             run_config.centroids,
             run_config.sample_size,
             mutation_rate,
@@ -114,7 +114,7 @@ function fit_me_atari_mt(
             decoding_callbacks,
         )
 
-        UTCGP.reset_programs!.(population_programs)
+        MAGE.reset_programs!.(population_programs)
 
         # M_individual_loss_tracker = IndividualLossTrackerMT(length(population), 1)
         M_individual_loss_tracker = IndividualLossTracker() # size of []
@@ -128,7 +128,7 @@ function fit_me_atari_mt(
         )
         fitness_values, descriptor_values = get_endpoint_results(endpoint_holder)
         # @show fitness_values descriptor_values
-        UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
+        MAGE.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 
 
         # Resetting the population (removes node values)
@@ -142,12 +142,12 @@ function fit_me_atari_mt(
         # final step call...
         if !isnothing(final_step_callbacks)
             for final_step_callback in final_step_callbacks
-                UTCGP.get_fn_from_symbol(final_step_callback)()
+                MAGE.get_fn_from_symbol(final_step_callback)()
             end
         end
 
         # Selection
-        ind_performances = UTCGP.resolve_ind_loss_tracker(M_individual_loss_tracker)
+        ind_performances = MAGE.resolve_ind_loss_tracker(M_individual_loss_tracker)
 
         try
             # histogram(ind_performances) |> println
@@ -183,10 +183,10 @@ function fit_me_atari_mt(
         affect_fitness_to_loss_tracker!(
             M_gen_loss_tracker,
             iteration,
-            UTCGP.best_fitness(ARCHIVE),
+            MAGE.best_fitness(ARCHIVE),
         )
         println("Iteration $iteration. 
-                 Archive best fitness : $(round(UTCGP.best_fitness(ARCHIVE), digits = 10))")
+                 Archive best fitness : $(round(MAGE.best_fitness(ARCHIVE), digits = 10))")
 
         # EARLY STOP CALLBACK # TODO
         if !isnothing(early_stop_callbacks) && length(early_stop_callbacks) != 0
@@ -209,7 +209,7 @@ function fit_me_atari_mt(
             # early_stop =
             #     _make_ga_early_stop_callbacks_calls(early_stop_args, early_stop_callbacks) # true if any
         end
-        best_individual = UTCGP.best_individual(ARCHIVE)
+        best_individual = MAGE.best_individual(ARCHIVE)
         best_program = decode_with_output_nodes(
             best_individual,
             meta_library,
@@ -235,7 +235,7 @@ function fit_me_atari_mt(
                 #     elite_idx,
                 # )
             end
-            # UTCGP.show_program(program)
+            # MAGE.show_program(program)
             return tuple(best_individual, best_program, M_gen_loss_tracker)
         end
 
@@ -243,7 +243,7 @@ function fit_me_atari_mt(
         @warn "Running GC at the end of iteration. GC time : $gct"
 
     end
-    best_individual = UTCGP.best_individual(ARCHIVE)
+    best_individual = MAGE.best_individual(ARCHIVE)
     best_program = decode_with_output_nodes(
         best_individual,
         meta_library,

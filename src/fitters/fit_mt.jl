@@ -6,7 +6,7 @@ function _fit_mt_init_params(genome::UTGenome)
     early_stop = false
     best_program = nothing
     elite_idx = nothing
-    population = UTCGP.Population([deepcopy(genome)])
+    population = MAGE.Population([deepcopy(genome)])
     ind_performances = [1.0]
     return early_stop, best_program, elite_idx, population, ind_performances
 end
@@ -31,7 +31,7 @@ function _eval_batch_on_pop(
 
     # Sequential
     @timeit_debug to "fit_mt. Thread eval loop" for (col_idx, (x, y)) in enumerate(batch)
-        @timeit_debug to "fit_mt. Reset Progs" UTCGP.reset_programs!(
+        @timeit_debug to "fit_mt. Reset Progs" MAGE.reset_programs!(
             non_shared_pop_programs,
         )
         # input_nodes = [
@@ -166,7 +166,7 @@ function fit_mt(
 
         @warn "Graphs evals"
         M_individual_loss_tracker = IndividualLossTrackerMT(length(population), length(X))
-        UTCGP.reset_programs!(population_programs)
+        MAGE.reset_programs!(population_programs)
         batch = X[1:TrainSize] # should do in parallel
         for ith_x in Iterators.partition(1:length(X), X.batch_size)
             @debug "Spawn training batch $ith_x. $(now()) "

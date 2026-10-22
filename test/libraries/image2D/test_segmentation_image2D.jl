@@ -132,7 +132,7 @@ end
 
 
 @testset "Watershed sign selector and deterministic budget" begin
-    library = UTCGP.image2D_segmentation
+    library = MAGE.image2D_segmentation
     selectors = (-1, 0, 1, -1.0, 0.0, 1.0, -0.0, NaN, Inf, -Inf)
     for (height, width) in ((1, 1), (32, 32), (224, 100), (100, 224), (37, 500), (33, 32))
         foreground = [
@@ -190,7 +190,7 @@ end
 end
 
 @testset "Reduced watershed preserves full-resolution component identities" begin
-    library = UTCGP.image2D_segmentation
+    library = MAGE.image2D_segmentation
     # The one-pixel gap disappears on both 32 and half grids.
     objects = falses(224, 224)
     objects[50:100, 50:100] .= true

@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Model Config
@@ -53,9 +53,9 @@ AbstractRunConf
 runConf
 RunConfGA
 RunConfCrossOverGA
-UTCGP.RunConfNSGA2
-UTCGP.RunConfME
-UTCGP.RunConfSTN
+MAGE.RunConfNSGA2
+MAGE.RunConfME
+MAGE.RunConfSTN
 ```
 
 ### Traits
@@ -76,18 +76,18 @@ NumberedMutationArgs
 
 ## Environment variables
 
-A few knobs are read from the environment at load time (see `UTCGP.__init__`),
+A few knobs are read from the environment at load time (see `MAGE.__init__`),
 which is convenient for sweeping them from a job script:
 
 | Variable | Default | Effect |
 |:--|:--|:--|
-| `UTCGP_CONSTRAINED` | unset | set to `yes` to clamp generated integer/float parameters |
-| `UTCGP_MIN_INT` / `UTCGP_MAX_INT` | `-1000` / `1000` | bounds used when constraining integers |
-| `UTCGP_MIN_FLOAT` / `UTCGP_MAX_FLOAT` | `-1000` / `1000` | bounds used when constraining floats |
-| `UTCGP_NANO_ARRAY` | `100` | small-array size limit used by list operators |
-| `UTCGP_SMALL_ARRAY` | `1000` | medium-array size limit |
-| `UTCGP_BIG_ARRAY` | `10000` | large-array size limit |
-| `UTCGP_SAFE_CALL` | unset | set to `yes` to route every call through [`safe_call`](@ref) |
+| `MAGE_CONSTRAINED` | unset | set to `yes` to clamp generated integer/float parameters |
+| `MAGE_MIN_INT` / `MAGE_MAX_INT` | `-1000` / `1000` | bounds used when constraining integers |
+| `MAGE_MIN_FLOAT` / `MAGE_MAX_FLOAT` | `-1000` / `1000` | bounds used when constraining floats |
+| `MAGE_NANO_ARRAY` | `100` | small-array size limit used by list operators |
+| `MAGE_SMALL_ARRAY` | `1000` | medium-array size limit |
+| `MAGE_BIG_ARRAY` | `10000` | large-array size limit |
+| `MAGE_SAFE_CALL` | unset | set to `yes` to route every call through [`safe_call`](@ref) |
 | `MAGE_TEMPERATURE` | `0.3` | temperature of [`default_eliteDistribution_selection_callback`](@ref) |
 
-`UTCGP.show_constants_module()` prints the values actually in effect.
+`MAGE.show_constants_module()` prints the values actually in effect.

@@ -17,9 +17,9 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module float_orientation
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel
-using ..UTCGP: image2D_orientation_common
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel
+using ..MAGE: image2D_orientation_common
 
 fallback(args...) = return -1.0
 """

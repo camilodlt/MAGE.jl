@@ -1,5 +1,5 @@
 
-using UTCGP
+using MAGE
 
 
 bundles_generic = [bundle_listgeneric_basic]

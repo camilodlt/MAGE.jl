@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Symbolic Regression
@@ -23,7 +23,7 @@ Rediscover `f(x1, x2) = x1^2 + 2*x2` from samples, with `1.0` and `2.0`
 available as constants.
 
 ```@example sr
-using UTCGP
+using MAGE
 using Logging
 using Random
 Random.seed!(1234)
@@ -43,7 +43,7 @@ Mean absolute error, with a large penalty for a `NaN` output so that a program
 that blows up is never selected.
 
 ```@example sr
-struct EndpointMAE <: UTCGP.BatchEndpoint
+struct EndpointMAE <: MAGE.BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointMAE(preds::Vector{<:Vector{<:Number}}, y::Number)
         res = Float64[]
@@ -60,7 +60,7 @@ nothing # hide
 ## The model
 
 ```@example sr
-lib = Library(UTCGP.get_sr_float_bundles())
+lib = Library(MAGE.get_sr_float_bundles())
 ml  = MetaLibrary([lib])
 
 n_inputs = length(X[1])
@@ -160,7 +160,7 @@ loss is followed during the run. The callback receives the population, the
 elite index and the best program of the generation:
 
 ```julia
-mutable struct ValidationTracker <: UTCGP.AbstractCallable
+mutable struct ValidationTracker <: MAGE.AbstractCallable
     X::Any
     y::Any
     losses::Vector{Float64}

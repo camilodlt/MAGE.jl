@@ -131,7 +131,7 @@ end
 """
     _run_each_function!(
         fns::OrderedDict{String,<:Abstract_Column_Function},
-        params::UTCGP.ParametersStandardEpoch,
+        params::MAGE.ParametersStandardEpoch,
     )
 
 Run the `fns` against the `params`. 
@@ -142,7 +142,7 @@ The result is an the column view, which is an OrderedDict with:
 """
 function _run_each_function!(
     fns::OrderedDict{String,<:Abstract_Column_Function},
-    params::UTCGP.ParametersStandardEpoch,
+    params::MAGE.ParametersStandardEpoch,
 )
     population_info_per_function = OrderedDict{String,Vector{Any}}()
     # get hashes done by every hasher for every col for every ind
@@ -155,12 +155,12 @@ end
 
 """
     _run_all_hashers_on_epoch_params(
-        params::UTCGP.ParametersStandardEpoch,
+        params::MAGE.ParametersStandardEpoch,
         writer::Abstract_SN_Writer,
     )
 
     _run_all_functions_on_epoch_params(
-        params::UTCGP.ParametersStandardEpoch,
+        params::MAGE.ParametersStandardEpoch,
         writer::Abstract_SN_Writer,
         ::sn.Abstract_Nodes,
     )
@@ -178,7 +178,7 @@ The function returns a column view which is an OrderedDict with :
     - values : A vector with the hashed values (or properties) for all individuals 
 """
 function _run_all_functions_on_epoch_params(
-    params::UTCGP.ParametersStandardEpoch,
+    params::MAGE.ParametersStandardEpoch,
     writer::Abstract_SN_Writer,
     ::Type{sn.Abstract_Edges},
 )
@@ -187,7 +187,7 @@ function _run_all_functions_on_epoch_params(
 end
 
 function _run_all_functions_on_epoch_params(
-    params::UTCGP.ParametersStandardEpoch,
+    params::MAGE.ParametersStandardEpoch,
     writer::Abstract_SN_Writer,
     ::Type{sn.Abstract_Nodes},
 )
@@ -268,7 +268,7 @@ end
 
 """
     function _get_rows_by_running_all_fns(
-        params::UTCGP.ParametersStandardEpoch,
+        params::MAGE.ParametersStandardEpoch,
         writer::Abstract_SN_Writer,
     )
 
@@ -283,7 +283,7 @@ For `sn.Abstract_Nodes`, the `id_hash` will be calculated and placed at the begi
 
 """
 function _get_rows_by_running_all_fns(
-    params::UTCGP.ParametersStandardEpoch,
+    params::MAGE.ParametersStandardEpoch,
     writer::Abstract_SN_Writer,
     which_fns::Type{<:sn.Abstract_Table},
 )

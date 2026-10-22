@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Crossover
@@ -27,34 +27,34 @@ mage_crossover
 ## The operator
 
 ```@docs
-UTCGP.mage_crossover_with_numbered_mutation
+MAGE.mage_crossover_with_numbered_mutation
 ```
 
 ## Traits
 
 Crossover arguments reach the operator through a trait on the run
 configuration, so a configuration that does not describe crossover simply
-reports [`MissingCrossOverArgs`](@ref UTCGP.MissingCrossOverArgs) and the
+reports [`MissingCrossOverArgs`](@ref MAGE.MissingCrossOverArgs) and the
 generic code keeps working.
 
 ```@docs
-UTCGP.AbstractCrossOverArgs
-UTCGP.CrossOverArgs
-UTCGP.CrossOverMutRateArgs
-UTCGP.MissingCrossOverArgs
-UTCGP.runconf_trait_crossover
+MAGE.AbstractCrossOverArgs
+MAGE.CrossOverArgs
+MAGE.CrossOverMutRateArgs
+MAGE.MissingCrossOverArgs
+MAGE.runconf_trait_crossover
 ```
 
 ```@docs
-numbered_mutation_trait(conf::UTCGP.CrossOverArgs)
+numbered_mutation_trait(conf::MAGE.CrossOverArgs)
 ```
 
 ## Helpers
 
 ```@docs
-UTCGP._initialize_population
-UTCGP._apply_truncation_selection!
-UTCGP._apply_crossover_and_mutation!
-UTCGP._check_genome_compatibility
-UTCGP._draw_until_one_operator
+MAGE._initialize_population
+MAGE._apply_truncation_selection!
+MAGE._apply_crossover_and_mutation!
+MAGE._check_genome_compatibility
+MAGE._draw_until_one_operator
 ```

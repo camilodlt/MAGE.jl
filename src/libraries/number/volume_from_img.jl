@@ -28,21 +28,21 @@ is always `Float64`, so nothing needs specialising.
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 v = zeros(28, 28, 28); v[10:18, 10:18, 10:18] .= 0.8      # a bright cube
 vol = SImageND(IntensityPixel{N0f8}.(v))
 mask = SImageND(BinaryPixel.(v .> 0.5))
 
-UTCGP.number_volumeFromImg.vshape_fill(mask)        # 729 / 21952 ≈ 0.033
-UTCGP.number_volumeFromImg.vshape_extent(vol)       # 1.0: the cube fills its bounding box
-UTCGP.number_volumeFromImg.vprof_com_z(vol)         # (14 − 1) / 27 ≈ 0.48: slice 14 of 1…28
+MAGE.number_volumeFromImg.vshape_fill(mask)        # 729 / 21952 ≈ 0.033
+MAGE.number_volumeFromImg.vshape_extent(vol)       # 1.0: the cube fills its bounding box
+MAGE.number_volumeFromImg.vprof_com_z(vol)         # (14 − 1) / 27 ≈ 0.48: slice 14 of 1…28
 ```
 """
 module number_volumeFromImg
 
 using LinearAlgebra: Symmetric, eigvals
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..image2D_object_common: clamp_unit, pixel_value, IsSet, AtLeast, scratch
 using ..image3D_volume_common:
     voxel_values,

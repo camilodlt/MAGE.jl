@@ -1,5 +1,5 @@
 @testset "Number decision and motion" begin
-    D = UTCGP.number_decision
+    D = MAGE.number_decision
 
     @testset "every operator returns a finite Float64 and keeps arity <= 3" begin
         for bundle in (bundle_number_decision, bundle_number_motion)

@@ -26,7 +26,7 @@ node) and `Y` the matching expected values. `run_config` is a
 
 Every generation runs the same phases, and each phase is a tuple of callbacks
 (a `Symbol` naming one of the built-ins, a `Function`, or any
-`UTCGP.AbstractCallable`):
+`MAGE.AbstractCallable`):
 
 | Argument                    | Phase                                              |
 |:----------------------------|:---------------------------------------------------|
@@ -76,20 +76,20 @@ function fit(
         run_config::runConf,
         meta_library::MetaLibrary,
         # Callbacks before training
-        pre_callbacks::UTCGP.Optional_FN,
+        pre_callbacks::MAGE.Optional_FN,
         # Callbacks before step (before looping through data)
-        population_callbacks::UTCGP.Mandatory_FN,
-        mutation_callbacks::UTCGP.Mandatory_FN,
-        output_mutation_callbacks::UTCGP.Mandatory_FN,
-        decoding_callbacks::UTCGP.Mandatory_FN,
+        population_callbacks::MAGE.Mandatory_FN,
+        mutation_callbacks::MAGE.Mandatory_FN,
+        output_mutation_callbacks::MAGE.Mandatory_FN,
+        decoding_callbacks::MAGE.Mandatory_FN,
         # Callbacks per step (while looping through data)
-        endpoint_callback::Union{Type{<:UTCGP.BatchEndpoint}, <:UTCGP.BatchEndpoint},
-        final_step_callbacks::UTCGP.Optional_FN,
+        endpoint_callback::Union{Type{<:MAGE.BatchEndpoint}, <:MAGE.BatchEndpoint},
+        final_step_callbacks::MAGE.Optional_FN,
         # Callbacks after step ::
-        elite_selection_callbacks::UTCGP.Mandatory_FN,
-        epoch_callbacks::UTCGP.Optional_FN,
-        early_stop_callbacks::UTCGP.Optional_FN,
-        last_callback::UTCGP.Optional_FN,
+        elite_selection_callbacks::MAGE.Mandatory_FN,
+        epoch_callbacks::MAGE.Optional_FN,
+        early_stop_callbacks::MAGE.Optional_FN,
+        last_callback::MAGE.Optional_FN,
     ) # Tuple{UTGenome, IndividualPrograms, GenerationLossTracker}::
 
     local early_stop = false
@@ -324,7 +324,7 @@ function fit(
                         " at $(op.calling_node.id)"
                     op_dict = Dict()
                     ins = [
-                        UTCGP._extract_input_node_from_operationInput(
+                        MAGE._extract_input_node_from_operationInput(
                                 shared_inputs,
                                 inp,
                             ).id for inp in op.inputs
@@ -406,7 +406,7 @@ function fit(
             op_dict = Dict()
             ins = [
                 unwrap_or(
-                        UTCGP._extract_input_node_from_operationInput(shared_inputs, inp),
+                        MAGE._extract_input_node_from_operationInput(shared_inputs, inp),
                         nothing,
                     ).id for inp in op.inputs
             ]

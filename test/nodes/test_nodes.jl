@@ -1,6 +1,6 @@
-# push!(LOAD_PATH, "/home/irit/Documents/Camilo/utcgp/utcgp_julia/utcgp")
+# push!(LOAD_PATH, "/home/irit/Documents/Camilo/mage/mage_julia/mage")
 # using Revise
-using UTCGP
+using MAGE
 
 
 fn_element = CGPElement(1, 1, 0, 0, 0, false, FUNCTION)

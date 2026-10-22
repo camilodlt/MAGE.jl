@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Genome and Nodes

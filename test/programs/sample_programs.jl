@@ -1,5 +1,5 @@
-using UTCGP
-using UTCGP: CGPNode, ConstantNode, InputNode, SharedInput, InputPromise,
+using MAGE
+using MAGE: CGPNode, ConstantNode, InputNode, SharedInput, InputPromise,
              modelArchitecture, Library, FunctionWrapper, FunctionBundle,
              OperationInput, Operation, Program
 
@@ -24,7 +24,7 @@ function _modular_function_program_fixture()
     str_length = FunctionWrapper((x::String, args...) -> length(x), :length, nothing, fallback_int)
     push!(bundle_int.functions, [identity_int, add, str_length]...)
 
-    ml = UTCGP.MetaLibrary([Library([bundle_string]), Library([bundle_int])])
+    ml = MAGE.MetaLibrary([Library([bundle_string]), Library([bundle_int])])
 
     shared_inputs = SharedInput([
         InputNode(1234, 1, 1, 1),

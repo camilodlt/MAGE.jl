@@ -1,4 +1,4 @@
-using Test, UTCGP
+using Test, MAGE
 using ImageCore: N0f8
 # Typed evaluation of image programs (per-sample engine): engine choice from the
 # pool, buffers, several outputs, threads. Small images keep the tests fast.
@@ -69,24 +69,24 @@ engine_no_out(img::SImageND{S}) where {S} = binary(Float64.(img.img) .>= 0.5, S)
 # Graph builder: steps are (function, inputs, return type); refs as below
 # ---------------------------------------------------------------------------
 
-input_ref(position, T) = UTCGP.PopulationSequentialInputRef(position, T)
-step_ref(index, T) = UTCGP.PopulationSequentialTmpRef(index, T)
+input_ref(position, T) = MAGE.PopulationSequentialInputRef(position, T)
+step_ref(index, T) = MAGE.PopulationSequentialTmpRef(index, T)
 
 """
 A graph with `input_types`, the given steps, and per individual its output refs
 and the steps it uses (for individual_times).
 """
 function engine_graph(input_types, steps, individuals)
-    graph = UTCGP.PopulationSequentialProgram()
+    graph = MAGE.PopulationSequentialProgram()
     graph.input_types = Type[input_types...]
     graph.has_input_layout = true
     for (fn, inputs, T, fallback) in steps
         wrapper = FunctionWrapper(fn, nameof(fn), nothing, fallback)
-        push!(graph.steps, UTCGP.PopulationSequentialCallStep(wrapper,
-            UTCGP.AbstractPopulationSequentialRef[inputs...], T, T))
+        push!(graph.steps, MAGE.PopulationSequentialCallStep(wrapper,
+            MAGE.AbstractPopulationSequentialRef[inputs...], T, T))
     end
     for (outputs, used_steps) in individuals
-        push!(graph.individual_outputs, UTCGP.AbstractPopulationSequentialRef[outputs...])
+        push!(graph.individual_outputs, MAGE.AbstractPopulationSequentialRef[outputs...])
         push!(graph.individual_step_ids, used_steps)
     end
     return graph
@@ -119,14 +119,14 @@ mixed_samples() = [(intensity(0.2, 16),), (intensity(0.7, 16),), (intensity(0.5,
 # ---------------------------------------------------------------------------
 
 @testset "The engine is chosen from the run's types" begin
-    @test TypedEvaluator(mixed_graph()) isa UTCGP.PerSampleEvaluator
+    @test TypedEvaluator(mixed_graph()) isa MAGE.PerSampleEvaluator
     scalar_graph = engine_graph([Float64], [(identity, [input_ref(1, Float64)], Float64, () -> 0.0)],
         [([step_ref(1, Float64)], [1])])
-    @test TypedEvaluator(scalar_graph) isa UTCGP.TiledEvaluator
+    @test TypedEvaluator(scalar_graph) isa MAGE.TiledEvaluator
     # An image run evaluates even an all-scalar graph with the per-sample engine.
     image_run_pool = BufferPool([I16, B16, Float64])
-    @test TypedEvaluator(scalar_graph, image_run_pool) isa UTCGP.PerSampleEvaluator
-    @test TypedEvaluator(scalar_graph, image_run_pool; engine=:tiled) isa UTCGP.TiledEvaluator
+    @test TypedEvaluator(scalar_graph, image_run_pool) isa MAGE.PerSampleEvaluator
+    @test TypedEvaluator(scalar_graph, image_run_pool; engine=:tiled) isa MAGE.TiledEvaluator
 end
 
 @testset "Image program: results, step values and times match the generic rule" begin
@@ -206,9 +206,9 @@ end
             (engine_mean, [step_ref(3, B8)], Float64, () -> 0.0)],
         [([step_ref(4, Float64)], [2, 3, 4]), ([step_ref(1, Float64)], [1])])
     evaluator = TypedEvaluator(graph)
-    @test all(step -> step isa UTCGP.PerSampleCall, evaluator.steps)
+    @test all(step -> step isa MAGE.PerSampleCall, evaluator.steps)
     evaluate_population_into!(zeros(2, 3), graph, mixed_samples(); evaluator)
-    runner = which(UTCGP._run_step!, Tuple{UTCGP.PerSampleEvaluator,UTCGP.PerSampleCall,Any})
+    runner = which(MAGE._run_step!, Tuple{MAGE.PerSampleEvaluator,MAGE.PerSampleCall,Any})
     specialisations = length(collect(Base.specializations(runner)))
     evaluate_population_into!(zeros(2, 3), reordered, mixed_samples(); check=true)
     @test length(collect(Base.specializations(runner))) == specialisations
@@ -232,7 +232,7 @@ end
             (sum, [step_ref(1, Vector{Float64})], Float64, () -> 0.0)],
         [([step_ref(2, Float64)], [1, 2])])
     evaluator = TypedEvaluator(vector_graph)
-    @test evaluator isa UTCGP.PerSampleEvaluator && evaluator.steps[1].buffer === nothing
+    @test evaluator isa MAGE.PerSampleEvaluator && evaluator.steps[1].buffer === nothing
     outputs = zeros(1, 2)
     evaluate_population_into!(outputs, vector_graph, [(1.0,), (2.0,)]; evaluator, check=true)
     @test outputs == [3.0 6.0]
@@ -310,8 +310,8 @@ const SCRATCH_SEEN = (float = Any[], image = Any[])
 """Threshold through a Float32 working array and a working image (both overwritten)."""
 function engine_threshold_with_scratch(img::SImageND{S}; out = nothing, float_scratch = nothing,
         image_scratch = nothing) where {S}
-    values = UTCGP.float_buffer(float_scratch, 1, img, :engine_threshold)
-    work = UTCGP.image_buffer(image_scratch, 1, FALSE16, :engine_threshold)
+    values = MAGE.float_buffer(float_scratch, 1, img, :engine_threshold)
+    work = MAGE.image_buffer(image_scratch, 1, FALSE16, :engine_threshold)
     push!(SCRATCH_SEEN.float, values)
     push!(SCRATCH_SEEN.image, work)
     values .= Float32.(img.img)
@@ -352,14 +352,14 @@ end
 end
 
 @testset "scratch keeps one array per size" begin
-    a224 = UTCGP.scratch(:engine_test, Float64, 224, 224)
-    a112 = UTCGP.scratch(:engine_test, Float64, 112, 112)
-    @test UTCGP.scratch(:engine_test, Float64, 224, 224) === a224
-    @test UTCGP.scratch(:engine_test, Float64, 112, 112) === a112
-    @test UTCGP.scratch(:engine_test, Float32, 224, 224) !== a224   # another element type, another array
-    growable = UTCGP.scratch(:engine_growable, Int, 0)
+    a224 = MAGE.scratch(:engine_test, Float64, 224, 224)
+    a112 = MAGE.scratch(:engine_test, Float64, 112, 112)
+    @test MAGE.scratch(:engine_test, Float64, 224, 224) === a224
+    @test MAGE.scratch(:engine_test, Float64, 112, 112) === a112
+    @test MAGE.scratch(:engine_test, Float32, 224, 224) !== a224   # another element type, another array
+    growable = MAGE.scratch(:engine_growable, Int, 0)
     push!(growable, 1, 2, 3)
-    @test UTCGP.scratch(:engine_growable, Int, 0) === growable && length(growable) == 3
+    @test MAGE.scratch(:engine_growable, Int, 0) === growable && length(growable) == 3
 end
 
 """Deliberately faulty out path: plain threshold is correct, buffered pixels invert."""
@@ -392,7 +392,7 @@ end
     end
 end
 
-const ENGINE_LUMINANCE = UTCGP.image3D_color_statistics_rgb.rgb_luminance_image2D_factory(I16)
+const ENGINE_LUMINANCE = MAGE.image3D_color_statistics_rgb.rgb_luminance_image2D_factory(I16)
 const ENGINE_LUMINANCE_FALLBACK = intensity(0.0, 16)
 
 @testset "RGB luminance preserves the generic Float64 rounding boundary" begin
@@ -405,7 +405,7 @@ const ENGINE_LUMINANCE_FALLBACK = intensity(0.0, 16)
     plain = ENGINE_LUMINANCE(rgb)
     out = intensity(0.9, 16)
     @test ENGINE_LUMINANCE(rgb; out) === out
-    @test UTCGP._identical(plain, out)
+    @test MAGE._identical(plain, out)
     @test all(pixel -> pixel.pixel === reinterpret(N0f8, UInt8(112)), out.img)
     T = typeof(rgb)
     graph = engine_graph([T], [

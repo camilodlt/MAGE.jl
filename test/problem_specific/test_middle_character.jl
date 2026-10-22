@@ -1,14 +1,14 @@
-using UTCGP: integer_cond
-using UTCGP.number_arithmetic: number_minus, number_div, number_sum
-using UTCGP.integer_modulo: modulo
-using UTCGP.listgeneric_utils: append_to_list, unique_in_list
-using UTCGP.listgeneric_basic: reverse_list
-using UTCGP.listgeneric_subset: subset_by_indices
-using UTCGP.number_reduce: reduce_length, reduce_max
-using UTCGP.listgeneric_makelist: make_list_from_one_element, make_list_from_two_elements
-using UTCGP.element_conditional: if_else_multiplexer
-using UTCGP.liststring_split: split_string_to_vector
-using UTCGP.str_paste: paste_list_string
+using MAGE: integer_cond
+using MAGE.number_arithmetic: number_minus, number_div, number_sum
+using MAGE.integer_modulo: modulo
+using MAGE.listgeneric_utils: append_to_list, unique_in_list
+using MAGE.listgeneric_basic: reverse_list
+using MAGE.listgeneric_subset: subset_by_indices
+using MAGE.number_reduce: reduce_length, reduce_max
+using MAGE.listgeneric_makelist: make_list_from_one_element, make_list_from_two_elements
+using MAGE.element_conditional: if_else_multiplexer
+using MAGE.liststring_split: split_string_to_vector
+using MAGE.str_paste: paste_list_string
 
 """
 Text from the paper: 

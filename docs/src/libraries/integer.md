@@ -1,17 +1,17 @@
 
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
 
   # INTEGER Basic
-  using UTCGP.integer_basic:identity_int
+  using MAGE.integer_basic:identity_int
 
   # INTEGER FIND
-  using UTCGP.integer_find:find_first
+  using MAGE.integer_find:find_first
   
   # INTEGER MODULO
-  using UTCGP.integer_modulo:modulo
+  using MAGE.integer_modulo:modulo
 end
 ```
 
@@ -26,13 +26,13 @@ Pages = ["integer.md"]
 ### Module 
 
 ```@docs
-UTCGP.integer_basic
+MAGE.integer_basic
 ```
 ### Functions 
 
 
 ```@docs
-UTCGP.integer_basic.identity_int
+MAGE.integer_basic.identity_int
 ```
 ```jldoctest
 julia> identity_int(3)
@@ -43,13 +43,13 @@ julia> identity_int(3)
 
 ### Module
 ```@docs
-UTCGP.integer_find
+MAGE.integer_find
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.integer_find.find_first
+MAGE.integer_find.find_first
 ```
 ```jldoctest
 julia> find_first([1,2,3], 3)
@@ -65,12 +65,12 @@ julia> find_first([1,2,3], 10)
 ### Module 
 
 ```@docs
-UTCGP.integer_modulo
+MAGE.integer_modulo
 ```
 ### Functions 
 
 ```@docs
-UTCGP.integer_modulo.modulo
+MAGE.integer_modulo.modulo
 ```
 ```jldoctest
 julia> modulo(10,2)
@@ -85,7 +85,7 @@ julia> modulo(11,2)
 
 ### Module
 ```@docs
-UTCGP.integer_cond
+MAGE.integer_cond
 ```
 
 ### Functions
@@ -94,38 +94,38 @@ Predicates return `1` or `0` rather than a `Bool`, so their result stays in the
 integer chromosome and can be fed straight to arithmetic or to a multiplexer.
 
 ```@docs
-UTCGP.integer_cond.is_eq_to
+MAGE.integer_cond.is_eq_to
 ```
 ```jldoctest
-julia> UTCGP.integer_cond.is_eq_to(3, 3)
+julia> MAGE.integer_cond.is_eq_to(3, 3)
 1
 ```
 
 ```@docs
-UTCGP.integer_cond.str_is_empty
+MAGE.integer_cond.str_is_empty
 ```
 ```jldoctest
-julia> UTCGP.integer_cond.str_is_empty("")
+julia> MAGE.integer_cond.str_is_empty("")
 1
 ```
 
 ```@docs
-UTCGP.integer_cond.experimental_is_gt
+MAGE.integer_cond.experimental_is_gt
 ```
 ```jldoctest
-julia> UTCGP.integer_cond.experimental_is_gt(3, 2)
+julia> MAGE.integer_cond.experimental_is_gt(3, 2)
 1
 ```
 
 ```@docs
-UTCGP.integer_cond.experimental_is_lt
+MAGE.integer_cond.experimental_is_lt
 ```
 
 ```@docs
-UTCGP.integer_cond.experimental_not
+MAGE.integer_cond.experimental_not
 ```
 ```jldoctest
-julia> UTCGP.integer_cond.experimental_not(1)
+julia> MAGE.integer_cond.experimental_not(1)
 0
 ```
 

@@ -4,11 +4,11 @@
 
 struct sn_genotype_hasher <: Abstract_Node_Hash_Function end
 """
-    sn_genotype_hasher(params::UTCGP.ParametersStandardEpoch)
+    sn_genotype_hasher(params::MAGE.ParametersStandardEpoch)
 
 Applies `general_hasher_sha` to the whole population.
 """
-function (::sn_genotype_hasher)(params::UTCGP.ParametersStandardEpoch)
+function (::sn_genotype_hasher)(params::MAGE.ParametersStandardEpoch)
     # Hashes the genomes with genotype_hasher for all pop
     hashes = general_hasher_sha.(params.population)
     return hashes
@@ -16,11 +16,11 @@ end
 
 struct sn_genotype_hasher_except_last <: Abstract_Node_Hash_Function end
 """
-    sn_genotype_hasher_except_last(params::UTCGP.ParametersStandardEpoch)
+    sn_genotype_hasher_except_last(params::MAGE.ParametersStandardEpoch)
 
 Applies `general_hasher_sha` to the whole population except the last element (Because it's the parent).
 """
-function sn_genotype_hasher_except_last(params::UTCGP.ParametersStandardEpoch)
+function sn_genotype_hasher_except_last(params::MAGE.ParametersStandardEpoch)
     # Hashes the genomes with genotype_hasher for all pop (except last)
     hashes = general_hasher_sha.(params.population[1:end-1])
     return hashes
@@ -31,11 +31,11 @@ end
 struct sn_softphenotype_hasher <: Abstract_Node_Hash_Function end
 
 """
-    sn_softphenotype_hasher(params::UTCGP.ParametersStandardEpoch)
+    sn_softphenotype_hasher(params::MAGE.ParametersStandardEpoch)
 
 Applies `general_hasher_sha` to all programs.
 """
-function (::sn_softphenotype_hasher)(params::UTCGP.ParametersStandardEpoch)
+function (::sn_softphenotype_hasher)(params::MAGE.ParametersStandardEpoch)
     # Hashes the genomes with genotype_hasher for all pop
     hashes = general_hasher_sha.(params.programs)
     return hashes
@@ -43,11 +43,11 @@ end
 
 struct sn_softphenotype_hasher_except_last <: Abstract_Node_Hash_Function end
 """
-    sn_softphenotype_hasher_except_last (params::UTCGP.ParametersStandardEpoch)
+    sn_softphenotype_hasher_except_last (params::MAGE.ParametersStandardEpoch)
 
 Applies `general_hasher_sha` to all programs except last
 """
-function (::sn_softphenotype_hasher_except_last)(params::UTCGP.ParametersStandardEpoch)
+function (::sn_softphenotype_hasher_except_last)(params::MAGE.ParametersStandardEpoch)
     # Hashes the genomes with genotype_hasher for all pop
     hashes = general_hasher_sha.(params.programs[1:end-1])
     return hashes
@@ -69,7 +69,7 @@ new node) and `sn_softphenotype_hasher` (the decoded programs as objects).
 """
 struct sn_strictphenotype_hasher <: Abstract_Node_Hash_Function end
 
-function (::sn_strictphenotype_hasher)(params::UTCGP.ParametersStandardEpoch)
+function (::sn_strictphenotype_hasher)(params::MAGE.ParametersStandardEpoch)
     function individual_phen_hasher(p::IndividualPrograms)
         vec = []
         for prog in p
@@ -112,7 +112,7 @@ struct sn_behavior_hasher <: Abstract_Node_Hash_Function
     example_set::Vector{<:Any}
 end
 
-function (obj::sn_behavior_hasher)(params::UTCGP.ParametersStandardEpoch)
+function (obj::sn_behavior_hasher)(params::MAGE.ParametersStandardEpoch)
     BEHAVIORS_PER_INDIVIDUAL = []
     for _ = 1:length(params.population)
         push!(BEHAVIORS_PER_INDIVIDUAL, [])
@@ -159,12 +159,12 @@ struct sn_db_name_node <: Abstract_Node_Hash_Function
     db_name::String
 end
 """
-    sn_db_name_node(params::UTCGP.ParametersStandardEpoch)
+    sn_db_name_node(params::MAGE.ParametersStandardEpoch)
 
 Returns the db_name n times. 
 n is the length of the population. 
 """
-function (obj::sn_db_name_node)(params::UTCGP.ParametersStandardEpoch)
+function (obj::sn_db_name_node)(params::MAGE.ParametersStandardEpoch)
     return [obj.db_name for _ in params.population]
 end
 

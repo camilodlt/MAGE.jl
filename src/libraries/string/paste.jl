@@ -13,7 +13,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module str_paste
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 
 # ########### #
 # String Paste #

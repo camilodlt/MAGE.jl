@@ -1,10 +1,10 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
   # PICK
-  using UTCGP.element_pick:pick_element_from_vector
-  using UTCGP.element_pick:pick_last_element
+  using MAGE.element_pick:pick_element_from_vector
+  using MAGE.element_pick:pick_last_element
 end
 ```
 
@@ -18,13 +18,13 @@ Pages = ["element.md"]
 
 ### Module
 ```@docs
-UTCGP.element_pick
+MAGE.element_pick
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.element_pick.pick_element_from_vector
+MAGE.element_pick.pick_element_from_vector
 ```
 ```jldoctest
 julia> pick_element_from_vector([1,2,3,4], 2)
@@ -41,7 +41,7 @@ ERROR: BoundsError: attempt to access 4-element Vector{Int64} at index [0]
 ```
 
 ```@docs
-UTCGP.element_pick.pick_last_element
+MAGE.element_pick.pick_last_element
 ```
 ```jldoctest
 julia> pick_last_element([1,2,3,4])
@@ -61,7 +61,7 @@ ERROR: BoundsError: attempt to access 0-element Vector{Any} at index [0]
 
 ### Module
 ```@docs
-UTCGP.element_conditional
+MAGE.element_conditional
 ```
 
 ### Functions
@@ -71,15 +71,15 @@ otherwise. Both branches must have the same type, which is what keeps the node
 type-correct whichever way the condition goes.
 
 ```@docs
-UTCGP.element_conditional.if_else_multiplexer
+MAGE.element_conditional.if_else_multiplexer
 ```
 
 ```jldoctest
-julia> UTCGP.element_conditional.if_else_multiplexer(1, "yes", "no")
+julia> MAGE.element_conditional.if_else_multiplexer(1, "yes", "no")
 "yes"
 ```
 ```jldoctest
-julia> UTCGP.element_conditional.if_else_multiplexer(0, "yes", "no")
+julia> MAGE.element_conditional.if_else_multiplexer(0, "yes", "no")
 "no"
 ```
 

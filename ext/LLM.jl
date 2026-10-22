@@ -1,19 +1,19 @@
 module LLM
 
 import PythonCall
-import UTCGP
+import MAGE
 
 """
     PythonCallGeneratedFunctionClient
 
 Concrete generated-function client scaffold loaded only when `PythonCall` is
 available in the active environment. The struct stores only lightweight runtime
-configuration so UTCGP's core remains independent from Python tooling.
+configuration so MAGE's core remains independent from Python tooling.
 
-Example: `UTCGP.make_llm_generated_function_client(model_name = "google/gemma-3-4b-it")`
+Example: `MAGE.make_llm_generated_function_client(model_name = "google/gemma-3-4b-it")`
 returns one `PythonCallGeneratedFunctionClient` after this extension loads.
 """
-struct PythonCallGeneratedFunctionClient <: UTCGP.AbstractGeneratedFunctionClient
+struct PythonCallGeneratedFunctionClient <: MAGE.AbstractGeneratedFunctionClient
     model_name::String
     system_prompt::String
     python_project::String
@@ -22,15 +22,15 @@ struct PythonCallGeneratedFunctionClient <: UTCGP.AbstractGeneratedFunctionClien
 end
 
 """
-    UTCGP.make_llm_generated_function_client(; kwargs...)
+    MAGE.make_llm_generated_function_client(; kwargs...)
 
 Create one PythonCall-backed generated-function client configuration. This does
 not load a model yet; it only establishes the extension-side object that future
 runtime code will use.
 
-Example: `UTCGP.make_llm_generated_function_client(model_name = "google/gemma-3-4b-it")`
+Example: `MAGE.make_llm_generated_function_client(model_name = "google/gemma-3-4b-it")`
 """
-function UTCGP.make_llm_generated_function_client(;
+function MAGE.make_llm_generated_function_client(;
         model_name::AbstractString,
         system_prompt::AbstractString = "",
         python_project::AbstractString = get(ENV, "PYTHON_JULIAPKG_PROJECT", ""),
@@ -47,29 +47,29 @@ function UTCGP.make_llm_generated_function_client(;
 end
 
 """
-    UTCGP.llm_generated_function_client_backend(client)
+    MAGE.llm_generated_function_client_backend(client)
 
 Return the readable backend identifier for one PythonCall-backed generated-function
 client.
 
-Example: `UTCGP.llm_generated_function_client_backend(client) == "pythoncall"`
+Example: `MAGE.llm_generated_function_client_backend(client) == "pythoncall"`
 """
-UTCGP.llm_generated_function_client_backend(::PythonCallGeneratedFunctionClient) = "pythoncall"
+MAGE.llm_generated_function_client_backend(::PythonCallGeneratedFunctionClient) = "pythoncall"
 
 """
-    UTCGP.llm_generated_function_client_status(client)
+    MAGE.llm_generated_function_client_status(client)
 
 Return one small status dictionary describing the extension-side client setup.
 This is intentionally shallow for now: it exposes the configured project path and
 sampling parameters without trying to initialize the Python runtime.
 
-Example: `UTCGP.llm_generated_function_client_status(client)[:model_name]`
+Example: `MAGE.llm_generated_function_client_status(client)[:model_name]`
 """
-function UTCGP.llm_generated_function_client_status(
+function MAGE.llm_generated_function_client_status(
         client::PythonCallGeneratedFunctionClient,
     )::Dict{Symbol, Any}
     return Dict(
-        :backend => UTCGP.llm_generated_function_client_backend(client),
+        :backend => MAGE.llm_generated_function_client_backend(client),
         :model_name => client.model_name,
         :python_project => client.python_project,
         :max_new_tokens => client.max_new_tokens,
@@ -79,7 +79,7 @@ function UTCGP.llm_generated_function_client_status(
 end
 
 """
-    UTCGP.generate_function_spec(client, prompt)
+    MAGE.generate_function_spec(client, prompt)
 
 Placeholder generation entrypoint for the PythonCall-backed extension. The real
 runtime implementation will later live here, after the Python model stack and
@@ -87,15 +87,15 @@ prompt schema are wired.
 
 Example: once implemented, this will return one `GeneratedFunctionSpec`.
 """
-function UTCGP.generate_function_spec(
+function MAGE.generate_function_spec(
         ::PythonCallGeneratedFunctionClient,
         ::AbstractString,
-    )::UTCGP.GeneratedFunctionSpec
+    )::MAGE.GeneratedFunctionSpec
     error("LLM extension scaffold loaded, but generate_function_spec is not implemented yet.")
 end
 
 """
-    UTCGP.repair_function_spec(client, prompt, previous_spec, report)
+    MAGE.repair_function_spec(client, prompt, previous_spec, report)
 
 Placeholder repair entrypoint for the PythonCall-backed extension. The future
 implementation will use the previous failed spec and validation report to ask the
@@ -103,12 +103,12 @@ local model for a corrected candidate.
 
 Example: once implemented, this will return one repaired `GeneratedFunctionSpec`.
 """
-function UTCGP.repair_function_spec(
+function MAGE.repair_function_spec(
         ::PythonCallGeneratedFunctionClient,
         ::AbstractString,
-        ::UTCGP.GeneratedFunctionSpec,
-        ::UTCGP.GeneratedFunctionValidationReport,
-    )::UTCGP.GeneratedFunctionSpec
+        ::MAGE.GeneratedFunctionSpec,
+        ::MAGE.GeneratedFunctionValidationReport,
+    )::MAGE.GeneratedFunctionSpec
     error("LLM extension scaffold loaded, but repair_function_spec is not implemented yet.")
 end
 

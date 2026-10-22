@@ -7,7 +7,7 @@ function _stn_init_pop(genome, ma, ml, si, n_pop::Int)
     new_pop = Vector{UTGenome}(undef, n_pop)
     for i = 1:n_pop
         g_new = deepcopy(genome)
-        UTCGP.reset_genome!(g_new)
+        MAGE.reset_genome!(g_new)
         # initialize_genome!(g_new)
         # correct_all_nodes!(g_new, ma, ml, si)
         # fix_all_output_nodes!(g_new)
@@ -61,7 +61,7 @@ function fit_stn_atari_mt(
     # PRE CALLBACKS
     _make_pre_callbacks_calls(pre_callbacks)
     M_gen_loss_tracker = GenerationLossTracker()
-    # mappings = Vector{UTCGP.MutablePair}()
+    # mappings = Vector{MAGE.MutablePair}()
     for iteration = 1:run_config.generations
         early_stop ? break : nothing
         @warn "Iteration : $iteration"
@@ -118,7 +118,7 @@ function fit_stn_atari_mt(
             decoding_callbacks,
         )
 
-        UTCGP.reset_programs!.(population_programs)
+        MAGE.reset_programs!.(population_programs)
 
         # M_individual_loss_tracker = IndividualLossTrackerMT(length(population), 1)
         M_individual_loss_tracker = IndividualLossTracker() # size of []
@@ -132,7 +132,7 @@ function fit_stn_atari_mt(
         )
         fitness_values, descriptor_values = get_endpoint_results(endpoint_holder)
         # @show fitness_values descriptor_values
-        UTCGP.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
+        MAGE.add_pop_loss_to_ind_tracker!(M_individual_loss_tracker, fitness_values)  # appends the loss for the ith x sample to the
 
         # Resetting the population (removes node values)
         [reset_genome!(g) for g in population]
@@ -140,12 +140,12 @@ function fit_stn_atari_mt(
         # final step call...
         if !isnothing(final_step_callbacks)
             for final_step_callback in final_step_callbacks
-                UTCGP.get_fn_from_symbol(final_step_callback)()
+                MAGE.get_fn_from_symbol(final_step_callback)()
             end
         end
 
         # Selection
-        ind_performances = UTCGP.resolve_ind_loss_tracker(M_individual_loss_tracker)
+        ind_performances = MAGE.resolve_ind_loss_tracker(M_individual_loss_tracker)
 
         try
             # histogram(ind_performances) |> println
@@ -189,7 +189,7 @@ function fit_stn_atari_mt(
         affect_fitness_to_loss_tracker!(
             M_gen_loss_tracker,
             iteration,
-            minimum(ind_performances), #UTCGP.best_fitness(ARCHIVE),
+            minimum(ind_performances), #MAGE.best_fitness(ARCHIVE),
         )
 
 
@@ -243,7 +243,7 @@ function fit_stn_atari_mt(
                 #     elite_idx,
                 # )
             end
-            # UTCGP.show_program(program)
+            # MAGE.show_program(program)
             return tuple(best_individual, best_program, M_gen_loss_tracker)
         end
 

@@ -68,7 +68,7 @@ _continuous_values(image) = Float64.(reinterpret(image.img))
     @test fn(image, 5000.0, 1.2).img == fn(image, 1000.0, 0.99).img
     @test fn(image, 90.0, 0.95, :ignored).img == automatic.img
 
-    module_under_test = UTCGP.image2D_foreground_extraction_continuous
+    module_under_test = MAGE.image2D_foreground_extraction_continuous
     chain = zeros(1, 5)
     foreground_seeds = falses(1, 5)
     background_seeds = falses(1, 5)
@@ -232,7 +232,7 @@ end
         end
     end
 
-    module_under_test = UTCGP.image2D_foreground_extraction_continuous
+    module_under_test = MAGE.image2D_foreground_extraction_continuous
     raw_values = collect(reshape(range(0.0, 1.0; length = 35), 5, 7))
     raw_trimap = fill(0.5, 5, 7)
     raw_trimap[:, 1] .= 0.0
@@ -314,9 +314,9 @@ end
     )
 
     # Public matting is bounded by the shared 32-pixel working grid.
-    @test UTCGP.image2D_foreground_extraction_discrete._resolution_size(256,256,32)==(32,32)
+    @test MAGE.image2D_foreground_extraction_discrete._resolution_size(256,256,32)==(32,32)
     working_h, working_w =
-        UTCGP.image2D_foreground_extraction_discrete._resolution_size(200,300,32)
+        MAGE.image2D_foreground_extraction_discrete._resolution_size(200,300,32)
     @test (working_h,working_w)==(21,32)
 
     rng = MersenneTwister(49)
@@ -417,7 +417,7 @@ end
 
 @testset "Symbolic Cholesky fresh numeric values and call order" begin
     using LinearAlgebra, SparseArrays
-    solver=UTCGP.image2D_foreground_extraction_continuous._symbolic_solve
+    solver=MAGE.image2D_foreground_extraction_continuous._symbolic_solve
     for n in (12,30), seed in 1:4
         rng=MersenneTwister(seed)
         B=sprand(rng,n,n,0.2)
@@ -445,7 +445,7 @@ end
     image = _continuous_intensity(fill(0.5, height, width))
     auxiliary = _continuous_intensity(zeros(height, width))
     output = _continuous_intensity(zeros(height, width))
-    library = UTCGP.image2D_foreground_extraction_continuous
+    library = MAGE.image2D_foreground_extraction_continuous
     for name in (:random_walker_foreground, :closed_form_matting)
         fn = (@test_factory bundle_image2DIntensity_foreground_extraction_factory[name].fn(typeof(output)))
         bindings = names(library; all = true)
@@ -471,7 +471,7 @@ end
     @test all(fetch(task) == result.img for task in tasks)
     # Explicit trimap pooling keeps the original conflicting-classes rule.
     pooled = fill(IntensityPixel{N0f8}(0), 1, 1)
-    UTCGP.image2D_foreground_extraction_discrete._resolution_pool!(
+    MAGE.image2D_foreground_extraction_discrete._resolution_pool!(
         pooled, IntensityPixel{N0f8}.([0.0 1.0; 1.0 0.0]), Val(:trimap),
     )
     @test Float64(only(reinterpret(pooled))) ≈ Float64(N0f8(0.5))

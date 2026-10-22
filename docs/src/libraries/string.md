@@ -1,47 +1,47 @@
 
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
   # STR GREP
-  using UTCGP.str_grep:replace_pattern
-  using UTCGP.str_grep:replace_first_pattern
-  using UTCGP.str_grep:remove_pattern
+  using MAGE.str_grep:replace_pattern
+  using MAGE.str_grep:replace_first_pattern
+  using MAGE.str_grep:remove_pattern
 
   # STR PASTE
-  using UTCGP.str_paste:paste
-  using UTCGP.str_paste:paste0
-  using UTCGP.str_paste:paste_with_space
-  using UTCGP.str_paste:paste_space_list_string  
-  using UTCGP.str_paste:paste_list_string_sep 
-  using UTCGP.str_paste:paste_list_string
+  using MAGE.str_paste:paste
+  using MAGE.str_paste:paste0
+  using MAGE.str_paste:paste_with_space
+  using MAGE.str_paste:paste_space_list_string
+  using MAGE.str_paste:paste_list_string_sep
+  using MAGE.str_paste:paste_list_string
 
   # STR CONDITIONAL
-  using UTCGP.str_conditional:if_string
-  using UTCGP.str_conditional:if_not_string
-  using UTCGP.str_conditional:if_else_string
-  using UTCGP.str_conditional:longest_string
-  using UTCGP.str_conditional:shortest_string
+  using MAGE.str_conditional:if_string
+  using MAGE.str_conditional:if_not_string
+  using MAGE.str_conditional:if_else_string
+  using MAGE.str_conditional:longest_string
+  using MAGE.str_conditional:shortest_string
 
 
   # STR CAPS
-  using UTCGP.str_caps:uppercase_
-  using UTCGP.str_caps:uppercase_at
-  using UTCGP.str_caps:uppercase_after
-  using UTCGP.str_caps:uppercase_char_after
-  using UTCGP.str_caps:uppercase_before
-  using UTCGP.str_caps:uppercase_char_before  
-  using UTCGP.str_caps:lowercase_
-  using UTCGP.str_caps:lowercase_at
-  using UTCGP.str_caps:lowercase_after
-  using UTCGP.str_caps:lowercase_char_after
-  using UTCGP.str_caps:lowercase_before
-  using UTCGP.str_caps:lowercase_char_before  
-  using UTCGP.str_caps:capitalize_first
-  using UTCGP.str_caps:capitalize_all
+  using MAGE.str_caps:uppercase_
+  using MAGE.str_caps:uppercase_at
+  using MAGE.str_caps:uppercase_after
+  using MAGE.str_caps:uppercase_char_after
+  using MAGE.str_caps:uppercase_before
+  using MAGE.str_caps:uppercase_char_before
+  using MAGE.str_caps:lowercase_
+  using MAGE.str_caps:lowercase_at
+  using MAGE.str_caps:lowercase_after
+  using MAGE.str_caps:lowercase_char_after
+  using MAGE.str_caps:lowercase_before
+  using MAGE.str_caps:lowercase_char_before
+  using MAGE.str_caps:capitalize_first
+  using MAGE.str_caps:capitalize_all
 
   # STR BASIC
-  using UTCGP.str_basic: number_to_string  
+  using MAGE.str_basic: number_to_string
 end
 ```
 
@@ -51,16 +51,16 @@ Pages = ["string.md"]
 
 # String Operations
 
-## Basic operations 
+## Basic operations
 
-### Module 
+### Module
 ```@docs
-UTCGP.str_basic
+MAGE.str_basic
 ```
-### Functions 
+### Functions
 
 ```@docs
-UTCGP.str_basic.number_to_string
+MAGE.str_basic.number_to_string
 ```
 ```jldoctest
 julia> number_to_string(121)
@@ -74,29 +74,29 @@ julia> number_to_string(121.12)
 ## Grep Module
 
 ### Module
-```@docs 
-UTCGP.str_grep
+```@docs
+MAGE.str_grep
 ```
 
 ### Functions
 
-```@docs 
-UTCGP.str_grep.replace_pattern
+```@docs
+MAGE.str_grep.replace_pattern
 ```
 
 ```jldoctest
 julia> replace_pattern("HelloHello", "Hello", "hello")
 "hellohello"
 ```
-Also can remove a char : 
+Also can remove a char :
 
 ```jldoctest
 julia> replace_pattern("Camel_case", "_", "")
 "Camelcase"
 ```
 
-```@docs 
-UTCGP.str_grep.replace_first_pattern
+```@docs
+MAGE.str_grep.replace_first_pattern
 ```
 
 ```jldoctest
@@ -109,26 +109,26 @@ julia> replace_first_pattern("CCDC", "C", "A")
 "ACDC"
 ```
 
-```@docs 
-UTCGP.str_grep.remove_pattern
+```@docs
+MAGE.str_grep.remove_pattern
 ```
 ```jldoctest
 julia> remove_pattern("HelloHello", "Hello")
 ""
 ```
 
-## Paste 
+## Paste
 
 ### Module
- 
+
 ```@docs
-UTCGP.str_paste
+MAGE.str_paste
 ```
 
-### Paste Strings 
+### Paste Strings
 
-```@docs 
-UTCGP.str_paste.paste
+```@docs
+MAGE.str_paste.paste
 ```
 
 ```jldoctest
@@ -136,8 +136,8 @@ julia> paste("kebab", "case", "-")
 "kebab-case"
 ```
 
-```@docs 
-UTCGP.str_paste.paste0
+```@docs
+MAGE.str_paste.paste0
 ```
 
 ```jldoctest
@@ -145,8 +145,8 @@ julia> paste0("ju", "lia")
 "julia"
 ```
 
-```@docs 
-UTCGP.str_paste.paste_with_space
+```@docs
+MAGE.str_paste.paste_with_space
 ```
 
 ```jldoctest
@@ -156,8 +156,8 @@ julia> paste_with_space("ju", "lia")
 
 ### Paste List Strings
 
-```@docs 
-UTCGP.str_paste.paste_space_list_string
+```@docs
+MAGE.str_paste.paste_space_list_string
 ```
 
 ```jldoctest
@@ -165,8 +165,8 @@ julia> paste_space_list_string(["kebab", "case"])
 "kebab case"
 ```
 
-```@docs 
-UTCGP.str_paste.paste_list_string_sep
+```@docs
+MAGE.str_paste.paste_list_string_sep
 ```
 
 ```jldoctest
@@ -174,8 +174,8 @@ julia> paste_list_string_sep(["kebab", "case"], "-")
 "kebab-case"
 ```
 
-```@docs 
-UTCGP.str_paste.paste_list_string
+```@docs
+MAGE.str_paste.paste_list_string
 ```
 
 ```jldoctest
@@ -186,13 +186,13 @@ julia> paste_list_string(["kebab", "case"])
 ## Conditional
 
 ```@docs
-UTCGP.str_conditional
+MAGE.str_conditional
 ```
 
 For `if_string`, `if_not_string` and `if_else_string`, the `cond` parameter is `trunc`ed to Int.
 
 ```@docs
-UTCGP.str_conditional.if_string
+MAGE.str_conditional.if_string
 ```
 
 ```jldoctest
@@ -205,7 +205,7 @@ julia> if_string("julia", 137287.2)
 ```
 
 ```@docs
-UTCGP.str_conditional.if_not_string
+MAGE.str_conditional.if_not_string
 ```
 
 ```jldoctest
@@ -218,7 +218,7 @@ julia> if_not_string("julia", 137287.2)
 ```
 
 ```@docs
-UTCGP.str_conditional.if_else_string
+MAGE.str_conditional.if_else_string
 ```
 
 ```jldoctest
@@ -231,7 +231,7 @@ julia> if_else_string("julia", "R" ,137287.2)
 ```
 
 ```@docs
-UTCGP.str_conditional.longest_string
+MAGE.str_conditional.longest_string
 ```
 ```jldoctest
 julia> longest_string("julia", "R")
@@ -243,7 +243,7 @@ julia> longest_string("julia", "jjjjj")
 ```
 
 ```@docs
-UTCGP.str_conditional.shortest_string
+MAGE.str_conditional.shortest_string
 ```
 
 ```jldoctest
@@ -257,16 +257,16 @@ julia> shortest_string("julia", "jjjjj")
 
 ## Lower, Upper, Capitalize
 
-### Module 
+### Module
 
 ```@docs
-UTCGP.str_caps
+MAGE.str_caps
 ```
 
 ### Upper Case
 
 ```@docs
-UTCGP.str_caps.uppercase_
+MAGE.str_caps.uppercase_
 ```
 
 ```jldoctest
@@ -275,7 +275,7 @@ julia> uppercase_("julia")
 ```
 
 ```@docs
-UTCGP.str_caps.uppercase_at
+MAGE.str_caps.uppercase_at
 ```
 
 ```jldoctest
@@ -290,7 +290,7 @@ julia> uppercase_at("julia",-100)
 ```
 
 ```@docs
-UTCGP.str_caps.uppercase_after
+MAGE.str_caps.uppercase_after
 ```
 
 ```jldoctest
@@ -299,7 +299,7 @@ julia> uppercase_after("julia","ju")
 ```
 
 ```@docs
-UTCGP.str_caps.uppercase_char_after
+MAGE.str_caps.uppercase_char_after
 ```
 
 ```jldoctest
@@ -315,7 +315,7 @@ julia> uppercase_char_after("julia julia","ju")
 
 
 ```@docs
-UTCGP.str_caps.uppercase_before
+MAGE.str_caps.uppercase_before
 ```
 
 ```jldoctest
@@ -324,7 +324,7 @@ julia> uppercase_before("julia","lia")
 ```
 
 ```@docs
-UTCGP.str_caps.uppercase_char_before
+MAGE.str_caps.uppercase_char_before
 ```
 
 ```jldoctest
@@ -341,7 +341,7 @@ julia> uppercase_char_before("julia julia","lia")
 ### Lower Case
 
 ```@docs
-UTCGP.str_caps.lowercase_
+MAGE.str_caps.lowercase_
 ```
 
 ```jldoctest
@@ -350,7 +350,7 @@ julia> lowercase_("JULIA")
 ```
 
 ```@docs
-UTCGP.str_caps.lowercase_at
+MAGE.str_caps.lowercase_at
 ```
 
 ```jldoctest
@@ -364,7 +364,7 @@ julia> lowercase_at("JULIA",100)
 ```
 
 ```@docs
-UTCGP.str_caps.lowercase_after
+MAGE.str_caps.lowercase_after
 ```
 
 ```jldoctest
@@ -373,7 +373,7 @@ julia> lowercase_after("juLIA","ju")
 ```
 
 ```@docs
-UTCGP.str_caps.lowercase_char_after
+MAGE.str_caps.lowercase_char_after
 ```
 
 ```jldoctest
@@ -389,7 +389,7 @@ julia> lowercase_char_after("JULIA JULIA","JU")
 
 
 ```@docs
-UTCGP.str_caps.lowercase_before
+MAGE.str_caps.lowercase_before
 ```
 
 ```jldoctest
@@ -398,7 +398,7 @@ julia> lowercase_before("JULIA","LIA")
 ```
 
 ```@docs
-UTCGP.str_caps.lowercase_char_before
+MAGE.str_caps.lowercase_char_before
 ```
 
 ```jldoctest
@@ -413,8 +413,8 @@ julia> lowercase_char_before("JULIA JULIA","LIA")
 ```
 ### Capitalize
 
-```@docs 
-UTCGP.str_caps.capitalize_first
+```@docs
+MAGE.str_caps.capitalize_first
 ```
 
 ```jldoctest
@@ -422,8 +422,8 @@ julia> capitalize_first("julia julia")
 "Julia julia"
 ```
 
-```@docs 
-UTCGP.str_caps.capitalize_all
+```@docs
+MAGE.str_caps.capitalize_all
 ```
 
 ```jldoctest
@@ -440,7 +440,7 @@ julia> capitalize_all("julia-julia")
 
 ### Module
 ```@docs
-UTCGP.str_parse
+MAGE.str_parse
 ```
 
 ## Bundles

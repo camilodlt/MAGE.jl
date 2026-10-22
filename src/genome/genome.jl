@@ -142,7 +142,7 @@ Indexes the internal vector of nodes at multiple indices.
 """
 Base.getindex(genome::AbstractGenome, i::Vector{<:Int}) = genome.chromosome[i]
 
-Base.setindex!(nodes::UTCGP.SingleGenome, v::UTCGP.AbstractGenomeNode, i::Int) = nodes.chromosome[i] = v
+Base.setindex!(nodes::MAGE.SingleGenome, v::MAGE.AbstractGenomeNode, i::Int) = nodes.chromosome[i] = v
 
 ################
 # UTGENOME

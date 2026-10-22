@@ -1,10 +1,10 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Package Extensions
 
-Two capabilities live outside UTCGP proper, so that the core package does not
+Two capabilities live outside MAGE proper, so that the core package does not
 depend on Python or on an HTTP client. Both are declared as stubs that error
 until the corresponding package is loaded.
 
@@ -23,12 +23,12 @@ operator over integers does well. The `MAGE_PYCMA` extension bridges to Python's
 evolving.
 
 ```julia
-using UTCGP
+using MAGE
 using MAGE_PYCMA     # provides the real methods below
 ```
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["ext.jl"]
 ```
 
@@ -45,7 +45,7 @@ it is and whether it is ready, without branching on the provider.
 
 ## Typed DAG interchange
 
-`UTCGP.TypedGraphBridge` represents a MAGE program as a typed directed acyclic
+`MAGE.TypedGraphBridge` represents a MAGE program as a typed directed acyclic
 graph and builds a catalogue of the function dispatches supported by a task's
 architecture and libraries. It preserves the fixed-width connection alleles,
 including ignored padding, while recording the arguments actually consumed by
@@ -53,7 +53,7 @@ each call. This is useful when another search implementation exchanges graphs
 with MAGE.
 
 ```@docs
-UTCGP.TypedGraphBridge
-UTCGP.TypedGraphBridge.dispatch_descriptor
-UTCGP.TypedGraphBridge.padding_connection
+MAGE.TypedGraphBridge
+MAGE.TypedGraphBridge.dispatch_descriptor
+MAGE.TypedGraphBridge.padding_connection
 ```

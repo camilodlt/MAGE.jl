@@ -1,4 +1,4 @@
-"""Typed DAG interchange. Include at the end of UTCGP.jl; no existing API changes."""
+"""Typed DAG interchange. Include at the end of MAGE.jl; no existing API changes."""
 module TypedGraphBridge
 using SHA: sha256
 const M = parentmodule(@__MODULE__)

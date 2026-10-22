@@ -1,6 +1,6 @@
 # Run with the docs environment after developing this checkout into it:
 #   nice -n 15 julia --project=docs docs/test/runtests.jl
-using Test, UTCGP
+using Test, MAGE
 include(joinpath(@__DIR__, "..", "gallery_helpers.jl"))
 include(joinpath(@__DIR__, "..", "bundle_inventory.jl"))
 

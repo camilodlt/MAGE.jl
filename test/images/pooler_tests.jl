@@ -1,4 +1,4 @@
-using UTCGP: IntensityPixel, BinaryPixel, SegmentPixel
+using MAGE: IntensityPixel, BinaryPixel, SegmentPixel
 using ImageCore: N0f8
 
 function _dummy_pooler_intensity_img()

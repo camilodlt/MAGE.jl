@@ -32,14 +32,14 @@ include("test_phen_hasher.jl")
             all_edges(),
             OrderedDict(
                 "gen_hash_1" => sn_genotype_hasher(),
-                "gen_hash_2" => UTCGP._mock_node_hash_function(),
+                "gen_hash_2" => MAGE._mock_node_hash_function(),
             ),
             OrderedDict("fitness" => sn_fitness_hasher()),
         )
         # MOCK THE EPOCK
         setup = sn_setup()
         ind1 = deepcopy(setup["utgenome"])
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             setup["meta_library"],
             setup["model_architecture"],
@@ -55,7 +55,7 @@ include("test_phen_hasher.jl")
             setup["node_config"],
             setup["meta_library"],
             setup["shared_inputs"],
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]), # mocked
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]), # mocked
             1.0,
             p1,
             1,
@@ -63,7 +63,7 @@ include("test_phen_hasher.jl")
         # Manually calculate the hashes
         h1 = general_hasher_sha(setup["utgenome"]) # the first hasher should be this for the genome
         h2 = "mock node fn" # the second hasher is constant
-        id = UTCGP._calc_individual_unique_hash(# the sha(union(hashes))
+        id = MAGE._calc_individual_unique_hash(# the sha(union(hashes))
             OrderedDict("_" => [h1], "__" => [h2]),
             1,
         )
@@ -104,14 +104,14 @@ include("test_phen_hasher.jl")
             all_edges_except_last(),
             OrderedDict(
                 "gen_hash_1" => sn_genotype_hasher(),
-                "gen_hash_2" => UTCGP._mock_node_hash_function(),
+                "gen_hash_2" => MAGE._mock_node_hash_function(),
             ),
             OrderedDict("fitness" => sn_fitness_hasher_except_last()),
         )
         # MOCK THE EPOCK
         setup = sn_setup()
         ind1 = deepcopy(setup["utgenome"])
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             setup["meta_library"],
             setup["model_architecture"],
@@ -127,7 +127,7 @@ include("test_phen_hasher.jl")
             setup["node_config"],
             setup["meta_library"],
             setup["shared_inputs"],
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]), # mocked
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]), # mocked
             1.0,
             p1,
             1,
@@ -135,7 +135,7 @@ include("test_phen_hasher.jl")
         # Manually calculate the hashes
         h1 = general_hasher_sha(setup["utgenome"]) # the first hasher should be this for the genome
         h2 = "mock node fn" # the second hasher is constant
-        id = UTCGP._calc_individual_unique_hash(# the sha(union(hashes))
+        id = MAGE._calc_individual_unique_hash(# the sha(union(hashes))
             OrderedDict("_" => [h1], "__" => [h2]),
             1,
         )
@@ -183,13 +183,13 @@ include("test_phen_hasher.jl")
         setup = sn_setup()
         ind1 = deepcopy(setup["utgenome"]) # 2 identical genomes
         ind2 = deepcopy(setup["utgenome"]) # One parent, one child
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             setup["meta_library"],
             setup["model_architecture"],
             setup["shared_inputs"],
         )
-        p2 = UTCGP.decode_with_output_nodes(
+        p2 = MAGE.decode_with_output_nodes(
             ind2,
             setup["meta_library"],
             setup["model_architecture"],
@@ -205,7 +205,7 @@ include("test_phen_hasher.jl")
             setup["node_config"],
             setup["meta_library"],
             setup["shared_inputs"],
-            UTCGP.PopulationPrograms([p1, p2]), # mocked
+            MAGE.PopulationPrograms([p1, p2]), # mocked
             1.0,
             p1,
             1,
@@ -213,7 +213,7 @@ include("test_phen_hasher.jl")
         # Manually calculate the hashes
         h1 = general_hasher_sha(setup["utgenome"]) # the first hasher should be this for the genome
         h2 = general_hasher_sha(p1) # the second hasher hashes the program
-        id = UTCGP._calc_individual_unique_hash(# the sha(union(hashes))
+        id = MAGE._calc_individual_unique_hash(# the sha(union(hashes))
             OrderedDict("_" => [h1, "does_not_matter"], "__" => [h2, "ignored"]),
             1,
         )
@@ -263,13 +263,13 @@ include("test_phen_hasher.jl")
         ind1 = deepcopy(setup["utgenome"]) # One genome
         ind2 = deepcopy(setup["utgenome"]) # Another genotype, BUT it will produce the same phenotype because that node is inactive
         ind2[2][1][1].value = 2 # this node is not in the active graph
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             setup["meta_library"],
             setup["model_architecture"],
             setup["shared_inputs"],
         )
-        p2 = UTCGP.decode_with_output_nodes(
+        p2 = MAGE.decode_with_output_nodes(
             ind2,
             setup["meta_library"],
             setup["model_architecture"],
@@ -285,7 +285,7 @@ include("test_phen_hasher.jl")
             setup["node_config"],
             setup["meta_library"],
             setup["shared_inputs"],
-            UTCGP.PopulationPrograms([p1, p2]), # mocked
+            MAGE.PopulationPrograms([p1, p2]), # mocked
             1.0,
             p1,
             1,
@@ -298,8 +298,8 @@ include("test_phen_hasher.jl")
         ind2_h1 = general_hasher_sha(ind2) # this is unique 
         ind2_h2 = general_hasher_sha(p2) # the same as ind1
         hashes = OrderedDict("_" => [ind1_h1, ind2_h1], "__" => [ind1_h2, ind2_h2])
-        ind1_id = UTCGP._calc_individual_unique_hash(hashes, 1)
-        ind2_id = UTCGP._calc_individual_unique_hash(hashes, 2)
+        ind1_id = MAGE._calc_individual_unique_hash(hashes, 1)
+        ind2_id = MAGE._calc_individual_unique_hash(hashes, 2)
 
         # Compare hashes against what was writtent to DB
         nodes = sn.get_nodes_from_db(con)
@@ -361,19 +361,19 @@ include("test_phen_hasher.jl")
         ind4 = deepcopy(setup["utgenome"]) # everything is different
         ind3[2][1][1].value = 2 # this node is not in the active graph. So the genotype will change but not the phenotype
         ind4.output_nodes[1][2].value = 1 # This changes the genotype and phenotype
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             setup["meta_library"],
             setup["model_architecture"],
             setup["shared_inputs"],
         ) # == p2 
-        p3 = UTCGP.decode_with_output_nodes(
+        p3 = MAGE.decode_with_output_nodes(
             ind3,
             setup["meta_library"],
             setup["model_architecture"],
             setup["shared_inputs"],
         )
-        p4 = UTCGP.decode_with_output_nodes(
+        p4 = MAGE.decode_with_output_nodes(
             ind4,
             setup["meta_library"],
             setup["model_architecture"],
@@ -390,7 +390,7 @@ include("test_phen_hasher.jl")
             setup["node_config"],
             setup["meta_library"],
             setup["shared_inputs"],
-            UTCGP.PopulationPrograms([p1, p3, p4, p1]),
+            MAGE.PopulationPrograms([p1, p3, p4, p1]),
             1.0,
             p1,
             1,
@@ -410,9 +410,9 @@ include("test_phen_hasher.jl")
             "hash1" => [ind1_h1, ind1_h1, ind3_h1, ind4_h1],
             "hash2" => [ind1_h2, ind1_h2, ind3_h2, ind4_h2],
         )
-        ind1_id = UTCGP._calc_individual_unique_hash(hashes, 1)
-        ind3_id = UTCGP._calc_individual_unique_hash(hashes, 3)
-        ind4_id = UTCGP._calc_individual_unique_hash(hashes, 4)
+        ind1_id = MAGE._calc_individual_unique_hash(hashes, 1)
+        ind3_id = MAGE._calc_individual_unique_hash(hashes, 3)
+        ind4_id = MAGE._calc_individual_unique_hash(hashes, 4)
 
         # Compare hashes against what was writtent to DB
         nodes = sn.get_nodes_from_db(con)

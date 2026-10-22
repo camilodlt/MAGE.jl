@@ -1,9 +1,9 @@
-using UTCGP.str_parse: parse_number
-using UTCGP.liststring_split: split_string_to_vector
-using UTCGP.listinteger_string: parse_from_list_string
-using UTCGP.listnumber_arithmetic: mult_vector
-using UTCGP.liststring_broadcast
-using UTCGP.str_paste: paste_list_string
+using MAGE.str_parse: parse_number
+using MAGE.liststring_split: split_string_to_vector
+using MAGE.listinteger_string: parse_from_list_string
+using MAGE.listnumber_arithmetic: mult_vector
+using MAGE.liststring_broadcast
+using MAGE.str_paste: paste_list_string
 
 """
 Text from paper: 

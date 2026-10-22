@@ -1,10 +1,10 @@
-using UTCGP.str_caps: capitalize_all
-using UTCGP.str_grep: remove_pattern
-using UTCGP.liststring_split: split_string_to_vector
-using UTCGP.liststring_caps: uppercasefirst_list_string
-using UTCGP.str_paste: paste_list_string
-using UTCGP.str_caps: lowercase_at
-using UTCGP: bundle_string_caps
+using MAGE.str_caps: capitalize_all
+using MAGE.str_grep: remove_pattern
+using MAGE.liststring_split: split_string_to_vector
+using MAGE.liststring_caps: uppercasefirst_list_string
+using MAGE.str_paste: paste_list_string
+using MAGE.str_caps: lowercase_at
+using MAGE: bundle_string_caps
 
 """
 Text from PSB2 : Take a string in kebab-case and con-
@@ -73,7 +73,7 @@ function camel_case_algo1(x, y)
     pred = uppercasefirst_list_string(x)
     pred = paste_list_string(pred)
     # pred = lowercase_at(pred, 1)
-    pred = UTCGP.evaluate_fn_wrapper(bundle_string_caps[6], [pred, 1]) # if str is "", lowercase at will fail, but, "" is the fallback
+    pred = MAGE.evaluate_fn_wrapper(bundle_string_caps[6], [pred, 1]) # if str is "", lowercase at will fail, but, "" is the fallback
     return pred == y[1]
 end
 

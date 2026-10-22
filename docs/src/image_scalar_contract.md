@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Image-to-scalar inputs and inference
@@ -82,9 +82,9 @@ Use an RGB-to-intensity operator first when the intended statistic concerns
 luminance or another colour feature.
 
 ```@setup scalar_contract
-using UTCGP, Markdown
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
-S = UTCGP.number_intensityStatsFromImg
+using MAGE, Markdown
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
+S = MAGE.number_intensityStatsFromImg
 # Left column red, right column blue. Each pixel has channel mean 1/3.
 channels = zeros(2, 2, 3)
 channels[:, 1, 1] .= 1

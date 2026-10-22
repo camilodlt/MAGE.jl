@@ -1,10 +1,10 @@
-using UTCGP.str_paste: paste_list_string, paste_space_list_string
-using UTCGP.listinteger_string
-using UTCGP: liststring_broadcast
-using UTCGP.liststring_split: split_string_to_vector
-using UTCGP.listinteger_iscond: greater_than_broadcast
-using UTCGP.listgeneric_subset: subset_by_mask
-using UTCGP.listgeneric_where: replace_vec_at
+using MAGE.str_paste: paste_list_string, paste_space_list_string
+using MAGE.listinteger_string
+using MAGE: liststring_broadcast
+using MAGE.liststring_split: split_string_to_vector
+using MAGE.listinteger_iscond: greater_than_broadcast
+using MAGE.listgeneric_subset: subset_by_mask
+using MAGE.listgeneric_where: replace_vec_at
 """
 Text from paper: 
 

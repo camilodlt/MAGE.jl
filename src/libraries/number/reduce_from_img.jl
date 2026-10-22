@@ -12,13 +12,13 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module number_reduceFromImg
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImage2D, SImageND
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImage2D, SImageND
 using ImageCore: float64
 using FixedPointNumbers: Normed
 using StatsBase: countmap
 using Statistics: mean, median, std
-import UTCGP:
+import MAGE:
     CONSTRAINED,
     MIN_INT,
     MAX_INT,
@@ -26,7 +26,7 @@ import UTCGP:
     MAX_FLOAT,
     _positive_params,
     _ceil_positive_params
-using ..UTCGP:
+using ..MAGE:
     SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel, SegmentPixel
 

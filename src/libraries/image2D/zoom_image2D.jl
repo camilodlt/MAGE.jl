@@ -37,7 +37,7 @@ the factory methods only unpack the inputs, sanitise the scalars with
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 m = zeros(40, 40); m[5:12, 25:36] .= 0.9          # one bright object, top right
 img = SImageND(IntensityPixel{N0f8}.(m))
 I = typeof(img)
@@ -51,13 +51,13 @@ glimpse(img, 0.75, 0.2)   # a 10 × 10 window around column 30, row 9, resized t
 """
 module image2D_zoom
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: output_pixels, image_result
+using ..MAGE: output_pixels, image_result
 
 using ImageCore: Normed
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     AbstractPixel,
     BinaryPixel,
     IntensityPixel,

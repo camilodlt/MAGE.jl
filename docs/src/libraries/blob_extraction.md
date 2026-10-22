@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Blob Extraction
@@ -42,7 +42,7 @@ bounds, binarize first and use the binary-mask overload; this preserves MAGE's
 three-input ceiling.
 
 ```@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 values = zeros(Float64, 8, 10)
@@ -97,14 +97,14 @@ The examples use the vendored 16-bit `lena_gray_16bit.png` from
 Source, saliency, and masked outputs retain `N0f16` inside MAGE.
 
 ```@setup blob_extraction_assets
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f16
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 assets_src = joinpath(repo_root, "docs", "src", "assets", "fns", "blob_extraction")
 assets_build = joinpath(repo_root, "docs", "build", "assets", "fns", "blob_extraction")
 mkpath(assets_src)
@@ -195,8 +195,8 @@ end
 ```
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/blob_extraction/source.png" alt="Lena 16-bit grayscale source" style="width:100%;" /><figcaption>Source (<code>N0f16</code>)</figcaption></figure>
@@ -290,9 +290,9 @@ masked-intensity result.
 | Minimum minimum | ![Minimum min blob](../assets/fns/blob_extraction/statistic_min_min_blob.png) | ![Minimum min image](../assets/fns/blob_extraction/statistic_min_min.png) |
 
 ```@docs
-UTCGP.image2D_blob_extraction
-UTCGP.image2D_blob_extraction.bundle_image2DBinary_blob_extraction_factory
-UTCGP.image2D_blob_extraction.bundle_image2DIntensity_blob_extraction_factory
+MAGE.image2D_blob_extraction
+MAGE.image2D_blob_extraction.bundle_image2DBinary_blob_extraction_factory
+MAGE.image2D_blob_extraction.bundle_image2DIntensity_blob_extraction_factory
 ```
 
 ## Timings for the examples

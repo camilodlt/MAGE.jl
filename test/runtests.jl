@@ -1,5 +1,5 @@
 using Test
 
-@testset "UTCGP TEST" begin
+@testset "MAGE TEST" begin
     include("tests.jl")
 end

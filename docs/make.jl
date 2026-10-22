@@ -1,15 +1,15 @@
-using UTCGP
+using MAGE
 using Documenter
 
-DocMeta.setdocmeta!(UTCGP, :DocTestSetup, :(using UTCGP); recursive = true)
+DocMeta.setdocmeta!(MAGE, :DocTestSetup, :(using MAGE); recursive = true)
 
 makedocs(;
     root = @__DIR__,
-    modules = [UTCGP],
+    modules = [MAGE],
     authors = "Camilo De La Torre <camilo.de-la-torre@ut-capitole.fr> and contributors",
     repo = "https://github.com/camilodlt/MAGE.jl/blob/{commit}{path}#{line}",
     sitename = "MAGE.jl",
-    # Every docstring in UTCGP must appear somewhere in the manual. Do not lower
+    # Every docstring in MAGE must appear somewhere in the manual. Do not lower
     # this to :none -- that is what let ~190 docstrings drift out of the docs.
     checkdocs = :exports,
     format = Documenter.HTML(;

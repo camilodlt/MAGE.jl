@@ -12,8 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 module number_regionFromImg
 
 using Statistics: mean, median, std
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel, SegmentPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel, SegmentPixel
 using ..number_imgRegionCommon:
     _image_numeric,
     _normalized_index,

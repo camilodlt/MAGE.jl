@@ -1,13 +1,13 @@
 module MAGE_PYCMA_EXT
 
-import UTCGP
+import MAGE
 using ImageCore: N0f8, Normed, float64
-using UTCGP:
+using MAGE:
     SizedImage, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, ConstantNode, SingleGenome, CGPNode, UTGenome
 using MAGE_PYCMA
 
 # API
-function UTCGP.make_cma_nodes!(ind::UTCGP.UTGenome, how_many::Int, at_index::Int)
+function MAGE.make_cma_nodes!(ind::MAGE.UTGenome, how_many::Int, at_index::Int)
     @debug "Putting $how_many Constant Nodes init at rand. Index of genome $at_index"
     old_genome = ind[at_index]
     old_chromosome = old_genome.chromosome
@@ -42,7 +42,7 @@ end
 """
 Returns the list of ConstantNodes (no functions)
 """
-function UTCGP.get_cma_nodes(ind::UTGenome, at_index::Int)
+function MAGE.get_cma_nodes(ind::UTGenome, at_index::Int)
     v = ind[at_index].chromosome
     return filter(x -> x isa ConstantNode, v)
 end
@@ -50,14 +50,14 @@ end
 """
 Constant Nodes in each ind in the pop will be mutated by asking to cma for new values
 """
-function UTCGP.mutate_cma!(pop::AbstractArray{T, 1}, cma::CMAEvolutionStrategyWrapper, at_index::Int) where {T <: UTGenome}
+function MAGE.mutate_cma!(pop::AbstractArray{T, 1}, cma::CMAEvolutionStrategyWrapper, at_index::Int) where {T <: UTGenome}
     n_pop = length(pop)
     new_vals = ask(cma)
     n_new_vals = length(new_vals)
     @assert n_pop == n_new_vals "Pop size $n_pop is not equal to cma ask return $n_new_vals (cma's pop size)"
 
     for (ind, sampled_vals) in zip(pop, new_vals)
-        nodes = UTCGP.get_cma_nodes(ind, at_index)
+        nodes = MAGE.get_cma_nodes(ind, at_index)
         n_nodes = length(nodes)
         n_dim_cma = length(sampled_vals)
         @assert n_nodes >= n_dim_cma "More CMA dimensions than constant nodes in ind $n_dim_cma vs $n_nodes"

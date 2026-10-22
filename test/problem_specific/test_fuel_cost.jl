@@ -1,7 +1,7 @@
 
-using UTCGP.listnumber_arithmetic: div_broadcast
-using UTCGP.listnumber_arithmetic: subtract_broadcast
-using UTCGP.number_reduce: reduce_sum
+using MAGE.listnumber_arithmetic: div_broadcast
+using MAGE.listnumber_arithmetic: subtract_broadcast
+using MAGE.number_reduce: reduce_sum
 
 function fuel_cost(x, y)
     x = x[1]

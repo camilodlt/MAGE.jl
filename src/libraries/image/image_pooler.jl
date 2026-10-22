@@ -53,12 +53,12 @@ Call tree:
 """
 module image_pooler
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
 using Statistics: mean, std, middle, quantile!
 using ImageCore: N0f8, FixedPoint
-using ..UTCGP: FunctionBundle, append_method!, output_pixels, image_result, scratch
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!, output_pixels, image_result, scratch
+using ..MAGE:
     SizedImage2D, SImageND, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     _get_image_tuple_size, IntensityPixel, BinaryPixel, SegmentPixel
 using ..image_pooling_common: pixel_values!, mode!, unique_count!, median_select!, pooled_pixel

@@ -1,4 +1,4 @@
-using UTCGP: listinteger_caster
+using MAGE: listinteger_caster
 
 @testset begin
     # VECTOR INT

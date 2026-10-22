@@ -8,11 +8,11 @@ const G_INPUT_IDS = IdDict{Any,Int}()
 const G_INPUT_NAMES = IdDict{Any,String}()
 
 "Name an input before measuring it, so readers can match its image and timing row."
-g_name!(image::UTCGP.SizedImage, name) = (G_INPUT_NAMES[image.img] = string(name); image)
+g_name!(image::MAGE.SizedImage, name) = (G_INPUT_NAMES[image.img] = string(name); image)
 const G_TIMING_KEYS = Set{Tuple{Any,String}}()
 
 function g_argument(arg)
-    if arg isa UTCGP.SizedImage
+    if arg isa MAGE.SizedImage
         id = get!(G_INPUT_IDS, arg.img) do
             length(G_INPUT_IDS) + 1
         end
@@ -23,10 +23,10 @@ function g_argument(arg)
 end
 
 # Stable factory names now include the module-qualified structural image type
-# (e.g. `_UTCGP.SImageND{...}`). Keep the operator name in the table; dimensions
+# (e.g. `_MAGE.SImageND{...}`). Keep the operator name in the table; dimensions
 # and pixel storage already have their own columns. Retain legacy image aliases.
 function g_operator_name(fn)
-    suffix = r"_(?:(?:UTCGP|Main)(?:\.[A-Za-z_]\w*)*\.)?S(?:ImageND|Image2D|Image3D|izedImage)(?=\{|$)"
+    suffix = r"_(?:(?:MAGE|Main)(?:\.[A-Za-z_]\w*)*\.)?S(?:ImageND|Image2D|Image3D|izedImage)(?=\{|$)"
     return first(split(string(nameof(fn)), suffix; limit = 2))
 end
 
@@ -61,7 +61,7 @@ function g_call(@nospecialize(fn), args...; label = nothing)
             push!(bytes, measurement.bytes)
             sum(times) >= 0.1 && break
         end
-        output = result isa UTCGP.SizedImage ? "$(join(size(result), '×')), $(eltype(result.img))" : string(typeof(result))
+        output = result isa MAGE.SizedImage ? "$(join(size(result), '×')), $(eltype(result.img))" : string(typeof(result))
         scalar_args = result isa Number && all(a -> a isa Real, args) ? args : nothing
         push!(G_TIMINGS, (; name, inputs, output, scalar_args, median = Statistics.median(times), maximum = maximum(times),
                            bytes = Statistics.median(bytes), samples = length(times)))

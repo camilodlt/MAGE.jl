@@ -13,13 +13,13 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_basic
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: @image_out, image_result, output_pixels, scratch, float_buffer
+using ..MAGE: @image_out, image_result, output_pixels, scratch, float_buffer
 
 using ImageCore: clamp01nan!, clamp01nan, Normed, float64
-using ..UTCGP: FunctionBundle, append_method!
-import UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+import MAGE:
     CONSTRAINED,
     MIN_INT,
     MAX_INT,
@@ -30,7 +30,7 @@ import UTCGP:
 using ImageCore: N0f8, Normed
 using FixedPointNumbers: rawtype
 using Statistics: mean, std
-using ..UTCGP:
+using ..MAGE:
     SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel, SegmentPixel
 

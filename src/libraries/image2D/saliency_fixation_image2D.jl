@@ -10,15 +10,15 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_saliency_fixation
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
+using ..MAGE: output_pixels, image_result, scratch, pixel_values!
 
 using FFTW: plan_fft, plan_ifft
 using LinearAlgebra: mul!
 using ImageFiltering: Kernel, imfilter!
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     IntensityPixel,
     SImageND,
     SizedImage2D,

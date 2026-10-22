@@ -4,7 +4,7 @@ import ThreadPools
 using MethodAnalysis
 using IOCapture
 
-# MAXTIME = parse(Float64, get(ENV, "UTCGP_MAXTIME", "0.5"))
+# MAXTIME = parse(Float64, get(ENV, "MAGE_MAXTIME", "0.5"))
 
 """
     @timeout(seconds, expr_to_run, expr_when_fails)
@@ -27,21 +27,21 @@ end "failed"
 #         #schedule(tsk)
 #         # tsk = Threads.@spawn $(esc(expr_to_run))
 #         # println("$(Threads.threadid(tsk))")
-#         UTCGP_RESULT = []
+#         MAGE_RESULT = []
 #         tsk = @async Threads.@threads for i = 1:1
 #             # tsk = @async ThreadPools.@bthreads for i = 1:1
 #             r = $(esc(expr_to_run))
 #             # print(r)
-#             push!(UTCGP_RESULT, r)
+#             push!(MAGE_RESULT, r)
 #         end
-#         # print(UTCGP_RESULT)
+#         # print(MAGE_RESULT)
 #         id = Threads.threadid(tsk)
 #         # println("$(Threads.threadid(tsk))")
 
 #         t = Timer($(esc(seconds))) do timer
 #             try
 
-#                 # print(UTCGP_RESULT)
+#                 # print(MAGE_RESULT)
 #                 new_id = Threads.threadid(tsk)
 #                 if new_id != id
 #                     @error "TASK DO NOT HAVE THE SAME ID"
@@ -60,7 +60,7 @@ end "failed"
 #             # close(t)
 #             # print(r)
 #             fetch(tsk)
-#             UTCGP_RESULT[1]
+#             MAGE_RESULT[1]
 
 #         catch
 #             # println("Fails")
@@ -73,11 +73,11 @@ end "failed"
 # end
 # macro timeout_working(seconds, expr_to_run, expr_when_fails)
 #     quote
-#         UTCGP_RESULT = []
+#         MAGE_RESULT = []
 #         tsk = @async ThreadPools.@bthreads for i = 1:1
 #             r = $(esc(expr_to_run))
 #             # print(r)
-#             push!(UTCGP_RESULT, r)
+#             push!(MAGE_RESULT, r)
 #         end
 #         id = Threads.threadid(tsk)
 #         t = Timer($(esc(seconds))) do timer
@@ -94,7 +94,7 @@ end "failed"
 #         end
 #         try
 #             fetch(tsk)
-#             UTCGP_RESULT[1]
+#             MAGE_RESULT[1]
 #         catch
 #             $(esc(expr_when_fails))
 #         end
@@ -102,11 +102,11 @@ end "failed"
 # end
 
 # function timeout(seconds, expr_ok, expr_bad)
-#     UTCGP_RESULT = []
+#     MAGE_RESULT = []
 #     tsk = @async ThreadPools.@bthreads for i = 1:1
 #         @info "Spawning task to worker"
 #         r = expr_ok()
-#         push!(UTCGP_RESULT, r)
+#         push!(MAGE_RESULT, r)
 #     end
 #     id = Threads.threadid(tsk)
 #     @info "Task has id $id"
@@ -131,7 +131,7 @@ end "failed"
 #         fetch(tsk)
 #         @info "Task is fetched"
 #         close(t)
-#         return UTCGP_RESULT[1]
+#         return MAGE_RESULT[1]
 #     catch
 #         @info "Giving bad return"
 #         close(t)
@@ -140,13 +140,13 @@ end "failed"
 # end
 
 # function timeout2(seconds, expr_ok, expr_bad)
-#     UTCGP_RESULT = []
+#     MAGE_RESULT = []
 #     # tsk = ThreadPools.@tspawnat 2 begin
 #     #     @info "Spawning task to worker"
-#     #     push!(UTCGP_RESULT, expr_ok())
+#     #     push!(MAGE_RESULT, expr_ok())
 #     # end
 #     tsk = @async ThreadPools.@bthreads for i = 1:1
-#         push!(UTCGP_RESULT, expr_ok())
+#         push!(MAGE_RESULT, expr_ok())
 #     end
 
 #     id = Threads.threadid(tsk)
@@ -172,7 +172,7 @@ end "failed"
 #         wait(tsk)
 #         @info "Task is fetched"
 #         close(t)
-#         return UTCGP_RESULT[1]
+#         return MAGE_RESULT[1]
 #     catch
 #         @info "Giving bad return"
 #         if !istaskfailed(tsk)
@@ -317,7 +317,7 @@ function evaluate_population_programs(
             length(population_programs),
         )
         pop_outputs = collect(os)
-        UTCGP.reset_programs!(population_programs)
+        MAGE.reset_programs!(population_programs)
     end
     return pop_outputs
 end
@@ -342,7 +342,7 @@ function evaluate_population_programs_with_time(
             length(population_programs),
         )
         pop_outputs = collect(os)
-        UTCGP.reset_programs!(population_programs)
+        MAGE.reset_programs!(population_programs)
     end
     return collect(ntuple(i -> os[i][1], n_individuals)),
         collect(ntuple(i -> os[i][2], n_individuals))

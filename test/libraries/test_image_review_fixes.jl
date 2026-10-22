@@ -21,8 +21,8 @@ using Statistics: mean
             @test call(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B), img, x) isa B
             @test call(bundle_image2DBinary_binarize_factory[:binarize_sauvola2D].fn(B), img, x, x) isa B
             @test call(bundle_image2DBinary_filtering_factory[:findlocalmaxima_image2D].fn(B), img, x, x) isa B
-            @test isfinite(UTCGP.number_regionFromImg.region_mean(img, x, 0.5))
-            @test isfinite(UTCGP.number_haarFromImg.haar_lr(img, x, x))
+            @test isfinite(MAGE.number_regionFromImg.region_mean(img, x, 0.5))
+            @test isfinite(MAGE.number_haarFromImg.haar_lr(img, x, x))
             @test call(bundle_image2DIntensity_orientation_factory[:orientation_select].fn(I), img, x, x) isa I
         end
     end
@@ -55,7 +55,7 @@ using Statistics: mean
     end
 
     @testset "region windows and contrast" begin
-        R = UTCGP.number_regionFromImg
+        R = MAGE.number_regionFromImg
         @test isfinite(R.region_std_5p(img, 0.5, 0.5))                       # 5% of 28 px is a 3 px window, not 1 px
         w = zeros(28, 28)
         w[:, 27:28] .= 1.0
@@ -66,7 +66,7 @@ using Statistics: mean
     end
 
     @testset "three-band Haar masks are centred" begin
-        H = UTCGP.number_haarFromImg
+        H = MAGE.number_haarFromImg
         @test H._haar_weight_matrix(:haar_three_h, 1, 5) == [0.0 1.0 -1.0 1.0 0.0]
         @test H._haar_weight_matrix(:haar_three_v, 5, 1) == reshape([0.0, 1.0, -1.0, 1.0, 0.0], 5, 1)
         cs = H._haar_weight_matrix(:haar_center_surround, 5, 5)
@@ -77,8 +77,8 @@ using Statistics: mean
 
     @testset "orientation conventions agree" begin
         vertical = SImageND(IntensityPixel{N0f8}.([c > 14 ? 1.0 : 0.0 for r in 1:28, c in 1:28]))
-        @test UTCGP.float_orientation.orientation_energy_90(vertical) ≈ 1.0 atol = 1e-9
-        @test UTCGP.float_orientation.dominant_orientation(vertical) == 0.5
+        @test MAGE.float_orientation.orientation_energy_90(vertical) ≈ 1.0 atol = 1e-9
+        @test MAGE.float_orientation.dominant_orientation(vertical) == 0.5
         select = bundle_image2DIntensity_orientation_factory[:orientation_select].fn(I)
         @test count(>(0), Float64.(reinterpret(call(select, vertical, 0.0, 0.1).img))) > 0   # gradient θ = 0: vertical edges
         @test count(>(0), Float64.(reinterpret(call(select, vertical, 0.5, 0.1).img))) == 0

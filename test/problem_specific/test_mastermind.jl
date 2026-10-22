@@ -1,11 +1,11 @@
-using UTCGP.listinteger_iscond: compare_two_vectors
-using UTCGP.listinteger_iscond: inverse_mask
-using UTCGP.listgeneric_subset: subset_by_mask
-using UTCGP.listgeneric_utils: sort_list
-using UTCGP.listgeneric_set: left_join
-using UTCGP.number_reduce: reduce_length, reduce_sum, reduce_min
-using UTCGP.listgeneric_makelist: make_list_from_two_elements
-using UTCGP.liststring_split: split_string_to_vector
+using MAGE.listinteger_iscond: compare_two_vectors
+using MAGE.listinteger_iscond: inverse_mask
+using MAGE.listgeneric_subset: subset_by_mask
+using MAGE.listgeneric_utils: sort_list
+using MAGE.listgeneric_set: left_join
+using MAGE.number_reduce: reduce_length, reduce_sum, reduce_min
+using MAGE.listgeneric_makelist: make_list_from_two_elements
+using MAGE.liststring_split: split_string_to_vector
 
 mastermind_train_data = [
     [["RRRR", "RRRR"], [0, 4]],

@@ -1,17 +1,17 @@
 
 
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
   # list integer
-  using UTCGP.listinteger_iscond:is_sup_0
-  using UTCGP.listinteger_iscond:is_eq_0
-  using UTCGP.listinteger_iscond:is_less_0
+  using MAGE.listinteger_iscond:is_sup_0
+  using MAGE.listinteger_iscond:is_eq_0
+  using MAGE.listinteger_iscond:is_less_0
 
-  using UTCGP.listinteger_iscond:compare_tuple_a_gr_b
-  using UTCGP.listinteger_iscond:compare_tuple_a_eq_b
-  using UTCGP.listinteger_iscond:compare_tuple_a_less_b
+  using MAGE.listinteger_iscond:compare_tuple_a_gr_b
+  using MAGE.listinteger_iscond:compare_tuple_a_eq_b
+  using MAGE.listinteger_iscond:compare_tuple_a_less_b
 end
 ```
 
@@ -25,13 +25,13 @@ Pages = ["list_integer.md"]
 
 ### Module
 ```@docs
-UTCGP.listinteger_iscond
+MAGE.listinteger_iscond
 ```
 
 ### Functions
 
 ```@docs
-UTCGP.listinteger_iscond.is_sup_0
+MAGE.listinteger_iscond.is_sup_0
 ```
 ```jldoctest
 julia> is_sup_0([-5,-1,0,1,5])
@@ -43,7 +43,7 @@ julia> is_sup_0([-5,-1,0,1,5])
  1
 ```
 ```@docs
-UTCGP.listinteger_iscond.is_eq_0
+MAGE.listinteger_iscond.is_eq_0
 ```
 ```jldoctest
 julia> is_eq_0([-5,-1,0,1,5])
@@ -55,7 +55,7 @@ julia> is_eq_0([-5,-1,0,1,5])
  0
 ```
 ```@docs
-UTCGP.listinteger_iscond.is_less_0
+MAGE.listinteger_iscond.is_less_0
 ```
 ```jldoctest
 julia> is_less_0([-5,-1,0,1,5])
@@ -68,7 +68,7 @@ julia> is_less_0([-5,-1,0,1,5])
 ```
 
 ```@docs
-UTCGP.listinteger_iscond.compare_tuple_a_gr_b
+MAGE.listinteger_iscond.compare_tuple_a_gr_b
 ```
 ```jldoctest
 julia> compare_tuple_a_gr_b([(0.1,0.2), (0.1,0.1), (0.1,0.0)])
@@ -78,7 +78,7 @@ julia> compare_tuple_a_gr_b([(0.1,0.2), (0.1,0.1), (0.1,0.0)])
  1
 ```
 ```@docs
-UTCGP.listinteger_iscond.compare_tuple_a_eq_b
+MAGE.listinteger_iscond.compare_tuple_a_eq_b
 ```
 ```jldoctest
 julia> compare_tuple_a_eq_b([(0.1,0.2), (0.1,0.1), (0.1,0.0)])
@@ -88,7 +88,7 @@ julia> compare_tuple_a_eq_b([(0.1,0.2), (0.1,0.1), (0.1,0.0)])
  0
 ```
 ```@docs
-UTCGP.listinteger_iscond.compare_tuple_a_less_b
+MAGE.listinteger_iscond.compare_tuple_a_less_b
 ```
 ```jldoctest
 julia> compare_tuple_a_less_b([(0.1,0.2), (0.1,0.1), (0.1,0.0)])
@@ -102,14 +102,14 @@ julia> compare_tuple_a_less_b([(0.1,0.2), (0.1,0.1), (0.1,0.0)])
 
 ### Module
 ```@docs
-UTCGP.listinteger_primes
+MAGE.listinteger_primes
 ```
 
 ## From strings
 
 ### Module
 ```@docs
-UTCGP.listinteger_string
+MAGE.listinteger_string
 ```
 
 ## Bundles

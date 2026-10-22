@@ -13,9 +13,9 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module element_conditional
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: FunctionBundle, append_method!, SizedImage, @image_out
+using ..MAGE: FunctionBundle, append_method!, SizedImage, @image_out
 
 # ################### #
 #  CONDITIONAL        #

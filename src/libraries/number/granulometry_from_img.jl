@@ -11,8 +11,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module number_granulometryFromImg
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..image2D_object_common:
     IsSet, AtLeast, clamp_unit, pixel_value, fast_foreground_test, scratch, squared_distance_map!,
     squared_distance_map_upto!

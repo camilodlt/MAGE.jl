@@ -1,9 +1,10 @@
-using UTCGP
+using MAGE
+include("package_identity.jl")
 include("factory_world.jl")
 import SearchNetworks as sn
 using DataStructures
-import UTCGP: _unique_names_in_bundle, get_sr_float_bundles
-import UTCGP: SImageND
+import MAGE: _unique_names_in_bundle, get_sr_float_bundles
+import MAGE: SImageND
 import TestImages: testimage
 import ImageSegmentation
 using ImageCore
@@ -96,6 +97,7 @@ include("libraries/number/test_decision.jl")
 include("libraries/number/test_similarity_from_img.jl")
 include("libraries/number/test_descriptors_from_img.jl")
 include("libraries/number/test_image_scalar_contract.jl")
+include("libraries/number/test_streaming_image_mean.jl")
 include("libraries/test_image_inference_fixes.jl")
 include("libraries/test_image_out_contract.jl")
 include("libraries/image3D/test_volumes.jl")

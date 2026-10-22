@@ -1,6 +1,6 @@
-using UTCGP
+using MAGE
 using Random
-using UTCGP: select_random_subgraph, ModularFunction
+using MAGE: select_random_subgraph, ModularFunction
 
 @testset "Modular Functions" begin
     @testset "Subgraph Selection and Execution" begin
@@ -12,11 +12,11 @@ using UTCGP: select_random_subgraph, ModularFunction
 
         @show full_program
 
-        result = UTCGP.evaluate_program(full_program, cfg_model.chromosomes_types, ml)
+        result = MAGE.evaluate_program(full_program, cfg_model.chromosomes_types, ml)
         @show result
         @test result == 19
 
-        UTCGP.reset_program!(full_program)
+        MAGE.reset_program!(full_program)
 
         rng = Random.MersenneTwister(42)
         subgraph_result = select_random_subgraph(full_program, cfg_model, 2; rng = rng, min_ops = 3)

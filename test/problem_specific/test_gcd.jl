@@ -1,4 +1,4 @@
-using UTCGP.listinteger_primes: int_divisors
+using MAGE.listinteger_primes: int_divisors
 
 train_data = [
     [[1, 1], [1]],

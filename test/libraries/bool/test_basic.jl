@@ -1,7 +1,7 @@
 @testset "Bool Basic" begin
     @test begin
         # bundle import
-        using UTCGP: bundle_bool_basic
+        using MAGE: bundle_bool_basic
         length(bundle_bool_basic) == 4 && _unique_names_in_bundle(bundle_bool_basic) # identity, true, false, parse String
     end
     @test begin

@@ -14,8 +14,8 @@ module experimental_GLCM
 
 using Statistics
 using ImageCore: N0f8, Normed, clamp01nan!
-using ..UTCGP: FunctionBundle, append_method!
-import ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+import ..MAGE:
     CONSTRAINED,
     MIN_INT,
     MAX_INT,
@@ -23,7 +23,7 @@ import ..UTCGP:
     MAX_FLOAT,
     _positive_params,
     _ceil_positive_params
-using ..UTCGP:
+using ..MAGE:
     SImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, BinaryPixel, _get_image_pixel_type, IntensityPixel, SegmentPixel
 using ImageFeatures
 using DispatchDoctor

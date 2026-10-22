@@ -1,4 +1,4 @@
-using UTCGP
+using MAGE
 using Random
 
 @testset "Make Single Genome" begin

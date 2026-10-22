@@ -1,7 +1,7 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
 end
 ```
 
@@ -18,33 +18,33 @@ multiplexer.
 ## Module
 
 ```@docs
-UTCGP.bool_basic
+MAGE.bool_basic
 ```
 
 ## Functions
 
 ```@docs
-UTCGP.bool_basic.identity_bool
+MAGE.bool_basic.identity_bool
 ```
 
 ```@docs
-UTCGP.bool_basic.ret_true
+MAGE.bool_basic.ret_true
 ```
 ```jldoctest
-julia> UTCGP.bool_basic.ret_true()
+julia> MAGE.bool_basic.ret_true()
 true
 ```
 
 ```@docs
-UTCGP.bool_basic.ret_false
+MAGE.bool_basic.ret_false
 ```
 ```jldoctest
-julia> UTCGP.bool_basic.ret_false()
+julia> MAGE.bool_basic.ret_false()
 false
 ```
 
 ```@docs
-UTCGP.bool_basic.parse_string
+MAGE.bool_basic.parse_string
 ```
 
 `parse_string` parses its argument and evaluates it inside a sandbox

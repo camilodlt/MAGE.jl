@@ -28,7 +28,7 @@
 #
 # GraphMAGE's core here has no knowledge of any particular endpoint, loss, or
 # time-penalty convention: `expand_node!` and `run_graphmage` are handed a
-# `fitter_fn` (any function matching the standard UTCGP GA-fitter calling
+# `fitter_fn` (any function matching the standard MAGE GA-fitter calling
 # convention) by the caller and never inspect it. The problem-specific,
 # time-aware, population-graph-evaluator fitter this project actually uses
 # lives in the calling repo (MAGENetRunner's `utils/utils_populationgraph.jl`),

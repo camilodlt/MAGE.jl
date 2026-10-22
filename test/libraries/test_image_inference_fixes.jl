@@ -14,15 +14,15 @@
             @test all(p -> Float64(p) == (name == :ones_2D ? 1.0 : 0.0), output.img)
         end
         # Each changed cast alias is a constant binding to the same function.
-        for (mod,bundle) in ((UTCGP.image2D_arithmetic,bundle_image2DIntensity_arithmetic_factory),
-                            (UTCGP.image2D_barithmetic,bundle_image2DIntensity_barithmetic_factory),
-                            (UTCGP.image2D_transcendental,bundle_image2DIntensity_transcendental_factory),
-                            (UTCGP.image2D_filtering,bundle_image2DIntensity_filtering_factory))
+        for (mod,bundle) in ((MAGE.image2D_arithmetic,bundle_image2DIntensity_arithmetic_factory),
+                            (MAGE.image2D_barithmetic,bundle_image2DIntensity_barithmetic_factory),
+                            (MAGE.image2D_transcendental,bundle_image2DIntensity_transcendental_factory),
+                            (MAGE.image2D_filtering,bundle_image2DIntensity_filtering_factory))
             @test isconst(mod,:cast)
-            @test mod.cast === UTCGP.image2D_morph.cast
+            @test mod.cast === MAGE.image2D_morph.cast
             for w in bundle
                 f = (@test_factory w.fn(I))
-                args = hasmethod(f,Tuple{I,I}) && !(mod === UTCGP.image2D_barithmetic) ?
+                args = hasmethod(f,Tuple{I,I}) && !(mod === MAGE.image2D_barithmetic) ?
                     (source,source) : (source,0.5,0.7)
                 @test check(f,args) isa I
             end
@@ -45,7 +45,7 @@
 end
 
 @testset "GLCM quantisation is bounded and preserves co-occurrence counts" begin
-    G = UTCGP.experimental_GLCM
+    G = MAGE.experimental_GLCM
     img = SImageND(IntensityPixel{Float64}.([0.0 0.5; 1.0 0.5]))
     expected = zeros(Int,4,4)
     expected[1,2] = expected[2,1] = expected[4,2] = expected[2,4] = 1
@@ -72,9 +72,9 @@ end
     mask = SImageND(BinaryPixel.([isodd(r+c) for r in 1:8,c in 1:10]))
     B = typeof(mask)
     check(f,args) = Base.invokelatest(_scalar_inferred,f,args)
-    for mod in (UTCGP.image2D_arithmetic,UTCGP.image2D_binarize,UTCGP.image2D_filtering)
+    for mod in (MAGE.image2D_arithmetic,MAGE.image2D_binarize,MAGE.image2D_filtering)
         @test isconst(mod,:cast)
-        @test mod.cast === UTCGP.image2D_morph.cast
+        @test mod.cast === MAGE.image2D_morph.cast
     end
     for w in bundle_image2DBinary_arithmetic_factory
         @test check((@test_factory w.fn(B)),(mask,mask)) isa B

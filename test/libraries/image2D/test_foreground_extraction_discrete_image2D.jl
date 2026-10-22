@@ -94,7 +94,7 @@ _foreground_bits(image) = Bool.(reinterpret(image.img))
         get_extension_intensityimg(),
     )
 
-    graphcut_module = UTCGP.image2D_foreground_extraction_discrete
+    graphcut_module = MAGE.image2D_foreground_extraction_discrete
     oracle_rng = MersenneTwister(46)
     for _ in 1:20
         vertex_count = 6
@@ -239,7 +239,7 @@ end
         get_extension_intensityimg(),
     )
 
-    grabcut_module = UTCGP.image2D_foreground_extraction_discrete
+    grabcut_module = MAGE.image2D_foreground_extraction_discrete
     weights, means, variances = grabcut_module._fit_grabcut_gmm(
         vcat(fill(0.1, 20), fill(0.5, 20), fill(0.9, 20)),
     )
@@ -287,7 +287,7 @@ end
 end
 
 @testset "Discrete foreground linear max-flow work budget" begin
-    flow = UTCGP.image2D_foreground_extraction_discrete
+    flow = MAGE.image2D_foreground_extraction_discrete
     # Zero/one unary costs with a sparse foreground seed leave excess circulating
     # under repeated global relabels. Keep the fixture procedural and reproducible.
     rng = MersenneTwister(1)
@@ -310,12 +310,12 @@ end
     end
     @test failure isa ErrorException
     @test occursin("exceeded its work budget", sprint(showerror, failure))
-    wrapped = UTCGP.FunctionWrapper(cut, :budget_regression, nothing, flow.fallback)
+    wrapped = MAGE.FunctionWrapper(cut, :budget_regression, nothing, flow.fallback)
     # Check repeatable evaluator recovery. The solver's operation budget, checked
     # above, is deterministic; elapsed time is not, especially with CI coverage
     # and forced bounds checks enabled. Measure runtime in benchmarks instead.
-    @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
-    @test UTCGP.safe_call(wrapped, ()) == (nothing, true)
+    @test MAGE.safe_call(wrapped, ()) == (nothing, true)
+    @test MAGE.safe_call(wrapped, ()) == (nothing, true)
 
     # With no pairwise cost, every non-background pixel prefers foreground.
     # This exact normal cut must survive the budget and keep its original pixels.
@@ -330,7 +330,7 @@ end
     image = _foreground_intensity(fill(0.5, height, width))
     auxiliary = _foreground_intensity(zeros(height, width))
     output = _foreground_binary(falses(height, width))
-    library = UTCGP.image2D_foreground_extraction_discrete
+    library = MAGE.image2D_foreground_extraction_discrete
     for name in (:boykov_jolly_foreground, :grabcut_foreground)
         fn = (@test_factory bundle_image2DBinary_foreground_extraction_factory[name].fn(typeof(output)))
         bindings = names(library; all = true)
@@ -341,7 +341,7 @@ end
 end
 
 @testset "Sparse rough-mask evidence survives without component bridges" begin
-    library = UTCGP.image2D_foreground_extraction_discrete
+    library = MAGE.image2D_foreground_extraction_discrete
     # A connected sparse strip occupies 14/49 pixels per coarse box.
     sparse = falses(224, 224)
     sparse[100:101, 50:175] .= true
@@ -382,7 +382,7 @@ end
 end
 
 @testset "Cuts select quarter occupancy while matting retains eighth" begin
-    library = UTCGP.image2D_foreground_extraction_discrete
+    library = MAGE.image2D_foreground_extraction_discrete
     thin = falses(224, 224)
     thin[100, 50:175] .= true
     source = BinaryPixel{Bool}.(thin)

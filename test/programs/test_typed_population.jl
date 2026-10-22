@@ -1,17 +1,17 @@
-using Test, UTCGP
+using Test, MAGE
 # Typed evaluation of scalar programs: both engines agree with the generic
 # interpreter, the tiled engine allocates nothing, and a step whose type cannot be
 # proven makes building the evaluator throw.
 
 """One-step graph: input x::Float64, output fn(x)."""
 function typed_fixture(fn; caster=nothing, fallback=()->0.0, return_type=Float64, policy=return_type)
-    graph = UTCGP.PopulationSequentialProgram()
+    graph = MAGE.PopulationSequentialProgram()
     graph.input_types = Type[Float64]
     graph.has_input_layout = true
-    wrapper = UTCGP.FunctionWrapper(fn, :typed_test, caster, fallback)
-    push!(graph.steps, UTCGP.PopulationSequentialCallStep(wrapper,
-        UTCGP.AbstractPopulationSequentialRef[UTCGP.PopulationSequentialInputRef(1, Float64)], return_type, policy))
-    push!(graph.individual_outputs, UTCGP.AbstractPopulationSequentialRef[UTCGP.PopulationSequentialTmpRef(1, return_type)])
+    wrapper = MAGE.FunctionWrapper(fn, :typed_test, caster, fallback)
+    push!(graph.steps, MAGE.PopulationSequentialCallStep(wrapper,
+        MAGE.AbstractPopulationSequentialRef[MAGE.PopulationSequentialInputRef(1, Float64)], return_type, policy))
+    push!(graph.individual_outputs, MAGE.AbstractPopulationSequentialRef[MAGE.PopulationSequentialTmpRef(1, return_type)])
     push!(graph.individual_step_ids, [1])
     return graph
 end
@@ -37,7 +37,7 @@ end
         samples = fill((2.0,), n_samples)
         outputs = zeros(1, n_samples)
         evaluator = TypedEvaluator(graph; batch_size)
-        @test evaluator isa UTCGP.TiledEvaluator
+        @test evaluator isa MAGE.TiledEvaluator
         evaluate_population_into!(outputs, graph, samples; evaluator)
         @test typed_allocations(outputs, graph, samples, evaluator) == 0
     end
@@ -45,12 +45,12 @@ end
 
 @testset "Constants, mixed scalar types and three arguments" begin
     graph = typed_fixture(x -> round(Int, x); fallback=() -> 0, return_type=Int)
-    three = UTCGP.FunctionWrapper((a, b, c) -> Float64(a) + b + c, :three_args, nothing, () -> 0.0)
-    push!(graph.steps, UTCGP.PopulationSequentialConstantStep(0.5, Float64))
-    push!(graph.steps, UTCGP.PopulationSequentialCallStep(three, UTCGP.AbstractPopulationSequentialRef[
-        UTCGP.PopulationSequentialTmpRef(1, Int), UTCGP.PopulationSequentialTmpRef(2, Float64),
-        UTCGP.PopulationSequentialInputRef(1, Float64)], Float64, Float64))
-    graph.individual_outputs[1] = UTCGP.AbstractPopulationSequentialRef[UTCGP.PopulationSequentialTmpRef(3, Float64)]
+    three = MAGE.FunctionWrapper((a, b, c) -> Float64(a) + b + c, :three_args, nothing, () -> 0.0)
+    push!(graph.steps, MAGE.PopulationSequentialConstantStep(0.5, Float64))
+    push!(graph.steps, MAGE.PopulationSequentialCallStep(three, MAGE.AbstractPopulationSequentialRef[
+        MAGE.PopulationSequentialTmpRef(1, Int), MAGE.PopulationSequentialTmpRef(2, Float64),
+        MAGE.PopulationSequentialInputRef(1, Float64)], Float64, Float64))
+    graph.individual_outputs[1] = MAGE.AbstractPopulationSequentialRef[MAGE.PopulationSequentialTmpRef(3, Float64)]
     samples = [(1.0,), (2.0,), (-0.0,)]
     for engine in (:tiled, :per_sample)
         evaluator = TypedEvaluator(graph; engine, batch_size=2)
@@ -73,7 +73,7 @@ end
     @test_throws TypedEvaluationError TypedEvaluator(bad_fallback)
     wrong_policy = typed_fixture(identity; policy=Int)
     @test_throws TypedEvaluationError TypedEvaluator(wrong_policy)
-    abstract_type = typed_fixture(identity; return_type=Any, policy=UTCGP.NoTypeAssertion())
+    abstract_type = typed_fixture(identity; return_type=Any, policy=MAGE.NoTypeAssertion())
     @test_throws TypedEvaluationError TypedEvaluator(abstract_type)
     # The message names the step and its signature.
     message = try

@@ -5,8 +5,8 @@ Measured 2026-10-13 on implementation revision `e10868a` (branch `fast-pop-eval`
 ## Design and use
 
 ```julia
-workspace = UTCGP.TypedPopulationWorkspace(program; batch_size=128)
-UTCGP.evaluate_population_into!(P, program, samples; workspace, check=true)
+workspace = MAGE.TypedPopulationWorkspace(program; batch_size=128)
+MAGE.evaluate_population_into!(P, program, samples; workspace, check=true)
 ```
 
 `P[individual, sample]` stores one output per individual. Plan construction is
@@ -78,10 +78,10 @@ writes the runner environment. An identical committed copy is provided here.
 export JULIA_DEPOT_PATH=/home/$USER/.julia
 export JULIAUP_DEPOT_PATH=/home/$USER/.juliaup
 export JULIA_PYTHONCALL_EXE=.CondaPkg/env/bin/python
-export UTCGP_CONSTRAINED=yes
-export UTCGP_MIN_INT=-10000 UTCGP_MAX_INT=10000
-export UTCGP_MIN_FLOAT=-10000 UTCGP_MAX_FLOAT=10000
-export UTCGP_SMALL_ARRAY=100 UTCGP_BIG_ARRAY=1000
+export MAGE_CONSTRAINED=yes
+export MAGE_MIN_INT=-10000 MAGE_MAX_INT=10000
+export MAGE_MIN_FLOAT=-10000 MAGE_MAX_FLOAT=10000
+export MAGE_SMALL_ARRAY=100 MAGE_BIG_ARRAY=1000
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
 taskset -c 4-7 julia --threads=1 POPULATION_reproducibility/POPULATION_fast_pop_eval_check.jl
 ```

@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Object Attention: Locate and Zoom
@@ -55,8 +55,8 @@ All examples run on the same 80×120 Atari-like frame (shown at 2×): a square
 its own label. The second frame moves the ball, for `motion_*`.
 
 ```@setup oa
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 # Generates every image of `object_attention.md`. Included from the page's
 # `@setup` block, so the gallery always reflects the current implementation.
 using FileIO
@@ -64,11 +64,11 @@ using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
-const OA_L = UTCGP.number_locateFromImg
-const OA_O = UTCGP.number_objectFromImg
+const OA_L = MAGE.number_locateFromImg
+const OA_O = MAGE.number_objectFromImg
 const OA_SCALE = 2
 
-oa_repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+oa_repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 oa_assets = [
     joinpath(oa_repo_root, "docs", "src", "assets", "fns", "object_attention"),
     joinpath(oa_repo_root, "docs", "build", "assets", "fns", "object_attention"),
@@ -100,7 +100,7 @@ oa_values = oa_scene()
 scene = SImageND(IntensityPixel{N0f8}.(oa_values))
 scene_next = SImageND(IntensityPixel{N0f8}.(oa_scene(ball = (38, 60))))
 mask = SImageND(BinaryPixel.(oa_values .> 0.3))
-oa_table = UTCGP.image2D_object_common.object_table(mask.img, UTCGP.image2D_object_common.IsSet())
+oa_table = MAGE.image2D_object_common.object_table(mask.img, MAGE.image2D_object_common.IsSet())
 segment = SImageND(SegmentPixel.(Int.(oa_table.labels)))
 
 # ---------------------------------------------------------------------------
@@ -354,7 +354,7 @@ end
 # Object locators
 # ---------------------------------------------------------------------------
 
-oa_selectors = (first.(UTCGP.image2D_object_common.SELECTOR_FUNCTIONS)...,)
+oa_selectors = (first.(MAGE.image2D_object_common.SELECTOR_FUNCTIONS)...,)
 for selector in oa_selectors
     x = g_call(getfield(OA_O, Symbol(:obj_x_, selector)), mask)
     y = g_call(getfield(OA_O, Symbol(:obj_y_, selector)), mask)
@@ -943,16 +943,16 @@ locator output.
 ## Bundles
 
 ```@docs
-UTCGP.image2D_object_common
-UTCGP.number_locateFromImg
-UTCGP.number_locateFromImg.bundle_number_locateFromImg
-UTCGP.number_objectFromImg
-UTCGP.number_objectFromImg.bundle_number_objectLocateFromImg
-UTCGP.number_objectFromImg.bundle_number_objectDescribeFromImg
-UTCGP.image2D_zoom
-UTCGP.image2D_zoom.bundle_image2DIntensity_zoom_factory
-UTCGP.image2D_zoom.bundle_image2DBinary_zoom_factory
-UTCGP.image2D_zoom.bundle_image2DSegment_zoom_factory
+MAGE.image2D_object_common
+MAGE.number_locateFromImg
+MAGE.number_locateFromImg.bundle_number_locateFromImg
+MAGE.number_objectFromImg
+MAGE.number_objectFromImg.bundle_number_objectLocateFromImg
+MAGE.number_objectFromImg.bundle_number_objectDescribeFromImg
+MAGE.image2D_zoom
+MAGE.image2D_zoom.bundle_image2DIntensity_zoom_factory
+MAGE.image2D_zoom.bundle_image2DBinary_zoom_factory
+MAGE.image2D_zoom.bundle_image2DSegment_zoom_factory
 ```
 
 ## Timings for the examples

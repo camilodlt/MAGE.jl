@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # GraphMAGE
@@ -36,12 +36,12 @@ backpropagation aware that a node may have several parents.
 ## Running a search
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/types.jl"]
 ```
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/run.jl"]
 ```
 
@@ -57,35 +57,35 @@ the standard GA-fitter calling convention and never inspects it.
 ## Selection and expansion
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/selection.jl", "graphmage/ucb.jl", "graphmage/expansion.jl", "graphmage/backprop.jl"]
 ```
 
 ## Behaviours
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/behavior.jl"]
 ```
 
 ## Restricted libraries
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/library_subset.jl"]
 ```
 
 ## The graph
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/graph_core.jl"]
 ```
 
 ## Evaluation, checkpointing and merging
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/eval_val.jl", "graphmage/checkpoint.jl", "graphmage/merge.jl"]
 ```
 
@@ -96,6 +96,6 @@ single vertex.
 ## Visualising
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["graphmage/visualize.jl"]
 ```

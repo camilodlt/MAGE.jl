@@ -7,16 +7,16 @@ Shape-preserving arithmetic and masking for typed RGB images.
 """
 module image3D_rgb
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: @image_out, output_pixels, image_result, scratch
+using ..MAGE: @image_out, output_pixels, image_result, scratch
 using ImageCore: N0f8
 
 # Call tree: generated factory callable → destination image → direct pixel loop.
 # Both allocating and `out` calls use the same arithmetic/conversion order.
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

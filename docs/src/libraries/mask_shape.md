@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Mask Shape Clean-up
@@ -23,8 +23,8 @@ parameter in `[0, 1]`. Objects are 8-connected; background regions are
 ## Example mask
 
 ```@setup shape
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 assets = g_assets("mask_shape")
 const H, W = 80, 120
 m = falses(H, W)
@@ -164,9 +164,9 @@ end
 ## Bundles
 
 ```@docs
-UTCGP.image2D_mask_shape
-UTCGP.image2D_mask_shape.bundle_image2DBinary_maskshape_factory
-UTCGP.image2D_mask_shape.bundle_image2DIntensity_maskshape_factory
+MAGE.image2D_mask_shape
+MAGE.image2D_mask_shape.bundle_image2DBinary_maskshape_factory
+MAGE.image2D_mask_shape.bundle_image2DIntensity_maskshape_factory
 ```
 
 ## Timings for the examples

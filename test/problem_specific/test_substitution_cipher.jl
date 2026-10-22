@@ -1,6 +1,6 @@
 
-import UTCGP.listtuple_mappings
-import UTCGP: listgeneric_utils
+import MAGE.listtuple_mappings
+import MAGE: listgeneric_utils
 
 """
 Text from paper: 

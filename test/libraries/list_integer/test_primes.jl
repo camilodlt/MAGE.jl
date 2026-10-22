@@ -1,5 +1,5 @@
-using UTCGP: bundle_listinteger_primes
-using UTCGP.listinteger_primes: int_divisors
+using MAGE: bundle_listinteger_primes
+using MAGE.listinteger_primes: int_divisors
 
 @testset "Primes" begin
     @test begin

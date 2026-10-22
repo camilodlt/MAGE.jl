@@ -25,15 +25,15 @@ All arithmetic is in Float64, as before (Float32 noise would defeat the
 """
 module image2D_orientation
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: output_pixels, image_result, scratch, pixel_values!
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     SizedImage2D, SImageND, _get_image_type, _get_image_pixel_type, _get_image_tuple_size,
     _validate_factory_type
-using ..UTCGP: image2D_orientation_common
-using ..UTCGP.image2D_orientation_common: _sobel_xy!
+using ..MAGE: image2D_orientation_common
+using ..MAGE.image2D_orientation_common: _sobel_xy!
 
 fallback(args...) = return nothing
 """

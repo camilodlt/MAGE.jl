@@ -4,7 +4,7 @@ using ImageSegmentation, Statistics
 using DelaunayTriangulation
 using Graphs
 using GraphPlot, Colors
-using UTCGP
+using MAGE
 
 img = load("assets/000_img.png")
 red_channel = red.(img)
@@ -53,7 +53,7 @@ using ImageSegmentation, Statistics
 using DelaunayTriangulation
 using Graphs
 using GraphPlot, Colors
-using UTCGP
+using MAGE
 
 using Graphs
 using ImageDraw

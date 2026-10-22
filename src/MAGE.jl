@@ -1,5 +1,5 @@
 __precompile__()
-module UTCGP
+module MAGE
 
     const CONSTRAINED::Ref{Bool} = Ref{Bool}()
     const MIN_INT::Ref{Int} = Ref{Int}()
@@ -43,17 +43,17 @@ module UTCGP
         global SAFE_CALL
         global to
 
-        CONSTRAINED[] = get(ENV, "UTCGP_CONSTRAINED", "") == "yes"
-        MIN_INT[] = parse(Int, get(ENV, "UTCGP_MIN_INT", "-1000"))
-        MAX_INT[] = parse(Int, get(ENV, "UTCGP_MAX_INT", "1000"))
-        MIN_FLOAT[] = parse(Int, get(ENV, "UTCGP_MIN_FLOAT", "-1000"))
-        MAX_FLOAT[] = parse(Int, get(ENV, "UTCGP_MAX_FLOAT", "1000"))
+        CONSTRAINED[] = get(ENV, "MAGE_CONSTRAINED", "") == "yes"
+        MIN_INT[] = parse(Int, get(ENV, "MAGE_MIN_INT", "-1000"))
+        MAX_INT[] = parse(Int, get(ENV, "MAGE_MAX_INT", "1000"))
+        MIN_FLOAT[] = parse(Int, get(ENV, "MAGE_MIN_FLOAT", "-1000"))
+        MAX_FLOAT[] = parse(Int, get(ENV, "MAGE_MAX_FLOAT", "1000"))
 
-        NANO_ARRAY[] = parse(Int, get(ENV, "UTCGP_NANO_ARRAY", "100"))
-        SMALL_ARRAY[] = parse(Int, get(ENV, "UTCGP_SMALL_ARRAY", "1000"))
-        BIG_ARRAY[] = parse(Int, get(ENV, "UTCGP_BIG_ARRAY", "10000"))
+        NANO_ARRAY[] = parse(Int, get(ENV, "MAGE_NANO_ARRAY", "100"))
+        SMALL_ARRAY[] = parse(Int, get(ENV, "MAGE_SMALL_ARRAY", "1000"))
+        BIG_ARRAY[] = parse(Int, get(ENV, "MAGE_BIG_ARRAY", "10000"))
 
-        SAFE_CALL[] = get(ENV, "UTCGP_SAFE_CALL", "") == "yes"
+        SAFE_CALL[] = get(ENV, "MAGE_SAFE_CALL", "") == "yes"
 
         # @show CONSTRAINED[]
         # @show MIN_INT[]

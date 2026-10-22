@@ -1,11 +1,11 @@
 using Base: product
-using UTCGP.listnumber_recursive: range_
-using UTCGP.listnumber_arithmetic: sum_vector
-using UTCGP.listtuple_combinatorics: vector_of_products
-using UTCGP.listinteger_iscond: compare_tuple_a_gr_b
-using UTCGP.number_reduce: reduce_sum
-using UTCGP.number_reduce: reduce_length
-using UTCGP.number_arithmetic: number_div
+using MAGE.listnumber_recursive: range_
+using MAGE.listnumber_arithmetic: sum_vector
+using MAGE.listtuple_combinatorics: vector_of_products
+using MAGE.listinteger_iscond: compare_tuple_a_gr_b
+using MAGE.number_reduce: reduce_sum
+using MAGE.number_reduce: reduce_length
+using MAGE.number_arithmetic: number_div
 
 dice_game_train_data = [
     [[1, 2], [0.0]],

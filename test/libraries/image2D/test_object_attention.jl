@@ -24,9 +24,9 @@ function _oa_scene(height, width; dr = 0, dc = 0)
 end
 
 @testset "Object attention: locators, descriptors and zoom" begin
-    C = UTCGP.image2D_object_common
-    L = UTCGP.number_locateFromImg
-    O = UTCGP.number_objectFromImg
+    C = MAGE.image2D_object_common
+    L = MAGE.number_locateFromImg
+    O = MAGE.number_objectFromImg
     height, width = 20, 30
     square, bar, dot, disk = _oa_scene(height, width)
     union_mask = square .| bar .| dot .| disk
@@ -199,7 +199,7 @@ end
     end
 
     @testset "zoom operators" begin
-        Z = UTCGP.image2D_zoom
+        Z = MAGE.image2D_zoom
         I = typeof(intensity)
         B = typeof(mask)
         segment = _oa_segment(1 .* square .+ 2 .* bar .+ 3 .* dot .+ 4 .* disk)

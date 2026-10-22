@@ -1693,8 +1693,8 @@ function compile_generated_function(
     module_name = _generated_module_name(spec.name)
     module_ref = Module(module_name)
     # Generated source is evaluated in a fresh module, so it does not inherit
-    # UTCGP type aliases / pixel names used in rendered signatures.
-    Core.eval(module_ref, :(using UTCGP))
+    # MAGE type aliases / pixel names used in rendered signatures.
+    Core.eval(module_ref, :(using MAGE))
     Core.eval(module_ref, :(using Statistics))
     Core.eval(module_ref, :(using ImageCore: N0f8))
     for type_name in (
@@ -1705,7 +1705,7 @@ function compile_generated_function(
             :BinaryPixel,
             :SegmentPixel,
         )
-        Core.eval(module_ref, :(const $(type_name) = UTCGP.$(type_name)))
+        Core.eval(module_ref, :(const $(type_name) = MAGE.$(type_name)))
     end
     # The rendered source already declares keyword names such as:
     #   function my_fn(x1::Int, args...; add, sobelx_image2D)::Int

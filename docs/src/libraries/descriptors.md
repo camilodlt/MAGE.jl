@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Descriptors for Image Classification
@@ -33,11 +33,11 @@ use the volume bundles for spatial 3D geometry. See
 [Image-to-scalar inputs](../image_scalar_contract.md) for dispatch and inference.
 
 ```@setup desc
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
-I = UTCGP.number_intensityStatsFromImg
-Sh = UTCGP.number_shapeFromImg
-G = UTCGP.number_granulometryFromImg
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
+I = MAGE.number_intensityStatsFromImg
+Sh = MAGE.number_shapeFromImg
+G = MAGE.number_granulometryFromImg
 assets = g_assets("descriptors")
 noise(r, c, seed) = 0.5 + 0.5 * sin(12.9898r + 78.233c + 37.719seed)       # deterministic texture
 
@@ -106,6 +106,29 @@ Each comes in four forms:
 | `stat_x(img, roi)` | inside the region |
 | `stat_x_out(img, roi)` | outside the region |
 | `stat_x_diff(img, roi)` | inside value minus outside value |
+
+### Mean computation and temporary storage
+
+`stat_mean`, `stat_mean_out` and `stat_mean_diff` use streaming counts and sums.
+They do not build a histogram, calculate higher moments, or request scratch
+arrays. The difference operator visits each source sample once, maintaining
+separate inside and outside sums to avoid cancellation from subtracting a
+region sum from a whole-image sum. Each empty region contributes `0.0`.
+
+This applies to N0f8, N0f16, Float32 and Float64 storage, including RGB channel
+arrays, volumes, full-size ROIs and spatial 2D ROIs repeated through depth.
+The output remains a compiler-inferred `Float64`.
+
+Other summary-based statistics still build their general summary separately
+for each call. N0f8 uses an exact 256-level histogram; N0f16 also stores raw
+16-bit samples, and floating-point storage keeps Float64 samples for quantiles.
+Those scratch arrays are reused per task, so first-use or growth allocations
+must be distinguished from warmed-call allocation measurements.
+
+The [reproducible mean benchmark](https://github.com/camilodlt/MAGE.jl/blob/perf-streaming-image-means/validation/STREAMING_IMAGE_MEAN.md)
+compares the previous summary algorithm with these streaming operators, including
+fresh-task and warmed allocations. Its measurements are observations, not CI
+timing thresholds.
 
 The histograms below are of the round and the lobed cell (whole image). Grey
 bars: 64-bin histogram; blue lines: `q25`, `q50`, `q75`; red line: Otsu
@@ -302,7 +325,7 @@ top_half = g_binary([r <= 48 for r in 1:96, c in 1:96])
 Every aggregate on the two fields:
 
 ```@example desc
-O = UTCGP.number_shapeFromImg
+O = MAGE.number_shapeFromImg
 rows = [(String(w.name), [g_call(w.fn, g_binary(m)) for (_, m) in fields])
         for w in bundle_number_objectStatsFromImg if !startswith(String(w.name), "objs_intensity")]
 push!(rows, ("objs_area_mean(mask, top)", [g_call(O.objs_area_mean, g_binary(m), top_half) for (_, m) in fields]))
@@ -445,13 +468,13 @@ table(vcat([("gran_grey_open_r$(r)", [g_call(getfield(G, Symbol(:gran_grey_open_
 ## Bundles
 
 ```@docs
-UTCGP.number_intensityStatsFromImg
-UTCGP.number_intensityStatsFromImg.bundle_number_intensityStatsFromImg
-UTCGP.number_shapeFromImg
-UTCGP.number_shapeFromImg.bundle_number_shapeFromImg
-UTCGP.number_shapeFromImg.bundle_number_objectStatsFromImg
-UTCGP.number_granulometryFromImg
-UTCGP.number_granulometryFromImg.bundle_number_granulometryFromImg
+MAGE.number_intensityStatsFromImg
+MAGE.number_intensityStatsFromImg.bundle_number_intensityStatsFromImg
+MAGE.number_shapeFromImg
+MAGE.number_shapeFromImg.bundle_number_shapeFromImg
+MAGE.number_shapeFromImg.bundle_number_objectStatsFromImg
+MAGE.number_granulometryFromImg
+MAGE.number_granulometryFromImg.bundle_number_granulometryFromImg
 ```
 
 ## Timings for the examples

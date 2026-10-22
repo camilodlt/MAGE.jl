@@ -1,5 +1,5 @@
 ~~~@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ~~~
 
 # Continuous Foreground Extraction
@@ -64,7 +64,7 @@ seed quantile remains <code>0.95</code>, leaving the third MAGE input available
 for <code>contrast</code>.
 
 ~~~@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 values = fill(0.15, 64, 64)
@@ -92,14 +92,14 @@ foreground pages. Cell and coffee are downsampled once; Lena remains at its
 native 256×256 resolution.
 
 ~~~@setup continuous_foreground_assets
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 using FileIO
 using Colors: RGB, Gray
 using ImageCore: channelview
 using ImageCore: N0f8, N0f16
 
-repo_root = normpath(joinpath(dirname(pathof(UTCGP)), ".."))
+repo_root = normpath(joinpath(dirname(pathof(MAGE)), ".."))
 assets_src = joinpath(
     repo_root,
     "docs",
@@ -215,8 +215,8 @@ harmonic interpolation. Increasing contrast makes intensity boundaries more
 resistant to probability diffusion.
 
 ```@setup gallery_paths
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_paths.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_paths.jl"))
 gallery_html_1 = """
 <div style="display:flex; gap:1rem; align-items:flex-start;">
 <figure style="width:31%; margin:0;"><img src="../assets/fns/foreground_extraction_continuous/coffee_random_walker_contrast_0_0.png" alt="Coffee Random Walker probability with contrast zero" style="width:100%;" /><figcaption><code>contrast = 0.0</code></figcaption></figure>
@@ -299,7 +299,7 @@ bilinearly to the specialized output dimensions and original hard constraints
 are restored exactly.
 
 ~~~@example
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 values = repeat(reshape(range(0, 1; length = 64), 1, :), 64, 1)
@@ -340,7 +340,7 @@ function automatic_closed_form_trimap(image)
     ].fn(typeof(image)))
     saliency = saliency_fn(image)
     trimap_values, _ =
-        UTCGP.image2D_foreground_extraction_continuous.
+        MAGE.image2D_foreground_extraction_continuous.
         _automatic_closed_form_trimap(reinterpret(saliency.img), 0.95)
     return SImageND(eltype(image).(trimap_values))
 end
@@ -439,8 +439,8 @@ g_raw_gallery(gallery_html_4) # hide
     bright objects).
 
 ```@setup fg_mask
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_helpers.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_helpers.jl"))
 page = "foreground_mask_continuous"
 x = Float64.(Gray.(load(joinpath(g_repo_root(), "assets", "000_img.png"))))[1:2:end, 1:2:end][1:96, 1:128]
 cell = g_intensity(x)
@@ -448,7 +448,7 @@ I = typeof(cell)
 B = typeof(g_binary(falses(size(x)...)))
 otsu = g_call(g_timed(bundle_image2DBinary_binarize_factory[:binarize_otsu2D].fn(B)), cell)
 fat = g_call(g_timed(bundle_image2DBinary_morph_factory[:dilation_2D].fn(B)), otsu, 7.0)   # a deliberately rough mask
-D = UTCGP.image2D_foreground_extraction_discrete
+D = MAGE.image2D_foreground_extraction_discrete
 "Seeds of a mask as a picture: white foreground seeds, black background seeds, grey undecided."
 function seeds_picture(mask, band)
     fg, bg = g_call(D._mask_band_seeds, BitMatrix(Bool.(reinterpret(mask.img))), band)
@@ -484,10 +484,10 @@ g_gallery(page, [
 ```
 
 ~~~@docs
-UTCGP.image2D_foreground_extraction_continuous
-UTCGP.image2D_foreground_extraction_continuous.bundle_image2DIntensity_foreground_extraction_factory
-UTCGP.image2D_foreground_extraction_continuous.random_walker_foreground_image2D_factory
-UTCGP.image2D_foreground_extraction_continuous.closed_form_matting_image2D_factory
+MAGE.image2D_foreground_extraction_continuous
+MAGE.image2D_foreground_extraction_continuous.bundle_image2DIntensity_foreground_extraction_factory
+MAGE.image2D_foreground_extraction_continuous.random_walker_foreground_image2D_factory
+MAGE.image2D_foreground_extraction_continuous.closed_form_matting_image2D_factory
 ~~~
 
 References:

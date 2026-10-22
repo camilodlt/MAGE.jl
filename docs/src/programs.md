@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Programs
@@ -26,14 +26,14 @@ outputs do not reach are skipped: they are the *dormant material* a later
 mutation may reactivate.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["programs/programs.jl"]
 ```
 
 ### Decoding a genome
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["programs/decode.jl", "programs/free_decode.jl"]
 ```
 
@@ -46,7 +46,7 @@ resolves connexions without that assumption, and is what
 ## Evaluating
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["programs/evaluate.jl"]
 ```
 
@@ -66,10 +66,10 @@ of steps over temporaries, with no genome objects left in the way. This is both
 the fast path for repeated evaluation and the readable form of an evolved model.
 
 ```@example prog
-using UTCGP, Random, Logging
+using MAGE, Random, Logging
 Random.seed!(7)
 
-lib = Library(UTCGP.get_sr_float_bundles()); ml = MetaLibrary([lib])
+lib = Library(MAGE.get_sr_float_bundles()); ml = MetaLibrary([lib])
 model_arch = modelArchitecture([Float64, Float64], [1, 1], [Float64], [Float64], [1])
 node_config = nodeConfig(12, 1, 2, 2)
 
@@ -77,7 +77,7 @@ shared_inputs, genome = make_evolvable_utgenome(model_arch, ml, node_config)
 initialize_genome!(genome)
 correct_all_nodes!(genome, model_arch, ml, shared_inputs)
 
-programs = UTCGP.decode_with_output_nodes(genome, ml, model_arch, shared_inputs)
+programs = MAGE.decode_with_output_nodes(genome, ml, model_arch, shared_inputs)
 seq = compile_program(programs, model_arch, ml)
 print(sequential_source(seq))
 ```
@@ -89,7 +89,7 @@ seq(3.0, 4.0)
 ```
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["programs/compile/compile_program.jl"]
 ```
 
@@ -99,7 +99,7 @@ Compiling a whole population once and evaluating it as a batch is the fast path
 used by the multithreaded fitters.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["programs/compile/population_sequential_program.jl"]
 ```
 
@@ -112,7 +112,7 @@ Build one `TypedEvaluator` per task and generation, with that task's
 `BufferPool`. A graph whose types cannot be proven throws `TypedEvaluationError`.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["programs/compile/typed_population.jl"]
 ```
 
@@ -123,6 +123,6 @@ the mechanism behind [Automatically Defined Functions](@ref): a promising
 subprogram is extracted and installed as a reusable operator.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["libraries/subgraph_selection.jl"]
 ```

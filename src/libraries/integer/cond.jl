@@ -12,7 +12,7 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module integer_cond
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 
 # ############# #
 # CONDITIONS #

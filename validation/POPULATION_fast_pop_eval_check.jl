@@ -8,7 +8,7 @@ for name in ("Project.toml", "Manifest.toml")
 end
 Pkg.activate(CHECK_ENV)
 Pkg.develop(path=CLONE)
-using UTCGP, Random, Statistics, LinearAlgebra, Logging, Profile, JSON, SHA
+using MAGE, Random, Statistics, LinearAlgebra, Logging, Profile, JSON, SHA
 BLAS.set_num_threads(1)
 read_pmlb(path) = open(`gzip -dc $path`) do io
     header = split(readline(io), '\t')
@@ -96,23 +96,23 @@ end
 
 
 compile_all(programs, arch, ml, n) =
-    UTCGP.SequentialProgram[UTCGP.compile_program(programs[i], arch, ml; safe=true) for i in 1:n]
+    MAGE.SequentialProgram[MAGE.compile_program(programs[i], arch, ml; safe=true) for i in 1:n]
 
 """Separate graph per individual, same thread layout as the shared evaluator."""
 function eval_indiv(graphs, samples, n)
     out = Matrix{Float64}(undef, n, length(samples))
-    workspaces = [[UTCGP.PopulationSequentialWorkspace(g) for g in graphs] for _ in 1:Threads.nthreads()]
+    workspaces = [[MAGE.PopulationSequentialWorkspace(g) for g in graphs] for _ in 1:Threads.nthreads()]
     Threads.@threads :static for j in eachindex(samples)
         ws = workspaces[Threads.threadid()]
         for i in 1:n
-            out[i, j] = only(only(UTCGP.evaluate_population_sequential_program(graphs[i], samples[j]...; workspace=ws[i])))
+            out[i, j] = only(only(MAGE.evaluate_population_sequential_program(graphs[i], samples[j]...; workspace=ws[i])))
         end
     end
     out
 end
 
 function eval_pop(graph, samples, n)
-    values = UTCGP.evaluate_population_sequential_program_on_samples(graph, samples)
+    values = MAGE.evaluate_population_sequential_program_on_samples(graph, samples)
     out = Matrix{Float64}(undef, n, length(samples))
     for j in eachindex(samples), i in 1:n
         out[i, j] = only(values[j][i])
@@ -137,12 +137,12 @@ function measure(f; reps=parse(Int,get(ENV,"POP_PROFILE_REPS","3")))
     best
 end
 function decode_compile(pop,conf,arch,nc,ml,shared)
-    programs,_ = UTCGP._make_decoding(pop,1,conf,arch,nc,ml,shared,(:default_decoding_callback,))
+    programs,_ = MAGE._make_decoding(pop,1,conf,arch,nc,ml,shared,(:default_decoding_callback,))
     compile_all(programs,arch,ml,length(pop))
 end
 function make_children(parent,n,conf,arch,nc,ml,shared)
-    p=UTCGP.Population([deepcopy(parent) for _ in 1:n])
-    UTCGP.ga_numbered_new_material_mutation_callback(UTCGP.GA_MUTATION_ARGS(p,1,conf,arch,nc,ml,shared))
+    p=MAGE.Population([deepcopy(parent) for _ in 1:n])
+    MAGE.ga_numbered_new_material_mutation_callback(MAGE.GA_MUTATION_ARGS(p,1,conf,arch,nc,ml,shared))
     p
 end
 function fastcheck()
@@ -153,37 +153,37 @@ function fastcheck()
     samples=as_samples(Xtr,parse_constants("0.5,1,2,3,pi"))
     d=length(first(samples))
     arch=modelArchitecture(fill(Float64,d),ones(Int,d),[Float64],[Float64],[1])
-    ml=MetaLibrary([Library(UTCGP.get_scalar_sr_bundles();cache_config=UTCGP.NoCacheConfig())])
+    ml=MetaLibrary([Library(MAGE.get_scalar_sr_bundles();cache_config=MAGE.NoCacheConfig())])
     nc=nodeConfig(100,1,3,d)
     conf=RunConfGA(1,256,1,1.1,0.1,30)
     shared,parent=make_evolvable_utgenome(arch,ml,nc)
-    initialize_genome!(parent); correct_all_nodes!(parent,arch,ml,shared); UTCGP.fix_all_output_nodes!(parent)
+    initialize_genome!(parent); correct_all_nodes!(parent,arch,ml,shared); MAGE.fix_all_output_nodes!(parent)
     for gen in 1:30
         p=make_children(parent,257,conf,arch,nc,ml,shared)
-        g=UTCGP.PopulationSequentialProgram(decode_compile(p,conf,arch,nc,ml,shared))
+        g=MAGE.PopulationSequentialProgram(decode_compile(p,conf,arch,nc,ml,shared))
         P=zeros(257,length(samples))
-        UTCGP.evaluate_population_into!(P,g,samples)
+        MAGE.evaluate_population_into!(P,g,samples)
         parent=deepcopy(p[argmin(first(population_mse(P,ytr,true)))])
         println("parent generation ",gen); flush(stdout)
     end
     p=make_children(parent,8193,conf,arch,nc,ml,shared)
-    cases=[("1+lambda",n,UTCGP.Population(p.pop[1:n]),conf) for n in (257,1025,8193)]
+    cases=[("1+lambda",n,MAGE.Population(p.pop[1:n]),conf) for n in (257,1025,8193)]
     muconf=RunConfGA(16,256,1,1.1,0.1,1)
-    mup=UTCGP.Population([deepcopy(p.pop[mod1(i,257)]) for i in 1:272])
-    UTCGP.ga_numbered_new_material_mutation_callback(UTCGP.GA_MUTATION_ARGS(mup,1,muconf,arch,nc,ml,shared))
+    mup=MAGE.Population([deepcopy(p.pop[mod1(i,257)]) for i in 1:272])
+    MAGE.ga_numbered_new_material_mutation_callback(MAGE.GA_MUTATION_ARGS(mup,1,muconf,arch,nc,ml,shared))
     push!(cases,("mu+lambda",272,mup,muconf))
     for (label,n,pop,c) in cases
-        g=UTCGP.PopulationSequentialProgram(decode_compile(pop,c,arch,nc,ml,shared))
+        g=MAGE.PopulationSequentialProgram(decode_compile(pop,c,arch,nc,ml,shared))
         P=eval_pop(g,samples,n); Q=similar(P)
-        w=UTCGP.TypedPopulationWorkspace(g)
+        w=MAGE.TypedPopulationWorkspace(g)
         @assert w !== nothing "SR graph unexpectedly fell back"
-        UTCGP.evaluate_population_into!(Q,g,samples;workspace=w,check=true)
+        MAGE.evaluate_population_into!(Q,g,samples;workspace=w,check=true)
         @assert all(P[i]===Q[i] for i in eachindex(P))
-        scalar=UTCGP.TypedPopulationWorkspace(g;batch_size=1)
-        UTCGP.evaluate_population_into!(Q,g,samples;workspace=scalar,check=true)
+        scalar=MAGE.TypedPopulationWorkspace(g;batch_size=1)
+        MAGE.evaluate_population_into!(Q,g,samples;workspace=scalar,check=true)
         baseline=measure(()->eval_pop(g,samples,n))
-        fast=measure(()->UTCGP.evaluate_population_into!(Q,g,samples;workspace=w))
-        scalarstats=measure(()->UTCGP.evaluate_population_into!(Q,g,samples;workspace=scalar))
+        fast=measure(()->MAGE.evaluate_population_into!(Q,g,samples;workspace=w))
+        scalarstats=measure(()->MAGE.evaluate_population_into!(Q,g,samples;workspace=scalar))
         println("FAST_RESULT ",JSON.json(Dict("case"=>label,"N"=>n,"steps"=>length(g.steps),"identity"=>true,"generic"=>baseline,"batch"=>fast,"scalar"=>scalarstats,"speedup"=>baseline["seconds"]/fast["seconds"])))
         flush(stdout)
     end

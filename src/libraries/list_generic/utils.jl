@@ -12,8 +12,8 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module listgeneric_utils
 
-using ..UTCGP: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
-import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
+using ..MAGE: listgeneric_basic, FunctionBundle, FunctionWrapper, append_method!
+import MAGE: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ##### #
 # SORT  #

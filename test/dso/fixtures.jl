@@ -1,6 +1,6 @@
 module BridgeFixtures
-using UTCGP, Statistics
-using UTCGP.TypedGraphBridge
+using MAGE, Statistics
+using MAGE.TypedGraphBridge
 export imagebridge, scalarbridge, call_at, branching, example_dag, execute
 idfloat(x::Float64,args...)=x
 onefloat(args...)=1.0
@@ -17,9 +17,9 @@ blur(x::Vector{Float64},y::Float64,args...)=x.+y
 meanimage(x::Vector{Float64},args...)=mean(x)
 scale(x::Vector{Float64},y::Float64,args...)=x.*y
 function bundle(entries,caster,fallback)
-    b=UTCGP.FunctionBundle(fallback)
+    b=MAGE.FunctionBundle(fallback)
     for (name,fn) in entries
-        push!(b.functions,UTCGP.FunctionWrapper(fn,name,caster,fallback))
+        push!(b.functions,MAGE.FunctionWrapper(fn,name,caster,fallback))
     end
     b
 end
@@ -32,15 +32,15 @@ function imagebridge(;width=8,outputs=2)
         :erode=>erode,
         :blur=>blur,:scale=>scale],
         identity,()->zeros(4))
-    ml=UTCGP.MetaLibrary([UTCGP.Library([images]),UTCGP.Library([floats()])])
-    ma=UTCGP.modelArchitecture(Type[Vector{Float64},Float64],[1,2],
+    ml=MAGE.MetaLibrary([MAGE.Library([images]),MAGE.Library([floats()])])
+    ma=MAGE.modelArchitecture(Type[Vector{Float64},Float64],[1,2],
         Type[Vector{Float64},Float64],fill(Float64,outputs),fill(2,outputs))
-    make_bridge(ma,ml,UTCGP.nodeConfig(width,1,3,2))
+    make_bridge(ma,ml,MAGE.nodeConfig(width,1,3,2))
 end
 function scalarbridge(;width=8,outputs=1)
-    ml=UTCGP.MetaLibrary([UTCGP.Library([floats()])])
-    ma=UTCGP.modelArchitecture(Type[Float64],[1],Type[Float64],fill(Float64,outputs),fill(1,outputs))
-    make_bridge(ma,ml,UTCGP.nodeConfig(width,1,3,1))
+    ml=MAGE.MetaLibrary([MAGE.Library([floats()])])
+    ma=MAGE.modelArchitecture(Type[Float64],[1],Type[Float64],fill(Float64,outputs),fill(1,outputs))
+    make_bridge(ma,ml,MAGE.nodeConfig(width,1,3,1))
 end
 function call_at(b,calls,name,args,column,gateway=0)
     fid=something(findfirst(f->f.name==name,b.catalog.families))
@@ -64,7 +64,7 @@ function example_dag(b)
     TypedDAG(calls,[6],b.catalog.fingerprint)
 end
 function execute(genome,b,args)
-    decoded=UTCGP.decode_with_output_nodes(deepcopy(genome),b.library,b.architecture,deepcopy(b.shared_inputs))
-    UTCGP.compile_program(decoded,b.architecture,b.library)(args...)
+    decoded=MAGE.decode_with_output_nodes(deepcopy(genome),b.library,b.architecture,deepcopy(b.shared_inputs))
+    MAGE.compile_program(decoded,b.architecture,b.library)(args...)
 end
 end

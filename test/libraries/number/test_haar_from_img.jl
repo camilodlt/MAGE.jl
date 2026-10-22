@@ -133,13 +133,13 @@ end
     segment_img = haar_test_image(SegmentPixel{Int})
 
     kinds = Dict(
-        :haar_lr => UTCGP.bundle_number_haarFromImg[:haar_lr].fn,
-        :haar_tb => UTCGP.bundle_number_haarFromImg[:haar_tb].fn,
-        :haar_diag_main => UTCGP.bundle_number_haarFromImg[:haar_diag_main].fn,
-        :haar_diag_anti => UTCGP.bundle_number_haarFromImg[:haar_diag_anti].fn,
-        :haar_center_surround => UTCGP.bundle_number_haarFromImg[:haar_center_surround].fn,
-        :haar_three_h => UTCGP.bundle_number_haarFromImg[:haar_three_h].fn,
-        :haar_three_v => UTCGP.bundle_number_haarFromImg[:haar_three_v].fn,
+        :haar_lr => MAGE.bundle_number_haarFromImg[:haar_lr].fn,
+        :haar_tb => MAGE.bundle_number_haarFromImg[:haar_tb].fn,
+        :haar_diag_main => MAGE.bundle_number_haarFromImg[:haar_diag_main].fn,
+        :haar_diag_anti => MAGE.bundle_number_haarFromImg[:haar_diag_anti].fn,
+        :haar_center_surround => MAGE.bundle_number_haarFromImg[:haar_center_surround].fn,
+        :haar_three_h => MAGE.bundle_number_haarFromImg[:haar_three_h].fn,
+        :haar_three_v => MAGE.bundle_number_haarFromImg[:haar_three_v].fn,
     )
 
     @test vec([1 0 0; 1 0 1; 1 1 1]) == [1, 1, 1, 0, 0, 1, 0, 1, 1]

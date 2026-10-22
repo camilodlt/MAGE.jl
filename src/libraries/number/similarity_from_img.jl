@@ -13,11 +13,11 @@ The exhaustive, always-current list of operators in each bundle is on the
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 m = zeros(20, 40); m[8:12, 10:14] .= 1.0                  # a bright square
 moved = circshift(m, (0, 4))                              # the same square, 4 columns to the right
 a, b = SImageND(IntensityPixel{N0f8}.(m)), SImageND(IntensityPixel{N0f8}.(moved))
-S = UTCGP.number_similarityFromImg
+S = MAGE.number_similarityFromImg
 
 S.sim_mse(a, a)          # 0.0: identical
 S.sim_iou(a, b)          # 1 / 9 ≈ 0.11: 5 shared pixels out of 45
@@ -28,8 +28,8 @@ S.sim_hist_intersection(a, b)   # 1.0: same pixel values, wherever they are
 module number_similarityFromImg
 
 using ImageCore: N0f8
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP: SImageND, IntensityPixel, BinaryPixel
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE: SImageND, IntensityPixel, BinaryPixel
 using ..number_intensityStatsFromImg: _reject_unmatched_roi, _is_set
 using ..image2D_object_common: clamp_unit, position_to_unit, pixel_value, scratch, squared_distance_map!
 

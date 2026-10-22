@@ -12,10 +12,10 @@ The exhaustive, always-current list of operators in each bundle is on the
 [Bundle Catalogue](@ref) page.
 """
 module listtuple_combinatorics
-import ..UTCGP: FunctionBundle, append_method!, FunctionWrapper
+import ..MAGE: FunctionBundle, append_method!, FunctionWrapper
 using Base: product
 using Combinatorics
-import UTCGP: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
+import MAGE: CONSTRAINED, SMALL_ARRAY, NANO_ARRAY, BIG_ARRAY
 
 # ############# #
 # COMBINATORICS #

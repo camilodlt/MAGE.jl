@@ -1,7 +1,7 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 DocTestSetup = quote
-  using UTCGP
+  using MAGE
 end
 ```
 
@@ -25,7 +25,7 @@ transcendental functions, reductions over lists — lives in the
 ### Module
 
 ```@docs
-UTCGP.float_basic
+MAGE.float_basic
 ```
 
 ### Bundle
@@ -43,7 +43,7 @@ derivatives. Worked examples, with the intermediate gradient images, are on the
 ### Module
 
 ```@docs
-UTCGP.float_orientation
+MAGE.float_orientation
 ```
 
 ### Bundle
@@ -72,8 +72,8 @@ centrality over all objects, and `xcoorargmaxdegreecentrality` the x coordinate 
 best-connected object.
 
 ```@example imagegraph
-using UTCGP
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "gallery_timing.jl"))
+using MAGE
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "gallery_timing.jl"))
 m = falses(40, 40)
 for (r, c) in ((5, 5), (5, 30), (20, 15), (33, 8), (30, 32), (15, 36))
     m[r:r+3, c:c+3] .= true                       # six 4×4 objects
@@ -87,7 +87,7 @@ end
 ### Module
 
 ```@docs
-UTCGP.imagegraph_basic
+MAGE.imagegraph_basic
 ```
 
 ### Bundle
@@ -107,7 +107,7 @@ statistics aggregated five ways over the co-occurrence directions.
 ### Module
 
 ```@docs
-UTCGP.experimental_GLCM
+MAGE.experimental_GLCM
 ```
 
 ### Bundle

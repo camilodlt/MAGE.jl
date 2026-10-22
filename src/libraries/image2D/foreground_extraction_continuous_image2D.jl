@@ -9,17 +9,17 @@ The exhaustive operator list is on the Bundle Catalogue page.
 """
 module image2D_foreground_extraction_continuous
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: scratch, output_pixels, image_result
+using ..MAGE: scratch, output_pixels, image_result
 
 using LinearAlgebra: Symmetric, cholesky, cholesky!
 using ..image2D_foreground_extraction_discrete: _foreground_apply!
 using SparseArrays: sparse, sparse!, CHOLMOD
 using ..image2D_saliency_fixation: _spectral_residual_grayscale
 using ..image2D_foreground_extraction_discrete: _automatic_graphcut_seeds, _mask_band_seeds, _seed_band
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

@@ -21,7 +21,7 @@ parameter ignore `p`.
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 m = falses(9, 9); m[2:8, 2:8] .= true; m[5, 5] = false   # a square with a one-pixel hole
 mask = SImageND(BinaryPixel.(m))
 B = typeof(mask)
@@ -34,13 +34,13 @@ holes(mask)         # only pixel (5, 5) is set
 """
 module image2D_mask_shape
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: image_result
+using ..MAGE: image_result
 
 using ImageMorphology: guo_iteration!
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

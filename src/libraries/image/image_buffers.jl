@@ -35,7 +35,7 @@
 #   └── SImageND(scratch(key_k, pixel type, size...), size type) otherwise
 
 "Key under which each task stores its scratch arrays in `task_local_storage()`."
-const _SCRATCH_POOL_KEY = :utcgp_image_scratch
+const _SCRATCH_POOL_KEY = :mage_image_scratch
 
 "Key of one scratch array: name, element type, and the requested size (`(0,)` for growable vectors)."
 const _ScratchSlot = Tuple{Symbol,DataType,Any}

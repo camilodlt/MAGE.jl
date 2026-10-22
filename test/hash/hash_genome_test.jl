@@ -132,7 +132,7 @@ end
         end
 
         # DECODE UT 1
-        program_1_ut1 = UTCGP.decode_with_output_node(
+        program_1_ut1 = MAGE.decode_with_output_node(
             ut_genome_1,
             ut_genome_1.output_nodes[1],
             ml,
@@ -141,7 +141,7 @@ end
         )
 
         # DECODE UT 2
-        program_1_ut2 = UTCGP.decode_with_output_node(
+        program_1_ut2 = MAGE.decode_with_output_node(
             ut_genome_2,
             ut_genome_1.output_nodes[1],
             ml,
@@ -190,7 +190,7 @@ end
         # The phenotype should remain unchanged
         # So they should be equal
         # DECODE UT 1
-        program_1_ut1 = UTCGP.decode_with_output_node(
+        program_1_ut1 = MAGE.decode_with_output_node(
             ut_genome_1,
             ut_genome_1.output_nodes[1],
             ml,
@@ -199,7 +199,7 @@ end
         )
 
         # DECODE UT 2
-        program_1_ut2 = UTCGP.decode_with_output_node(
+        program_1_ut2 = MAGE.decode_with_output_node(
             ut_genome_2,
             ut_genome_1.output_nodes[1],
             ml,

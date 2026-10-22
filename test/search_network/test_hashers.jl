@@ -31,14 +31,14 @@ end
         d = sn_setup()
         ind1 = deepcopy(d["utgenome"])
         ind2 = deepcopy(d["utgenome"])
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             d["meta_library"],
             d["model_architecture"],
             d["shared_inputs"],
         )
 
-        params = UTCGP.ParametersStandardEpoch(
+        params = MAGE.ParametersStandardEpoch(
             [1.0, 2.0],
             Population([ind1, ind2]),
             1,
@@ -47,7 +47,7 @@ end
             d["node_config"],
             d["meta_library"],
             d["shared_inputs"],
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]), # mocked
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]), # mocked
             1.0,
             p1,
             1,
@@ -62,13 +62,13 @@ end
         ind1 = deepcopy(d["utgenome"])
         ind2 = deepcopy(d["utgenome"])
         ind2[2][1][1].value = 2 # this node is not in the active graph
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             d["meta_library"],
             d["model_architecture"],
             d["shared_inputs"],
         )
-        params = UTCGP.ParametersStandardEpoch(
+        params = MAGE.ParametersStandardEpoch(
             [1.0, 2.0],
             Population([ind1, ind2]),
             1,
@@ -77,7 +77,7 @@ end
             d["node_config"],
             d["meta_library"],
             d["shared_inputs"],
-            UTCGP.PopulationPrograms(UTCGP.IndividualPrograms[]), # mocked
+            MAGE.PopulationPrograms(MAGE.IndividualPrograms[]), # mocked
             1.0,
             p1,
             1,
@@ -94,19 +94,19 @@ end
         ind1 = deepcopy(d["utgenome"])
         ind2 = deepcopy(d["utgenome"])
         ind2[2][1][1].value = 2 # this node is not in the active graph
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             d["meta_library"],
             d["model_architecture"],
             d["shared_inputs"],
         )
-        p2 = UTCGP.decode_with_output_nodes(
+        p2 = MAGE.decode_with_output_nodes(
             ind2,
             d["meta_library"],
             d["model_architecture"],
             d["shared_inputs"],
         )
-        params = UTCGP.ParametersStandardEpoch(
+        params = MAGE.ParametersStandardEpoch(
             [1.0, 2.0],
             Population([ind1, ind2]),
             1,
@@ -115,7 +115,7 @@ end
             d["node_config"],
             d["meta_library"],
             d["shared_inputs"],
-            UTCGP.PopulationPrograms([p1, p2]),
+            MAGE.PopulationPrograms([p1, p2]),
             1.0,
             p1,
             1,
@@ -131,19 +131,19 @@ end
         ind1 = deepcopy(d["utgenome"])
         ind2 = deepcopy(d["utgenome"])
         ind1.output_nodes[1][2].value = 1 # this changes the program
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             d["meta_library"],
             d["model_architecture"],
             d["shared_inputs"],
         )
-        p2 = UTCGP.decode_with_output_nodes(
+        p2 = MAGE.decode_with_output_nodes(
             ind2,
             d["meta_library"],
             d["model_architecture"],
             d["shared_inputs"],
         )
-        params = UTCGP.ParametersStandardEpoch(
+        params = MAGE.ParametersStandardEpoch(
             [1.0, 2.0],
             Population([ind1, ind2]),
             1,
@@ -152,7 +152,7 @@ end
             d["node_config"],
             d["meta_library"],
             d["shared_inputs"],
-            UTCGP.PopulationPrograms([p1, p2]),
+            MAGE.PopulationPrograms([p1, p2]),
             1.0,
             p1,
             1,
@@ -171,14 +171,14 @@ end
         ind2 = deepcopy(d["utgenome"])
         ind3 = deepcopy(d["utgenome"])
 
-        p1 = UTCGP.decode_with_output_nodes(
+        p1 = MAGE.decode_with_output_nodes(
             ind1,
             d["meta_library"],
             d["model_architecture"],
             d["shared_inputs"],
         )
 
-        params = UTCGP.ParametersStandardEpoch(
+        params = MAGE.ParametersStandardEpoch(
             [1.0, 2.0, 3.0], # it just returns this 
             Population([ind1, ind2, ind3]),
             1,
@@ -187,7 +187,7 @@ end
             d["node_config"],
             d["meta_library"],
             d["shared_inputs"],
-            UTCGP.PopulationPrograms([p1]),
+            MAGE.PopulationPrograms([p1]),
             1.0,
             p1,
             1,

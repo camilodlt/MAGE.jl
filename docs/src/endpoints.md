@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Endpoints and Tracking
@@ -21,7 +21,7 @@ individual in a `fitness_results` field. Lower is better — MAGE minimises.
 You hand the *type* to the fitter; it is constructed once per batch.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["endpoints/endpoint_structs.jl"]
 ```
 
@@ -30,14 +30,14 @@ Pages = ["endpoints/endpoint_structs.jl"]
 The three standard PSB2 error functions.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["endpoints/psb2_metrics.jl"]
 ```
 
 ### Writing one
 
 ```julia
-struct EndpointMAE <: UTCGP.BatchEndpoint
+struct EndpointMAE <: MAGE.BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointMAE(preds::Vector{<:Vector{<:Number}}, y::Number)
         res = Float64[]
@@ -59,7 +59,7 @@ hands you a vector.
 ## Loss trackers
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["metrics_trackers/individual_loss_tracker.jl"]
 ```
 
@@ -73,7 +73,7 @@ best_per_generation = [history[g][1] for g in 1:length(history)]
 ## Experiment tracking
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["metrics_trackers/aim_callback.jl", "metrics_trackers/local_file.jl"]
 ```
 

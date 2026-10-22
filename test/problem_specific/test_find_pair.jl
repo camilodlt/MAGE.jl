@@ -1,10 +1,10 @@
 using Combinatorics
-using UTCGP.listnumber_vectuples: sum_tuples_in_vector
-using UTCGP.listinteger_iscond: is_eq_to
-using UTCGP.integer_find: index_of_first_true
-using UTCGP.listgeneric_subset: subset_list_of_tuples
+using MAGE.listnumber_vectuples: sum_tuples_in_vector
+using MAGE.listinteger_iscond: is_eq_to
+using MAGE.integer_find: index_of_first_true
+using MAGE.listgeneric_subset: subset_list_of_tuples
 
-using UTCGP.listtuple_combinatorics: vector_of_combinations
+using MAGE.listtuple_combinatorics: vector_of_combinations
 
 function algo_find_pair(x, y)
     vec, wanted = x

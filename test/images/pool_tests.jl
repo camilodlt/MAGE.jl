@@ -1,4 +1,4 @@
-using UTCGP
+using MAGE
 using ImageCore: N0f8
 
 function _dummy_intensity_pool_img()

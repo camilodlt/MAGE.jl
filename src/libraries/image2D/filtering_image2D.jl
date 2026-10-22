@@ -11,16 +11,16 @@ The exhaustive, always-current list of operators in each bundle is on the
 """
 module image2D_filtering
 
-using ..UTCGP: _factory_type_symbol, @serialized_factory
+using ..MAGE: _factory_type_symbol, @serialized_factory
 
-using ..UTCGP: output_pixels, image_result, scratch, pixel_values!
+using ..MAGE: output_pixels, image_result, scratch, pixel_values!
 
 using ImageFiltering
 using ImageFiltering: imfilter!
-using ..UTCGP: image2D_basic
-using ..UTCGP: image2D_morph
-using ..UTCGP: FunctionBundle, append_method!
-import UTCGP:
+using ..MAGE: image2D_basic
+using ..MAGE: image2D_morph
+using ..MAGE: FunctionBundle, append_method!
+import MAGE:
     CONSTRAINED,
     MIN_INT,
     MAX_INT,
@@ -29,7 +29,7 @@ import UTCGP:
     _positive_params,
     _ceil_positive_params
 using ImageCore: clamp01nan
-using ..UTCGP:
+using ..MAGE:
     SizedImage, SizedImage2D, SImageND, _get_image_tuple_size, _get_image_type, _validate_factory_type, _get_image_pixel_type,
     IntensityPixel, BinaryPixel, SegmentPixel
 

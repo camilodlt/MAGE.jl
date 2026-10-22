@@ -15,8 +15,8 @@ end
 
 function sn_behavior_epoch_mock()
     # Libraries
-    float_bundles = UTCGP.get_float_bundles() # type 1
-    vecint_bundles = UTCGP.get_listinteger_bundles() # type 2
+    float_bundles = MAGE.get_float_bundles() # type 1
+    vecint_bundles = MAGE.get_listinteger_bundles() # type 2
     meta_library = MetaLibrary([Library(float_bundles), Library(vecint_bundles)])
 
     # mock the epoch and run 
@@ -221,7 +221,7 @@ end
         child3, child4 = make_two_behaviors_the_same_but_diff_encoding(parent, d)
         progs = []
         for g in [child1, child2, child3, child4, parent]
-            p = UTCGP.decode_with_output_nodes(
+            p = MAGE.decode_with_output_nodes(
                 g,
                 d["meta_library"],
                 d["model_architecture"],
@@ -241,7 +241,7 @@ end
             d["node_config"],
             d["meta_library"],
             d["shared_inputs"],
-            UTCGP.PopulationPrograms(identity.(progs)),
+            MAGE.PopulationPrograms(identity.(progs)),
             1.0,
             progs[3],
             1,

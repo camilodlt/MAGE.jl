@@ -78,7 +78,7 @@ function nsga2_population_callback(pop_args::NSGA2_POP_ARGS)::Option{Population}
     Pop = pop_args.population
     pop_size = Config.pop_size
     @assert length(Pop) == pop_size "While making new pop. More individuals in the population than needed. Actual $(length(Pop)) vs Needed (by the config) : $(pop_size)"
-    inds = Vector{UTCGP.UTGenome}(undef, pop_size)
+    inds = Vector{MAGE.UTGenome}(undef, pop_size)
 
     # Tournament (adding individuals with others selected with tournament)
     for ith_new = 1:Config.pop_size

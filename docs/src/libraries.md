@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Libraries
@@ -147,7 +147,7 @@ A caster coerces an operator's result into the chromosome's type. Bundles carry
 one; [`update_caster!`](@ref) re-points it.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["libraries/casters.jl"]
 ```
 
@@ -158,45 +158,45 @@ casters and fallbacks already set for the target type.
 
 | Function | Chromosome type |
 |:--|:--|
-| `UTCGP.get_sr_float_bundles` | `Float64`, trimmed for symbolic regression |
-| `UTCGP.get_float_bundles` | `Float64` |
-| `UTCGP.get_integer_bundles` | `Int` |
-| `UTCGP.get_string_bundles` | `String` |
-| `UTCGP.get_listinteger_bundles` | `Vector{Int}` |
-| `UTCGP.get_listfloat_bundles` | `Vector{Float64}` |
-| `UTCGP.get_liststring_bundles` | `Vector{String}` |
-| `UTCGP.get_list_int_tuples_bundles` | `Vector{Tuple{Int,Int}}` |
-| `UTCGP.get_list_string_tuples_bundles` | `Vector{Tuple{String,String}}` |
-| `UTCGP.get_image2Dintensity_factory_bundles` | intensity images |
-| `UTCGP.get_image2Dbinary_factory_bundles` | binary images (masks) |
-| `UTCGP.get_image2Dsegment_factory_bundles` | segment images (label maps) |
-| `UTCGP.get_float_bundles_atari` | `Float64`, Atari-oriented |
-| `UTCGP.get_extension_saliency_intensityimg` | new intensity saliency factories |
-| `UTCGP.get_extension_foreground_intensityimg` | new continuous foreground factories |
-| `UTCGP.get_extension_foreground_binaryimg` | new discrete foreground factories |
-| `UTCGP.get_extension_blob_intensityimg` | new masked-intensity blob factories |
-| `UTCGP.get_extension_blob_binaryimg` | new binary blob-mask factories |
-| `UTCGP.get_extension_locate_nb` | mask-free locators, object locators and object descriptors (image → number) |
-| `UTCGP.get_extension_zoom_intensityimg` | intensity crop, resize and recenter factories |
-| `UTCGP.get_extension_zoom_binaryimg` | binary-mask crop, resize and recenter factories |
-| `UTCGP.get_extension_zoom_segmentimg` | segment-map crop, resize and recenter factories |
-| `UTCGP.get_extension_maskshape_binaryimg` | mask clean-up factories: fill holes, hulls, skeleton, size and border filters |
-| `UTCGP.get_extension_maskshape_intensityimg` | mask distance-map factories (intensity output) |
-| `UTCGP.get_extension_transform_intensityimg` | intensity flips, rotations, shifts and canonical poses |
-| `UTCGP.get_extension_transform_binaryimg` | binary flips, rotations, shifts and canonical poses |
-| `UTCGP.get_extension_transform_segmentimg` | segment flips, rotations, shifts and canonical poses |
-| `UTCGP.get_extension_similarity_nb` | image similarity scores, shift estimation and template matching |
-| `UTCGP.get_extension_decision_nb` | scalar decision and motion operators |
-| `UTCGP.get_extension_descriptors_nb` | classification descriptors: intensity statistics (with ROI forms), shape and Hu invariants, object aggregates, granulometry |
-| `UTCGP.get_extension_volume_intensityimg` | 3D → 3D intensity-volume factories |
-| `UTCGP.get_extension_volume_binaryimg` | 3D → 3D binary-volume factories |
-| `UTCGP.get_extension_volume_to_intensityimg` | 3D → 2D projections and slices (intensity output) |
-| `UTCGP.get_extension_volume_to_binaryimg` | 3D → 2D silhouettes and slices (binary output) |
-| `UTCGP.get_extension_volume_nb` | 3D → scalar: intensity statistics, 3D shape, granulometry, profiles |
-| `UTCGP.get_extension_color_statistics_rgb_intensityimg` | RGB-to-2D intensity color-statistic factories |
-| `UTCGP.get_extension_rgbimg` | RGB-output factories, including binary-mask multiplication |
-| `UTCGP.get_extension_spatial_rgbimg` | opt-in RGB-to-RGB spatial-feature factories |
-| `UTCGP.get_extension_rgb_compositionimg` | opt-in 2D-intensity-to-RGB composition factories |
+| `MAGE.get_sr_float_bundles` | `Float64`, trimmed for symbolic regression |
+| `MAGE.get_float_bundles` | `Float64` |
+| `MAGE.get_integer_bundles` | `Int` |
+| `MAGE.get_string_bundles` | `String` |
+| `MAGE.get_listinteger_bundles` | `Vector{Int}` |
+| `MAGE.get_listfloat_bundles` | `Vector{Float64}` |
+| `MAGE.get_liststring_bundles` | `Vector{String}` |
+| `MAGE.get_list_int_tuples_bundles` | `Vector{Tuple{Int,Int}}` |
+| `MAGE.get_list_string_tuples_bundles` | `Vector{Tuple{String,String}}` |
+| `MAGE.get_image2Dintensity_factory_bundles` | intensity images |
+| `MAGE.get_image2Dbinary_factory_bundles` | binary images (masks) |
+| `MAGE.get_image2Dsegment_factory_bundles` | segment images (label maps) |
+| `MAGE.get_float_bundles_atari` | `Float64`, Atari-oriented |
+| `MAGE.get_extension_saliency_intensityimg` | new intensity saliency factories |
+| `MAGE.get_extension_foreground_intensityimg` | new continuous foreground factories |
+| `MAGE.get_extension_foreground_binaryimg` | new discrete foreground factories |
+| `MAGE.get_extension_blob_intensityimg` | new masked-intensity blob factories |
+| `MAGE.get_extension_blob_binaryimg` | new binary blob-mask factories |
+| `MAGE.get_extension_locate_nb` | mask-free locators, object locators and object descriptors (image → number) |
+| `MAGE.get_extension_zoom_intensityimg` | intensity crop, resize and recenter factories |
+| `MAGE.get_extension_zoom_binaryimg` | binary-mask crop, resize and recenter factories |
+| `MAGE.get_extension_zoom_segmentimg` | segment-map crop, resize and recenter factories |
+| `MAGE.get_extension_maskshape_binaryimg` | mask clean-up factories: fill holes, hulls, skeleton, size and border filters |
+| `MAGE.get_extension_maskshape_intensityimg` | mask distance-map factories (intensity output) |
+| `MAGE.get_extension_transform_intensityimg` | intensity flips, rotations, shifts and canonical poses |
+| `MAGE.get_extension_transform_binaryimg` | binary flips, rotations, shifts and canonical poses |
+| `MAGE.get_extension_transform_segmentimg` | segment flips, rotations, shifts and canonical poses |
+| `MAGE.get_extension_similarity_nb` | image similarity scores, shift estimation and template matching |
+| `MAGE.get_extension_decision_nb` | scalar decision and motion operators |
+| `MAGE.get_extension_descriptors_nb` | classification descriptors: intensity statistics (with ROI forms), shape and Hu invariants, object aggregates, granulometry |
+| `MAGE.get_extension_volume_intensityimg` | 3D → 3D intensity-volume factories |
+| `MAGE.get_extension_volume_binaryimg` | 3D → 3D binary-volume factories |
+| `MAGE.get_extension_volume_to_intensityimg` | 3D → 2D projections and slices (intensity output) |
+| `MAGE.get_extension_volume_to_binaryimg` | 3D → 2D silhouettes and slices (binary output) |
+| `MAGE.get_extension_volume_nb` | 3D → scalar: intensity statistics, 3D shape, granulometry, profiles |
+| `MAGE.get_extension_color_statistics_rgb_intensityimg` | RGB-to-2D intensity color-statistic factories |
+| `MAGE.get_extension_rgbimg` | RGB-output factories, including binary-mask multiplication |
+| `MAGE.get_extension_spatial_rgbimg` | opt-in RGB-to-RGB spatial-feature factories |
+| `MAGE.get_extension_rgb_compositionimg` | opt-in 2D-intensity-to-RGB composition factories |
 
 The historical `get_extension_intensityimg` and `get_extension_binaryimg`
 functions retain only their original pooling and orientation bundles. Saliency,
@@ -207,7 +207,7 @@ explicitly. Add `get_extension_spatial_rgbimg()` and/or
 the basic RGB library's leading identity and constructor.
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["libraries/pre_made_libraries.jl"]
 ```
 
@@ -218,7 +218,7 @@ This is the shared machinery under [Automatically Defined Functions](@ref) and
 [Generated Functions](@ref).
 
 ```@autodocs
-Modules = [UTCGP]
+Modules = [MAGE]
 Pages = ["libraries/modular_function.jl", "libraries/modular_library.jl"]
 ```
 

@@ -3,7 +3,7 @@ ENV["JULIA_PYTHONCALL_EXE"] = "/home/irit/miniconda3/envs/pmlb/bin/python"
 
 using Revise
 using Random
-using UTCGP
+using MAGE
 import DataFrames: DataFrame, nrow
 using Pkg
 using PythonCall
@@ -37,7 +37,7 @@ println("Length Train, val, test : $(length(Xtrain)), $(length(Xval)), $(length(
 ###########
 # LOSS FN #
 ###########
-struct EndpointMAE <: UTCGP.BatchEndpoint
+struct EndpointMAE <: MAGE.BatchEndpoint
     fitness_results::Vector{Float64}
     function EndpointMAE(preds::Vector{<:Vector{<:Number}}, y::Number)
         res = Float64[]
@@ -82,7 +82,7 @@ end
 run_conf = runConf(10, 100, 1.1, 0.1)
 
 # Bundles Integer
-float_bundles = UTCGP.get_sr_float_bundles()
+float_bundles = MAGE.get_sr_float_bundles()
 
 # Libraries
 lib_float = Library(float_bundles)
@@ -116,7 +116,7 @@ set_node_element_value!(
 set_node_freeze_state(ut_genome.output_nodes[1][2])
 
 
-mutable struct CustomTracker <: UTCGP.AbstractCallable
+mutable struct CustomTracker <: MAGE.AbstractCallable
     test_losses::Union{Nothing,Vector}
     best_ind::Union{UTGenome,Nothing}
     best_loss::Float64
@@ -144,13 +144,13 @@ function (ct::CustomTracker)(
     losses = Vector{Float64}(undef, length(ct.y))
     i = 1
     for (gt_x, gt_y) in zip(ct.X, ct.y)
-        UTCGP.reset_programs!(best_program)
+        MAGE.reset_programs!(best_program)
         input_nodes = [
             InputNode(value, pos, pos, model_architecture.inputs_types_idx[pos]) for
             (pos, value) in enumerate(gt_x)
         ]
         replace_shared_inputs!(best_program, input_nodes)
-        outputs = UTCGP.evaluate_individual_programs(
+        outputs = MAGE.evaluate_individual_programs(
             best_program,
             model_arch.chromosomes_types,
             meta_library,
@@ -163,7 +163,7 @@ function (ct::CustomTracker)(
         i += 1
     end
     @show std(losses)
-    UTCGP.reset_programs!(best_program)
+    MAGE.reset_programs!(best_program)
     loss = mean(losses)
     push!(ct.test_losses, loss)
     if loss <= ct.best_loss
@@ -174,7 +174,7 @@ function (ct::CustomTracker)(
     @info "VAL LOSS : $(ct.best_loss)"
 end
 
-best_genome, best_program, _ = UTCGP.fit(
+best_genome, best_program, _ = MAGE.fit(
     X_for_fitting,  # multi input
     Y_for_fitting,
     shared_inputs,

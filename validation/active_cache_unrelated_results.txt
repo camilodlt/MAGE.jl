@@ -14,7 +14,7 @@ Compile, validate, install, and dispatch: Test Failed at /home/camilo/Documents/
        [1] which(f::Any, t::Any)
          @ Base ./reflection.jl:2228
        [2] which(f::SourceBackedFunction, t::Type{Tuple{Int64}})
-         @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
+         @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
        [3] macro expansion
          @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:88 [inlined]
        [4] macro expansion
@@ -57,7 +57,7 @@ Compile, validate, install, and dispatch: Test Failed at /home/camilo/Documents/
        [1] which(f::Any, t::Any)
          @ Base ./reflection.jl:2228
        [2] which(f::SourceBackedFunction, t::Type{Tuple{Float64, Int64}})
-         @ UTCGP ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
+         @ MAGE ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/src/libraries/llm_generated_functions.jl:1635
        [3] macro expansion
          @ ~/Documents/dev/MAGENetRunner/POPULATION_MAGE_fastpop/test/libraries/test_llm_generated_functions.jl:89 [inlined]
        [4] macro expansion

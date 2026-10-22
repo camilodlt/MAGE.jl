@@ -1,5 +1,5 @@
-using UTCGP.listinteger_string: match_with_overlap
-using UTCGP.listnumber_arithmetic: subtract_broadcast
+using MAGE.listinteger_string: match_with_overlap
+using MAGE.listnumber_arithmetic: subtract_broadcast
 
 indices_of_substring_train_data = [
     [["a", "5"], [[]]],

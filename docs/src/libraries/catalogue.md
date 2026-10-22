@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = UTCGP
+CurrentModule = MAGE
 ```
 
 # Bundle Catalogue
@@ -17,7 +17,7 @@ the pages under **Function Libraries** carry the worked examples.
     [Libraries](@ref).
 
 ```@setup catalogue
-using UTCGP
+using MAGE
 using Markdown
 
 # Render generated content as HTML so explicit bundle anchors survive.
@@ -26,7 +26,7 @@ using Markdown
 const PRETTY = get(ENV, "CI", "false") == "true"
 page_url(page) = PRETTY ? "../$(page)/" : "$(page).html"
 
-include(joinpath(dirname(pathof(UTCGP)), "..", "docs", "bundle_inventory.jl"))
+include(joinpath(dirname(pathof(MAGE)), "..", "docs", "bundle_inventory.jl"))
 
 esc(s) = replace(String(s), "|" => "\\|", "[" => "\\[", "]" => "\\]")
 
@@ -37,9 +37,9 @@ for (title, pages) in groups
     for (page, names_) in pages
         for name in names_
             sym = Symbol(name)
-            isdefined(UTCGP, sym) || continue
-            bundle = getfield(UTCGP, sym)
-            bundle isa UTCGP.FunctionBundle || continue
+            isdefined(MAGE, sym) || continue
+            bundle = getfield(MAGE, sym)
+            bundle isa MAGE.FunctionBundle || continue
             push!(listed, name)
             url = string(page_url(page), "#", anchor_for(name))
             n = length(bundle)
@@ -58,15 +58,15 @@ end
 
 # Anything exported but not placed above: never silently drop it.
 all_bundles = String[]
-for n in names(UTCGP)
-    v = try getfield(UTCGP, n) catch; continue end
-    v isa UTCGP.FunctionBundle && push!(all_bundles, String(n))
+for n in names(MAGE)
+    v = try getfield(MAGE, n) catch; continue end
+    v isa MAGE.FunctionBundle && push!(all_bundles, String(n))
 end
 missing_ = sort(setdiff(all_bundles, listed))
 if !isempty(missing_)
     println(io, "## Ungrouped\n")
     for name in missing_
-        bundle = getfield(UTCGP, Symbol(name))
+        bundle = getfield(MAGE, Symbol(name))
         println(io, "`MAGEBUNDLEANCHOR", name, "`\n")
         println(io, "### `", name, "`\n")
         println(io, "| Fn | Description |")

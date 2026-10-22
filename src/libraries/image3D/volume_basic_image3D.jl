@@ -20,7 +20,7 @@ Bundle Catalogue page.
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 I = typeof(SImageND(IntensityPixel{N0f8}.(zeros(28, 28, 28))))   # the volume type to produce
 bundle = bundle_image3DIntensity_volume_basic_factory
 
@@ -34,10 +34,10 @@ to_intensity(mask)            # set voxels → 1.0, the others → 0.0 (mask: a 
 """
 module image3D_volume_basic
 
-using ..UTCGP: @image_out, image_result
+using ..MAGE: @image_out, image_result
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

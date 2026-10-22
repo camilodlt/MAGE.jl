@@ -79,6 +79,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using UTCGP
-          DocMeta.setdocmeta!(UTCGP, :DocTestSetup, :(using UTCGP); recursive=true)
-          doctest(UTCGP)
+          using MAGE
+          DocMeta.setdocmeta!(MAGE, :DocTestSetup, :(using MAGE); recursive=true)
+          doctest(MAGE)

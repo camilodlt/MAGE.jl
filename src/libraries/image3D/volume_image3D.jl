@@ -49,7 +49,7 @@ operators (`_otsu_mask!`, `_component!`) write the output pixels directly.
 # Example
 
 ```julia
-using UTCGP, ImageCore
+using MAGE, ImageCore
 vol = SImageND(IntensityPixel{N0f8}.(rand(28, 28, 28)))     # a 28³ intensity volume
 I = typeof(vol)
 
@@ -62,10 +62,10 @@ blur(vol, 0.0, 7)  # trailing extra inputs are ignored: σ = 0.3 voxel
 """
 module image3D_volume
 
-using ..UTCGP: output_pixels, image_result
+using ..MAGE: output_pixels, image_result
 
-using ..UTCGP: FunctionBundle, append_method!
-using ..UTCGP:
+using ..MAGE: FunctionBundle, append_method!
+using ..MAGE:
     BinaryPixel,
     IntensityPixel,
     SImageND,

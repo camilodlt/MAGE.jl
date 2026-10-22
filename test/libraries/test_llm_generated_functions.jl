@@ -1,27 +1,27 @@
-using UTCGP
+using MAGE
 
-struct MockGeneratedFunctionClient <: UTCGP.AbstractGeneratedFunctionClient
-    initial::UTCGP.GeneratedFunctionSpec
-    repaired::UTCGP.GeneratedFunctionSpec
+struct MockGeneratedFunctionClient <: MAGE.AbstractGeneratedFunctionClient
+    initial::MAGE.GeneratedFunctionSpec
+    repaired::MAGE.GeneratedFunctionSpec
 end
 
-function UTCGP.generate_function_spec(
+function MAGE.generate_function_spec(
         client::MockGeneratedFunctionClient,
         ::AbstractString,
         ;
         encoded_images::Vector{String} = String[],
-    )::UTCGP.GeneratedFunctionSpec
+    )::MAGE.GeneratedFunctionSpec
     return client.initial
 end
 
-function UTCGP.repair_function_spec(
+function MAGE.repair_function_spec(
         client::MockGeneratedFunctionClient,
         ::AbstractString,
-        ::UTCGP.GeneratedFunctionSpec,
-        ::UTCGP.GeneratedFunctionValidationReport,
+        ::MAGE.GeneratedFunctionSpec,
+        ::MAGE.GeneratedFunctionValidationReport,
         ;
         encoded_images::Vector{String} = String[],
-    )::UTCGP.GeneratedFunctionSpec
+    )::MAGE.GeneratedFunctionSpec
     return client.repaired
 end
 
@@ -37,7 +37,7 @@ function _llm_generated_function_fixture()
     identity_float = FunctionWrapper((x::Float64, args...) -> x, :identity_float, nothing, fallback_float)
     push!(bundle_float.functions, [identity_float]...)
 
-    ml = UTCGP.MetaLibrary([Library([bundle_int]), Library([bundle_float])])
+    ml = MAGE.MetaLibrary([Library([bundle_int]), Library([bundle_float])])
     ma = modelArchitecture([Int, Float64], [1, 2], [Int, Float64], [Int], [1])
     nc = nodeConfig(4, 1, 3, 2)
 
@@ -93,7 +93,7 @@ end
         library_idx, fn_idx, wrapper = install_generated_function!(ml, ma, artifact)
         @test library_idx == 1
         @test ml[library_idx][fn_idx].name == :sum_plus_one
-        @test wrapper.description == UTCGP._sanitize_wrapper_description(:sum_plus_one, spec.description)
+        @test wrapper.description == MAGE._sanitize_wrapper_description(:sum_plus_one, spec.description)
         @test wrapper.fn.source == artifact.source
         @test wrapper.fn(3, 4) == 8
     end
@@ -153,7 +153,7 @@ end
     end
 
     @testset "Namespace dispatch handles same readable name with multiple methods" begin
-        dispatcher = UTCGP.GeneratedFunctionNameDispatcher(
+        dispatcher = MAGE.GeneratedFunctionNameDispatcher(
             :reduce_length,
             Any[
                 (x::String, args...) -> length(x),
@@ -263,7 +263,7 @@ end
         )
 
         @test llm_generated_function_client_backend(client) == "llama_cpp"
-        parsed = UTCGP._parse_generated_function_spec(
+        parsed = MAGE._parse_generated_function_spec(
             client,
             """
             {"name":"typed_sum","argument_names":["x1","x2"],"input_types":["Int64","Int64"],"output_type":"Int64","body":"return x1 + x2","description":"Adds two typed integers."}

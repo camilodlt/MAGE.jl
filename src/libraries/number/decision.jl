@@ -15,7 +15,7 @@ to `Float64` and extra trailing inputs are ignored.
 # Example: a Pong paddle controller
 
 ```julia
-D = UTCGP.number_decision
+D = MAGE.number_decision
 ball_y, paddle_y = 0.30, 0.55
 D.number_toward(ball_y, paddle_y)          # -1.0: move the paddle up
 D.number_toward(0.54, paddle_y, 0.02)      #  0.0: within the dead zone, stay
@@ -24,7 +24,7 @@ D.number_bounce(0.9, 0.3, 1.0)             #  0.8: 0.9 + 0.3 = 1.2 bounces back 
 """
 module number_decision
 
-using ..UTCGP: FunctionBundle, append_method!
+using ..MAGE: FunctionBundle, append_method!
 
 # Returned by the bundles when no method matches the inputs.
 fallback(args...) = return 0.0

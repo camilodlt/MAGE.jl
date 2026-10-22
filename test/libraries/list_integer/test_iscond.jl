@@ -1,68 +1,68 @@
-using UTCGP.listinteger_iscond: even_indices_mask
-using UTCGP.listinteger_iscond: odd_indices_mask
-using UTCGP.listinteger_iscond: mask
-using UTCGP.listinteger_iscond: inverse_mask
+using MAGE.listinteger_iscond: even_indices_mask
+using MAGE.listinteger_iscond: odd_indices_mask
+using MAGE.listinteger_iscond: mask
+using MAGE.listinteger_iscond: inverse_mask
 
 
-using UTCGP.listinteger_iscond: greater_than_broadcast
-using UTCGP.listinteger_iscond: less_than_broadcast
-using UTCGP.listinteger_iscond: eq_broadcast
+using MAGE.listinteger_iscond: greater_than_broadcast
+using MAGE.listinteger_iscond: less_than_broadcast
+using MAGE.listinteger_iscond: eq_broadcast
 
 
-using UTCGP.listinteger_iscond: compare_two_vectors
+using MAGE.listinteger_iscond: compare_two_vectors
 
 
 
 @testset begin
     @test begin
         # bundle import
-        using UTCGP: bundle_listinteger_iscond
+        using MAGE: bundle_listinteger_iscond
         length(bundle_listinteger_iscond) == 18 &&
             _unique_names_in_bundle(bundle_listinteger_iscond)
     end
     @test begin
-        using UTCGP.listinteger_iscond: is_sup_0
+        using MAGE.listinteger_iscond: is_sup_0
         is_sup_0([0, 1, 2]) == [0, 1, 1]
     end
     @test begin
-        using UTCGP.listinteger_iscond: is_eq_0
+        using MAGE.listinteger_iscond: is_eq_0
         is_eq_0([0, 1, 2]) == [1, 0, 0]
     end
     @test begin
-        using UTCGP.listinteger_iscond: is_less_0
+        using MAGE.listinteger_iscond: is_less_0
         is_less_0([0, 1, 2]) == [0, 0, 0]
     end
 
     # EQ to something 
 
     @test begin
-        using UTCGP.listinteger_iscond: is_eq_to
+        using MAGE.listinteger_iscond: is_eq_to
         is_eq_to([0, 1, 2], 2) == [0, 0, 1]
     end
     @test begin
         # since == is used
-        using UTCGP.listinteger_iscond: is_eq_to
+        using MAGE.listinteger_iscond: is_eq_to
         is_eq_to([0, 1, 2], 2.0) == [0, 0, 1]
     end
 
     # FROM TUPLE 
     @test begin
-        using UTCGP.listinteger_iscond: compare_tuple_a_gr_b
+        using MAGE.listinteger_iscond: compare_tuple_a_gr_b
         compare_tuple_a_gr_b([(1, 0), (1, 1)]) == [1, 0]
     end
     @test begin
-        using UTCGP.listinteger_iscond: compare_tuple_a_eq_b
+        using MAGE.listinteger_iscond: compare_tuple_a_eq_b
         compare_tuple_a_eq_b([(1, 0), (1, 1)]) == [0, 1]
     end
     @test begin
-        using UTCGP.listinteger_iscond: compare_tuple_a_less_b
+        using MAGE.listinteger_iscond: compare_tuple_a_less_b
         compare_tuple_a_less_b([(1, 0), (1, 1)]) == [0, 0]
     end
 
 
     # MORE THAN RIGHT
     @test begin
-        using UTCGP.listinteger_iscond: is_more_than_right
+        using MAGE.listinteger_iscond: is_more_than_right
         is_more_than_right([10, 5, 4]) == [1, 1, 1]
     end
     @test begin
@@ -73,7 +73,7 @@ using UTCGP.listinteger_iscond: compare_two_vectors
     end
     # MORE OR EQ THAN RIGHT
     @test begin
-        using UTCGP.listinteger_iscond: is_more_eq_than_right
+        using MAGE.listinteger_iscond: is_more_eq_than_right
         is_more_eq_than_right([9, 5, 4]) == [1, 1, 1]
     end
     @test begin
@@ -88,7 +88,7 @@ using UTCGP.listinteger_iscond: compare_two_vectors
 
     # IS EQ TO PREV
     @test begin
-        using UTCGP.listinteger_iscond: is_eq_to_prev
+        using MAGE.listinteger_iscond: is_eq_to_prev
         is_eq_to_prev([1, 1, 2]) == [0, 1, 0] &&
             is_eq_to_prev([1, 2, 3]) == [0, 0, 0] &&
             is_eq_to_prev([1, 1, 1]) == [0, 1, 1]
@@ -113,11 +113,11 @@ using UTCGP.listinteger_iscond: compare_two_vectors
 
     # MASK AND INVERSE MASK
     @test begin
-        using UTCGP.listinteger_iscond: mask
+        using MAGE.listinteger_iscond: mask
         mask([1, 0, 12, 0.12]) == [1, 0, 1, 1] && mask([0, -1]) == [0, 0]
     end
     @test begin
-        using UTCGP.listinteger_iscond: mask
+        using MAGE.listinteger_iscond: mask
         inverse_mask([1, 0, 12, 0.12]) == [0, 1, 0, 0] &&
             inverse_mask([0, -1]) == [1, 1] &&
             inverse_mask([1, 0, 1]) == [0, 1, 0]
@@ -125,9 +125,9 @@ using UTCGP.listinteger_iscond: compare_two_vectors
 
     # COMPARE VECTOR AGAINST NUMBER
 
-    using UTCGP.listinteger_iscond: greater_than_broadcast
-    using UTCGP.listinteger_iscond: less_than_broadcast
-    using UTCGP.listinteger_iscond: eq_broadcast
+    using MAGE.listinteger_iscond: greater_than_broadcast
+    using MAGE.listinteger_iscond: less_than_broadcast
+    using MAGE.listinteger_iscond: eq_broadcast
 
     # --- GR THAN
     @test begin # int
