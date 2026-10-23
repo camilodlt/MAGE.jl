@@ -15,6 +15,7 @@ function add_to_library!(
     )
     @warn "No caster or callback"
     fw = FunctionWrapper(mod_fn, mod_fn.name, nothing, () -> nothing; description = description)
+    bump_library_decode_version!()
     push!(mod_lib.library, fw)
     new_idx = length(mod_lib.library)
     mod_lib.name_to_index[mod_fn.name] = new_idx

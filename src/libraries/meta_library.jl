@@ -89,6 +89,7 @@ Adds a bundle to the bundles of the Library.
 Returns the length of the internal bundles after addition (nb of bundles in the Library).
 """
 function add_bundle_to_library!(library::AbstractLibrary, bundle::FunctionBundle)::Int
+    bump_library_decode_version!()
     push!(library.bundles, bundle)
     return length(library.bundles)
 end
@@ -136,6 +137,7 @@ This operation is meant to be run once, after all bundles have been added to the
 Returns the number of functions in Library (after unpacking).
 """
 function unpack_bundles_in_library!(library::AbstractLibrary)::Int
+    bump_library_decode_version!()
     @info "Unpacking Functions"
     if length(library.library) > 0
         @warn "Library had functions in the library. Those will be replaced after bundle unpack"

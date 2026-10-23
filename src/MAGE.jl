@@ -133,6 +133,7 @@ module MAGE
 
     # FN RELATED
     include("libraries/function.jl")
+    include("libraries/decode_version.jl")
     include("libraries/bundle.jl")
     include("libraries/exercise.jl")
     export exercise_library, image_library_examples
@@ -182,6 +183,8 @@ module MAGE
     # PROGRAMS
     include("programs/programs.jl")
     include("programs/decode.jl")
+    include("programs/node_decode_table.jl")
+    export NodeDecodeTable, node_decode_stats, clear!, library_decode_version, bump_library_decode_version!
     include("programs/free_decode.jl")
     include("programs/evaluate.jl")
     include("programs/compile/compile_program.jl")

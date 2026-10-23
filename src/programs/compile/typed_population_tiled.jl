@@ -166,6 +166,7 @@ end
 # ---------------------------------------------------------------------------
 
 function _evaluate_samples!(evaluator::TiledEvaluator, samples, outputs, step_values, individual_times)
+    Base.require_one_based_indexing(samples)
     tile = evaluator.tile
     for first_sample in 1:evaluator.batch_size:length(samples)
         tile.first_sample = first_sample
@@ -175,6 +176,27 @@ function _evaluate_samples!(evaluator::TiledEvaluator, samples, outputs, step_va
         end
         _record_tile_outputs!(outputs, evaluator, samples)
         _record_tile_times!(individual_times, evaluator)
+    end
+    return nothing
+end
+
+# Output-only evaluation needs one dynamic dispatch per step and tile. Do not
+# pass step_index through that dispatch: Julia boxes Int arguments outside its
+# small-integer cache, allocating once per step per tile even though the timing
+# and step-recording methods discard the index. Keep their general path above.
+function _evaluate_samples!(evaluator::TiledEvaluator, samples, outputs, ::Nothing, ::Nothing)
+    Base.require_one_based_indexing(samples)
+    tile = evaluator.tile
+    matrices = evaluator.matrices
+    steps = evaluator.steps
+    batch_size = evaluator.batch_size
+    for first_sample in 1:batch_size:length(samples)
+        tile.first_sample = first_sample
+        tile.n_samples = min(batch_size, length(samples) - first_sample + 1)
+        for step in steps
+            _run_on_tile!(step, matrices, samples, tile)
+        end
+        _record_tile_outputs!(outputs, evaluator, samples)
     end
     return nothing
 end
@@ -195,17 +217,21 @@ _samples_per_run(evaluator::TiledEvaluator) = evaluator.tile.n_samples
 
 function _run_on_tile!(step::TiledCall{F,C,B,N,T,Group}, matrices, samples, tile::Tile) where {F,C,B,N,T,Group}
     matrix = matrices[][Group]
+    # Only storage accesses are unchecked; the primitive retains its own bounds
+    # checks and exception/fallback semantics, including when it is inlined.
     for row in 1:tile.n_samples
-        sample = samples[tile.first_sample + row - 1]
-        args = ntuple(position -> _read(step.inputs[position], sample, matrices, row), Val(N))
-        matrix[row, step.column] = _call_tiled(step, args)
+        sample = @inbounds samples[tile.first_sample + row - 1]
+        args = ntuple(position -> (@inbounds _read(step.inputs[position], sample, matrices, row)), Val(N))
+        value = _call_tiled(step, args)
+        @inbounds matrix[row, step.column] = value
     end
     return nothing
 end
 
 function _run_on_tile!(step::TiledConstant{T,Group}, matrices, samples, tile::Tile) where {T,Group}
     matrix = matrices[][Group]
-    for row in 1:tile.n_samples
+    # References and sample types/shapes were checked before entering the engine.
+    @inbounds for row in 1:tile.n_samples
         matrix[row, step.column] = step.value
     end
     return nothing
@@ -221,11 +247,13 @@ end
     return value::T
 end
 
+# Internal storage only: graph references and tile/sample bounds are validated
+# before execution. Keep the primitive itself outside this unchecked helper.
 @inline function _read(ref::TileRef{Group,T}, sample, matrices, row) where {Group,T}
     if ref.from_input
-        return sample[ref.index]::T
+        return (@inbounds sample[ref.index])::T
     end
-    return matrices[][Group][row, ref.index]::T
+    return (@inbounds matrices[][Group][row, ref.index])::T
 end
 
 # ---------------------------------------------------------------------------
@@ -244,11 +272,18 @@ function _record_tile_outputs!(outputs::Tuple, evaluator::TiledEvaluator, sample
 end
 
 function _record_output_matrix!(matrix, refs, evaluator::TiledEvaluator, samples)
-    tile = evaluator.tile
-    for row in 1:tile.n_samples
-        sample_index = tile.first_sample + row - 1
+    Base.require_one_based_indexing(matrix)
+    # Snapshot the tile and storage once. In particular, load the sample outside
+    # the individual loop: eagerly reloading its tuple for every output dominated
+    # large populations, even when most references point to temporary values.
+    matrices = evaluator.matrices
+    first_sample = evaluator.tile.first_sample
+    n_samples = evaluator.tile.n_samples
+    @inbounds for row in 1:n_samples
+        sample_index = first_sample + row - 1
+        sample = samples[sample_index]
         for (individual, ref) in enumerate(refs)
-            matrix[individual, sample_index] = _read(ref, samples[sample_index], evaluator.matrices, row)
+            matrix[individual, sample_index] = _read(ref, sample, matrices, row)
         end
     end
     return nothing
@@ -262,7 +297,7 @@ const FloatTiledStep = Union{TiledCall{<:Any,<:Any,<:Any,<:Any,Float64},TiledCon
 
 function _record_step_column!(step_values::Matrix{Float64}, step::FloatTiledStep, step_index, evaluator::TiledEvaluator)
     tile = evaluator.tile
-    for row in 1:tile.n_samples
+    @inbounds for row in 1:tile.n_samples
         step_values[step_index, tile.first_sample + row - 1] = _step_value(step, evaluator.matrices, row)
     end
     return nothing
