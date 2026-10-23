@@ -225,32 +225,51 @@ function _mae(a, b, mask)
 end
 
 """
-Pearson correlation over the compared pixels; `0` when fewer than two or when either image is flat.
+Pearson correlation over the compared pixels, using centered sums.
 
-`1` when `b` is a brightened or contrast-stretched copy of `a` (`b = α a + β`,
-`α > 0`), `−1` for an inverted copy, near `0` for unrelated images.
+Equal selected values return `1.0`, including constant images and a single
+selected sample. An empty selection returns `0.0`. Otherwise, if either
+selected image is constant, return `0.0` (Pearson is undefined there).
+For nonconstant images, positive affine copies correlate at `1`, inverted
+copies at `−1`, and unrelated images usually near `0`.
 """
 function _correlation(a, b, mask)
     _check_same_size(a, b)
     n = 0
-    sum_a = sum_b = sum_aa = sum_bb = sum_ab = 0.0       # Σa, Σb, Σa², Σb², Σab
+    origin_a = origin_b = 0.0
+    sum_a = sum_b = 0.0
+    equal = true
+    flat_a = flat_b = true
     @inbounds for i in eachindex(a)
         _compared(mask, i) || continue
-        x = pixel_value(a[i])
-        y = pixel_value(b[i])
+        x = Float64(pixel_value(a[i]))
+        y = Float64(pixel_value(b[i]))
+        if n == 0
+            origin_a, origin_b = x, y
+        end
         n += 1
-        sum_a += x
-        sum_b += y
-        sum_aa += x * x
-        sum_bb += y * y
-        sum_ab += x * y
+        equal &= x == y
+        flat_a &= x == origin_a
+        flat_b &= y == origin_b
+        # Subtract an observed value before summing to avoid cancellation
+        # from a large common intensity offset.
+        sum_a += x - origin_a
+        sum_b += y - origin_b
     end
-    n < 2 && return 0.0
-    # n × variance and n × covariance (the n cancels in the ratio).
-    var_a = sum_aa - sum_a * sum_a / n
-    var_b = sum_bb - sum_b * sum_b / n
-    (var_a <= 1e-12 || var_b <= 1e-12) && return 0.0     # a flat image correlates with nothing
-    return clamp((sum_ab - sum_a * sum_b / n) / sqrt(var_a * var_b), -1.0, 1.0)
+    n == 0 && return 0.0
+    equal && return 1.0
+    (flat_a || flat_b) && return 0.0
+    mean_a, mean_b = sum_a / n, sum_b / n
+    var_a = var_b = covariance = 0.0
+    @inbounds for i in eachindex(a)
+        _compared(mask, i) || continue
+        x = (Float64(pixel_value(a[i])) - origin_a) - mean_a
+        y = (Float64(pixel_value(b[i])) - origin_b) - mean_b
+        var_a += x * x
+        var_b += y * y
+        covariance += x * y
+    end
+    return clamp(covariance / (sqrt(var_a) * sqrt(var_b)), -1.0, 1.0)
 end
 
 """
@@ -299,13 +318,38 @@ end
 const _HIST_BIN_N0F8 = ntuple(k -> _hist_bin(Float64(reinterpret(N0f8, UInt8(k - 1)))), 256)
 @inline _hist_bin(p::IntensityPixel{N0f8}) = @inbounds _HIST_BIN_N0F8[Int(reinterpret(p.pixel)) + 1]
 
-"Normalised 32-bin value histogram (sums to `1`)."
-function _histogram(pixels)
-    counts = zeros(Int, _HIST_BINS)
+"Fill a 32-bin probability histogram, overwriting both buffers on every call."
+function _histogram!(probabilities::Vector{Float64}, counts::Vector{Int}, pixels)
+    fill!(counts, 0)
     @inbounds for p in pixels
         counts[_hist_bin(p)] += 1
     end
-    return counts ./ length(pixels)
+    probabilities .= counts ./ length(pixels)
+    return probabilities
+end
+
+"Normalised 32-bin value histogram with independently owned storage."
+_histogram(pixels) = _histogram!(Vector{Float64}(undef, _HIST_BINS),
+    Vector{Int}(undef, _HIST_BINS), pixels)
+
+"""
+Two task-local probability histograms and a contribution buffer.
+
+All five arrays have fixed size, independent of the image dimensions. Distinct
+slots keep both histograms alive until the scalar reduction finishes. Callers
+must consume them before another histogram comparison in the same task; these
+buffers must never be returned as public results. Other tasks have their own
+scratch pool. Every buffer is fully overwritten before use.
+"""
+function _histogram_pair(a, b)
+    counts_a = scratch(:similarity_hist_counts_a, Int, _HIST_BINS)
+    counts_b = scratch(:similarity_hist_counts_b, Int, _HIST_BINS)
+    probabilities_a = scratch(:similarity_hist_probabilities_a, Float64, _HIST_BINS)
+    probabilities_b = scratch(:similarity_hist_probabilities_b, Float64, _HIST_BINS)
+    contributions = scratch(:similarity_hist_contributions, Float64, _HIST_BINS)
+    _histogram!(probabilities_a, counts_a, a)
+    _histogram!(probabilities_b, counts_b, b)
+    return probabilities_a, probabilities_b, contributions
 end
 
 """
@@ -314,9 +358,18 @@ end
 Position-free: an image and a shuffled copy of its pixels score `1`.
 Example: histograms `[0.5, 0.5, 0]` and `[0.5, 0, 0.5]` → `0.5`.
 """
-_hist_intersection(a, b) = sum(min.(_histogram(a), _histogram(b)))
+function _hist_intersection(a, b)
+    probabilities_a, probabilities_b, contributions = _histogram_pair(a, b)
+    contributions .= min.(probabilities_a, probabilities_b)
+    return sum(contributions)
+end
+
 "Bhattacharyya coefficient Σ sqrt(p·q) of the two histograms: `1` for identical distributions."
-_hist_bhattacharyya(a, b) = clamp(sum(sqrt.(_histogram(a) .* _histogram(b))), 0.0, 1.0)
+function _hist_bhattacharyya(a, b)
+    probabilities_a, probabilities_b, contributions = _histogram_pair(a, b)
+    contributions .= sqrt.(probabilities_a .* probabilities_b)
+    return clamp(sum(contributions), 0.0, 1.0)
+end
 
 "Whether a pixel is foreground (value at or above `threshold`; binary pixels are `0` or `1`)."
 @inline _is_fg(p, threshold) = pixel_value(p) >= threshold
@@ -404,36 +457,48 @@ function _chamfer(a, b, t)
 end
 
 """
-Best lag (in pixels) of `q` against `p` by cross-correlation of mean-removed profiles.
+Best lag (in pixels) of `q` against `p` by Pearson correlation over each overlap.
 
-The lag maximises the mean of `p[i] · q[i + lag]` over the overlapping part.
-Scores tied within `1e-12` prefer the smallest absolute lag; equally distant
-negative and positive lags prefer the negative one. Flat profiles return zero.
+Each lag uses the mean and energy of its overlapping samples. This avoids
+rewarding a shorter overlap's mean product, while accounting for cropped
+boundaries. At least half the profile overlaps. Scores tied within `1e-12`
+prefer the smallest absolute lag; equally distant negative and positive lags
+prefer the negative one. Flat profiles return zero; flat overlaps are skipped.
 Example: `p` peaks at index 3, `q` at index 5 → lag `+2` (q is p moved 2
-steps forward).
+steps forward). Repetitive or cropped shapes can still be ambiguous.
 """
 function _best_lag(p::Vector{Float64}, q::Vector{Float64})
     n = length(p)
     n <= 1 && return 0
-    # A constant profile contains no displacement information. Besides fixing
-    # the tie convention, this avoids the quadratic lag scan for empty masks,
-    # uniform frames and images constant along one axis.
+    # A constant profile contains no displacement information and does not
+    # need the quadratic lag scan.
     (allequal(p) || allequal(q)) && return 0
-    # Remove the means so a uniform brightness change does not dominate the products.
-    p = p .- sum(p) / n
-    q = q .- sum(q) / n
-    max_lag = n ÷ 2                                  # lags beyond half the length overlap too little
+    max_lag = n ÷ 2
     best_lag = 0
     best = -Inf
     for lag in -max_lag:max_lag
-        dot = 0.0
-        overlap = 0
-        @inbounds for i in max(1, 1 - lag):min(n, n - lag)
-            dot += p[i] * q[i+lag]
-            overlap += 1
+        lo, hi = max(1, 1 - lag), min(n, n - lag)
+        overlap = hi - lo + 1
+        overlap < 2 && continue
+        # Center relative to an observed sample first, so a large common
+        # brightness offset does not cancel out the small signal.
+        origin_p, origin_q = p[lo], q[lo + lag]
+        sum_p = sum_q = 0.0
+        @inbounds for i in lo:hi
+            sum_p += p[i] - origin_p
+            sum_q += q[i + lag] - origin_q
         end
-        overlap == 0 && continue
-        score = dot / overlap                        # mean product: comparable between lags of different overlap
+        mean_p, mean_q = sum_p / overlap, sum_q / overlap
+        energy_p = energy_q = dot = 0.0
+        @inbounds for i in lo:hi
+            x = (p[i] - origin_p) - mean_p
+            y = (q[i + lag] - origin_q) - mean_q
+            dot += x * y
+            energy_p += x * x
+            energy_q += y * y
+        end
+        (energy_p == 0.0 || energy_q == 0.0) && continue
+        score = clamp(dot / (sqrt(energy_p) * sqrt(energy_q)), -1.0, 1.0)
         if score > best + 1e-12 || (abs(score - best) <= 1e-12 && abs(lag) < abs(best_lag))
             best = score
             best_lag = lag
@@ -653,7 +718,7 @@ end
 for (name, kernel, what) in (
         (:sim_mse, :_mse, "Mean squared difference (0 = identical)."),
         (:sim_mae, :_mae, "Mean absolute difference (0 = identical)."),
-        (:sim_correlation, :_correlation, "Pearson correlation of pixel values, in [-1, 1]."),
+        (:sim_correlation, :_correlation, "Pearson correlation of pixel values, in [-1, 1]. Equal selected values return 1 (including constants); otherwise either image constant returns 0."),
     )
     for (A, B, parameters) in _PAIR_SIGNATURES
         @eval $name(a::$A, b::$B, args...) where {$(parameters...)} =
@@ -747,6 +812,9 @@ for (name, axis, what) in ((:sim_shift_x, 1, "horizontal"), (:sim_shift_y, 2, "v
     cross-correlation of their $(axis == 1 ? "column" : "row") profiles, as a
     signed fraction of the image size in `[-0.5, 0.5]`. Planar: `a` and `b`
     are 2D images of the same height and width.
+    Each lag uses Pearson correlation over its overlap (at least half the
+    profile). Flat profiles return zero; ties prefer the smallest absolute
+    shift, then the negative shift. Cropped or repetitive shapes can be ambiguous.
     """)
 end
 
