@@ -978,3 +978,51 @@ function get_float_bundles_atari()
     return float_bundles
 end
 
+"""
+    get_ski_bundles(::Type{SkiVector{S}})
+
+Fresh basic, image-property and vector-transform bundles for a SkiVector
+chromosome, with identity and input-free one as the first two operators.
+"""
+function get_ski_bundles(::Type{V}) where {V<:SkiVector}
+    isconcretetype(V) || throw(ArgumentError("SkiVector size must be concrete"))
+    bundles = deepcopy.([bundle_ski_basic, bundle_ski_properties, bundle_ski_vector])
+    for b in bundles
+        update_fallback!(b, () -> V())
+    end
+    for (i, value) in ((2, 1.0), (3, 2.0), (4, nothing))
+        old = bundles[1].functions[i]
+        fn = ski.constant_factory(V, value)
+        bundles[1].functions[i] = FunctionWrapper(
+            fn, old.name, old.caster, old.fallback; description = old.description,
+        )
+    end
+    bundles
+end
+
+"""
+    get_extension_ski_float()
+
+Fresh opt-in SkiVector → Float64 reduction bundle. This extension is not part
+of `get_float_bundles()`; it retains the usual float caster and fallback.
+"""
+function get_extension_ski_float()
+    b = deepcopy(bundle_float_ski)
+    update_caster!(b, float_caster)
+    update_fallback!(b, () -> 0.0)
+    [b]
+end
+
+"""
+    get_extension_ski_binaryimg()
+
+Fresh property-driven object and bbox selection factories for binary outputs.
+"""
+get_extension_ski_binaryimg() = [deepcopy(bundle_image2DBinary_ski_factory)]
+
+"""
+    get_extension_ski_intensityimg()
+
+Fresh property-driven object and bbox selection factories for masked intensity outputs.
+"""
+get_extension_ski_intensityimg() = [deepcopy(bundle_image2DIntensity_ski_factory)]

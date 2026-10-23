@@ -3,6 +3,11 @@ using Markdown
 
 # Where each bundle's docstring is rendered.
 groups = [
+    ("Ski region properties", [
+        ("ski", ["bundle_ski_basic", "bundle_ski_properties", "bundle_ski_vector",
+            "bundle_float_ski", "bundle_image2DBinary_ski_factory",
+            "bundle_image2DIntensity_ski_factory"]),
+    ]),
     ("Elements and booleans", [
         ("bool", ["bundle_bool_basic"]),
         ("element", ["bundle_element_pick", "bundle_element_conditional",
@@ -162,6 +167,7 @@ const BUNDLE_OUTPUT_GROUPS = [
         r"^(?:(experimental_)?bundle_float_|bundle_number_(coordinatesFromImg|relativeCoordinatesFromImg|regionFromImg|haarFromImg|locateFromImg|objectLocateFromImg|objectDescribeFromImg|decision|motion|similarityFromImg|similarityNDFromImg|similarity2DFromImg|templateFromImg|intensityStatsFromImg|shapeFromImg|objectStatsFromImg|granulometryFromImg|volumeShapeFromImg|volumeGranulometryFromImg|volumeProfileFromImg)$)",
     "Int" => r"^bundle_integer_",
     "String" => r"^bundle_string_",
+    "SkiVector (per-object scalar properties)" => r"^bundle_ski_",
     "Vector{T}" => r"^bundle_listgeneric_",
     "Vector{<:Number}" => r"^bundle_listnumber_",
     "Vector{Int}" => r"^bundle_listinteger_",

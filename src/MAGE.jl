@@ -714,6 +714,17 @@ module MAGE
     export new_graphmage_graph, add_node!, get_node, all_node_labels, add_edge_checked!
     export best_train_node_label
 
+    # Ski region properties
+    include("libraries/ski/types.jl")
+    include("libraries/ski/kernels.jl")
+    using .ski: bundle_ski_basic, bundle_ski_properties, bundle_ski_vector,
+        bundle_float_ski, bundle_image2DBinary_ski_factory,
+        bundle_image2DIntensity_ski_factory
+    export SkiRegions, SkiVector, bundle_ski_basic, bundle_ski_properties, bundle_ski_vector,
+        bundle_float_ski, bundle_image2DBinary_ski_factory,
+        bundle_image2DIntensity_ski_factory
+    export get_ski_bundles, get_extension_ski_binaryimg, get_extension_ski_intensityimg, get_extension_ski_float
+
     # PRE MADE BUNDLES
     include("libraries/pre_made_libraries.jl")
     export get_extension_nb, get_image_scalar_bundles

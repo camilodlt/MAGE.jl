@@ -75,6 +75,7 @@ makedocs(;
             "3D Volumes: CT, MRI and Microscopy" => "libraries/volumes.md",
             "3D Volumes: Projections and Descriptors" => "libraries/volumes_projections.md",
             "Vector Generic Lib" => "libraries/list_generic.md",
+            "Ski Region Properties" => "libraries/ski.md",
             "Vector Number Lib" => "libraries/list_number.md",
             "Vector Integer Lib" => "libraries/list_integer.md",
             "Vector String Lib" => "libraries/list_string.md",
