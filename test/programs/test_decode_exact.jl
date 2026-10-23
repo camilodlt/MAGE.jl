@@ -1,37 +1,7 @@
 using Test, Random, MAGE
 # Frozen 4fc78de implementation, independent recursion and entry points.
 Base.include(MAGE, joinpath(@__DIR__, "fixtures/decode_baseline.jl"))
-function cache_fixture(; typed=false, n=100)
-    types = typed ? [Float64, Int] : [Float64]
-    arch = modelArchitecture(typed ? [Float64, Int] : [Float64, Float64], [1, typed ? 2 : 1], types,
-        typed ? [Float64, Int, Float64] : [Float64, Float64], typed ? [1,2,1] : [1,1])
-    bundles = deepcopy.([bundle_float_basic, bundle_number_arithmetic])
-    update_caster!.(bundles, float_caster)
-    update_fallback!.(bundles, ()->0.0)
-    libs = [Library(bundles)]
-    if typed
-        ib = deepcopy.([bundle_integer_basic, bundle_number_arithmetic])
-        update_caster!.(ib, integer_caster)
-        update_fallback!.(ib, ()->0)
-        push!(libs, Library(ib))
-    end
-    ml = MetaLibrary(libs)
-    shared, genome = make_evolvable_utgenome(arch, ml, nodeConfig(n,1,2,2))
-    initialize_genome!(genome)
-    # A guaranteed two-node active chain, with the rest randomly initialized.
-    for row in eachindex(types)
-        genome[row][1][1].value = 1
-        genome[row][1][2].value = row
-        genome[row][2][1].value = 1
-        genome[row][2][2].value = 3
-        genome[row][2][3].value = row
-    end
-    for output in genome.output_nodes
-        output[2].value = 4
-    end
-    correct_all_nodes!(genome,arch,ml,shared)
-    return (; arch, ml, shared, genome)
-end
+include(joinpath(@__DIR__, "fixtures/decode_helpers.jl"))
 
 function mutate_exact_fixture!(f)
     for chromosome in f.genome.genomes, node in chromosome.chromosome
@@ -48,9 +18,12 @@ function mutate_exact_fixture!(f)
     correct_all_nodes!(f.genome, f.arch, f.ml, f.shared)
 end
 
-function decode_exact_check(genome, ml, arch, shared)
-    old=MAGE.baseline_decode_with_output_nodes(genome,ml,arch,shared)
-    new=MAGE.decode_with_output_nodes(genome,ml,arch,shared)
+decode_exact_pair(genome, ml, arch, shared) =
+    (MAGE.baseline_decode_with_output_nodes(genome,ml,arch,shared),
+     MAGE.decode_with_output_nodes(genome,ml,arch,shared))
+decode_exact_check(genome, ml, arch, shared) =
+    decode_exact_compare(decode_exact_pair(genome, ml, arch, shared)..., ml, arch, shared)
+function decode_exact_compare(old, new, ml, arch, shared)
     @test length(old)==length(new)
     vectors=[o.inputs for p in new for o in p]
     @test length(unique(objectid.(vectors))) == length(vectors)
@@ -154,30 +127,29 @@ try
     @testset "Concurrent decodes use independent metadata" begin
         f = cache_fixture(; typed=true, n=25)
         # Same read-only genome/library across tasks, then independent mutated genomes.
+        # Tasks only decode; results are compared on this task, since recording
+        # into a testset from several tasks is not thread-safe.
         jobs = map(1:8) do task
             Threads.@spawn begin
-                # Test's parent stack is task-local. Collect each task's results
-                # and attach them on the parent task so the suite counts them.
-                results = Test.DefaultTestSet("decode task $task")
-                Test.push_testset(results)
-                try
-                    for rep in 1:5
-                        decode_exact_check(f.genome, f.ml, f.arch, f.shared)
-                    end
-                    local_f = deepcopy(f)
-                    Random.seed!(900 + task)
-                    for rep in 1:5
-                        mutate_exact_fixture!(local_f)
-                        decode_exact_check(local_f.genome, local_f.ml, local_f.arch, local_f.shared)
-                    end
-                finally
-                    Test.pop_testset()
+                decoded = []
+                for rep in 1:5
+                    push!(decoded, (decode_exact_pair(f.genome, f.ml, f.arch, f.shared)..., f))
                 end
-                results
+                Random.seed!(900 + task)
+                for rep in 1:5
+                    # A fresh copy per decode: later mutations must not touch
+                    # the nodes that earlier programs reference.
+                    local_f = deepcopy(f)
+                    for _ in 1:rep
+                        mutate_exact_fixture!(local_f)
+                    end
+                    push!(decoded, (decode_exact_pair(local_f.genome, local_f.ml, local_f.arch, local_f.shared)..., local_f))
+                end
+                decoded
             end
         end
-        for job in jobs
-            Test.finish(fetch(job))
+        for job in jobs, (old, new, g) in fetch(job)
+            decode_exact_compare(old, new, g.ml, g.arch, g.shared)
         end
     end
     # Explicit exponential duplicate paths.

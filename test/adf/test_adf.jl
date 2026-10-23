@@ -1,22 +1,4 @@
-function _install_deterministic_adf()
-    genome, model_arch, ml, inputs, nc = _deterministic_program()
-    registry = ADFRegistry()
-    slots = extend_fn_lib_adf!(ml[1], registry, Int, 2; fallback = () -> 0)
-    replace_adf_slot!(registry, slots[1].slot_id, genome, inputs, model_arch, ml; name = :adf_sum_div)
-    return (; genome, model_arch, ml, inputs, registry, slots)
-end
-
-function _adf_calling_genome(adf_fn_index::Int)
-    genome, model_arch, ml, inputs, nc = _deterministic_program()
-
-    genome[1][1][1].value = adf_fn_index
-    genome[1][1][2].value = 1
-    genome[1][1][4].value = 2
-    genome.output_nodes[1][1].value = 1
-    genome.output_nodes[1][2].value = 3
-
-    return genome, model_arch, inputs
-end
+include(joinpath(@__DIR__, "../programs/fixtures/decode_helpers.jl"))
 
 function _single_output_tuple(genome, model_arch, ml, inputs, values...)
     decoded = MAGE.decode_with_output_nodes(genome, ml, model_arch, inputs)

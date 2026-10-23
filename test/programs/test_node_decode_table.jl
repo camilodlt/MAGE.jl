@@ -1,4 +1,5 @@
 using Test, Random, MAGE
+include(joinpath(@__DIR__, "fixtures/decode_helpers.jl"))
 
 # Same Operations (function, calling node, input objects and types) in the same order.
 function node_table_same(a, b)
@@ -136,6 +137,40 @@ try
         copy_node[2].value = copy_node[2].value == 1 ? 2 : 1
         @test MAGE._node_recipe_key(table, copy_node, 1) != key
         node_table_exact(merge(f, (genome = g,)), table)
+    end
+
+    @testset "context changes and malformed cache hits" begin
+        g = cache_fixture(; n = 5)
+        table = NodeDecodeTable(g.arch, g.genome)
+        node_table_exact(g, table)
+        # A distinct library with identical genes and no intervening version bump
+        # is caught on the first hit; after a bump the table decodes exactly.
+        other_ml = deepcopy(g.ml)
+        @test_throws ErrorException MAGE.decode_with_output_nodes(g.genome, other_ml, g.arch, g.shared; node_table = table)
+        MAGE.bump_library_decode_version!()
+        node_table_exact(merge(g, (ml = other_ml,)), table)
+        # Direct vector replacement bypasses mutator hooks: caught the same way.
+        other_ml[1].library[1] = deepcopy(other_ml[1].library[1])
+        @test_throws ErrorException MAGE.decode_with_output_nodes(g.genome, other_ml, g.arch, g.shared; node_table = table)
+        MAGE.bump_library_decode_version!()
+        node_table_exact(g, table)
+        # The architecture object is unchanged while its input type vector changes.
+        g.arch.inputs_types[1] = Int
+        @test_throws ErrorException MAGE.decode_with_output_nodes(g.genome, g.ml, g.arch, g.shared)
+        @test_throws ArgumentError MAGE.decode_with_output_nodes(g.genome, g.ml, g.arch, g.shared; node_table = table)
+        g.arch.inputs_types[1] = Float64
+        # Chromosome offsets belong to the genome, not to the architecture.
+        shifted = deepcopy(g.genome)
+        shifted.genomes[1] = MAGE.SingleGenome(3, shifted.genomes[1].chromosome)
+        @test_throws ArgumentError MAGE.decode_with_output_nodes(shifted, g.ml, g.arch, g.shared; node_table = table)
+        material = g.genome.output_nodes[1].node_material.material
+        type_index = findfirst(e -> e.element_type == MAGE.TYPE, material)
+        push!(material, deepcopy(material[type_index]))
+        @test_throws AssertionError MAGE.decode_with_output_nodes(g.genome, g.ml, g.arch, g.shared)
+        @test_throws AssertionError MAGE.decode_with_output_nodes(g.genome, g.ml, g.arch, g.shared; node_table = table)
+        bounded = NodeDecodeTable(f.arch, f.genome; shards = 4, capacity = 3)
+        node_table_exact(f, bounded)
+        @test node_decode_stats(bounded).size <= 3
     end
 
     @testset "library edits invalidate recipes" begin

@@ -10,11 +10,15 @@
 # A hit then only has to bind the recipe to the current individual's own nodes,
 # because an `Operation` must reference the nodes of the genome being decoded.
 #
-# Correctness relies on two invariants of MAGE genomes:
-#   1. a node's `y_position` is the index of its chromosome (its type), so the
-#      type of an input node is given by the TYPE gene that points to it;
-#   2. all genomes decoded with one table share one `modelArchitecture`, hence the
-#      same input types, chromosome types and chromosome starting points.
+# Correctness relies on three invariants, each checked cheaply:
+#   1. one table per `modelArchitecture`, whose input and chromosome types do not
+#      change (both checked on every decode);
+#   2. every genome decoded with a table has the chromosome starting points of the
+#      genome it was built from (checked once per decode);
+#   3. every library edit bumps the library version, which is part of the key. A
+#      forgotten bump is caught on a hit: the recipe's function must be the very
+#      wrapper the library now holds at that gene.
+# Library/method edits must happen between decodes.
 # PARAMETER genes are ignored, as in the default decoder.
 
 """
@@ -81,10 +85,14 @@ several threads at once. Pass it to `decode_with_output_nodes(...; node_table)`.
   architecture with this table throws an `ArgumentError`.
 - `genome` is any genome of the run, used to size the keys (largest arity).
 - `capacity` bounds the number of stored recipes; a shard that overflows its share
-  is emptied. Decoded programs never depend on what the table holds.
+  is emptied. Shares are rounded down, so capacity below the shard count disables
+  storage. Decoded programs never depend on what the table holds.
 """
 struct NodeDecodeTable{N}
     architecture::modelArchitecture
+    starting_points::Vector{Int}     # per chromosome, of the genome the table was built from
+    inputs_types::Vector{Any}        # snapshots of the architecture's types
+    chromosomes_types::Vector{Any}
     shards::Vector{_RecipeShard{N}}
     shard_capacity::Int
 end
@@ -93,7 +101,8 @@ function NodeDecodeTable(architecture::modelArchitecture, genome::UTGenome;
     shards > 0 || throw(ArgumentError("shards must be positive"))
     capacity >= 0 || throw(ArgumentError("capacity must be nonnegative"))
     N = _max_connections(genome)
-    NodeDecodeTable{N}(architecture, [_RecipeShard{N}() for _ in 1:shards], cld(Int(capacity), Int(shards)))
+    NodeDecodeTable{N}(architecture, _starting_points(genome),
+        collect(Any, architecture.inputs_types), collect(Any, architecture.chromosomes_types), [_RecipeShard{N}() for _ in 1:shards], fld(Int(capacity), Int(shards)))
 end
 
 """
@@ -126,6 +135,8 @@ end
 # Keys
 # ---------------------------------------------------------------------------
 
+_starting_points(genome::UTGenome) = [chromosome.starting_point for chromosome in genome.genomes]
+
 _count_connections(node) = count(e -> e.element_type == CONNEXION, node.node_material.material)
 
 function _max_connections(genome::UTGenome)
@@ -154,12 +165,13 @@ end
 """
     _node_recipe_key(table, node, type_idx)
 
-Reads the node's genes into a `NodeRecipeKey` without allocating. Connection `k`
+Reads the node's genes into a `NodeRecipeKey`. Connection `k`
 is paired with TYPE gene `k`, the same pairing as the default decoder.
 """
 function _node_recipe_key(::NodeDecodeTable{N}, node, type_idx::Int) where {N}
     material = node.node_material.material
     n_connections = count(e -> e.element_type == CONNEXION, material)
+    @assert n_connections == count(e -> e.element_type == TYPE, material)
     n_connections <= N || throw(ArgumentError(
         "node has $n_connections connections but the NodeDecodeTable was built for at most $N"))
     NodeRecipeKey{N}(
@@ -243,17 +255,29 @@ function _table_decode_operation(node, type_idx::Int, ml::MetaLibrary, arch::mod
     key = _node_recipe_key(table, node, type_idx)
     shard = _recipe_shard(table, key)
     recipe = _lookup_recipe(shard, key)
-    recipe === nothing || return _bind_recipe(recipe, node, genome)
+    if recipe !== nothing
+        recipe.fn === ml.libraries[type_idx][key.function_gene] || throw(ErrorException(
+            "stale NodeDecodeTable recipe: a library was edited without bump_library_decode_version!()"))
+        return _bind_recipe(recipe, node, genome)
+    end
 
     operation = _decode_operation(node, type_idx, ml, arch, genome, scratch)
     _store_recipe!(table, shard, key, _recipe_from_operation(operation, key, genome))
     operation
 end
 
-"""Throws unless `table` was built for `architecture` (one table per run)."""
-function _check_table_architecture(table::NodeDecodeTable, architecture::modelArchitecture)
+"""Throws unless `table` was built for `architecture`, whose types are unchanged,
+and for the chromosome starting points of `genome` (one table per run)."""
+function _check_table_architecture(table::NodeDecodeTable, architecture::modelArchitecture,
+        genome::UTGenome)
     table.architecture === architecture || throw(ArgumentError(
         "this NodeDecodeTable was built for another modelArchitecture; use one table per architecture"))
+    isequal(architecture.inputs_types, table.inputs_types) &&
+        isequal(architecture.chromosomes_types, table.chromosomes_types) ||
+        throw(ArgumentError("the modelArchitecture's types changed since the NodeDecodeTable was built"))
+    length(genome.genomes) == length(table.starting_points) &&
+        all(genome.genomes[i].starting_point == table.starting_points[i] for i in eachindex(table.starting_points)) ||
+        throw(ArgumentError("genome chromosome starting points differ from those the NodeDecodeTable was built for"))
     nothing
 end
-_check_table_architecture(::Nothing, ::modelArchitecture) = nothing
+_check_table_architecture(::Nothing, ::modelArchitecture, ::UTGenome) = nothing

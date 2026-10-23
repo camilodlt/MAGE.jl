@@ -371,7 +371,7 @@ function _decode_with_output_node(
         shared_inputs::SharedInput,
         scratch::_DecodeScratch,
     )::Program
-    _check_table_architecture(scratch.node_table, model_architecture)
+    _check_table_architecture(scratch.node_table, model_architecture, ut_genome)
     operations = Operation[]
     program = Program(operations, shared_inputs)
     _recursive_decode_cached!(
