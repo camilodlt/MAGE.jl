@@ -21,6 +21,13 @@ the October 2026 updates; it is not a complete record of earlier development.
 
 ### Added
 
+- Add size-typed `SkiVector{S}` region properties with owned `SkiRegions{S}`
+  geometry, per-element ids, and evaluator-pooled output buffers. Derived
+  vectors share geometry during an evaluation. Replace property-specific
+  image selectors with 16 object/bbox criteria per output bundle, supporting
+  explicit-image and referenced-image forms. Scalar reductions are opt-in via
+  `get_extension_ski_float()`; selectors require amounts except for extrema.
+
 - This changelog, including migration guidance for the package rename.
 - Regression checks for package identity and `MAGE_` environment configuration.
 
