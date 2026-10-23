@@ -256,14 +256,16 @@ end
 # tables, or mutable ADF slots are cached between calls or across tasks.
 # Operations are keyed by node identity, and nodes are mutated in place between
 # generations: a scratch must never outlive one decode of one genome, or it
-# returns stale operations. Only `decode_with_output_nodes` creates and shares
-# one, across the output nodes of a single genome.
-struct _DecodeScratch
+# returns stale operations. Only the public decoders create one, and
+# `decode_with_output_nodes` shares it across the output nodes of one genome.
+# The optional shared `NodeDecodeTable` holds recipes only, never individual nodes.
+struct _DecodeScratch{T}
     operations::IdDict{AbstractEvolvableNode,Operation}
     arities::Dict{Tuple{FunctionWrapper,Type},Int}
+    node_table::T
 end
-_DecodeScratch() = _DecodeScratch(IdDict{AbstractEvolvableNode,Operation}(),
-    Dict{Tuple{FunctionWrapper,Type},Int}())
+_DecodeScratch(node_table = nothing) = _DecodeScratch(IdDict{AbstractEvolvableNode,Operation}(),
+    Dict{Tuple{FunctionWrapper,Type},Int}(), node_table)
 
 function _decode_operation(node::AbstractEvolvableNode, type_idx::Int,
         ml::MetaLibrary, arch::modelArchitecture, genome::UTGenome,
@@ -311,7 +313,9 @@ function _recursive_decode_cached!(node::Union{CGPNode,OutputNode}, ml::MetaLibr
         genome::UTGenome, program::Program, scratch::_DecodeScratch)
     op = get(scratch.operations, node, nothing)
     if op === nothing
-        op = _decode_operation(node, type_idx, ml, arch, genome, scratch)
+        op = scratch.node_table === nothing ?
+            _decode_operation(node, type_idx, ml, arch, genome, scratch) :
+            _table_decode_operation(node, type_idx, ml, arch, genome, scratch.node_table, scratch)
         scratch.operations[node] = op
         push!(operations, op)
     else
@@ -338,7 +342,8 @@ _recursive_decode_cached!(::Union{InputNode,ConstantNode}, args...) = nothing
         output_node::OutputNode,
         meta_library::MetaLibrary,
         model_architecture::modelArchitecture,
-        shared_inputs::SharedInput,
+        shared_inputs::SharedInput;
+        node_table = nothing,
     )::Program
 
 Decodes a single program, that is, the sequence of `Operation`s needed to calculate the output value of a single output node.
@@ -351,10 +356,11 @@ function decode_with_output_node(
         output_node::OutputNode,
         meta_library::MetaLibrary,
         model_architecture::modelArchitecture,
-        shared_inputs::SharedInput,
+        shared_inputs::SharedInput;
+        node_table = nothing,
     )::Program
     return _decode_with_output_node(ut_genome, output_node, meta_library,
-        model_architecture, shared_inputs, _DecodeScratch())
+        model_architecture, shared_inputs, _DecodeScratch(node_table))
 end
 
 function _decode_with_output_node(
@@ -365,6 +371,7 @@ function _decode_with_output_node(
         shared_inputs::SharedInput,
         scratch::_DecodeScratch,
     )::Program
+    _check_table_architecture(scratch.node_table, model_architecture)
     operations = Operation[]
     program = Program(operations, shared_inputs)
     _recursive_decode_cached!(
@@ -387,7 +394,8 @@ end
         ut_genome::UTGenome,
         meta_library::MetaLibrary,
         model_architecture::modelArchitecture,
-        shared_inputs::SharedInput,
+        shared_inputs::SharedInput;
+        node_table = nothing,
     )::IndividualPrograms
 
 Decodes a program for each output node in the `ut_genome`.
@@ -399,11 +407,12 @@ function decode_with_output_nodes(
         ut_genome::UTGenome,
         meta_library::MetaLibrary,
         model_architecture::modelArchitecture,
-        shared_inputs::SharedInput,
+        shared_inputs::SharedInput;
+        node_table = nothing,
     )::IndividualPrograms
     output_nodes = ut_genome.output_nodes
     ind_progs = Program[]
-    scratch = _DecodeScratch()
+    scratch = _DecodeScratch(node_table)
     for output_node in output_nodes
         prog = _decode_with_output_node(
             ut_genome,
