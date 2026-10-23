@@ -21,10 +21,34 @@ the October 2026 updates; it is not a complete record of earlier development.
 
 ### Added
 
+- Add size-typed `SkiVector{S}` region properties with owned `SkiRegions{S}`
+  geometry, per-element ids, and evaluator-pooled output buffers. Derived
+  vectors share geometry during an evaluation. Replace property-specific
+  image selectors with 16 object/bbox criteria per output bundle, supporting
+  explicit-image and referenced-image forms. Scalar reductions are opt-in via
+  `get_extension_ski_float()`; selectors require amounts except for extrema.
+
 - This changelog, including migration guidance for the package rename.
 - Regression checks for package identity and `MAGE_` environment configuration.
 
+### Fixed
+
+- Score image shift candidates by Pearson correlation within each overlap.
+  Remove the changing-overlap mean-product bias that reported a one-pixel shift
+  for identical smooth Gaussian profiles. Preserve flat-profile and tie rules;
+  document boundary ambiguities and add smooth/translated profile regressions.
+
+- Make image correlation deterministic for equal and constant inputs: equal
+  selected values return `1.0`, unequal comparisons with either side constant
+  return `0.0`, and empty selections remain `0.0`. Use centered covariance and
+  variance sums to avoid cancellation and preserve low-contrast correlations.
+
 ### Performance
+
+- Reuse task-local 32-bin histogram, probability and contribution buffers for
+  `sim_hist_intersection` and `sim_hist_bhattacharyya`. Preserve the original
+  arithmetic and reduction order while removing warmed temporary allocations;
+  each task owns its buffers and each call fully overwrites them.
 
 - Stream image means using counts and sums instead of building the general
   intensity-statistics summary. `stat_mean`, `stat_mean_out` and

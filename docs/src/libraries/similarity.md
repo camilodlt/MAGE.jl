@@ -88,6 +88,37 @@ How to read them:
 | `sim_chamfer` | `0` = overlapping | mean distance between the two foregrounds over the image diagonal; grows smoothly as objects drift apart |
 | `sim_shift_x`, `sim_shift_y` | `[-0.5, 0.5]` | estimated translation of `b` relative to `a` (fraction of the size); `0.05` = the 6 px shift. Flat row or column profiles return zero along that axis. Otherwise only meaningful when `b` really is a moved copy of `a`: for the inverted frame or another rally the value is arbitrary, so pair it with `sim_correlation` |
 
+Histogram intersection and Bhattacharyya similarity reuse five fixed 32-bin
+buffers in the current task: two integer histograms, two probability vectors,
+and one vector of per-bin contributions. They allocate these buffers on first
+use and reuse them across image sizes and both operators. Every call clears
+the counts and overwrites the probabilities and contributions. Concurrent tasks
+have separate buffers. Bin definitions, probability arithmetic and the final
+`sum` reduction are unchanged; this reduces temporary allocations without
+changing the numerical result. No runtime speedup is claimed.
+
+Shift estimation compares the column profiles (`sim_shift_x`) or row profiles
+(`sim_shift_y`) at integer lags up to half their length. A positive horizontal
+shift means that a feature in `b` is to the right of its position in `a`;
+`5 / width` means five columns to the right. Each lag is scored by Pearson
+correlation using the mean and energy of **that overlap**, rather than its
+average product. This prevents smooth identical profiles from appearing shifted
+because edge samples drop out. Flat profiles return zero, and flat overlaps are
+skipped. Ties within `1e-12` prefer the smallest absolute shift, then the negative
+shift. Cropping, repetitive patterns and profiles with little structure can make
+the estimate ambiguous. The search remains quadratic in the profile length.
+Each candidate uses two passes over the overlap for stable centered sums; this
+costs more arithmetic than the old mean-product score. The lag search itself
+allocates no scratch vectors; the image-to-profile step still allocates profiles.
+
+`sim_correlation` returns exactly `1.0` when the compared values are equal,
+including constant images. If they differ and either image is constant, it
+returns `0.0`. These are explicit conventions where Pearson correlation is
+undefined. With a mask, only selected values determine equality and constancy;
+an empty selection returns `0.0`, and a single selected pair returns `1.0`
+if equal, otherwise `0.0`. Nonconstant comparisons use centered sums to avoid
+cancellation on nearly uniform images, without an absolute variance cutoff.
+
 `sim_mse`, `sim_mae` and `sim_correlation` take an optional binary mask as
 third argument and compare only the pixels inside it. Below, the mask covers
 the right half of the court. The ball is in the left half in both the

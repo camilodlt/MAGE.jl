@@ -74,7 +74,8 @@ BufferPool(graph::PopulationSequentialProgram) = BufferPool(_value_types(graph))
     _has_static_size(T) -> Bool
 
 Whether a value of type `T` can be allocated from its type alone. True for
-`SImageND` (see image_utils.jl); false otherwise, e.g. for vectors, whose length
+`SImageND` and size-typed `SkiVector` (whose owned label map has fixed size,
+while its value/id vectors grow and are reused); false otherwise, e.g. for vectors, whose length
 is not part of their type. Values of such types are not pooled: their functions
 are called without `out` and allocate as usual.
 """
