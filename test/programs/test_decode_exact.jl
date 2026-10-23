@@ -1,6 +1,6 @@
-using Test, Random, UTCGP
+using Test, Random, MAGE
 # Frozen 4fc78de implementation, independent recursion and entry points.
-Base.include(UTCGP, joinpath(@__DIR__, "../../validation/decode_baseline.jl"))
+Base.include(MAGE, joinpath(@__DIR__, "fixtures/decode_baseline.jl"))
 function cache_fixture(; typed=false, n=100)
     types = typed ? [Float64, Int] : [Float64]
     arch = modelArchitecture(typed ? [Float64, Int] : [Float64, Float64], [1, typed ? 2 : 1], types,
@@ -33,9 +33,24 @@ function cache_fixture(; typed=false, n=100)
     return (; arch, ml, shared, genome)
 end
 
+function mutate_exact_fixture!(f)
+    for chromosome in f.genome.genomes, node in chromosome.chromosome
+        MAGE._mutate_all_alleles!(node.node_material.material)
+    end
+    for output in f.genome.output_nodes
+        # Output identity wrappers require their declared chromosome type.
+        # correct_all_nodes! repairs CGP nodes, not output connections.
+        output[2].value = rand(3:length(f.genome[output.y_position]) + 2)
+        for element in extract_connexions_types_from_node(output)
+            element.value = output.y_position
+        end
+    end
+    correct_all_nodes!(f.genome, f.arch, f.ml, f.shared)
+end
+
 function decode_exact_check(genome, ml, arch, shared)
-    old=UTCGP.baseline_decode_with_output_nodes(genome,ml,arch,shared)
-    new=UTCGP.decode_with_output_nodes(genome,ml,arch,shared)
+    old=MAGE.baseline_decode_with_output_nodes(genome,ml,arch,shared)
+    new=MAGE.decode_with_output_nodes(genome,ml,arch,shared)
     @test length(old)==length(new)
     vectors=[o.inputs for p in new for o in p]
     @test length(unique(objectid.(vectors))) == length(vectors)
@@ -58,14 +73,15 @@ function decode_exact_check(genome, ml, arch, shared)
                 @test i.type === j.type
             end
         end
-        @test UTCGP.get_active_nodes(a)==UTCGP.get_active_nodes(b)
+        @test MAGE.get_active_nodes(a)==MAGE.get_active_nodes(b)
     end
-    @test UTCGP.get_active_nodes(old)==UTCGP.get_active_nodes(new)
-    a=UTCGP.compile_program(old,arch,ml); b=UTCGP.compile_program(new,arch,ml)
+    @test MAGE.get_active_nodes(old)==MAGE.get_active_nodes(new)
+    a=MAGE.compile_program(old,arch,ml); b=MAGE.compile_program(new,arch,ml)
     for name in (:node_to_tmp,:operation_order,:skipped_duplicates,:input_types,:output_types)
         hasfield(typeof(a),name) && @test getfield(a,name)==getfield(b,name)
     end
-    @test UTCGP.sequential_source(a)==UTCGP.sequential_source(b)
+    @test MAGE.sequential_source(a)==MAGE.sequential_source(b)
+    @test length(a.steps) == length(b.steps)
     # All IR fields, including keys and wrapper identity.
     for (x,y) in zip(a.steps,b.steps)
         @test typeof(x)===typeof(y)
@@ -90,6 +106,79 @@ try
             o[2].value=rand(3:n+2)
         end
         decode_exact_check(f.genome,f.ml,f.arch,f.shared)
+    end
+    @testset "Mutation, inactive nodes, and input-only outputs" begin
+        for typed in (false, true)
+            f = cache_fixture(; typed, n=8)
+            decode_exact_check(f.genome, f.ml, f.arch, f.shared)
+            for rep in 1:12
+                mutate_exact_fixture!(f)
+                decode_exact_check(f.genome, f.ml, f.arch, f.shared)
+            end
+            # Every output reads a shared input; malformed inactive nodes are ignored.
+            for o in f.genome.output_nodes
+                o[2].value = typed && o.y_position == 2 ? 2 : 1
+            end
+            f.genome[1][8][1].value = typemax(Int)
+            decode_exact_check(f.genome, f.ml, f.arch, f.shared)
+            empty!(f.genome.output_nodes)
+            @test isempty(MAGE.decode_with_output_nodes(f.genome, f.ml, f.arch, f.shared))
+            @test isempty(MAGE.baseline_decode_with_output_nodes(f.genome, f.ml, f.arch, f.shared))
+        end
+    end
+    @testset "Zero-arity active node" begin
+        f = cache_fixture(; n=5)
+        push!(f.ml[1].library, FunctionWrapper((args...) -> 3.0,
+            :exact_constant, nothing, () -> 0.0))
+        f.genome[1][1][1].value = length(f.ml[1])
+        for o in f.genome.output_nodes
+            o[2].value = 3
+        end
+        programs = decode_exact_check(f.genome, f.ml, f.arch, f.shared)
+        @test isempty(first(first(programs)).inputs)
+    end
+    @testset "Malformed active node rejects extra or missing types" begin
+        for extra in (false, true)
+            f = cache_fixture(; n=5)
+            material = f.genome.output_nodes[1].node_material.material
+            type_index = findfirst(e -> e.element_type == MAGE.TYPE, material)
+            if extra
+                push!(material, deepcopy(material[type_index]))
+            else
+                deleteat!(material, type_index)
+            end
+            @test_throws AssertionError MAGE.baseline_decode_with_output_nodes(f.genome, f.ml, f.arch, f.shared)
+            @test_throws AssertionError MAGE.decode_with_output_nodes(f.genome, f.ml, f.arch, f.shared)
+        end
+    end
+    @testset "Concurrent decodes use independent metadata" begin
+        f = cache_fixture(; typed=true, n=25)
+        # Same read-only genome/library across tasks, then independent mutated genomes.
+        jobs = map(1:8) do task
+            Threads.@spawn begin
+                # Test's parent stack is task-local. Collect each task's results
+                # and attach them on the parent task so the suite counts them.
+                results = Test.DefaultTestSet("decode task $task")
+                Test.push_testset(results)
+                try
+                    for rep in 1:5
+                        decode_exact_check(f.genome, f.ml, f.arch, f.shared)
+                    end
+                    local_f = deepcopy(f)
+                    Random.seed!(900 + task)
+                    for rep in 1:5
+                        mutate_exact_fixture!(local_f)
+                        decode_exact_check(local_f.genome, local_f.ml, local_f.arch, local_f.shared)
+                    end
+                finally
+                    Test.pop_testset()
+                end
+                results
+            end
+        end
+        for job in jobs
+            Test.finish(fetch(job))
+        end
     end
     # Explicit exponential duplicate paths.
     f=cache_fixture(;n=10)

@@ -127,6 +127,9 @@ end
 """
 Depth-first search (DFS)
 
+Legacy decoder, kept for reference. `decode_with_output_node(s)` now decode
+through `_recursive_decode_cached!`, which emits the same operations.
+
 Args:
     node (CGP_Node): _description_
     type_idx (int): _description_
@@ -153,52 +156,8 @@ function recursive_decode_node!(
         program.program_inputs,
         model_architecture,
     )
-    fn_name = fn.name
-    arg_types = tuple([op.type for op in inputs]...)
     arg_tuple_type = Tuple{([op.type for op in inputs]...)}
-
-    # check will function will be called
-    local m = nothing
-    try
-        m = which(fn.fn, arg_tuple_type)
-    catch err
-        declared_input_types = if hasfield(typeof(fn.fn), :input_types)
-            try
-                getfield(fn.fn, :input_types)
-            catch
-                nothing
-            end
-        else
-            nothing
-        end
-        declared_argument_names = if hasfield(typeof(fn.fn), :argument_names)
-            try
-                getfield(fn.fn, :argument_names)
-            catch
-                nothing
-            end
-        else
-            nothing
-        end
-        hasmethod_on_arg_types = try
-            Base.hasmethod(fn.fn, arg_tuple_type)
-        catch method_err
-            "ERROR: " * sprint(showerror, method_err)
-        end
-        available_methods = try
-            sprint(show, methods(fn.fn))
-        catch methods_err
-            "ERROR: " * sprint(showerror, methods_err)
-        end
-        @warn "Decode fallback: no matching method for node function" fn_name =
-            fn_name node_id = getfield(calling_node, :id) node_y_position =
-            getfield(calling_node, :y_position) arg_types = arg_types real_input_types =
-            [op.type for op in inputs] declared_argument_names =
-            declared_argument_names declared_input_types = declared_input_types hasmethod_on_arg_types =
-            hasmethod_on_arg_types error = sprint(showerror, err) available_methods =
-            available_methods
-        throw(err)
-    end
+    m = _decode_method(fn, arg_tuple_type, calling_node, inputs)
 
     n_used_inputs = m.nargs - 2 # - the fn - the varargs
     inputs = inputs[1:n_used_inputs]
@@ -240,9 +199,10 @@ The recursion is stopped at ConstantNode
 """
 function recursive_decode_node!(calling_node::ConstantNode, args...) end
 
-# Kept separate so the successful decode path does not compile the diagnostics.
+# The method `fn` dispatches to for these argument types; on a miss, logs the
+# diagnostics and rethrows. Shared by the legacy and the cached decoders.
 function _decode_method(fn::FunctionWrapper, arg_tuple_type::Type,
-        calling_node::AbstractEvolvableNode, inputs::Vector{OperationInput})
+        calling_node::AbstractEvolvableNode, inputs::AbstractVector)
     arg_types = tuple((op.type for op in inputs)...)
     fn_name = fn.name
 
@@ -294,6 +254,10 @@ end
 
 # All metadata is local to ONE decode. No parent Programs, genome state, method
 # tables, or mutable ADF slots are cached between calls or across tasks.
+# Operations are keyed by node identity, and nodes are mutated in place between
+# generations: a scratch must never outlive one decode of one genome, or it
+# returns stale operations. Only `decode_with_output_nodes` creates and shares
+# one, across the output nodes of a single genome.
 struct _DecodeScratch
     operations::IdDict{AbstractEvolvableNode,Operation}
     arities::Dict{Tuple{FunctionWrapper,Type},Int}
@@ -307,6 +271,8 @@ function _decode_operation(node::AbstractEvolvableNode, type_idx::Int,
     # Scan material in the same order as the public extraction functions,
     # without allocating their three filtered arrays.
     material = node.node_material.material
+    @assert count(e -> e.element_type == CONNEXION, material) ==
+        count(e -> e.element_type == TYPE, material)
     fn_index = findfirst(e -> e.element_type == FUNCTION, material)
     fn = ml.libraries[type_idx][material[fn_index].value]
     inputs = OperationInput[]
@@ -385,8 +351,19 @@ function decode_with_output_node(
         output_node::OutputNode,
         meta_library::MetaLibrary,
         model_architecture::modelArchitecture,
-        shared_inputs::SharedInput;
-        _scratch::_DecodeScratch = _DecodeScratch(),
+        shared_inputs::SharedInput,
+    )::Program
+    return _decode_with_output_node(ut_genome, output_node, meta_library,
+        model_architecture, shared_inputs, _DecodeScratch())
+end
+
+function _decode_with_output_node(
+        ut_genome::UTGenome,
+        output_node::OutputNode,
+        meta_library::MetaLibrary,
+        model_architecture::modelArchitecture,
+        shared_inputs::SharedInput,
+        scratch::_DecodeScratch,
     )::Program
     operations = Operation[]
     program = Program(operations, shared_inputs)
@@ -398,7 +375,7 @@ function decode_with_output_node(
         model_architecture,
         ut_genome,
         program,
-        _scratch,
+        scratch,
     )
     reverse!(program)
     return program
@@ -428,13 +405,13 @@ function decode_with_output_nodes(
     ind_progs = Program[]
     scratch = _DecodeScratch()
     for output_node in output_nodes
-        prog = decode_with_output_node(
+        prog = _decode_with_output_node(
             ut_genome,
             output_node,
             meta_library,
             model_architecture,
-            shared_inputs;
-            _scratch = scratch,
+            shared_inputs,
+            scratch,
         )
         push!(ind_progs, prog)
     end

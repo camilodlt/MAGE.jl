@@ -166,6 +166,7 @@ end
 # ---------------------------------------------------------------------------
 
 function _evaluate_samples!(evaluator::TiledEvaluator, samples, outputs, step_values, individual_times)
+    Base.require_one_based_indexing(samples)
     tile = evaluator.tile
     for first_sample in 1:evaluator.batch_size:length(samples)
         tile.first_sample = first_sample
@@ -184,6 +185,7 @@ end
 # small-integer cache, allocating once per step per tile even though the timing
 # and step-recording methods discard the index. Keep their general path above.
 function _evaluate_samples!(evaluator::TiledEvaluator, samples, outputs, ::Nothing, ::Nothing)
+    Base.require_one_based_indexing(samples)
     tile = evaluator.tile
     matrices = evaluator.matrices
     steps = evaluator.steps
@@ -270,6 +272,7 @@ function _record_tile_outputs!(outputs::Tuple, evaluator::TiledEvaluator, sample
 end
 
 function _record_output_matrix!(matrix, refs, evaluator::TiledEvaluator, samples)
+    Base.require_one_based_indexing(matrix)
     # Snapshot the tile and storage once. In particular, load the sample outside
     # the individual loop: eagerly reloading its tuple for every output dominated
     # large populations, even when most references point to temporary values.
