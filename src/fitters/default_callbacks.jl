@@ -892,3 +892,24 @@ function default_decoding_callback(population::Population, generation::Int,
     end
     return programs
 end
+
+"""
+    default_decoding_callback(population, generation, config, arch, nc, ml, shared, table::NodeDecodeTable)
+    default_decoding_callback(population, generation, config, arch, nc, ml, shared, table::NodeDecodeTable, cache::ActiveNodeCache)
+
+Opt-in shared metadata; optionally capture the existing ordered active-node cache.
+"""
+function default_decoding_callback(population::Population, generation::Int,
+        config::AbstractRunConf, arch::modelArchitecture, nc::nodeConfig,
+        ml::MetaLibrary, shared::SharedInput, table::NodeDecodeTable)
+    PopulationPrograms([decode_with_output_nodes(g,ml,arch,shared;node_table=table) for g in population])
+end
+function default_decoding_callback(population::Population, generation::Int,
+        config::AbstractRunConf, arch::modelArchitecture, nc::nodeConfig,
+        ml::MetaLibrary, shared::SharedInput, table::NodeDecodeTable, cache::ActiveNodeCache)
+    programs=default_decoding_callback(population,generation,config,arch,nc,ml,shared,table)
+    for i in 1:length(population)
+        capture_active_nodes!(cache[i],population[i],programs[i])
+    end
+    programs
+end

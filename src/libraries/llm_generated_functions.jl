@@ -2108,6 +2108,7 @@ function add_function_wrapper_to_library!(
         library::ModularLibrary,
         wrapper::FunctionWrapper,
     )::Int
+    bump_library_decode_version!()
     push!(library.library, wrapper)
     idx = length(library.library)
     library.name_to_index[wrapper.name] = idx
@@ -2118,6 +2119,7 @@ function add_function_wrapper_to_library!(
         library::AbstractLibrary,
         wrapper::FunctionWrapper,
     )::Int
+    bump_library_decode_version!()
     push!(library.library, wrapper)
     return length(library.library)
 end

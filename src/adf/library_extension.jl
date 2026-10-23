@@ -61,6 +61,7 @@ function extend_fn_lib_adf!(
     )::Vector{ADFSlotFunction}
     @assert how_many >= 0 "Cannot add a negative number of ADF slots"
 
+    bump_library_decode_version!()
     added_slots = ADFSlotFunction[]
     bundle = FunctionBundle(fallback)
 
@@ -112,6 +113,7 @@ function replace_adf_slot!(
     @assert length(program.outputs) == 1 "ADF slot replacement requires a single-output SequentialProgram"
     @assert length(program.input_types) >= 1 "ADF slot replacement requires at least one input"
 
+    bump_library_decode_version!()
     slot.name = name
     slot.input_types = DataType[program.input_types...]
     slot.output_type = program.output_types[1]
@@ -130,6 +132,7 @@ function update_adf_wrapper!(
         name::Symbol,
         program::SequentialProgram,
     )::FunctionWrapper
+    bump_library_decode_version!()
     wrapper.name = name
     wrapper.description = sequential_source(program)
     return wrapper

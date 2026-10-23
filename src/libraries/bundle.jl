@@ -121,6 +121,7 @@ function append_method!(
         fn::LikeFunction;
         description::AbstractString = "",
     )
+    bump_library_decode_version!()
     fn_wrapped = FunctionWrapper(fn, bundle.caster, bundle.fallback; description = description)
     return push!(bundle.functions, fn_wrapped)
 end
@@ -130,6 +131,7 @@ function append_method!(
         name::Symbol;
         description::AbstractString = "",
     )
+    bump_library_decode_version!()
     fn_wrapped =
         FunctionWrapper(fn, name, bundle.caster, bundle.fallback; description = description)
     return push!(bundle.functions, fn_wrapped)
@@ -157,6 +159,7 @@ in place, so `deepcopy` a shared bundle first.
 """
 function update_caster!(b::FunctionBundle, new_caster::Function)
     _validate_bundle(b)
+    bump_library_decode_version!()
     for fn in b.functions
         fn.caster = new_caster
     end
@@ -173,6 +176,7 @@ than killing the run. Mutates the bundle in place.
 """
 function update_fallback!(b::FunctionBundle, new_fallback::Function)
     _validate_bundle(b)
+    bump_library_decode_version!()
     for fn in b.functions
         fn.fallback = new_fallback
     end
