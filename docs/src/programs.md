@@ -43,6 +43,17 @@ it is, if it was built with [`correct_all_nodes!`](@ref) and mutated with
 resolves connexions without that assumption, and is what
 [`free_mutate!`](@ref) pairs with.
 
+### Shared node decode table
+
+A population mostly decodes children that share genes with their parents. An
+opt-in [`NodeDecodeTable`](@ref), passed as `node_table` to the decoders, keeps
+each node's decoded recipe so later nodes with the same genes reuse it.
+
+```@autodocs
+Modules = [MAGE]
+Pages = ["programs/node_decode_table.jl", "libraries/decode_version.jl"]
+```
+
 ## Evaluating
 
 ```@autodocs

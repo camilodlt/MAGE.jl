@@ -92,7 +92,9 @@ end
         brgb = SImageND(BinaryPixel.(rand(rng,Bool,16,16,3)))
         v = SImageND(IntensityPixel{storage}.(rand(rng,16,16,16)))
         bv = SImageND(BinaryPixel.(rand(rng,Bool,16,16,16)))
-        images = (i2,b2,s2,rgb,brgb,v,bv)
+        # Ski selectors take a region-property vector of the output size.
+        ski = MAGE.ski.ski_area(b2)
+        images = (i2,b2,s2,rgb,brgb,v,bv,ski)
         for (name,bundle) in bundles
             text = string(name)
             outputs = if occursin("image2DIntensity",text)
