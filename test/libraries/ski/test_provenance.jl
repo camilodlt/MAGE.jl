@@ -105,6 +105,7 @@ end
 function ski_graph(img; fork = false)
     I = typeof(img)
     V = SkiVector{MAGE._get_image_tuple_size(I)}
+    fallback = get_ski_bundles(V)[1][1].fallback
     graph = MAGE.PopulationSequentialProgram()
     graph.input_types = Type[I, I]
     graph.has_input_layout = true
@@ -122,10 +123,10 @@ function ski_graph(img; fork = false)
             ),
         )
     end
-    add(SK.ski_area, [input(1)], V, () -> V())
-    add(SK.ski_square, [ref(1, V)], V, () -> V())
+    add(SK.ski_area, [input(1)], V, fallback)
+    add(SK.ski_square, [ref(1, V)], V, fallback)
     if fork
-        add(SK.ski_area, [input(2)], V, () -> V())
+        add(SK.ski_area, [input(2)], V, fallback)
         selector = bundle_image2DBinary_ski_factory[:ski_keep_objects_max].fn(I)
         add(selector, [input(2), ref(2, V)], I, () -> img)
         add(ski_count_pixels, [ref(4, I)], Float64, () -> 0.0)
@@ -208,7 +209,7 @@ function reuse_graph(input_type, fn, V)
     first = MAGE.PopulationSequentialTmpRef(1, V)
     final = MAGE.PopulationSequentialTmpRef(2, Float64)
     for (op, refs, T, fallback) in
-        ((fn, [input], V, () -> V()), (SK.ski_sum, [first], Float64, () -> 0.0))
+        ((fn, [input], V, get_ski_bundles(V)[1][1].fallback), (SK.ski_sum, [first], Float64, () -> 0.0))
         wrapper = MAGE.FunctionWrapper(op, nameof(op), nothing, fallback)
         push!(
             g.steps,
