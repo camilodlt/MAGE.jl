@@ -978,6 +978,10 @@ function get_float_bundles_atari()
     return float_bundles
 end
 
+# Encode the constructor in the callable type for inference on Julia 1.11.
+struct _SkiFallback{V<:SkiVector} <: Function end
+(::_SkiFallback{V})() where {V} = V()::V
+
 """
     get_ski_bundles(::Type{SkiVector{S}})
 
@@ -988,7 +992,7 @@ function get_ski_bundles(::Type{V}) where {V<:SkiVector}
     isconcretetype(V) || throw(ArgumentError("SkiVector size must be concrete"))
     bundles = deepcopy.([bundle_ski_basic, bundle_ski_properties, bundle_ski_vector])
     for b in bundles
-        update_fallback!(b, () -> V())
+        update_fallback!(b, _SkiFallback{V}())
     end
     for (i, value) in ((2, 1.0), (3, 2.0), (4, nothing))
         old = bundles[1].functions[i]

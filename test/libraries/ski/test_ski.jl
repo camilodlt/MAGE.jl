@@ -90,6 +90,9 @@ end
         end
     end
     bs = get_ski_bundles(V)
+    for b in bs
+        @test Core.Compiler.return_type(b[1].fallback, Tuple{}) === V
+    end
     @test bs[1][1].name === :ski_identity
     @test bs[1][2].name === :ski_one
     @test Base.invokelatest(bs[1][2].fn) isa V
